@@ -43,46 +43,63 @@ memserver console                       # Starts a MemServer console in node.js 
 );
 
 test.serial("$ memserver init | sets up the initial folder structure", async (t) => {
-  t.plan(6);
+  t.plan(7);
 
   t.true(!fs.pathExistsSync(`${CWD}/memserver`));
 
   const expectedOutput =
-    "[MemServer CLI] /memserver/server.js created\n" +
-    "[MemServer CLI] /memserver/initializer.js created\n" +
+    "[MemServer CLI] /memserver/index.ts created\n" +
+    "[MemServer CLI] /memserver/routes.ts created\n" +
+    "[MemServer CLI] /memserver/initializer.ts created\n" +
     "[MemServer CLI] /memserver/fixtures folder created\n" +
     "[MemServer CLI] /memserver/models folder created\n";
 
   const { stdout } = await shell(`node ${CWD}/dist/cli.js init`);
 
+  console.log(stdout);
+
   t.is(stdout, expectedOutput);
 
   const [
-    serverBuffer,
+    indexBuffer,
+    routesBuffer,
     initializerBuffer,
     fixturesFolderExistence,
     modelsFolderExists
   ] = await Promise.all([
-    fs.readFile(`${CWD}/memserver/server.js`),
-    fs.readFile(`${CWD}/memserver/initializer.js`),
+    fs.readFile(`${CWD}/memserver/index.ts`),
+    fs.readFile(`${CWD}/memserver/routes.ts`),
+    fs.readFile(`${CWD}/memserver/initializer.ts`),
     fs.pathExists(`${CWD}/memserver/fixtures`),
     fs.pathExists(`${CWD}/memserver/models`)
   ]);
 
-  t.is(serverBuffer.toString(), "export default function(Models) {\n}");
-  t.is(initializerBuffer.toString(), "export default function(Models) {\n}");
+  const [
+    targetIndexFileBuffer,
+    targetRoutesFileBuffer,
+    targetInitializerBuffer
+  ] = await Promise.all([
+    fs.readFile(`${CWD}/memserver-boilerplate/index.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/routes.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`),
+  ]);
+
+  t.is(indexBuffer.toString(), targetIndexFileBuffer.toString());
+  t.is(routesBuffer.toString(), targetRoutesFileBuffer.toString());
+  t.is(initializerBuffer.toString(), targetInitializerBuffer.toString());
   t.true(fixturesFolderExistence);
   t.true(modelsFolderExists);
 });
 
 test.serial("$ memserver new | sets up the initial folder structure", async (t) => {
-  t.plan(6);
+  t.plan(7);
 
   t.true(!fs.pathExistsSync(`${CWD}/memserver`));
 
   const expectedOutput =
-    "[MemServer CLI] /memserver/server.js created\n" +
-    "[MemServer CLI] /memserver/initializer.js created\n" +
+    "[MemServer CLI] /memserver/index.ts created\n" +
+    "[MemServer CLI] /memserver/routes.ts created\n" +
+    "[MemServer CLI] /memserver/initializer.ts created\n" +
     "[MemServer CLI] /memserver/fixtures folder created\n" +
     "[MemServer CLI] /memserver/models folder created\n";
 
@@ -91,19 +108,32 @@ test.serial("$ memserver new | sets up the initial folder structure", async (t) 
   t.is(stdout, expectedOutput);
 
   const [
-    serverBuffer,
+    indexBuffer,
+    routesBuffer,
     initializerBuffer,
     fixturesFolderExistence,
     modelsFolderExists
   ] = await Promise.all([
-    fs.readFile(`${CWD}/memserver/server.js`),
-    fs.readFile(`${CWD}/memserver/initializer.js`),
+    fs.readFile(`${CWD}/memserver/index.ts`),
+    fs.readFile(`${CWD}/memserver/routes.ts`),
+    fs.readFile(`${CWD}/memserver/initializer.ts`),
     fs.pathExists(`${CWD}/memserver/fixtures`),
     fs.pathExists(`${CWD}/memserver/models`)
   ]);
 
-  t.is(serverBuffer.toString(), "export default function(Models) {\n}");
-  t.is(initializerBuffer.toString(), "export default function(Models) {\n}");
+  const [
+    targetIndexFileBuffer,
+    targetRoutesFileBuffer,
+    targetInitializerBuffer
+  ] = await Promise.all([
+    fs.readFile(`${CWD}/memserver-boilerplate/index.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/routes.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`),
+  ]);
+
+  t.is(indexBuffer.toString(), targetIndexFileBuffer.toString());
+  t.is(routesBuffer.toString(), targetRoutesFileBuffer.toString());
+  t.is(initializerBuffer.toString(), targetInitializerBuffer.toString());
   t.true(fixturesFolderExistence);
   t.true(modelsFolderExists);
 });
