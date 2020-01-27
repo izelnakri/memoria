@@ -1,0 +1,4 @@
+wire @ember/string from ember-source through typescript || use inflected
+through embroider create a local ember-packages and wire them to memserver with right module names
+
+JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and better/flawless ava API(test.serial, test etc)
