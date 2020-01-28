@@ -56,8 +56,6 @@ test.serial("$ memserver init | sets up the initial folder structure", async (t)
 
   const { stdout } = await shell(`node ${CWD}/dist/cli.js init`);
 
-  console.log(stdout);
-
   t.is(stdout, expectedOutput);
 
   const [
@@ -81,7 +79,7 @@ test.serial("$ memserver init | sets up the initial folder structure", async (t)
   ] = await Promise.all([
     fs.readFile(`${CWD}/memserver-boilerplate/index.ts`),
     fs.readFile(`${CWD}/memserver-boilerplate/routes.ts`),
-    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`)
   ]);
 
   t.is(indexBuffer.toString(), targetIndexFileBuffer.toString());
@@ -128,7 +126,7 @@ test.serial("$ memserver new | sets up the initial folder structure", async (t) 
   ] = await Promise.all([
     fs.readFile(`${CWD}/memserver-boilerplate/index.ts`),
     fs.readFile(`${CWD}/memserver-boilerplate/routes.ts`),
-    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`),
+    fs.readFile(`${CWD}/memserver-boilerplate/initializer.ts`)
   ]);
 
   t.is(indexBuffer.toString(), targetIndexFileBuffer.toString());

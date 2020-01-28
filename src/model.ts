@@ -10,7 +10,7 @@ const { singularize, pluralize } = Inflector();
 export default abstract class MemServerModel {
   static _DB = {};
   static _attributes = {};
-  static _defaultAttributes = {}; // NOTE: probably a decorator here in future // TODO: or add a setter here
+  static _defaultAttributes = {}; // NOTE: probably a decorator here in future
 
   static primaryKey = null;
   static get DB() {
@@ -41,6 +41,7 @@ export default abstract class MemServerModel {
 
     this._defaultAttributes = value;
   }
+
   static get defaultAttributes() {
     return this._defaultAttributes;
   }
@@ -85,7 +86,7 @@ export default abstract class MemServerModel {
 
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
-  static findAll(options) {
+  static findAll(options = {}) {
     const models = Array.from(this.DB);
     const keys = Object.keys(options);
 

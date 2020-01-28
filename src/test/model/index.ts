@@ -156,8 +156,6 @@ test.serial("$Model.primaryKey gets set correctly", async (t) => {
 
   t.is(Photo.primaryKey, "id");
   t.is(PhotoComment.primaryKey, "uuid");
-  // console.log(Photo.DB);
-  // console.log(PhotoComment.DB);
   t.is(User.primaryKey, null);
   t.true(Photo._DB === PhotoComment._DB);
 });
