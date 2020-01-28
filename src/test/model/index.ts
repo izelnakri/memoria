@@ -15,15 +15,15 @@ test.before(async () => {
       import Model from '${CWD}/dist/model';
 
       export default class Photo extends Model {
-        // static defaultAttributes: {
-        //   is_public: true,
-        //   name() {
-        //     return 'Imported photo';
-        //   }
-        // }
-        // static publicPhotos() {
-        //   return this.findAll({ is_public: true });
-        // }
+        static defaultAttributes = {
+          is_public: true,
+          name() {
+            return 'Imported photo';
+          }
+        }
+        static publicPhotos() {
+          return super.findAll({ is_public: true });
+        }
       }
     `
     ),
@@ -33,15 +33,15 @@ test.before(async () => {
       import Model from '${CWD}/dist/model';
 
       export default class PhotoComment extends Model {
-        // static defaultAttributes: {
-        //   inserted_at() {
-        //     return new Date().toJSON();
-        //   },
-        //   is_important: true
-        // }
-        // static forPhoto(photo) {
-        //   return this.findAll({ photo_id: photo.id });
-        // }
+        static defaultAttributes = {
+          inserted_at() {
+            return new Date().toJSON();
+          },
+          is_important: true
+        }
+        static forPhoto(photo) {
+          return super.findAll({ photo_id: photo.id });
+        }
       }
     `
     ),
@@ -54,7 +54,7 @@ test.before(async () => {
       }
     `
     ),
-    fs.writeFile(`${CWD}/memserver/server.js`, "export default function(Models) {}"),
+    fs.writeFile(`${CWD}/memserver/server.js`, "export default function() {}"),
     fs.mkdir(`${CWD}/memserver/fixtures`)
   ]);
   await Promise.all([
@@ -127,157 +127,176 @@ test.after.always(async () => {
   }
 });
 
-test.serial("$Model.modelName gets set correctly", async (t) => {
+test.serial("$Model.name gets set correctly", async (t) => {
   t.plan(2);
 
   const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
 
-  console.log(Photo);
-  // const MemServer = require("../../lib/index.js");
-  // const { Photo, PhotoComment } = MemServer.Models;
-
-  // t.is(Photo.modelName, "Photo");
-  // t.is(PhotoComment.modelName, "PhotoComment");
-
-  // MemServer.start();
-
-  // t.is(Photo.modelName, "Photo");
-  // t.is(PhotoComment.modelName, "PhotoComment");
+  t.is(Photo.name, "Photo");
+  t.is(PhotoComment.name, "PhotoComment");
 });
 
-// test.serial("$Model.primaryKey gets set correctly", (t) => {
-//   t.plan(6);
+test.serial("$Model.primaryKey gets set correctly", async (t) => {
+  t.plan(7);
 
-//   const MemServer = require("../../lib/index.js");
-//   const { Photo, PhotoComment, User } = MemServer.Models;
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
+  const User = (await import(`${CWD}/memserver/models/user.ts`)).default;
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+  const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    .default;
 
-//   t.is(Photo.primaryKey, null);
-//   t.is(PhotoComment.primaryKey, null);
-//   t.is(User.primaryKey, null);
+  t.is(Photo.primaryKey, null);
+  t.is(PhotoComment.primaryKey, null);
+  t.is(User.primaryKey, null);
 
-//   MemServer.start();
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+  PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-//   t.is(Photo.primaryKey, "id");
-//   t.is(PhotoComment.primaryKey, "uuid");
-//   t.is(User.primaryKey, null);
-// });
+  t.is(Photo.primaryKey, "id");
+  t.is(PhotoComment.primaryKey, "uuid");
+  // console.log(Photo.DB);
+  // console.log(PhotoComment.DB);
+  t.is(User.primaryKey, null);
+  t.true(Photo._DB === PhotoComment._DB);
+});
 
-// test.serial("$Model.defaultAttributes gets set correctly", async (t) => {
-//   t.plan(10);
+test.serial("$Model.defaultAttributes gets set correctly", async (t) => {
+  t.plan(10);
 
-//   await Promise.all([
-//     fs.writeFile(
-//       `${CWD}/memserver/models/photo.js`,
-//       `
-//       import Model from '${CWD}/lib/model';
+  await Promise.all([
+    fs.writeFile(
+      `${CWD}/memserver/models/photo.ts`,
+      `
+      import Model from '${CWD}/dist/model';
 
-//       export default Model({
-//         defaultAttributes: {
-//           is_public: true,
-//           name() {
-//             return 'Imported photo';
-//           }
-//         },
-//         publicPhotos() {
-//           return this.findAll({ is_public: true });
-//         }
-//       });
-//     `
-//     ),
-//     fs.writeFile(
-//       `${CWD}/memserver/models/photo-comment.js`,
-//       `
-//       import Model from '${CWD}/lib/model';
+      export default class Photo extends Model {
+        static defaultAttributes = {
+          is_public: true,
+          name() {
+            return 'Imported photo';
+          }
+        }
+        static publicPhotos() {
+          return super.findAll({ is_public: true });
+        }
+      }
+    `
+    ),
+    fs.writeFile(
+      `${CWD}/memserver/models/photo-comment.ts`,
+      `
+      import Model from '${CWD}/dist/model';
 
-//       export default Model({
-//         defaultAttributes: {
-//           inserted_at() {
-//             return new Date().toJSON();
-//           },
-//           is_important: true
-//         },
-//         forPhoto(photo) {
-//           return this.findAll({ photo_id: photo.id });
-//         }
-//       });
-//     `
-//     )
-//   ]);
+      export default class PhotoComment extends Model {
+        static defaultAttributes = {
+          inserted_at() {
+            return new Date().toJSON();
+          },
+          is_important: true
+        }
+        static forPhoto(photo) {
+          return super.findAll({ photo_id: photo.id });
+        }
+      }
+    `
+    )
+  ]);
 
-//   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+  Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-//   const MemServer = require("../../lib/index.js");
-//   const { Photo, PhotoComment, User } = MemServer.Models;
-//   const initialPhotoDefaultAttributes = Photo.defaultAttributes;
-//   const initialPhotoCommentDefaultAttributes = PhotoComment.defaultAttributes;
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
+  const User = (await import(`${CWD}/memserver/models/user.ts`)).default;
+  const initialPhotoDefaultAttributes = Photo.defaultAttributes;
+  const initialPhotoCommentDefaultAttributes = PhotoComment.defaultAttributes;
 
-//   t.deepEqual(Object.keys(initialPhotoDefaultAttributes), ["is_public", "name"]);
-//   t.is(initialPhotoDefaultAttributes.is_public, true);
-//   t.true(initialPhotoDefaultAttributes.name.toString().includes("Imported photo"));
+  t.deepEqual(Object.keys(initialPhotoDefaultAttributes), ["is_public", "name"]);
+  t.is(initialPhotoDefaultAttributes.is_public, true);
+  t.true(initialPhotoDefaultAttributes.name.toString().includes("Imported photo"));
 
-//   t.deepEqual(Object.keys(initialPhotoCommentDefaultAttributes), ["inserted_at", "is_important"]);
-//   t.true(initialPhotoCommentDefaultAttributes.inserted_at.toString().includes(".toJSON();"));
-//   t.is(initialPhotoCommentDefaultAttributes.is_important, true);
-//   t.deepEqual(User.defaultAttributes, {});
+  t.deepEqual(Object.keys(initialPhotoCommentDefaultAttributes), ["inserted_at", "is_important"]);
+  t.true(initialPhotoCommentDefaultAttributes.inserted_at.toString().includes(".toJSON();"));
+  t.is(initialPhotoCommentDefaultAttributes.is_important, true);
+  t.deepEqual(User.defaultAttributes, {});
 
-//   MemServer.start();
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+  const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    .default;
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+  PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-//   t.is(Photo.defaultAttributes, initialPhotoDefaultAttributes);
-//   t.deepEqual(PhotoComment.defaultAttributes, initialPhotoCommentDefaultAttributes);
-//   t.deepEqual(User.defaultAttributes, {});
-// });
+  t.is(Photo.defaultAttributes, initialPhotoDefaultAttributes);
+  t.deepEqual(PhotoComment.defaultAttributes, initialPhotoCommentDefaultAttributes);
+  t.deepEqual(User.defaultAttributes, {});
+});
 
-// test.serial("$Model.attributes gets set correctly", (t) => {
-//   t.plan(6);
+test.serial("$Model.attributes gets set correctly", async (t) => {
+  t.plan(6);
 
-//   const MemServer = require("../../lib/index.js");
-//   const { Photo, PhotoComment, User } = MemServer.Models;
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
+  const User = (await import(`${CWD}/memserver/models/user.ts`)).default;
 
-//   t.deepEqual(Photo.attributes, ["is_public", "name"]);
-//   t.deepEqual(PhotoComment.attributes, ["inserted_at", "is_important"]);
-//   t.deepEqual(User.attributes, []);
+  t.deepEqual(Photo.attributes, ["is_public", "name"]);
+  t.deepEqual(PhotoComment.attributes, ["inserted_at", "is_important"]);
+  t.deepEqual(User.attributes, []);
 
-//   MemServer.start();
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+  const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    .default;
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+  PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-//   t.deepEqual(Photo.attributes, ["is_public", "name", "id", "href"]);
-//   t.deepEqual(PhotoComment.attributes, [
-//     "inserted_at",
-//     "is_important",
-//     "uuid",
-//     "content",
-//     "photo_id",
-//     "user_id"
-//   ]);
-//   t.deepEqual(User.attributes, []);
-// });
+  t.deepEqual(Photo.attributes, ["is_public", "name", "id", "href"]);
+  t.deepEqual(PhotoComment.attributes, [
+    "inserted_at",
+    "is_important",
+    "uuid",
+    "content",
+    "photo_id",
+    "user_id"
+  ]);
+  t.deepEqual(User.attributes, []);
+});
 
-// test.serial("$Model.count counts the models correctly", (t) => {
-//   t.plan(4);
+test.serial("$Model.count counts the models correctly", async (t) => {
+  t.plan(4);
 
-//   const MemServer = require("../../lib/index.js");
-//   const { Photo, PhotoComment } = MemServer.Models;
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
 
-//   t.is(Photo.count(), 0);
-//   t.is(PhotoComment.count(), 0);
+  t.is(Photo.count(), 0);
+  t.is(PhotoComment.count(), 0);
 
-//   MemServer.start();
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+  const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    .default;
 
-//   t.is(Photo.count(), 3);
-//   t.is(PhotoComment.count(), 4);
-// });
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+  PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-// test.serial("$Model can have custom methods/queries for the model", (t) => {
-//   t.plan(2);
+  t.is(Photo.count(), 3);
+  t.is(PhotoComment.count(), 4);
+});
 
-//   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+test.serial("$Model can have custom methods/queries for the model", async (t) => {
+  t.plan(2);
 
-//   const MemServer = require("../../lib/index.js");
-//   const { Photo, PhotoComment } = MemServer.Models;
+  Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-//   MemServer.start();
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+  const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    .default;
 
-//   const photo = Photo.find(1);
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+  PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-//   t.deepEqual(PhotoComment.forPhoto(photo), PhotoComment.findAll({ photo_id: photo.id }));
-//   t.deepEqual(Photo.publicPhotos(), Photo.findAll({ is_public: true }));
-// });
+  const photo = Photo.find(1);
+
+  t.deepEqual(PhotoComment.forPhoto(photo), PhotoComment.findAll({ photo_id: photo.id }));
+  t.deepEqual(Photo.publicPhotos(), Photo.findAll({ is_public: true }));
+});

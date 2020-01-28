@@ -21,11 +21,13 @@
     "bin": "node cli.js"
   },
   "dependencies": {
-    "ember-source": "^3.16.0",
     "ansi-colors": "4.1.1",
+    "ember-cli-string-utils": "^1.1.0",
+    "ember-source": "^3.16.0",
     "fake-xml-http-request": "^2.1.1",
-    "qs": "^6.9.1",
     "fs-extra": "8.1.0",
+    "i": "^0.3.6",
+    "qs": "^6.9.1",
     "route-recognizer": "^0.3.4"
   },
   "devDependencies": {
