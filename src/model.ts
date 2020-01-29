@@ -1,9 +1,10 @@
 import util from "util";
 import chalk from "ansi-colors";
 import Inflector from "i";
-import { classify, underscore } from "ember-cli-string-utils";
+import emberCliStringUtils from "ember-cli-string-utils";
 import { primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 
+const { classify, underscore } = emberCliStringUtils;
 const { singularize, pluralize } = Inflector();
 
 // NOTE: probably needs .reset() method;
@@ -11,8 +12,10 @@ export default abstract class MemServerModel {
   static _DB = {};
   static _attributes = {};
   static _defaultAttributes = {}; // NOTE: probably a decorator here in future
+  static _embedReferences = {}; // NOTE: serializer concern
 
-  static primaryKey = null;
+  static primaryKey = null; // NOTE: this might be problematic!!
+
   static get DB() {
     if (!this._DB[this.name]) {
       this._DB[this.name] = [];
@@ -46,7 +49,19 @@ export default abstract class MemServerModel {
     return this._defaultAttributes;
   }
 
-  static embedReferences = {}; // NOTE: serializer concern
+  static set embedReferences(references: Object) {
+    this._embedReferences[this.name] = references;
+  }
+  static get embedReferences() {
+    // NOTE: serializer concern
+    if (!this._embedReferences[this.name]) {
+      this._embedReferences[this.name] = {};
+
+      return this._embedReferences[this.name];
+    }
+
+    return this._embedReferences[this.name];
+  }
 
   static count() {
     return this.DB.length;
@@ -280,7 +295,7 @@ export default abstract class MemServerModel {
       );
     }
 
-    const targetRelationshipModel = relationshipModel; // || targetNamespace.MemServer.Models[classify(singularize(relationshipName))]; // TODO: this is problematic?!
+    const targetRelationshipModel = relationshipModel || this.embedReferences[relationshipName];
     const hasManyRelationship = pluralize(relationshipName) === relationshipName;
 
     if (!targetRelationshipModel) {

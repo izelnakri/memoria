@@ -3,6 +3,7 @@ import fs from "fs-extra";
 
 const CWD = process.cwd();
 
+// TODO: test reset() function, if implementation is required
 test.before(async () => {
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 

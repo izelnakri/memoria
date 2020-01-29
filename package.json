@@ -45,16 +45,8 @@
   },
   "ava": {
     "extensions": [
-      "js"
+      "ts"
     ],
-    "typescript": {
-      "extensions": [
-        "ts"
-      ],
-      "rewritePaths": {
-        "src/": "dist/"
-      }
-    },
     "require": [
       "ts-node/register"
     ],
