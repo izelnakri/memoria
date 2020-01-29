@@ -34,6 +34,7 @@
   "devDependencies": {
     "@ava/typescript": "^1.0.0",
     "@types/fs-extra": "^8.0.1",
+    "@types/jquery": "^3.3.31",
     "ava": "3.1.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
