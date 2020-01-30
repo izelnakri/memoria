@@ -7,6 +7,13 @@ import { primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 const { classify, underscore } = emberCliStringUtils;
 const { singularize, pluralize } = Inflector();
 
+interface InternalMemServerModel {
+  id?: number;
+  uuid?: string;
+}
+
+type returnValue = InternalMemServerModel | Array<InternalMemServerModel> | undefined;
+
 // NOTE: probably needs .reset() method;
 export default abstract class MemServerModel {
   static _DB = {};
@@ -14,9 +21,9 @@ export default abstract class MemServerModel {
   static _defaultAttributes = {}; // NOTE: probably a decorator here in future
   static _embedReferences = {}; // NOTE: serializer concern
 
-  static primaryKey = null; // NOTE: this might be problematic!!
+  static primaryKey: string | null = null; // NOTE: this might be problematic!!
 
-  static get DB() {
+  static get DB(): Array<InternalMemServerModel> {
     if (!this._DB[this.name]) {
       this._DB[this.name] = [];
 
@@ -25,7 +32,7 @@ export default abstract class MemServerModel {
 
     return this._DB[this.name];
   }
-  static get attributes() {
+  static get attributes(): Array<string> {
     if (!this._attributes[this.name]) {
       this._attributes[this.name] = [];
 
@@ -35,7 +42,7 @@ export default abstract class MemServerModel {
     return this._attributes[this.name];
   }
 
-  static set defaultAttributes(value: Object) {
+  static set defaultAttributes(value: object) {
     Object.keys(value).forEach((key) => {
       if (!this.attributes.includes(key)) {
         this.attributes.push(key);
@@ -45,7 +52,7 @@ export default abstract class MemServerModel {
     this._defaultAttributes = value;
   }
 
-  static get defaultAttributes() {
+  static get defaultAttributes(): object {
     return this._defaultAttributes;
   }
 
@@ -63,10 +70,12 @@ export default abstract class MemServerModel {
     return this._embedReferences[this.name];
   }
 
-  static count() {
+  static count(): number {
     return this.DB.length;
   }
-  static find(param) {
+  static find(
+    param: Array<number> | number
+  ): Array<InternalMemServerModel> | InternalMemServerModel | undefined {
     // NOTE: turn param into an interface with id or uuid
     if (!param) {
       throw new Error(
@@ -90,7 +99,7 @@ export default abstract class MemServerModel {
 
     return models.find((model) => model.id === param);
   }
-  static findBy(options) {
+  static findBy(options: InternalMemServerModel): InternalMemServerModel | undefined {
     if (!options) {
       throw new Error(
         chalk.red(`[MemServer] ${this.name}.findBy(id) cannot be called without a parameter`)
@@ -101,8 +110,8 @@ export default abstract class MemServerModel {
 
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
-  static findAll(options = {}) {
-    const models = Array.from(this.DB);
+  static findAll(options = {}): Array<object> {
+    const models: Array<object> = Array.from(this.DB);
     const keys = Object.keys(options);
 
     if (keys.length === 0) {
@@ -111,7 +120,7 @@ export default abstract class MemServerModel {
 
     return models.filter((model) => comparison(model, options, keys, 0));
   }
-  static insert(options) {
+  static insert(options: InternalMemServerModel | undefined): object {
     const models = this.DB;
 
     if (models.length === 0) {
@@ -158,7 +167,7 @@ export default abstract class MemServerModel {
 
     return target;
   }
-  static update(record) {
+  static update(record: InternalMemServerModel): InternalMemServerModel {
     if (!record || (!record.id && !record.uuid)) {
       throw new Error(
         chalk.red(
@@ -195,7 +204,7 @@ export default abstract class MemServerModel {
 
     return Object.assign(targetRecord, record);
   }
-  static delete(record) {
+  static delete(record: InternalMemServerModel | undefined) {
     if (this.DB.length === 0) {
       throw new Error(
         chalk.red(
@@ -224,13 +233,23 @@ export default abstract class MemServerModel {
       );
     }
 
+    if (Array.isArray(targetRecord)) {
+      targetRecord.forEach((record) => {
+        const targetIndex = this.DB.indexOf(record);
+
+        this.DB.splice(targetIndex, 1);
+      });
+
+      return targetRecord;
+    }
+
     const targetIndex = this.DB.indexOf(targetRecord);
 
     this.DB.splice(targetIndex, 1);
 
     return targetRecord;
   }
-  static embed(relationship) {
+  static embed(relationship): object {
     // EXAMPLE: { comments: Comment }
     if (typeof relationship !== "object" || relationship.name) {
       throw new Error(
@@ -252,7 +271,7 @@ export default abstract class MemServerModel {
 
     return Object.assign(this.embedReferences, relationship);
   }
-  static serializer(objectOrArray) {
+  static serializer(objectOrArray: InternalMemServerModel | Array<InternalMemServerModel>) {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
@@ -261,7 +280,7 @@ export default abstract class MemServerModel {
 
     return this.serialize(objectOrArray);
   }
-  static serialize(object) {
+  static serialize(object: InternalMemServerModel) {
     // NOTE: add links object ?
     if (Array.isArray(object)) {
       throw new Error(
@@ -286,7 +305,11 @@ export default abstract class MemServerModel {
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllAttributes);
   }
-  static getRelationship(parentObject, relationshipName, relationshipModel) {
+  static getRelationship(
+    parentObject,
+    relationshipName: string,
+    relationshipModel: InternalMemServerModel
+  ) {
     if (Array.isArray(parentObject)) {
       throw new Error(
         chalk.red(
