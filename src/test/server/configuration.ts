@@ -25,6 +25,7 @@ test.before(async () => {
             return 'Some default name';
           }
         }
+
       }
     `
     ),
@@ -125,18 +126,15 @@ test.serial(
     import Photo from '${CWD}/memserver/models/photo';
     import Response from '../dist/response';
 
-    // console.log('Photo is', Photo);
-
     export default function() {
       this.get('/photos', () => {
-        // const photos = Photo.findAll();
+        const photos = Photo.findAll();
 
-        // if (!photos || photos.length === 0) {
-        //   return Response(404, { error: 'Not found' });
-        // }
+        if (!photos || photos.length === 0) {
+          return Response(404, { error: 'Not found' });
+        }
 
-        // return { photos: Photo.serializer(photos) };
-        return { photos: [] };
+        return { photos: Photo.serializer(photos) };
       });
     }
   `

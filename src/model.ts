@@ -1,18 +1,22 @@
 import util from "util";
 import chalk from "ansi-colors";
 import Inflector from "i";
-import emberCliStringUtils from "ember-cli-string-utils";
+import { classify, underscore } from "ember-cli-string-utils";
 import { primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 
-const { classify, underscore } = emberCliStringUtils;
 const { singularize, pluralize } = Inflector();
 
-interface InternalMemServerModel {
+type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
+  {
+    [K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>;
+  }[Keys];
+
+interface PrimaryKeys {
   id?: number;
   uuid?: string;
 }
 
-type returnValue = InternalMemServerModel | Array<InternalMemServerModel> | undefined;
+type InternalMemServerModel = RequireOnlyOne<PrimaryKeys, "id" | "uuid">;
 
 // NOTE: probably needs .reset() method;
 export default abstract class MemServerModel {
@@ -110,8 +114,8 @@ export default abstract class MemServerModel {
 
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
-  static findAll(options = {}): Array<object> {
-    const models: Array<object> = Array.from(this.DB);
+  static findAll(options = {}): Array<InternalMemServerModel> {
+    const models: Array<InternalMemServerModel> = Array.from(this.DB);
     const keys = Object.keys(options);
 
     if (keys.length === 0) {
@@ -120,7 +124,7 @@ export default abstract class MemServerModel {
 
     return models.filter((model) => comparison(model, options, keys, 0));
   }
-  static insert(options: InternalMemServerModel | undefined): object {
+  static insert(options: InternalMemServerModel | undefined): InternalMemServerModel {
     const models = this.DB;
 
     if (models.length === 0) {

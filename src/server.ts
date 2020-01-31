@@ -1,3 +1,11 @@
+declare global {
+  interface Window {
+    Pretender: any;
+    RouteRecognizer: any;
+    FakeXMLHttpRequest: any;
+  }
+}
+
 import chalk from "ansi-colors";
 import { primaryKeyTypeSafetyCheck } from "./utils";
 import FakeXMLHttpRequest from "fake-xml-http-request";
@@ -15,7 +23,7 @@ window.RouteRecognizer = RouteRecognizer;
 
 // MemServer.{"Server", "shutdown"}
 export default class MemServer {
-  constructor(options = {}) {
+  constructor(options = { logging: true, initializer: () => {}, routes: () => {} }) {
     const initializer = options.initializer || function() {}; // fixtures could be loaded here
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
@@ -53,7 +61,7 @@ function startPretender(routes, options) {
       }
 
       this.unhandledRequest = function(verb, path, request) {
-        console.log(MemServer, chalk.red("[UNHANDLED REQUEST]", verb, path));
+        console.log(MemServer, chalk.red("[UNHANDLED REQUEST]"), verb, path);
         console.log(chalk.red("UNHANDLED REQUEST WAS:\n"), request);
         console.log(request);
       };

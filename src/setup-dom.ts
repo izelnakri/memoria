@@ -1,3 +1,18 @@
+declare global {
+  interface Window {
+    $?: any;
+  }
+
+  namespace NodeJS {
+    interface Global {
+      window?: any;
+      document?: any;
+      self: any;
+      $?: any;
+    }
+  }
+}
+
 export default async function() {
   const { JSDOM } = (await import("jsdom")).default;
 
