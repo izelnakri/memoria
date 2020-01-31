@@ -168,155 +168,214 @@ test.serial(
   }
 );
 
-// test.serial('server this.namespace() configuration can overwrite existing namespace config', async (t) => {
-//   t.plan(2);
+test.serial(
+  "server this.namespace() configuration can overwrite existing namespace config",
+  async (t) => {
+    t.plan(2);
 
-//   await fs.writeFile(`${CWD}/memserver/server.js`, `
-//     import Response from '../lib/response';
+    await fs.writeFile(
+      `${CWD}/memserver/routes.ts`,
+      `
+    import Photo from './models/photo';
+    import Response from '../dist/response';
 
-//     export default function({ Photo }) {
-//       this.namespace = 'api/';
+    export default function() {
+      this.namespace = 'api/';
 
-//       this.get('/photos', () => {
-//         const photos = Photo.findAll();
+      this.get('/photos', () => {
+        const photos = Photo.findAll();
 
-//         if (!photos || photos.length === 0) {
-//           return Response(404, { error: 'Not found' });
-//         }
+        if (!photos || photos.length === 0) {
+          return Response(404, { error: 'Not found' });
+        }
 
-//         return { photos: Photo.serializer(photos) };
-//       });
-//     }
-//   `);
+        return { photos: Photo.serializer(photos) };
+      });
+    }
+  `
+    );
 
-//   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+    const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+    const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
 
-//   const MemServer = require('../../lib/index.js');
-//   const { Photo } = MemServer.Models;
+    PhotoFixtures.forEach((photo) => Photo.insert(photo));
 
-//   MemServer.start({ namespace: 'api/v1' });
-//   window.$ = require('jquery');
+    await (await import(`${CWD}/dist/setup-dom`)).default();
+    const MemServer = (await import(`${CWD}/dist/server`)).default;
 
-//   await window.$.ajax({
-//     type: 'GET', url: '/api/photos', headers: { 'Content-Type': 'application/json' }
-//   }).then((data, textStatus, jqXHR) => {
-//     t.is(jqXHR.status, 200);
-//     t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-//   });
-// });
+    const Server = new MemServer({
+      namespace: "api/v1",
+      routes: (await import(`${CWD}/memserver/routes`)).default
+    });
 
-// test.serial('urlPrefix configuration option could be passed in during MemServer.start()', async (t) => {
-//   t.plan(2);
+    window.$ = await import("jquery");
 
-//   await fs.writeFile(`${CWD}/memserver/server.js`, `
-//     import Response from '../lib/response';
+    await window.$.ajax({
+      type: "GET",
+      url: "/api/photos",
+      headers: { "Content-Type": "application/json" }
+    }).then((data, textStatus, jqXHR) => {
+      t.is(jqXHR.status, 200);
+      t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+    });
+  }
+);
 
-//     export default function({ Photo }) {
-//       this.namespace = 'api/';
-//       this.get('/photos', () => {
-//         const photos = Photo.findAll();
+test.serial(
+  "urlPrefix configuration option could be passed in during MemServer.start()",
+  async (t) => {
+    t.plan(2);
 
-//         if (!photos || photos.length === 0) {
-//           return Response(404, { error: 'Not found' });
-//         }
+    await fs.writeFile(
+      `${CWD}/memserver/server.ts`,
+      `
+    import Photo from './models/photo';
+    import Response from '../dist/response';
 
-//         return { photos: Photo.serializer(photos) };
-//       });
-//     }
-//   `);
+    export default function() {
+      this.namespace = 'api/';
+      this.get('/photos', () => {
+        const photos = Photo.findAll();
 
-//   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+        if (!photos || photos.length === 0) {
+          return Response(404, { error: 'Not found' });
+        }
 
-//   const MemServer = require('../../lib/index.js');
-//   const { Photo } = MemServer.Models;
+        return { photos: Photo.serializer(photos) };
+      });
+    }
+  `
+    );
 
-//   MemServer.start({ urlPrefix: 'http://twitter.com' });
-//   window.$ = require('jquery');
+    const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+    const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
 
-//   await window.$.ajax({
-//     type: 'GET', url: 'http://twitter.com/api/photos', headers: { 'Content-Type': 'application/json' }
-//   }).then((data, textStatus, jqXHR) => {
-//     t.is(jqXHR.status, 200);
-//     t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-//   });
-// });
+    PhotoFixtures.forEach((photo) => Photo.insert(photo));
 
-// test.serial('server this.urlPrefix() configuration can overwrite existing urlPrefix config', async (t) => {
-//   t.plan(2);
+    await (await import(`${CWD}/dist/setup-dom`)).default();
+    const MemServer = (await import(`${CWD}/dist/server`)).default;
 
-//   await fs.writeFile(`${CWD}/memserver/server.js`, `
-//     import Response from '../lib/response';
+    const Server = new MemServer({
+      urlPrefix: "http://twitter.com",
+      routes: (await import(`${CWD}/memserver/routes`)).default
+    });
 
-//     export default function({ Photo }) {
-//       this.urlPrefix = 'http://facebook.com/';
-//       this.namespace = 'api';
+    window.$ = await import("jquery");
 
-//       this.get('/photos', () => {
-//         const photos = Photo.findAll();
+    await window.$.ajax({
+      type: "GET",
+      url: "http://twitter.com/api/photos",
+      headers: { "Content-Type": "application/json" }
+    }).then((data, textStatus, jqXHR) => {
+      t.is(jqXHR.status, 200);
+      t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+    });
+  }
+);
 
-//         if (!photos || photos.length === 0) {
-//           return Response(404, { error: 'Not found' });
-//         }
+test.serial(
+  "server this.urlPrefix() configuration can overwrite existing urlPrefix config",
+  async (t) => {
+    t.plan(2);
 
-//         return { photos: Photo.serializer(photos) };
-//       });
-//     }
-//   `);
+    await fs.writeFile(
+      `${CWD}/memserver/routes.ts`,
+      `
+    import Photo from './models/photo';
+    import Response from '../dist/response';
 
-//   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+    export default function() {
+      this.urlPrefix = 'http://facebook.com/';
+      this.namespace = 'api';
 
-//   const MemServer = require('../../lib/index.js');
-//   const { Photo } = MemServer.Models;
+      this.get('/photos', () => {
+        const photos = Photo.findAll();
 
-//   MemServer.start({ urlPrefix: 'http://twitter.com' });
-//   window.$ = require('jquery');
+        if (!photos || photos.length === 0) {
+          return Response(404, { error: 'Not found' });
+        }
 
-//   await window.$.ajax({
-//     type: 'GET', url: 'http://facebook.com/api/photos',
-//     headers: { 'Content-Type': 'application/json' }
-//   }).then((data, textStatus, jqXHR) => {
-//     t.is(jqXHR.status, 200);
-//     t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-//   });
-// });
+        return { photos: Photo.serializer(photos) };
+      });
+    }
+  `
+    );
 
-// test.serial('timing configuration option could be passed in during MemServer.start()', async (t) => {
-//   t.plan(3);
+    Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-//   await fs.writeFile(`${CWD}/memserver/server.js`, `
-//     import Response from '../lib/response';
+    const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+    const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
 
-//     export default function({ Photo }) {
-//       this.get('/photos', () => {
-//         const photos = Photo.findAll();
+    PhotoFixtures.forEach((photo) => Photo.insert(photo));
 
-//         if (!photos || photos.length === 0) {
-//           return Response(404, { error: 'Not found' });
-//         }
+    await (await import(`${CWD}/dist/setup-dom`)).default();
+    const MemServer = (await import(`${CWD}/dist/server`)).default;
 
-//         return { photos: Photo.serializer(photos) };
-//       });
-//     }
-//   `);
+    const Server = new MemServer({
+      urlPrefix: "http://twitter.com",
+      routes: (await import(`${CWD}/memserver/routes`)).default
+    });
 
-//   const MemServer = require('../../lib/index.js');
-//   const { Photo } = MemServer.Models;
+    window.$ = await import("jquery");
 
-//   MemServer.start({ timing: 3000 });
-//   window.$ = require('jquery');
+    await window.$.ajax({
+      type: "GET",
+      url: "http://facebook.com/api/photos",
+      headers: { "Content-Type": "application/json" }
+    }).then((data, textStatus, jqXHR) => {
+      t.is(jqXHR.status, 200);
+      t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+    });
+  }
+);
 
-//   let ThreeSecondsPassed = false;
+test.serial('timing configuration option could be passed in during MemServer.start()', async (t) => {
+  t.plan(3);
 
-//   setTimeout(() => { ThreeSecondsPassed = true; }, 2200);
+  await fs.writeFile(`${CWD}/memserver/routes.ts`, `
+    import Photo from './models/photo';
+    import Response from '../dist/response';
 
-//   await window.$.ajax({
-//     type: 'GET', url: '/photos', headers: { 'Content-Type': 'application/json' }
-//   }).then((data, textStatus, jqXHR) => {
-//     t.true(ThreeSecondsPassed);
-//     t.is(jqXHR.status, 200);
-//     t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-//   });
-// });
+    export default function() {
+      this.get('/photos', () => {
+        const photos = Photo.findAll();
+
+        if (!photos || photos.length === 0) {
+          return Response(404, { error: 'Not found' });
+        }
+
+        return { photos: Photo.serializer(photos) };
+      });
+    }
+  `);
+
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+
+  await (await import(`${CWD}/dist/setup-dom`)).default();
+  const MemServer = (await import(`${CWD}/dist/server`)).default;
+
+  const Server = new MemServer({
+    timing: 3000,
+    routes: (await import(`${CWD}/memserver/routes`)).default
+  });
+
+  window.$ = await import("jquery");
+
+  let ThreeSecondsPassed = false;
+
+  setTimeout(() => { ThreeSecondsPassed = true; }, 2200);
+
+  await window.$.ajax({
+    type: 'GET', url: '/photos', headers: { 'Content-Type': 'application/json' }
+  }).then((data, textStatus, jqXHR) => {
+    t.true(ThreeSecondsPassed);
+    t.is(jqXHR.status, 200);
+    t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+  });
+});
 
 // test.serial('server this.get(url, timing) configuration can overwrite existing timing config', async () => {
 //
