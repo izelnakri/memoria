@@ -104,7 +104,7 @@ window.Pretender.prototype.handleRequest = function(request) {
           headers,
           pretender.prepareBody(
             JSON.stringify({
-              error: `[MemServer] ${verb} ${path} route handler did not return anything to respond to the request!`
+              error: `[Memserver] ${verb} ${path} route handler did not return anything to respond to the request!`
             }),
             headers
           )
@@ -183,7 +183,7 @@ function getDefaultRouteHandler(verb, path) {
   if (!ResourceModel) {
     throw new Error(
       chalk.red(
-        `[MemServer] ${verb} ${path} route handler cannot be generated automatically: ${classify(
+        `[Memserver] ${verb} ${path} route handler cannot be generated automatically: ${classify(
           resourceName
         )} is not on your window.${classify(
           resourceName

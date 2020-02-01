@@ -21,8 +21,8 @@ const DEFAULT_PASSTHROUGHS = [
 window.FakeXMLHttpRequest = FakeXMLHttpRequest;
 window.RouteRecognizer = RouteRecognizer;
 
-// MemServer.{"Server", "shutdown"}
-export default class MemServer {
+// Memserver.{"Server", "shutdown"}
+export default class Memserver {
   constructor(options = { logging: true, initializer: () => {}, routes: () => {} }) {
     const initializer = options.initializer || function() {}; // fixtures could be loaded here
     const routes = options.routes || function() {};
@@ -41,13 +41,13 @@ function startPretender(routes, options) {
 
   let pretender = new window.Pretender(
     function() {
-      const MemServer = chalk.cyan("[MemServer]");
+      const Memserver = chalk.cyan("[Memserver]");
 
       if (options.logging) {
         this.handledRequest = function(verb, path, request) {
           const method = verb.toUpperCase();
 
-          console.log(MemServer, colorStatusCode(request.status), method, request.url);
+          console.log(Memserver, colorStatusCode(request.status), method, request.url);
 
           if (["POST", "PUT"].includes(method)) {
             console.log(`${method} REQUEST BODY IS:`, request.params);
@@ -56,12 +56,12 @@ function startPretender(routes, options) {
           console.log(JSON.parse(request.responseText));
         };
         this.passthroughRequest = function(verb, path, request) {
-          console.log(MemServer, chalk.yellow("[PASSTHROUGH]"), verb, request.url);
+          console.log(Memserver, chalk.yellow("[PASSTHROUGH]"), verb, request.url);
         };
       }
 
       this.unhandledRequest = function(verb, path, request) {
-        console.log(MemServer, chalk.red("[UNHANDLED REQUEST]"), verb, path);
+        console.log(Memserver, chalk.red("[UNHANDLED REQUEST]"), verb, path);
         console.log(chalk.red("UNHANDLED REQUEST WAS:\n"), request);
         console.log(request);
       };
