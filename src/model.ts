@@ -11,12 +11,13 @@ type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T
     [K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>;
   }[Keys];
 
-interface PrimaryKeys {
+export interface InternalModelShape {
   id?: number;
   uuid?: string;
+  [propName: string]: any;
 }
 
-type InternalMemServerModel = RequireOnlyOne<PrimaryKeys, "id" | "uuid">;
+export type InternalModel = RequireOnlyOne<InternalModelShape, "id" | "uuid">;
 
 // NOTE: probably needs .reset() method;
 export default abstract class MemServerModel {
@@ -27,7 +28,7 @@ export default abstract class MemServerModel {
 
   static primaryKey: string | null = null; // NOTE: this might be problematic!!
 
-  static get DB(): Array<InternalMemServerModel> {
+  static get DB(): Array<InternalModel> {
     if (!this._DB[this.name]) {
       this._DB[this.name] = [];
 
@@ -77,9 +78,7 @@ export default abstract class MemServerModel {
   static count(): number {
     return this.DB.length;
   }
-  static find(
-    param: Array<number> | number
-  ): Array<InternalMemServerModel> | InternalMemServerModel | undefined {
+  static find(param: Array<number> | number): Array<InternalModel> | InternalModel | undefined {
     // NOTE: turn param into an interface with id or uuid
     if (!param) {
       throw new Error(
@@ -88,7 +87,7 @@ export default abstract class MemServerModel {
     } else if (Array.isArray(param)) {
       const models = Array.from(this.DB);
 
-      return models.reduce((result, model) => {
+      return models.reduce((result: InternalModel[], model) => {
         const foundModel = param.includes(model.id) ? model : null;
 
         return foundModel ? result.concat([foundModel]) : result;
@@ -103,7 +102,7 @@ export default abstract class MemServerModel {
 
     return models.find((model) => model.id === param);
   }
-  static findBy(options: InternalMemServerModel): InternalMemServerModel | undefined {
+  static findBy(options: object): InternalModel | undefined {
     if (!options) {
       throw new Error(
         chalk.red(`[MemServer] ${this.name}.findBy(id) cannot be called without a parameter`)
@@ -114,8 +113,8 @@ export default abstract class MemServerModel {
 
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
-  static findAll(options = {}): Array<InternalMemServerModel> {
-    const models: Array<InternalMemServerModel> = Array.from(this.DB);
+  static findAll(options = {}): Array<InternalModel> {
+    const models: Array<InternalModel> = Array.from(this.DB);
     const keys = Object.keys(options);
 
     if (keys.length === 0) {
@@ -124,10 +123,8 @@ export default abstract class MemServerModel {
 
     return models.filter((model) => comparison(model, options, keys, 0));
   }
-  static insert(options: InternalMemServerModel | undefined): InternalMemServerModel {
-    const models = this.DB;
-
-    if (models.length === 0) {
+  static insert(options: InternalModelShape | undefined): InternalModel {
+    if (this.DB.length === 0) {
       const recordsPrimaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
 
       this.primaryKey = recordsPrimaryKey;
@@ -167,11 +164,11 @@ export default abstract class MemServerModel {
       .filter((attribute) => !this.attributes.includes(attribute))
       .forEach((attribute) => this.attributes.push(attribute));
 
-    models.push(target);
+    this.DB.push(target as InternalModel);
 
-    return target;
+    return target as InternalModel;
   }
-  static update(record: InternalMemServerModel): InternalMemServerModel {
+  static update(record: InternalModel): InternalModel {
     if (!record || (!record.id && !record.uuid)) {
       throw new Error(
         chalk.red(
@@ -208,7 +205,7 @@ export default abstract class MemServerModel {
 
     return Object.assign(targetRecord, record);
   }
-  static delete(record: InternalMemServerModel | undefined) {
+  static delete(record: InternalModel | undefined) {
     if (this.DB.length === 0) {
       throw new Error(
         chalk.red(
@@ -275,7 +272,7 @@ export default abstract class MemServerModel {
 
     return Object.assign(this.embedReferences, relationship);
   }
-  static serializer(objectOrArray: InternalMemServerModel | Array<InternalMemServerModel>) {
+  static serializer(objectOrArray: InternalModel | Array<InternalModel>) {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
@@ -284,7 +281,7 @@ export default abstract class MemServerModel {
 
     return this.serialize(objectOrArray);
   }
-  static serialize(object: InternalMemServerModel) {
+  static serialize(object: InternalModel) {
     // NOTE: add links object ?
     if (Array.isArray(object)) {
       throw new Error(
@@ -309,11 +306,7 @@ export default abstract class MemServerModel {
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllAttributes);
   }
-  static getRelationship(
-    parentObject,
-    relationshipName: string,
-    relationshipModel: InternalMemServerModel
-  ) {
+  static getRelationship(parentObject, relationshipName: string, relationshipModel: InternalModel) {
     if (Array.isArray(parentObject)) {
       throw new Error(
         chalk.red(
