@@ -41,46 +41,19 @@ const CWD = process.cwd();
   await setupDom();
 
   const modelFileNames = await fs.readdir(`${CWD}/memserver/models`);
-  const modelRegistry = await Promise.all(
-    modelFileNames.map(async (fileName) => {
-      const modelName = fileName.slice(0, -3);
-      const fixturePath = `${CWD}/memserver/fixtures/${dasherize(pluralize(modelName))}`;
-      const fixtureExists = await fs.pathExists(`${fixturePath}.ts`);
-
-      const [model, fixtures] = await Promise.all([
-        import(`${CWD}/memserver/models/${fileName}`),
-        fixtureExists ? import(fixturePath) : { default: [] }
-      ]);
-
-      return {
-        [classify(modelName)]: {
-          model: model.default,
-          fixtures: fixtures.default
-        }
-      };
-    }, [])
-  );
 
   window.Memserver = (await import("./server")).default;
+
   const [initializerModule, routesModule] = await Promise.all([
     import(`${CWD}/memserver/initializer`),
     import(`${CWD}/memserver/routes`)
   ]);
 
   window.MemServer = new window.Memserver({
+    globalizeModels: true,
     initializer: initializerModule.default,
     routes: routesModule.default
-  });
-  window.modelRegistry = modelRegistry;
-
-  modelRegistry.forEach((modelRegister) => {
-    const modelName = Object.keys(modelRegister)[0];
-
-    window[modelName] = modelRegister[modelName].model;
-    window[modelName].resetDatabase(modelRegister[modelName].fixtures);
   });
 
   return window.MemServer;
 })();
-
-// import('./dist').then((memserver) => global.MemServer = memserver)

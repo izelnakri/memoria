@@ -21,6 +21,7 @@ export type InternalModel = RequireOnlyOne<InternalModelShape, "id" | "uuid">;
 
 export default abstract class MemServerModel {
   static _DB = {};
+  static _modelDefinitions = [];
   static _attributes = {};
   static _defaultAttributes = {}; // NOTE: probably a decorator here in future
   static _embedReferences = {}; // NOTE: serializer concern
@@ -39,6 +40,7 @@ export default abstract class MemServerModel {
   static get attributes(): Array<string> {
     if (!this._attributes[this.name]) {
       this._attributes[this.name] = [];
+      this._modelDefinitions.push(this);
 
       return this._attributes[this.name];
     }

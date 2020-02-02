@@ -27,15 +27,27 @@ interface MemserverOptions {
 }
 
 export default class Memserver {
-  models: void | Array<Model> = null;
-  globalizeModels: boolean = false;
-
   constructor(options: MemserverOptions = { logging: true }) {
-    const initializer = options.initializer || function() {};
+    const initializer = options.initializer || async function() {};
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
+    const initializerReturn = initializer();
 
-    initializer();
+    if (initializerReturn instanceof Promise) {
+      initializerReturn.then(() => {
+        if (options.globalizeModels) {
+          Model._modelDefinitions.forEach((model) => {
+            window[model.name] = model;
+          });
+        }
+      });
+    } else {
+      if (options.globalizeModels) {
+        Model._modelDefinitions.forEach((model) => {
+          window[model.name] = model;
+        });
+      }
+    }
 
     return startPretender(routes, Object.assign(options, { logging }));
   }
