@@ -202,6 +202,13 @@ async function createFixtureAndModelFoldersIfNeeded(memServerDirectory) {
 
     console.log(chalk.cyan("[MemServer CLI] /memserver/models folder created"));
   }
+
+  let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
+
+  await Promise.all([
+    fs.copy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`),
+    fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`)
+  ]);
 }
 
 async function openConsole() {

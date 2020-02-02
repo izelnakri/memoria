@@ -299,3 +299,7 @@ test.serial("$Model can have custom methods/queries for the model", async (t) =>
   t.deepEqual(PhotoComment.forPhoto(photo), PhotoComment.findAll({ photo_id: photo.id }));
   t.deepEqual(Photo.publicPhotos(), Photo.findAll({ is_public: true }));
 });
+
+// test.serial("$Model.resetDatabase() resets the models DB", async (t) => {});
+
+// maybe add modelNames, and fixtures

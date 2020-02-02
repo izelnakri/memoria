@@ -28,3 +28,50 @@ export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, mode
 
   return targetPrimaryKeyType;
 }
+
+export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
+  const modelPrimaryKey = fixtures.reduce((primaryKeys, fixture) => {
+    const modelName = modelDefinition.name;
+    const primaryKey = (fixture.uuid ? "uuid" : null) || (fixture.id ? "id" : null);
+
+    if (!primaryKey) {
+      throw new Error(
+        chalk.red(
+          `[MemServer] DATABASE ERROR: At least one of your ${modelName} fixtures missing a primary key. Please make sure all your ${modelName} fixtures have either id or uuid primaryKey`
+        )
+      );
+    } else if (primaryKeys.includes(fixture[primaryKey])) {
+      throw new Error(
+        chalk.red(
+          `[MemServer] DATABASE ERROR: Duplication in ${modelName} fixtures with ${primaryKey}: ${fixture[primaryKey]}`
+        )
+      );
+    }
+
+    modelDefinition.insert(fixture);
+
+    return primaryKeys.concat([fixture[primaryKey]]);
+  }, [])[0];
+
+  return fixtures;
+}
+
+function getModelPrimaryKey(model, existingPrimaryKeyType, modelName) {
+  if (existingPrimaryKeyType) {
+    return primaryKeyTypeSafetyCheck(
+      existingPrimaryKeyType,
+      model[existingPrimaryKeyType],
+      modelName
+    );
+  }
+
+  const primaryKey = model.id || model.uuid;
+
+  if (!primaryKey) {
+    return;
+  }
+
+  existingPrimaryKeyType = model.id ? "id" : "uuid";
+
+  return primaryKeyTypeSafetyCheck(existingPrimaryKeyType, primaryKey, modelName);
+}

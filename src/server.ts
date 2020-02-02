@@ -9,6 +9,7 @@ declare global {
 import chalk from "ansi-colors";
 import { primaryKeyTypeSafetyCheck } from "./utils";
 import FakeXMLHttpRequest from "fake-xml-http-request";
+import Model from "./model";
 import RouteRecognizer from "route-recognizer";
 import "pretender"; // NOTE: check this
 import "./pretender-hacks"; // NOTE: check this
@@ -18,13 +19,19 @@ const DEFAULT_PASSTHROUGHS = [
   "http://localhost:30820/socket.io"
 ];
 
-window.FakeXMLHttpRequest = FakeXMLHttpRequest;
-window.RouteRecognizer = RouteRecognizer;
+interface MemserverOptions {
+  logging?: boolean;
+  initializer?: () => {};
+  routes?: () => {};
+  [propName: string]: any;
+}
 
-// Memserver.{"Server", "shutdown"}
 export default class Memserver {
-  constructor(options = { logging: true, initializer: () => {}, routes: () => {} }) {
-    const initializer = options.initializer || function() {}; // fixtures could be loaded here
+  models: void | Array<Model> = null;
+  globalizeModels: boolean = false;
+
+  constructor(options: MemserverOptions = { logging: true }) {
+    const initializer = options.initializer || function() {};
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
 
@@ -35,6 +42,8 @@ export default class Memserver {
 }
 
 function startPretender(routes, options) {
+  window.FakeXMLHttpRequest = FakeXMLHttpRequest;
+  window.RouteRecognizer = RouteRecognizer;
   window.Pretender.prototype.namespace = options.namespace;
   window.Pretender.prototype.urlPrefix = options.urlPrefix;
   window.Pretender.prototype.timing = options.timing;

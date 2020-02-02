@@ -2,7 +2,7 @@ import util from "util";
 import chalk from "ansi-colors";
 import Inflector from "i";
 import { classify, underscore } from "ember-cli-string-utils";
-import { primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
+import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 
 const { singularize, pluralize } = Inflector();
 
@@ -19,7 +19,6 @@ export interface InternalModelShape {
 
 export type InternalModel = RequireOnlyOne<InternalModelShape, "id" | "uuid">;
 
-// NOTE: probably needs .reset() method;
 export default abstract class MemServerModel {
   static _DB = {};
   static _attributes = {};
@@ -73,6 +72,18 @@ export default abstract class MemServerModel {
     }
 
     return this._embedReferences[this.name];
+  }
+
+  static resetDatabase(fixtures: Array<InternalModel> | undefined): Array<InternalModel> {
+    this.DB.length = 0;
+    this.attributes.length = 0;
+    this.defaultAttributes = this.defaultAttributes;
+
+    if (fixtures) {
+      insertFixturesWithTypechecks(this, fixtures);
+    }
+
+    return this.DB;
   }
 
   static count(): number {
