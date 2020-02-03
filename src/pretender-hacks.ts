@@ -2,10 +2,10 @@ import qs from "qs";
 import chalk from "ansi-colors";
 import Inflector from "i";
 import stringUtils from "ember-cli-string-utils";
+import Model from "./model";
 
 const { classify } = stringUtils;
 const { singularize } = Inflector();
-const targetNamespace = typeof global === "object" ? global : window;
 
 // HACK START: Pretender Request Parameter Type Casting Hack: Because types are important.
 window.Pretender.prototype._handlerFor = function(verb, url, request) {
@@ -178,7 +178,7 @@ function getDefaultRouteHandler(verb, path) {
   const lastPath = paths[paths.length - 1];
   const pluralResourceName = lastPath.includes(":") ? paths[paths.length - 2] : lastPath;
   const resourceName = singularize(pluralResourceName);
-  const ResourceModel = targetNamespace[classify(resourceName)];
+  const ResourceModel = Model._modelDefinitions[classify(resourceName)];
 
   if (!ResourceModel) {
     throw new Error(

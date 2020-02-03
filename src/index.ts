@@ -40,8 +40,6 @@ const CWD = process.cwd();
 
   await setupDom();
 
-  const modelFileNames = await fs.readdir(`${CWD}/memserver/models`);
-
   window.Memserver = (await import("./server")).default;
 
   const [initializerModule, routesModule] = await Promise.all([

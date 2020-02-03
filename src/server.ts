@@ -36,15 +36,15 @@ export default class Memserver {
     if (initializerReturn instanceof Promise) {
       initializerReturn.then(() => {
         if (options.globalizeModels) {
-          Model._modelDefinitions.forEach((model) => {
-            window[model.name] = model;
+          Object.keys(Model._modelDefinitions).forEach((modelName) => {
+            window[modelName] = Model._modelDefinitions[modelName];
           });
         }
       });
     } else {
       if (options.globalizeModels) {
-        Model._modelDefinitions.forEach((model) => {
-          window[model.name] = model;
+        Object.keys(Model._modelDefinitions).forEach((modelName) => {
+          window[modelName] = Model._modelDefinitions[modelName];
         });
       }
     }
