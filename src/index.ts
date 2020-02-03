@@ -29,13 +29,15 @@ const { pluralize } = Inflector();
 
 const CWD = process.cwd();
 
-(async () => {
+export default async function(): Promise<any> {
   if (!(await fs.pathExists(`${CWD}/memserver`))) {
     throw new Error(chalk.red("/memserver folder doesn't exist for this directory!"));
   } else if (!(await fs.pathExists(`${CWD}/memserver/models`))) {
     throw new Error(chalk.red("/memserver/models folder doesn't exist for this directory!"));
   } else if (!(await fs.pathExists(`${CWD}/memserver/routes.ts`))) {
     throw new Error(chalk.red("/memserver/routes.ts doesn't exist for this directory!"));
+  } else if (!(await fs.pathExists(`${CWD}/memserver/initializer.ts`))) {
+    throw new Error(chalk.red("/memserver/initializer.ts doesn't exist for this directory!"));
   }
 
   await setupDom();
@@ -54,4 +56,4 @@ const CWD = process.cwd();
   });
 
   return window.MemServer;
-})();
+}

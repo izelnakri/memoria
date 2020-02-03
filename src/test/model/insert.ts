@@ -292,7 +292,7 @@ test("$Model.insert(attributes) will throw if overriden primaryKey already exist
   const error = t.throws(() => Photo.insert({ id: 1 }), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(
+    /\[Memserver\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(
       error.message
     )
   );
@@ -303,7 +303,7 @@ test("$Model.insert(attributes) will throw if overriden primaryKey already exist
   );
 
   t.true(
-    /\[MemServer\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(
+    /\[Memserver\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(
       secondError.message
     )
   );
@@ -324,7 +324,7 @@ test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type
   const error = t.throws(() => Photo.insert({ id: "99" }), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(
+    /\[Memserver\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(
       error.message
     )
   );
@@ -332,7 +332,7 @@ test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type
   const secondError = t.throws(() => PhotoComment.insert({ uuid: 1 }), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(
+    /\[Memserver\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(
       secondError.message
     )
   );

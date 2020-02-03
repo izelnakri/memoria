@@ -9,102 +9,127 @@ test.afterEach.always(async () => {
   }
 });
 
-test.serial("testing true", async t => {
-  t.true(true);
-});
+test.serial(
+  "MemServer require() should throw error if /memserver folder doesnt exist",
+  async (t) => {
+    const startMemserver = (await import("../../dist/index")).default;
+    const error = await t.throwsAsync(() => startMemserver(), {
+      instanceOf: Error
+    });
 
-// test("testing ok", async t => {
-//   t.true(true);
-// });
-// test.serial(
-//   "MemServer require() exports a MemServer with right functions and empty DB when there is no model",
-//   async t => {
-//     t.plan(4);
+    t.true(/\/memserver folder doesn't exist for this directory!/.test(error.message));
+  }
+);
 
-//     await fs.mkdir(`${CWD}/memserver`);
-//     await fs.mkdir(`${CWD}/memserver/models`);
-//     await fs.writeFile(
-//       `${CWD}/memserver/server.js`,
-//       "export default function(Models) {}"
-//     );
+test.serial(
+  "MemServer require() should throw error if /memserver/models folder doesnt exist",
+  async (t) => {
+    await fs.mkdir(`${CWD}/memserver`);
+    const startMemserver = (await import("../../dist/index")).default;
+    const error = await t.throwsAsync(() => startMemserver(), {
+      instanceOf: Error
+    });
 
-//     const MemServer = require("../lib/index.js");
+    t.true(/\/memserver\/models folder doesn't exist for this directory!/.test(error.message));
+  }
+);
 
-//     t.deepEqual(MemServer.DB, {});
-//     t.deepEqual(MemServer.Server, {});
-//     t.deepEqual(Object.keys(MemServer), [
-//       "DB",
-//       "Server",
-//       "Models",
-//       "start",
-//       "shutdown"
-//     ]);
-//     t.deepEqual(MemServer.Models, {});
-//   }
-// );
+test.serial(
+  "MemServer require() should throw error if /memserver/routes.ts doesnt exist",
+  async (t) => {
+    await fs.mkdir(`${CWD}/memserver`);
+    await fs.mkdir(`${CWD}/memserver/models`);
+    const startMemserver = (await import("../../dist/index")).default;
+    const error = await t.throwsAsync(() => startMemserver(), {
+      instanceOf: Error
+    });
 
-// test.serial(
-//   "MemServer require() exports a MemServer with right functions and empty DB and models",
-//   async t => {
-//     t.plan(10);
+    t.true(/\/memserver\/routes.ts doesn't exist for this directory!/.test(error.message));
+  }
+);
 
-//     const modelFileContent = `import Model from '${CWD}/lib/model';
+test.serial(
+  "MemServer require() should throw error if /memserver/initializer.ts doesnt exist",
+  async (t) => {
+    await fs.mkdir(`${CWD}/memserver`);
+    await fs.mkdir(`${CWD}/memserver/models`);
+    await fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}");
+    const startMemserver = (await import("../../dist/index")).default;
+    const error = await t.throwsAsync(() => startMemserver(), {
+      instanceOf: Error
+    });
 
-//   export default Model({});`;
+    t.true(/\/memserver\/initializer.ts doesn't exist for this directory!/.test(error.message));
+  }
+);
 
-//     await fs.mkdir(`${CWD}/memserver`);
-//     await fs.mkdir(`${CWD}/memserver/models`);
-//     await Promise.all([
-//       fs.writeFile(`${CWD}/memserver/models/photo.js`, modelFileContent),
-//       fs.writeFile(`${CWD}/memserver/models/user.js`, modelFileContent),
-//       fs.writeFile(
-//         `${CWD}/memserver/models/photo-comment.js`,
-//         modelFileContent
-//       ),
-//       fs.writeFile(
-//         `${CWD}/memserver/server.js`,
-//         "export default function(Models) {}"
-//       )
-//     ]);
+test.serial(
+  "MemServer require() exports a MemServer with right functions and empty DB when there is no model",
+  async (t) => {
+    t.plan(1);
 
-//     Object.keys(require.cache).forEach(key => delete require.cache[key]);
+    await fs.mkdir(`${CWD}/memserver`);
+    await fs.mkdir(`${CWD}/memserver/models`);
+    await fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}");
+    await fs.writeFile(`${CWD}/memserver/initializer.ts`, "export default function() {}");
 
-//     const MemServer = require("../lib/index.js");
-//     const models = Object.keys(MemServer.Models);
+    const startMemserver = (await import("../../dist/index")).default;
+    const Server = await startMemserver();
 
-//     t.deepEqual(MemServer.DB, {});
-//     t.deepEqual(MemServer.Server, {});
-//     t.deepEqual(Object.keys(MemServer), [
-//       "DB",
-//       "Server",
-//       "Models",
-//       "start",
-//       "shutdown"
-//     ]);
-//     t.deepEqual(models, ["PhotoComment", "Photo", "User"]);
+    t.true(!!Server.shutdown);
+  }
+);
 
-//     models.forEach(modelName => {
-//       const model = MemServer.Models[modelName];
+test.serial(
+  "MemServer require() exports a MemServer with right functions and empty DB and models",
+  async (t) => {
+    t.plan(51);
 
-//       t.is(model.modelName, modelName);
-//       t.deepEqual(Object.keys(MemServer.Models[modelName]), [
-//         "modelName",
-//         "primaryKey",
-//         "defaultAttributes",
-//         "attributes",
-//         "count",
-//         "find",
-//         "findBy",
-//         "findAll",
-//         "insert",
-//         "update",
-//         "delete",
-//         "embed",
-//         "embedReferences",
-//         "serializer",
-//         "serialize",
-//         "getRelationship"
-//       ]);
-//     });
-//   }
-// );
+    const modelFileContent = (fileName) => `import Model from '${CWD}/dist/model';
+    export default class ${fileName} extends Model{
+    }`;
+
+    await fs.mkdir(`${CWD}/memserver`);
+    await fs.mkdir(`${CWD}/memserver/models`);
+    await Promise.all([
+      fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
+      fs.writeFile(`${CWD}/memserver/models/user.ts`, modelFileContent("User")),
+      fs.writeFile(`${CWD}/memserver/models/photo-comment.ts`, modelFileContent("PhotoComment")),
+      fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}"),
+      fs.writeFile(`${CWD}/memserver/initializer.ts`, "export default function() {}")
+    ]);
+
+    Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+
+    const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+    const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
+    const User = (await import(`${CWD}/memserver/models/user.ts`)).default;
+
+    const startMemserver = (await import("../../dist/index")).default;
+    const Server = await startMemserver();
+
+    [Photo, PhotoComment, User].forEach((modelDefinition) => {
+      t.deepEqual(modelDefinition.findAll(), []);
+      [
+        "name",
+        "primaryKey",
+        "defaultAttributes",
+        "attributes",
+        "count",
+        "find",
+        "findBy",
+        "findAll",
+        "insert",
+        "update",
+        "delete",
+        "embed",
+        "embedReferences",
+        "serializer",
+        "serialize",
+        "getRelationship"
+      ].forEach((method) => {
+        t.true(method in modelDefinition);
+      });
+    });
+  }
+);

@@ -166,7 +166,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
+      /\[Memserver\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
         error.message
       )
     );
@@ -177,7 +177,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
+      /\[Memserver\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
         secondError.message
       )
     );
@@ -203,7 +203,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
+      /\[Memserver\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
         error.message
       )
     );
@@ -218,7 +218,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
+      /\[Memserver\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
         secondError.message
       )
     );

@@ -276,7 +276,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
+      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
         error.message
       )
     );
@@ -427,7 +427,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
+      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
         error.message
       )
     );
@@ -468,7 +468,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] userComments relationship could not be found on Photo model\. Please put the userComments Model object as the third parameter to Photo\.getRelationship function/.test(
+      /\[Memserver\] userComments relationship could not be found on Photo model\. Please put the userComments Model object as the third parameter to Photo\.getRelationship function/.test(
         error.message
       )
     );
@@ -485,7 +485,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the third parameter to Photo\.getRelationship function/.test(
+      /\[Memserver\] userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the third parameter to Photo\.getRelationship function/.test(
         secondError.message
       )
     );

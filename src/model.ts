@@ -95,7 +95,7 @@ export default abstract class MemServerModel {
     // NOTE: turn param into an interface with id or uuid
     if (!param) {
       throw new Error(
-        chalk.red(`[MemServer] ${this.name}.find(id) cannot be called without a valid id`)
+        chalk.red(`[Memserver] ${this.name}.find(id) cannot be called without a valid id`)
       );
     } else if (Array.isArray(param)) {
       const models = Array.from(this.DB);
@@ -107,7 +107,7 @@ export default abstract class MemServerModel {
       }, []);
     } else if (typeof param !== "number") {
       throw new Error(
-        chalk.red(`[MemServer] ${this.name}.find(id) cannot be called without a valid id`)
+        chalk.red(`[Memserver] ${this.name}.find(id) cannot be called without a valid id`)
       );
     }
 
@@ -118,7 +118,7 @@ export default abstract class MemServerModel {
   static findBy(options: object): InternalModel | undefined {
     if (!options) {
       throw new Error(
-        chalk.red(`[MemServer] ${this.name}.findBy(id) cannot be called without a parameter`)
+        chalk.red(`[Memserver] ${this.name}.findBy(id) cannot be called without a parameter`)
       );
     }
 
@@ -166,7 +166,7 @@ export default abstract class MemServerModel {
     if (existingRecord) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name} ${this.primaryKey} ${
+          `[Memserver] ${this.name} ${this.primaryKey} ${
             target[this.primaryKey]
           } already exists in the database! ${this.name}.insert(${util.inspect(options)}) fails`
         )
@@ -185,7 +185,7 @@ export default abstract class MemServerModel {
     if (!record || (!record.id && !record.uuid)) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.update(record) requires id or uuid primary key to update a record`
+          `[Memserver] ${this.name}.update(record) requires id or uuid primary key to update a record`
         )
       );
     }
@@ -195,7 +195,7 @@ export default abstract class MemServerModel {
     if (!targetRecord) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.update(record) failed because ${this.name} with ${
+          `[Memserver] ${this.name}.update(record) failed because ${this.name} with ${
             this.primaryKey
           }: ${record[this.primaryKey]} does not exist`
         )
@@ -209,7 +209,7 @@ export default abstract class MemServerModel {
     if (recordsUnknownAttribute) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.update ${this.primaryKey}: ${record[this.primaryKey]} fails, ${
+          `[Memserver] ${this.name}.update ${this.primaryKey}: ${record[this.primaryKey]} fails, ${
             this.name
           } model does not have ${recordsUnknownAttribute} attribute to update`
         )
@@ -222,7 +222,7 @@ export default abstract class MemServerModel {
     if (this.DB.length === 0) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name} has no records in the database to delete. ${
+          `[Memserver] ${this.name} has no records in the database to delete. ${
             this.name
           }.delete(${util.inspect(record)}) failed`
         )
@@ -230,7 +230,7 @@ export default abstract class MemServerModel {
     } else if (!record) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.delete(model) model object parameter required to delete a model`
+          `[Memserver] ${this.name}.delete(model) model object parameter required to delete a model`
         )
       );
     }
@@ -240,7 +240,7 @@ export default abstract class MemServerModel {
     if (!targetRecord) {
       throw new Error(
         chalk.red(
-          `[MemServer] Could not find ${this.name} with ${this.primaryKey} ${
+          `[Memserver] Could not find ${this.name} with ${this.primaryKey} ${
             record[this.primaryKey]
           } to delete. ${this.name}.delete(${util.inspect(record)}) failed`
         )
@@ -268,7 +268,7 @@ export default abstract class MemServerModel {
     if (typeof relationship !== "object" || relationship.name) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
+          `[Memserver] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
         )
       );
     }
@@ -278,7 +278,7 @@ export default abstract class MemServerModel {
     if (!relationship[key]) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
+          `[Memserver] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
         )
       );
     }
@@ -299,7 +299,7 @@ export default abstract class MemServerModel {
     if (Array.isArray(object)) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
+          `[Memserver] ${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
         )
       );
     }
@@ -323,7 +323,7 @@ export default abstract class MemServerModel {
     if (Array.isArray(parentObject)) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${this.name}.getRelationship expects model input to be an object not an array`
+          `[Memserver] ${this.name}.getRelationship expects model input to be an object not an array`
         )
       );
     }
@@ -334,7 +334,7 @@ export default abstract class MemServerModel {
     if (!targetRelationshipModel) {
       throw new Error(
         chalk.red(
-          `[MemServer] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
+          `[Memserver] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
         )
       );
     } else if (hasManyRelationship) {

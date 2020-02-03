@@ -261,7 +261,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
+      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
         error.message
       )
     );
@@ -371,7 +371,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
+      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
         error.message
       )
     );
@@ -405,7 +405,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] device relationship could not be found on Photo model\. Please put the device Model object as the third parameter to Photo\.getRelationship function/.test(
+      /\[Memserver\] device relationship could not be found on Photo model\. Please put the device Model object as the third parameter to Photo\.getRelationship function/.test(
         error.message
       )
     );
@@ -415,7 +415,7 @@ test.serial(
     });
 
     t.true(
-      /\[MemServer\] senderActivity relationship could not be found on Photo model\. Please put the senderActivity Model object as the third parameter to Photo\.getRelationship function/.test(
+      /\[Memserver\] senderActivity relationship could not be found on Photo model\. Please put the senderActivity Model object as the third parameter to Photo\.getRelationship function/.test(
         secondError.message
       )
     );
@@ -466,7 +466,7 @@ test.serial(
     const error = t.throws(() => User.embed(), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
+      /\[Memserver\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
         error.message
       )
     );
@@ -474,7 +474,7 @@ test.serial(
     const secondError = t.throws(() => User.embed(Activity), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
+      /\[Memserver\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
         secondError.message
       )
     );
@@ -490,7 +490,7 @@ test.serial(
     const error = t.throws(() => User.embed({ activities: undefined }), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] User\.embed\(\) fails: activities Model reference is not a valid\. Please put a valid \$ModelName to User\.embed\(\)/.test(
+      /\[Memserver\] User\.embed\(\) fails: activities Model reference is not a valid\. Please put a valid \$ModelName to User\.embed\(\)/.test(
         error.message
       )
     );

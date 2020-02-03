@@ -100,13 +100,13 @@ test.serial("$Model.find() throws without a number id or ids", async (t) => {
     const error = t.throws(() => Photo.find(param), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] Photo.find\(id\) cannot be called without a valid id/.test(error.message)
+      /\[Memserver\] Photo.find\(id\) cannot be called without a valid id/.test(error.message)
     );
 
     const secondError = t.throws(() => PhotoComment.find(param), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] PhotoComment.find\(id\) cannot be called without a valid id/.test(
+      /\[Memserver\] PhotoComment.find\(id\) cannot be called without a valid id/.test(
         secondError.message
       )
     );
@@ -164,7 +164,7 @@ test.serial("$Model.findBy() throws without params", async (t) => {
   const error = t.throws(() => Photo.findBy(), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] Photo.findBy\(id\) cannot be called without a parameter/.test(error.message)
+    /\[Memserver\] Photo.findBy\(id\) cannot be called without a parameter/.test(error.message)
   );
 });
 

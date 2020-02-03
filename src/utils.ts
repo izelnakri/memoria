@@ -15,13 +15,13 @@ export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, mode
   if (targetPrimaryKeyType === "id" && primaryKeyType !== "number") {
     throw new Error(
       chalk.red(
-        `[MemServer] ${modelName} model primaryKey type is 'id'. Instead you've tried to enter id: ${primaryKey} with ${primaryKeyType} type`
+        `[Memserver] ${modelName} model primaryKey type is 'id'. Instead you've tried to enter id: ${primaryKey} with ${primaryKeyType} type`
       )
     );
   } else if (targetPrimaryKeyType === "uuid" && primaryKeyType !== "string") {
     throw new Error(
       chalk.red(
-        `[MemServer] ${modelName} model primaryKey type is 'uuid'. Instead you've tried to enter uuid: ${primaryKey} with ${primaryKeyType} type`
+        `[Memserver] ${modelName} model primaryKey type is 'uuid'. Instead you've tried to enter uuid: ${primaryKey} with ${primaryKeyType} type`
       )
     );
   }
@@ -37,13 +37,13 @@ export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
     if (!primaryKey) {
       throw new Error(
         chalk.red(
-          `[MemServer] DATABASE ERROR: At least one of your ${modelName} fixtures missing a primary key. Please make sure all your ${modelName} fixtures have either id or uuid primaryKey`
+          `[Memserver] DATABASE ERROR: At least one of your ${modelName} fixtures missing a primary key. Please make sure all your ${modelName} fixtures have either id or uuid primaryKey`
         )
       );
     } else if (primaryKeys.includes(fixture[primaryKey])) {
       throw new Error(
         chalk.red(
-          `[MemServer] DATABASE ERROR: Duplication in ${modelName} fixtures with ${primaryKey}: ${fixture[primaryKey]}`
+          `[Memserver] DATABASE ERROR: Duplication in ${modelName} fixtures with ${primaryKey}: ${fixture[primaryKey]}`
         )
       );
     }

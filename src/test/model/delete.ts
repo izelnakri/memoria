@@ -151,7 +151,7 @@ test.serial(
     const error = t.throws(() => Photo.delete({ id: 1 }), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] Photo has no records in the database to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
+      /\[Memserver\] Photo has no records in the database to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
         error.message
       )
     );
@@ -164,7 +164,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] PhotoComment has no records in the database to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
+      /\[Memserver\] PhotoComment has no records in the database to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
         secondError.message
       )
     );
@@ -181,7 +181,7 @@ test.serial(
     const thirdError = t.throws(() => Photo.delete({ id: 1 }), { instanceOf: Error });
 
     t.true(
-      /\[MemServer\] Could not find Photo with id 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
+      /\[Memserver\] Could not find Photo with id 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
         thirdError.message
       )
     );
@@ -192,7 +192,7 @@ test.serial(
     );
 
     t.true(
-      /\[MemServer\] Could not find PhotoComment with uuid 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
+      /\[Memserver\] Could not find PhotoComment with uuid 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
         fourthError.message
       )
     );
@@ -214,7 +214,7 @@ test("$Model.delete() throws when called without a parameter", async (t) => {
   const error = t.throws(() => Photo.delete(), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] Photo\.delete\(model\) model object parameter required to delete a model/.test(
+    /\[Memserver\] Photo\.delete\(model\) model object parameter required to delete a model/.test(
       error.message
     )
   );
@@ -222,7 +222,7 @@ test("$Model.delete() throws when called without a parameter", async (t) => {
   const secondError = t.throws(() => PhotoComment.delete(), { instanceOf: Error });
 
   t.true(
-    /\[MemServer\] PhotoComment\.delete\(model\) model object parameter required to delete a model/.test(
+    /\[Memserver\] PhotoComment\.delete\(model\) model object parameter required to delete a model/.test(
       secondError.message
     )
   );
