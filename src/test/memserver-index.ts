@@ -83,7 +83,7 @@ test.serial(
 test.serial(
   "MemServer require() exports a MemServer with right functions and empty DB and models",
   async (t) => {
-    t.plan(51);
+    t.plan(52);
 
     const modelFileContent = (fileName) => `import Model from '${CWD}/dist/model';
     export default class ${fileName} extends Model{
@@ -108,6 +108,28 @@ test.serial(
     const startMemserver = (await import("../../dist/index")).default;
     const Server = await startMemserver();
 
+    t.deepEqual(Object.keys(Server), [
+      "hosts",
+      "handlers",
+      "handledRequests",
+      "passthroughRequests",
+      "unhandledRequests",
+      "requestReferences",
+      "forcePassthrough",
+      "disableUnhandled",
+      "_nativeXMLHttpRequest",
+      "running",
+      "ctx",
+      "_fetchProps",
+      "_nativefetch",
+      "_nativeHeaders",
+      "_nativeRequest",
+      "_nativeResponse",
+      "handledRequest",
+      "passthroughRequest",
+      "unhandledRequest",
+      "passthrough"
+    ]);
     [Photo, PhotoComment, User].forEach((modelDefinition) => {
       t.deepEqual(modelDefinition.findAll(), []);
       [
