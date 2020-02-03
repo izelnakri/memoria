@@ -19,7 +19,7 @@ test.serial(
 
     const jsonDataBuffer = await fs.readFile(`${CWD}/package.json`);
     const version = JSON.parse(jsonDataBuffer.toString()).version;
-    const expectedOutput = `[MemServer CLI v${version}] Usage: memserver <command (Default: help)>
+    const expectedOutput = `[Memserver CLI v${version}] Usage: memserver <command (Default: help)>
 
 memserver init | new                    # Sets up the initial memserver folder structure
 memserver generate model [ModelName]    # Generates the initial files for a MemServer Model [alias: "memserver g model"]
@@ -48,11 +48,11 @@ test.serial("$ memserver init | sets up the initial folder structure", async (t)
   t.true(!fs.pathExistsSync(`${CWD}/memserver`));
 
   const expectedOutput =
-    "[MemServer CLI] /memserver/index.ts created\n" +
-    "[MemServer CLI] /memserver/routes.ts created\n" +
-    "[MemServer CLI] /memserver/initializer.ts created\n" +
-    "[MemServer CLI] /memserver/fixtures folder created\n" +
-    "[MemServer CLI] /memserver/models folder created\n";
+    "[Memserver CLI] /memserver/index.ts created\n" +
+    "[Memserver CLI] /memserver/routes.ts created\n" +
+    "[Memserver CLI] /memserver/initializer.ts created\n" +
+    "[Memserver CLI] /memserver/fixtures folder created\n" +
+    "[Memserver CLI] /memserver/models folder created\n";
 
   const { stdout } = await shell(`node ${CWD}/dist/cli.js init`);
 
@@ -95,11 +95,11 @@ test.serial("$ memserver new | sets up the initial folder structure", async (t) 
   t.true(!fs.pathExistsSync(`${CWD}/memserver`));
 
   const expectedOutput =
-    "[MemServer CLI] /memserver/index.ts created\n" +
-    "[MemServer CLI] /memserver/routes.ts created\n" +
-    "[MemServer CLI] /memserver/initializer.ts created\n" +
-    "[MemServer CLI] /memserver/fixtures folder created\n" +
-    "[MemServer CLI] /memserver/models folder created\n";
+    "[Memserver CLI] /memserver/index.ts created\n" +
+    "[Memserver CLI] /memserver/routes.ts created\n" +
+    "[Memserver CLI] /memserver/initializer.ts created\n" +
+    "[Memserver CLI] /memserver/fixtures folder created\n" +
+    "[Memserver CLI] /memserver/models folder created\n";
 
   const { stdout } = await shell(`node ${CWD}/dist/cli.js new`);
 
@@ -141,9 +141,9 @@ test.serial("$ memserver version | and $ memserver v", async (t) => {
 
   let result = await shell(`node ${CWD}/dist/cli.js v`);
 
-  t.is(result.stdout, `[MemServer CLI] ${require(`${CWD}/package.json`).version}\n`);
+  t.is(result.stdout, `[Memserver CLI] ${require(`${CWD}/package.json`).version}\n`);
 
   result = await shell(`node ${CWD}/dist/cli.js version`);
 
-  t.is(result.stdout, `[MemServer CLI] ${require(`${CWD}/package.json`).version}\n`);
+  t.is(result.stdout, `[Memserver CLI] ${require(`${CWD}/package.json`).version}\n`);
 });

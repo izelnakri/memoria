@@ -2,8 +2,8 @@ import test from "ava";
 import fs from "fs-extra";
 
 const CWD = process.cwd();
-const modelFileContent = (fileName) => `import Model from '${CWD}/dist/model';
-export default class ${fileName} extends Model{
+const modelFileContent = (className) => `import Model from '${CWD}/dist/model';
+export default class ${className} extends Model{
 }`;
 
 test.before(async () => {

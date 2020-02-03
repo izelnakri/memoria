@@ -18,7 +18,7 @@ declare global {
 import test from "ava";
 import express from "express";
 import fs from "fs-extra";
-import FastBootExpressMiddleware from "./test-helpers/mber-fastboot-express-middleware";
+import FastBootExpressMiddleware from "./test-helpers/fastboot-dist/mber-fastboot-express-middleware";
 import http from "http";
 
 const CWD = process.cwd();

@@ -19,7 +19,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "node_modules/.bin/ava --verbose",
-    "bin": "node cli.js"
+    "bin": "ts-node cli.js"
   },
   "dependencies": {
     "ansi-colors": "4.1.1",
@@ -49,7 +49,8 @@
   },
   "ava": {
     "files": [
-      "src/test/**/*"
+      "src/test/**/*",
+      "!src/test/test-helpers/**/*"
     ],
     "extensions": [
       "ts"

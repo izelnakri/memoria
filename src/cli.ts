@@ -29,7 +29,6 @@ CLI.command(["help", "h"], printCommands);
 CLI.command(["init", "new"], async () => {
   let memServerDirectory = await getMemServerDirectory();
   let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
-  // console.log(boilerplateDirectory);
 
   if (!memServerDirectory) {
     memServerDirectory = "./memserver";
@@ -42,7 +41,7 @@ CLI.command(["init", "new"], async () => {
 
     await fs.writeFile(`${memServerDirectory}/index.ts`, indexCode);
 
-    console.log(chalk.cyan("[MemServer CLI] /memserver/index.ts created"));
+    console.log(chalk.cyan("[Memserver CLI] /memserver/index.ts created"));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/routes.ts`))) {
@@ -50,7 +49,7 @@ CLI.command(["init", "new"], async () => {
 
     await fs.writeFile(`${memServerDirectory}/routes.ts`, routesCode);
 
-    console.log(chalk.cyan("[MemServer CLI] /memserver/routes.ts created"));
+    console.log(chalk.cyan("[Memserver CLI] /memserver/routes.ts created"));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/initializer.ts`))) {
@@ -58,7 +57,7 @@ CLI.command(["init", "new"], async () => {
 
     await fs.writeFile(`${memServerDirectory}/initializer.ts`, initializerCode);
 
-    console.log(chalk.cyan("[MemServer CLI] /memserver/initializer.ts created"));
+    console.log(chalk.cyan("[Memserver CLI] /memserver/initializer.ts created"));
   }
 
   await createFixtureAndModelFoldersIfNeeded(memServerDirectory);
@@ -69,12 +68,12 @@ CLI.command(["generate", "g"], async () => {
 
   if (!memServerDirectory) {
     return console.log(
-      chalk.red("[MemServer CLI] cannot find /memserver folder. Did you run $ memserver init ?")
+      chalk.red("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?")
     );
   } else if (!generationType) {
     return console.log(
       chalk.red(
-        "[MemServer CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures"
+        "[Memserver CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures"
       )
     );
   } else if (generationType === "model") {
@@ -85,7 +84,7 @@ CLI.command(["generate", "g"], async () => {
 
   console.log(
     chalk.red(
-      `[MemServer CLI] $ memserver ${process.argv[2]} ${process.argv[3]} ${process.argv[4] ||
+      `[Memserver CLI] $ memserver ${process.argv[2]} ${process.argv[3]} ${process.argv[4] ||
         ""} does not exists, available commands:`
     )
   );
@@ -95,7 +94,7 @@ CLI.command(["generate", "g"], async () => {
 CLI.command(["console", "c"], async () => await openConsole());
 CLI.command(["version", "v"], async () => {
   console.log(
-    chalk.cyan("[MemServer CLI]"),
+    chalk.cyan("[Memserver CLI]"),
     JSON.parse((await fs.readFile(`${__dirname}/../package.json`)).toString()).version
   );
 });
@@ -105,7 +104,7 @@ async function printCommands() {
   const highlight = (text) => chalk.bold.cyan(text);
 
   console.log(`${highlight(
-    "[MemServer CLI v" + config.version + "] Usage:"
+    "[Memserver CLI v" + config.version + "] Usage:"
   )} memserver ${chalk.yellow("<command (Default: help)>")}
 
 memserver init | new                    # Sets up the initial memserver folder structure
@@ -127,7 +126,7 @@ async function generateModel(modelName, memServerDirectory) {
   if (!modelName) {
     return console.log(
       chalk.red(
-        "[MemServer CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user"
+        "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user"
       )
     );
   }
@@ -150,7 +149,7 @@ export default class ${classModelName} extends Model {
   }
 }`
     );
-    console.log(chalk.cyan(`[MemServer CLI] /memserver/models/${modelFileName}.ts created`));
+    console.log(chalk.cyan(`[Memserver CLI] /memserver/models/${modelFileName}.ts created`));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`))) {
@@ -159,48 +158,56 @@ export default class ${classModelName} extends Model {
       `export default [
 ];`
     );
-    console.log(chalk.cyan(`[MemServer CLI] /memserver/fixtures/${fixtureFileName}.ts created`));
+    console.log(chalk.cyan(`[Memserver CLI] /memserver/fixtures/${fixtureFileName}.ts created`));
   }
 }
 
 // TODO: this has to change MemServer.start() will change
 async function generateFixtures(modelName, memServerDirectory) {
-  // const MemServer = await import("./index"); // TODO: problem
-  // MemServer.start();
-  // const targetModels = modelName ? [classify(singularize(modelName))] : Object.keys(MemServer.DB);
-  // targetModels.forEach(async (Model) => {
-  //   const sortedState = MemServer.DB[Model].sort(sortFunction);
-  //   const arrayOfRecords = util.inspect(sortedState, {
-  //     depth: null,
-  //     maxArrayLength: null
-  //   });
-  //   const targetFileName = pluralize(dasherize(underscore(Model)));
-  //   const fileRelativePath = `/fixtures/${targetFileName}`;
-  //   const fileAbsolutePath = `${memServerDirectory}${fileRelativePath}`;
-  //   if (await fs.pathExists(fileAbsolutePath)) {
-  //     const previousModels = (await import(fileAbsolutePath)).default;
-  //     if (JSON.stringify(previousModels.sort(sortFunction)) === JSON.stringify(sortedState)) {
-  //       return;
-  //     }
-  //   }
-  //   await fs.writeFile(fileAbsolutePath, `export default ${arrayOfRecords};`, () => {
-  //     // TODO: make this beter formatted
-  //     console.log(chalk.yellow(`[MemServer] data written to ${fileRelativePath}`));
-  //   });
-  // });
+  const Model = (await import("./model")).default;
+  const startMemserver = (await import("./index")).default;
+  const Server = await startMemserver();
+  const ModelDefinitions = await getModelDefinitions(memServerDirectory);
+
+  const targetModels = modelName
+    ? [classify(singularize(modelName))]
+    : Object.keys(ModelDefinitions);
+
+  console.log("targetModels are ", ModelDefinitions);
+
+  targetModels.forEach(async (Model) => {
+    const sortedState = ModelDefinitions[Model].findAll().sort(sortFunction);
+    const arrayOfRecords = util.inspect(sortedState, {
+      depth: null,
+      maxArrayLength: null
+    });
+    const targetFileName = pluralize(dasherize(underscore(Model)));
+    const fileRelativePath = `/fixtures/${targetFileName}.ts`;
+    const fileAbsolutePath = `${memServerDirectory}${fileRelativePath}`;
+    if (await fs.pathExists(fileAbsolutePath)) {
+      const previousModels = (await import(fileAbsolutePath)).default;
+      if (JSON.stringify(previousModels.sort(sortFunction)) === JSON.stringify(sortedState)) {
+        return;
+      }
+    }
+    await fs.writeFile(fileAbsolutePath, `export default ${arrayOfRecords};`, () => {
+      // TODO: make this beter formatted
+      console.log(chalk.yellow(`[MemServer] data written to ${fileRelativePath}`));
+    });
+  });
 }
 
 async function createFixtureAndModelFoldersIfNeeded(memServerDirectory) {
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures`))) {
     await fs.mkdir(`${memServerDirectory}/fixtures`);
 
-    console.log(chalk.cyan("[MemServer CLI] /memserver/fixtures folder created"));
+    console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/models`))) {
     await fs.mkdir(`${memServerDirectory}/models`);
 
-    console.log(chalk.cyan("[MemServer CLI] /memserver/models folder created"));
+    console.log(chalk.cyan("[Memserver CLI] /memserver/models folder created"));
   }
 
   let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
@@ -215,14 +222,14 @@ async function openConsole() {
   // if (process.cwd().includes("memserver")) {
   //   throw new Error(
   //     chalk.red(
-  //       "[MemServer CLI] You are in the memserver directory, go to the root of your project to start memserver console."
+  //       "[Memserver CLI] You are in the memserver directory, go to the root of your project to start memserver console."
   //     )
   //   );
   // }
   // const MemServer = (await import("./index")).default;
   // const repl = (await import("repl")).default;
   // console.log(
-  //   chalk.cyan("[MemServer CLI]"),
+  //   chalk.cyan("[Memserver CLI]"),
   //   "Starting MemServer node.js console - Remember to MemServer.start() ;)"
   // );
   // repl.start("> ");
@@ -248,4 +255,18 @@ function sortFunction(a, b) {
   }
 
   return 0;
+}
+
+async function getModelDefinitions(memServerDirectory) {
+  const models = await fs.readdir(`${memServerDirectory}/models`);
+
+  const modelDefinitions = await Promise.all(
+    models.map(async (modelPath) => {
+      return (await import(`${memServerDirectory}/models/${modelPath}`)).default;
+    })
+  );
+
+  return modelDefinitions.reduce((result, modelDefinition) => {
+    return Object.assign(result, { [modelDefinition.name]: modelDefinition });
+  }, {});
 }
