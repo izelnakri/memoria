@@ -16,7 +16,6 @@
     "memserver": "dist/cli.js"
   },
   "scripts": {
-    "build": "node_modules/.bin/tsc",
     "dev": "tsc --watch",
     "test": "node_modules/.bin/ava --verbose",
     "bin": "ts-node cli.js"

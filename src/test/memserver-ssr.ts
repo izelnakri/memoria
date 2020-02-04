@@ -8,6 +8,7 @@ declare global {
       window?: any;
       document?: any;
       self: any;
+      fastboot?: any;
       $?: any;
     }
   }
