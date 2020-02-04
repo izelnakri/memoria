@@ -12,7 +12,7 @@ test.afterEach.always(async () => {
 test.serial(
   "MemServer require() should throw error if /memserver folder doesnt exist",
   async (t) => {
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const error = await t.throwsAsync(() => startMemserver(), {
       instanceOf: Error
     });
@@ -25,7 +25,7 @@ test.serial(
   "MemServer require() should throw error if /memserver/models folder doesnt exist",
   async (t) => {
     await fs.mkdir(`${CWD}/memserver`);
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const error = await t.throwsAsync(() => startMemserver(), {
       instanceOf: Error
     });
@@ -39,7 +39,7 @@ test.serial(
   async (t) => {
     await fs.mkdir(`${CWD}/memserver`);
     await fs.mkdir(`${CWD}/memserver/models`);
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const error = await t.throwsAsync(() => startMemserver(), {
       instanceOf: Error
     });
@@ -54,7 +54,7 @@ test.serial(
     await fs.mkdir(`${CWD}/memserver`);
     await fs.mkdir(`${CWD}/memserver/models`);
     await fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}");
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const error = await t.throwsAsync(() => startMemserver(), {
       instanceOf: Error
     });
@@ -73,7 +73,7 @@ test.serial(
     await fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}");
     await fs.writeFile(`${CWD}/memserver/initializer.ts`, "export default function() {}");
 
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const Server = await startMemserver();
 
     t.true(!!Server.shutdown);
@@ -105,7 +105,7 @@ test.serial(
     const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
     const User = (await import(`${CWD}/memserver/models/user.ts`)).default;
 
-    const startMemserver = (await import("../../dist/index")).default;
+    const startMemserver = (await import("../index")).default;
     const Server = await startMemserver();
 
     t.deepEqual(Object.keys(Server), [

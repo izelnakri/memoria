@@ -1,7 +1,6 @@
 declare global {
   interface Window {
     $?: any;
-    [propName: string]: any;
   }
 
   namespace NodeJS {
@@ -10,7 +9,6 @@ declare global {
       document?: any;
       self: any;
       $?: any;
-      [propName: string]: any;
     }
   }
 }
