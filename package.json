@@ -19,7 +19,7 @@
     "dev": "tsc --watch",
     "test": "node_modules/.bin/ava --verbose",
     "bin": "ts-node cli.js",
-    "prepublish": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser-and-node",
+    "prepare": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser-and-node",
     "npm-link-ember-packages": "node scripts/npm-link-ember-packages.js",
     "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js"
   },
