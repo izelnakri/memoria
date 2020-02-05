@@ -14,7 +14,7 @@ async function main() {
   ]);
 
   await Promise.all([
-    fs.copy(`${CWD}/dist/index.js`, `${CWD}/index`),
+    fs.copy(`${CWD}/dist/index.js`, `${CWD}/index.js`),
     shell("rollup -c -i dist/model.js > model.js"),
     shell("rollup -c -i dist/response.js > response.js"),
     shell("rollup -c -i dist/server.js > server.js"),

@@ -3,5 +3,8 @@ import resolve from "@rollup/plugin-node-resolve";
 
 export default {
   input: "dist/model.js",
-  plugins: [resolve(), commonjs()]
+  output: {
+    format: "esm"
+  },
+  plugins: [resolve({ preferBuiltins: false, mainFields: ["jsnext"] }), commonjs({})]
 };

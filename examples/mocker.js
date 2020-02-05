@@ -1,13 +1,14 @@
-// import Server from "./memserver/index";
-// import $ from "$";
+import Server from "./memserver/index";
+import $ from "jquery";
 
-import users from "./memserver/fixtures/users";
-// window.MyMockSever = Server;
+window.$ = $;
+window.MyMockSever = Server;
 
-// window.$.getJSON("/users").then((users) => {
-users.forEach((user) => {
-  let pTag = document.createElement("p");
+window.$.getJSON("/users").then((data) => {
+  debugger;
+  data.users.forEach((user) => {
+    let pTag = document.createElement("p");
 
-  document.querySelector(".users").append(`${user.first_name} ${user.last_name}`, pTag);
+    document.querySelector(".users").append(`${user.first_name} ${user.last_name}`, pTag);
+  });
 });
-// });
