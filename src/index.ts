@@ -21,11 +21,9 @@ declare global {
 
 import fs from "fs-extra";
 import chalk from "ansi-colors";
-import { classify, dasherize } from "ember-cli-string-utils";
-import Inflector from "i";
+import { classify, dasherize } from "@ember/string";
+import { pluralize } from "ember-inflector";
 import setupDom from "./setup-dom";
-
-const { pluralize } = Inflector();
 
 const CWD = process.cwd();
 

@@ -2,15 +2,13 @@ import fs from "fs-extra";
 import util from "util";
 import child_process from "child_process";
 import chalk from "ansi-colors";
-import emberCliStringUtils from "ember-cli-string-utils";
-import i from "i";
+import { classify, dasherize, underscore } from "@ember/string";
+import { pluralize, singularize } from "ember-inflector";
 
 if (process.env.NODE_ENV === "test") {
   chalk.enabled = false;
 }
 
-const { classify, dasherize, underscore } = emberCliStringUtils;
-const { pluralize, singularize } = i();
 const CLI = {
   default(commandHandler) {
     !process.argv[2] ? commandHandler() : null;

@@ -10,6 +10,7 @@ RUN npm install
 
 ADD memserver-boilerplate /code/memserver-boilerplate
 ADD src /code/src
+RUN npm run npm-link-ember-packages
 RUN node_modules/.bin/tsc
 
 ENTRYPOINT "/bin/bash"

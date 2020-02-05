@@ -66,6 +66,9 @@
   "exclude": [
     "memserver-boilerplate",
     "memserver",
-    "dist"
+    "dist",
+    "@ember",
+    "ember-inflector",
+    "vendor"
   ]
 }

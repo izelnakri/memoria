@@ -1,10 +1,8 @@
 import util from "util";
 import chalk from "ansi-colors";
-import Inflector from "i";
-import { classify, underscore } from "ember-cli-string-utils";
+import { classify, underscore } from "@ember/string";
+import { pluralize, singularize } from "ember-inflector";
 import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
-
-const { singularize, pluralize } = Inflector();
 
 type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
   {

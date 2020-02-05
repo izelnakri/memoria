@@ -18,27 +18,40 @@
   "scripts": {
     "dev": "tsc --watch",
     "test": "node_modules/.bin/ava --verbose",
-    "bin": "ts-node cli.js"
+    "bin": "ts-node cli.js",
+    "prepublish": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser-and-node",
+    "npm-link-ember-packages": "node scripts/npm-link-ember-packages.js",
+    "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js"
   },
   "dependencies": {
     "ansi-colors": "4.1.1",
-    "ember-cli-string-utils": "^1.1.0",
     "ember-source": "^3.16.0",
     "fake-xml-http-request": "^2.1.1",
     "fs-extra": "^8.1.0",
-    "i": "^0.3.6",
     "qs": "^6.9.1",
-    "route-recognizer": "^0.3.4"
+    "route-recognizer": "^0.3.4",
+    "tsconfig-paths": "^3.9.0",
+    "@ember/string": "file:./@ember/string",
+    "@ember/error": "file:./@ember/error",
+    "@ember/-internals": "file:./@ember/-internals",
+    "@ember/deprecated-features": "file:./@ember/deprecated-features",
+    "@ember/debug": "file:./@ember/debug",
+    "@ember/polyfills": "file:./@ember/polyfills",
+    "ember-inflector": "file:./ember-inflector"
   },
   "devDependencies": {
-    "@ava/typescript": "^1.0.0",
+    "@babel/preset-typescript": "^7.8.3",
+    "@ava/typescript": "^1.1.0",
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.4",
+    "@babel/plugin-transform-modules-commonjs": "^7.8.3",
     "@types/fs-extra": "^8.0.1",
     "@types/jquery": "^3.3.31",
     "@types/node": "^13.5.3",
-    "ava": "3.1.0",
+    "ava": "3.2.0",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
     "ember-cli-fastboot": "2.2.1",
+    "express": "^4.17.1",
     "fastboot": "^2.0.3",
     "jquery": "^3.4.1",
     "mber": "^0.9.1",
@@ -54,10 +67,10 @@
     "extensions": [
       "ts"
     ],
-    "cache": false,
     "require": [
       "ts-node/register"
     ],
+    "cache": false,
     "concurrency": 1,
     "failFast": true
   },

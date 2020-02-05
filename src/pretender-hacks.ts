@@ -1,11 +1,8 @@
 import qs from "qs";
 import chalk from "ansi-colors";
-import Inflector from "i";
-import stringUtils from "ember-cli-string-utils";
+import { singularize } from "ember-inflector";
+import { classify } from "@ember/string";
 import Model from "./model";
-
-const { classify } = stringUtils;
-const { singularize } = Inflector();
 
 // HACK START: Pretender Request Parameter Type Casting Hack: Because types are important.
 window.Pretender.prototype._handlerFor = function(verb, url, request) {
