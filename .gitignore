@@ -1,4 +1,4 @@
-dist
+/dist
 node_modules
-@ember
-ember-inflector
+/@ember
+/ember-inflector
