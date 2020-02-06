@@ -1,5 +1,8 @@
 .circleci
 .git
+.prettierrc
+README.md
+TODO
 scripts
 vendor
 examples

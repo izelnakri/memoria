@@ -5,15 +5,15 @@ const child_process = require("child_process");
 const shell = util.promisify(child_process.exec);
 
 async function main() {
-  const basePackages = [
+  const emberSourcePackages = [
     "@ember/string",
     "@ember/error",
     "@ember/-internals",
     "@ember/deprecated-features",
     "@ember/debug",
-    "@ember/polyfills",
-    "ember-inflector"
+    "@ember/polyfills"
   ];
+  const basePackages = emberSourcePackages.concat(["ember-inflector"]);
 
   await Promise.all(
     basePackages.map(async (packageName) => {
@@ -23,14 +23,19 @@ async function main() {
     })
   );
 
-  await Promise.all([
-    shell(
-      `node_modules/.bin/babel -x .js node_modules/ember-source/dist/packages/@ember -d ./@ember --config-file="./.babelrc"`
-    ),
-    shell(
-      `node_modules/.bin/babel -x .js vendor/ember-inflector -d ./ember-inflector --config-file="./.babelrc"`
-    )
-  ]);
+  await Promise.all(
+    emberSourcePackages
+      .map((packageName) => {
+        return shell(
+          `node_modules/.bin/babel -x .js node_modules/ember-source/dist/packages/${packageName} -d ./${packageName} --config-file="./.babelrc"`
+        );
+      })
+      .concat([
+        shell(
+          `node_modules/.bin/babel -x .js vendor/ember-inflector -d ./ember-inflector --config-file="./.babelrc"`
+        )
+      ])
+  );
 
   await Promise.all(
     basePackages.map(async (packageName) => await writePackageJSONForLinking(packageName))
