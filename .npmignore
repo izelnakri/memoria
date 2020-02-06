@@ -1,0 +1,6 @@
+.circleci
+.git
+scripts
+vendor
+examples
+node_modules

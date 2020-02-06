@@ -39,17 +39,25 @@ async function main() {
   const currentPackageJSON = JSON.parse(await fs.readFile(`${CWD}/package.json`));
   const targetLinkPackages = basePackages.reduce((result, packageName) => {
     return Object.assign({}, result, {
-      [packageName]: `file:./${packageName}`
+      [packageName]: `file:${packageName}`
     });
-  }, currentPackageJSON.dependencies);
+  }, currentPackageJSON.devDependencies);
 
   await fs.writeFile(
     `${CWD}/package.json`,
-    JSON.stringify(Object.assign(currentPackageJSON, { dependencies: targetLinkPackages }), null, 2)
+    JSON.stringify(
+      Object.assign(currentPackageJSON, { devDependencies: targetLinkPackages }),
+      null,
+      2
+    )
   );
   console.log("package.json written:");
   console.log(
-    JSON.stringify(Object.assign(currentPackageJSON, { dependencies: targetLinkPackages }), null, 2)
+    JSON.stringify(
+      Object.assign(currentPackageJSON, { devDependencies: targetLinkPackages }),
+      null,
+      2
+    )
   );
 
   await shell(`npm link`);

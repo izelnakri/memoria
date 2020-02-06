@@ -1,11 +1,9 @@
 #! /usr/bin/env -S ts-node
-
 import fs from "fs-extra";
 import util from "util";
 import child_process from "child_process";
 import chalk from "ansi-colors";
-import { classify, dasherize, underscore } from "@ember/string";
-import { pluralize, singularize } from "ember-inflector";
+import { classify, dasherize, underscore, pluralize, singularize } from "inflected";
 
 if (process.env.NODE_ENV === "test") {
   chalk.enabled = false;
@@ -77,9 +75,9 @@ CLI.command(["generate", "g"], async () => {
       )
     );
   } else if (generationType === "model") {
-    return await generateModel(process.argv[4], memServerDirectory);
+    return await generateModel(process.argv[4].toLowerCase(), memServerDirectory);
   } else if (generationType === "fixtures") {
-    return await generateFixtures(process.argv[4], memServerDirectory);
+    return await generateFixtures(process.argv[4].toLowerCase(), memServerDirectory);
   }
 
   console.log(
@@ -201,13 +199,12 @@ async function createFixtureAndModelFoldersIfNeeded(memServerDirectory) {
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures`))) {
     await fs.mkdir(`${memServerDirectory}/fixtures`);
     await fs.copy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`),
-
-    console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
+      console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/models`))) {
     await fs.mkdir(`${memServerDirectory}/models`);
-    await fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`)
+    await fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`);
 
     console.log(chalk.cyan("[Memserver CLI] /memserver/models folder created"));
   }
@@ -227,7 +224,6 @@ async function openConsole() {
     chalk.cyan("[Memserver CLI]"),
     "Started MemServer node.js console - check window.Memserver, window.MemServer and import/use your models ;)"
   );
-  await (new Promise((resolve) => setTimeout(resolve, 1000)));
   repl.start("> ");
 }
 

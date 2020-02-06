@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "jquery": "^3.4.1",
-    "memserver": "file:./.."
+    "memserver": "2.0.0-alpha9"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4"
