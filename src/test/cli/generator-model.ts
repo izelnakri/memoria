@@ -53,6 +53,7 @@ test.serial(
 
     await initializeMemServer();
     const { stdout } = await shell(`node ${CWD}/dist/cli.js generate model`);
+
     t.is(
       stdout,
       "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user\n"
@@ -92,7 +93,7 @@ test.serial("$ memserver g [modelName] | works", async (t) => {
 
 export default class Email extends Model {
   constructor() {
-    super(...arguments);
+    super();
   }
 }`
   );
@@ -126,7 +127,7 @@ test.serial("$ memserver generate [modelName] | works", async (t) => {
 
 export default class Email extends Model {
   constructor() {
-    super(...arguments);
+    super();
   }
 }`
   );

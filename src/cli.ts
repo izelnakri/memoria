@@ -63,6 +63,7 @@ CLI.command(["init", "new"], async () => {
 CLI.command(["generate", "g"], async () => {
   const memServerDirectory = await getMemServerDirectory();
   const generationType = process.argv[3];
+  const modelName = process.argv[4] ? process.argv[4].toLocaleLowerCase() : null;
 
   if (!memServerDirectory) {
     return console.log(
@@ -75,9 +76,9 @@ CLI.command(["generate", "g"], async () => {
       )
     );
   } else if (generationType === "model") {
-    return await generateModel(process.argv[4].toLowerCase(), memServerDirectory);
+    return await generateModel(modelName, memServerDirectory);
   } else if (generationType === "fixtures") {
-    return await generateFixtures(process.argv[4].toLowerCase(), memServerDirectory);
+    return await generateFixtures(modelName, memServerDirectory);
   }
 
   console.log(
@@ -150,7 +151,6 @@ export default class ${classModelName} extends Model {
     console.log(chalk.cyan(`[Memserver CLI] /memserver/models/${modelFileName}.ts created`));
   }
 
-  console.log(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`);
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`))) {
     await fs.writeFile(
       `${memServerDirectory}/fixtures/${fixtureFileName}.ts`,

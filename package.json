@@ -59,9 +59,7 @@
     "@ember/deprecated-features": "file:@ember/deprecated-features",
     "@ember/debug": "file:@ember/debug",
     "@ember/polyfills": "file:@ember/polyfills",
-    "ember-inflector": "file:ember-inflector"
-  },
-  "peerDependencies": {
+    "ember-inflector": "file:ember-inflector",
     "typescript": "^3.7.5"
   },
   "ava": {
