@@ -16,6 +16,6 @@
     "@babel/core": "^7.8.4"
   },
   "browserslist": [
-  "last 1 chrome version"
+    "last 1 chrome version"
   ]
 }

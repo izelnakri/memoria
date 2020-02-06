@@ -14,7 +14,6 @@ declare global {
       document?: any;
       self: any;
       $?: any;
-      [propName: string]: any;
     }
   }
 }

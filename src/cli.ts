@@ -1,3 +1,5 @@
+#! /usr/bin/env -S ts-node
+
 import fs from "fs-extra";
 import util from "util";
 import child_process from "child_process";
@@ -143,13 +145,14 @@ async function generateModel(modelName, memServerDirectory) {
 
 export default class ${classModelName} extends Model {
   constructor() {
-    super(...arguments);
+    super();
   }
 }`
     );
     console.log(chalk.cyan(`[Memserver CLI] /memserver/models/${modelFileName}.ts created`));
   }
 
+  console.log(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`);
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`))) {
     await fs.writeFile(
       `${memServerDirectory}/fixtures/${fixtureFileName}.ts`,
@@ -171,8 +174,6 @@ async function generateFixtures(modelName, memServerDirectory) {
     ? [classify(singularize(modelName))]
     : Object.keys(ModelDefinitions);
 
-  console.log("targetModels are ", ModelDefinitions);
-
   targetModels.forEach(async (Model) => {
     const sortedState = ModelDefinitions[Model].findAll().sort(sortFunction);
     const arrayOfRecords = util.inspect(sortedState, {
@@ -189,48 +190,45 @@ async function generateFixtures(modelName, memServerDirectory) {
       }
     }
     await fs.writeFile(fileAbsolutePath, `export default ${arrayOfRecords};`, () => {
-      // TODO: make this beter formatted
       console.log(chalk.yellow(`[MemServer] data written to ${fileRelativePath}`));
     });
   });
 }
 
 async function createFixtureAndModelFoldersIfNeeded(memServerDirectory) {
+  let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
+
   if (!(await fs.pathExists(`${memServerDirectory}/fixtures`))) {
     await fs.mkdir(`${memServerDirectory}/fixtures`);
+    await fs.copy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`),
 
     console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
   }
 
   if (!(await fs.pathExists(`${memServerDirectory}/models`))) {
     await fs.mkdir(`${memServerDirectory}/models`);
+    await fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`)
 
     console.log(chalk.cyan("[Memserver CLI] /memserver/models folder created"));
   }
-
-  let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
-
-  await Promise.all([
-    fs.copy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`),
-    fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`)
-  ]);
 }
 
 async function openConsole() {
-  // if (process.cwd().includes("memserver")) {
-  //   throw new Error(
-  //     chalk.red(
-  //       "[Memserver CLI] You are in the memserver directory, go to the root of your project to start memserver console."
-  //     )
-  //   );
-  // }
-  // const MemServer = (await import("./index")).default;
-  // const repl = (await import("repl")).default;
-  // console.log(
-  //   chalk.cyan("[Memserver CLI]"),
-  //   "Starting MemServer node.js console - Remember to MemServer.start() ;)"
-  // );
-  // repl.start("> ");
+  if (process.cwd().includes("memserver")) {
+    throw new Error(
+      chalk.red(
+        "[Memserver CLI] You are in the memserver directory, go to the root of your project to start memserver console."
+      )
+    );
+  }
+  const MemServer = await (await import("./index")).default();
+  const repl = (await import("repl")).default;
+  console.log(
+    chalk.cyan("[Memserver CLI]"),
+    "Started MemServer node.js console - check window.Memserver, window.MemServer and import/use your models ;)"
+  );
+  await (new Promise((resolve) => setTimeout(resolve, 1000)));
+  repl.start("> ");
 }
 
 async function getMemServerDirectory() {

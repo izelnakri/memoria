@@ -21,8 +21,8 @@ const DEFAULT_PASSTHROUGHS = [
 
 interface MemserverOptions {
   logging?: boolean;
-  initializer?: () => {};
-  routes?: () => {};
+  initializer?: () => any | void;
+  routes?: () => any | void;
   [propName: string]: any;
 }
 
@@ -33,6 +33,7 @@ export default class Memserver {
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
     const initializerReturn = initializer();
 
+    window.MemserverModel = Model;
     if (initializerReturn instanceof Promise) {
       initializerReturn.then(() => {
         if (options.globalizeModels) {

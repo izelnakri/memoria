@@ -69,6 +69,8 @@
     "dist",
     "@ember",
     "ember-inflector",
-    "vendor"
+    "vendor",
+    "examples",
+    "scripts"
   ]
 }
