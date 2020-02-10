@@ -37,7 +37,6 @@ export default class Memserver {
     const Model = window.MemserverModel || TargetModel;
 
     window.MemserverModel = Model;
-    window.MemServer = this;
 
     if (initializerReturn instanceof Promise) {
       initializerReturn.then(() => {
@@ -55,7 +54,10 @@ export default class Memserver {
       }
     }
 
-    return startPretender(routes, Object.assign(options, { logging }));
+    window.MemServer = startPretender(routes, Object.assign(options, { logging }));
+    window.MemServer.Models = this.Models;
+
+    return window.MemServer;
   }
 }
 
