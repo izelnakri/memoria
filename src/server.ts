@@ -9,7 +9,7 @@ declare global {
 import chalk from "ansi-colors";
 import { primaryKeyTypeSafetyCheck } from "./utils";
 import FakeXMLHttpRequest from "fake-xml-http-request";
-import Model from "./model";
+import TargetModel from "./model";
 import RouteRecognizer from "route-recognizer";
 import "pretender"; // NOTE: check this
 import "./pretender-hacks"; // NOTE: check this
@@ -27,25 +27,30 @@ interface MemserverOptions {
 }
 
 export default class Memserver {
+  Models = {};
+
   constructor(options: MemserverOptions = { logging: true }) {
     const initializer = options.initializer || async function() {};
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
     const initializerReturn = initializer();
+    const Model = window.MemserverModel || TargetModel;
 
     window.MemserverModel = Model;
+    window.MemServer = this;
+
     if (initializerReturn instanceof Promise) {
       initializerReturn.then(() => {
         if (options.globalizeModels) {
           Object.keys(Model._modelDefinitions).forEach((modelName) => {
-            window[modelName] = Model._modelDefinitions[modelName];
+            this.Models[modelName] = Model._modelDefinitions[modelName];
           });
         }
       });
     } else {
       if (options.globalizeModels) {
         Object.keys(Model._modelDefinitions).forEach((modelName) => {
-          window[modelName] = Model._modelDefinitions[modelName];
+          this.Models[modelName] = Model._modelDefinitions[modelName];
         });
       }
     }
