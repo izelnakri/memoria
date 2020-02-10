@@ -161,7 +161,7 @@ function getDefaultStatusCode(verb) {
 ["get", "put", "post", "delete"].forEach((verb) => {
   window.Pretender.prototype[verb] = function(path, handler, async) {
     const fullPath = (this.urlPrefix || "") + (this.namespace ? "/" + this.namespace : "") + path;
-    const targetHandler = handler || getDefaultRouteHandler(verb.toUpperCase(), fullPath);
+    const targetHandler = handler || getDefaultRouteHandler(verb.toUpperCase(), fullPath, this);
     const timing = async ? async.timing || this.timing : this.timing;
     // console.log('timing is', timing);
     // console.log('async is', async);
@@ -170,12 +170,13 @@ function getDefaultStatusCode(verb) {
 });
 // END: Pretender REST default hack: For better UX
 
-function getDefaultRouteHandler(verb, path) {
+function getDefaultRouteHandler(verb, path, context) {
   const paths = path.split(/\//g);
   const lastPath = paths[paths.length - 1];
   const pluralResourceName = lastPath.includes(":") ? paths[paths.length - 2] : lastPath;
   const resourceName = singularize(pluralResourceName);
-  const ResourceModel = Model._modelDefinitions[classify(resourceName)];
+  const resourceClassName = classify(resourceName);
+  const ResourceModel = Model._modelDefinitions[resourceClassName] || context.Models[resourceClassName];
 
   if (!ResourceModel) {
     throw new Error(
