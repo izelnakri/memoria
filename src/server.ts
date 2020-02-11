@@ -34,34 +34,17 @@ export default class Memserver {
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
     const initializerReturn = initializer();
-    const Model = window.MemserverModel || TargetModel;
 
-    window.MemserverModel = Model;
-
-    if (initializerReturn instanceof Promise) {
-      initializerReturn.then(() => {
-        if (options.globalizeModels) {
-          Object.keys(Model._modelDefinitions).forEach((modelName) => {
-            this.Models[modelName] = Model._modelDefinitions[modelName];
-          });
-        }
-      });
-    } else {
-      if (options.globalizeModels) {
-        Object.keys(Model._modelDefinitions).forEach((modelName) => {
-          this.Models[modelName] = Model._modelDefinitions[modelName];
-        });
-      }
-    }
-
-    window.MemServer = startPretender(routes, Object.assign(options, { logging }));
+    window.MemserverModel = window.MemserverModel || TargetModel;
+    this.Models = window.MemserverModel._modelDefinitions;
+    window.MemServer = startPretender(routes, Object.assign(options, { logging }), this.Models);
     window.MemServer.Models = this.Models;
 
     return window.MemServer;
   }
 }
 
-function startPretender(routes, options) {
+function startPretender(routes, options, Models) {
   window.FakeXMLHttpRequest = FakeXMLHttpRequest;
   window.RouteRecognizer = RouteRecognizer;
   window.Pretender.prototype.namespace = options.namespace;
@@ -71,6 +54,8 @@ function startPretender(routes, options) {
   let pretender = new window.Pretender(
     function() {
       const Memserver = chalk.cyan("[Memserver]");
+
+      this.Models = Models;
 
       if (options.logging) {
         this.handledRequest = function(verb, path, request) {

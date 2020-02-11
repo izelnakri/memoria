@@ -283,6 +283,57 @@ test.serial("throws an helpful error message when shortcuts model is not found",
   );
 });
 
+test.serial("GET /houses could use Photo model for its default route generation", async (t) => {
+  t.plan(4);
+
+  await fs.writeFile(
+    `${CWD}/memserver/routes.ts`,
+    `
+    import Photo from './models/photo';
+
+    export default function(Models) {
+      this.post('/photos');
+      this.get('/photos');
+      this.get('/photos/:id');
+      this.put('/photos/:id');
+      this.delete('/photos/:id');
+
+      this.get('/houses', Photo);
+    }
+  `
+  );
+
+  Object.keys(require.cache).forEach((key) => delete require.cache[key]);
+
+  const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
+  const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
+
+  PhotoFixtures.forEach((photo) => Photo.insert(photo));
+
+  await (await import(`${CWD}/dist/setup-dom`)).default();
+
+  const MemServer = (await import(`${CWD}/dist/server`)).default;
+  const routes = (await import(`${CWD}/memserver/routes`)).default;
+
+  new MemServer({
+    routes: (await import(`${CWD}/memserver/routes`)).default
+  });
+
+  window.$ = await import("jquery");
+
+  t.is(Photo.count(), 3);
+
+  await window.$.ajax({
+    type: "GET",
+    url: "/photos",
+    headers: { "Content-Type": "application/json" }
+  }).then((data, textStatus, jqXHR) => {
+    t.is(jqXHR.status, 200);
+    t.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+    t.is(Photo.count(), 3);
+  });
+});
+
 test.serial("POST /resources works correctly with undefined handler response", async (t) => {
   t.plan(4);
 

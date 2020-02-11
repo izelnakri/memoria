@@ -31,9 +31,9 @@ export default async function(): Promise<any> {
     throw new Error(chalk.red("/memserver folder doesn't exist for this directory!"));
   } else if (!(await fs.pathExists(`${CWD}/memserver/models`))) {
     throw new Error(chalk.red("/memserver/models folder doesn't exist for this directory!"));
-  } else if (!(await fs.pathExists(`${CWD}/memserver/routes.ts`))) {
+  } else if (!(await checkFile(`${CWD}/memserver/routes`))) {
     throw new Error(chalk.red("/memserver/routes.ts doesn't exist for this directory!"));
-  } else if (!(await fs.pathExists(`${CWD}/memserver/initializer.ts`))) {
+  } else if (!(await checkFile(`${CWD}/memserver/initializer`))) {
     throw new Error(chalk.red("/memserver/initializer.ts doesn't exist for this directory!"));
   }
 
@@ -53,4 +53,8 @@ export default async function(): Promise<any> {
   });
 
   return window.MemServer;
+}
+
+async function checkFile(filePath) {
+  return await fs.pathExists(`${filePath}.ts`) || await fs.pathExists(`${filePath}.js`);
 }

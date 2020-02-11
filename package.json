@@ -1,6 +1,6 @@
 {
   "name": "memserver",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
   "author": "Izel Nakri",
   "repository": {
@@ -28,6 +28,7 @@
     "fake-xml-http-request": "^2.1.1",
     "fs-extra": "^8.1.0",
     "inflected": "^2.0.4",
+    "jsdom": "^16.1.0",
     "qs": "^6.9.1",
     "route-recognizer": "^0.3.4",
     "ts-node": "^8.6.2"

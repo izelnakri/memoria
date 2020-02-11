@@ -125,10 +125,11 @@ test.serial(
       "_nativeHeaders",
       "_nativeRequest",
       "_nativeResponse",
+      "Models",
       "handledRequest",
       "passthroughRequest",
       "unhandledRequest",
-      "passthrough"
+      "passthrough",
     ]);
     [Photo, PhotoComment, User].forEach((modelDefinition) => {
       t.deepEqual(modelDefinition.findAll(), []);
