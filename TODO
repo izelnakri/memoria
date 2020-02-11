@@ -1,8 +1,50 @@
-build the CI,
-wire @ember/string from ember-source through typescript || use inflected
-write the build process
 through embroider create a local ember-packages and wire them to memserver with right module names
 
 maybe remove require.caches for tests
 
-JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and better/flawless ava API(test.serial, test etc)
+JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and runtimes need to have ava API as default testing API(test.serial, test etc)
+
+- investigate silent Errors within MemServer.Server handler context
+- make passthrough PASS
+- serializerExtraFields params
+
+- add initializer.js
+- memserver command shows options + loader + memserver browserify [dist] creates memserver.dist.js
+- derived schema attribute for $Model:
+  schema: {
+    inserted_at: {
+      type: '', notNull: true, unique: true, validate: {}
+    }
+  }
+- non-json request/responses? - just kidding... or do I?!?
+- rollup -i ./lib/response.js -o response.js -f cjs
+- memserver glue [jsonEndpoint]
+
+
+
+export default Model({
+  schema: {
+    username: {
+      type: String,
+      required: true,
+      default: 'xxx',
+      notNull: true,
+      unique: true // other min, max,
+      check(model, next) {
+        // custom checks if that returns
+      }
+    }
+  },
+  relationships: {
+    emails: { // belongsTo, hasMany, hasMany through, hasOne, onReplace, maybe do FK contraint here
+      model: //
+
+    }
+  }
+});
+
+// relationships declaration
+
+import { cast, validateLength, validateRequired, foreignKeyConstraint } from 'memserver/changeset';
+import { from } from 'memserver/query';
+
