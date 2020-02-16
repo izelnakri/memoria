@@ -17,7 +17,7 @@ export interface InternalModelShape {
 
 export type InternalModel = RequireOnlyOne<InternalModelShape, "id" | "uuid">;
 
-export default abstract class MemServerModel {
+export default class MemServerModel {
   static _DB = {};
   static _modelDefinitions = {};
   static _attributes = {};
@@ -102,7 +102,7 @@ export default abstract class MemServerModel {
         const foundModel = param.includes(model.id) ? model : null;
 
         return foundModel ? result.concat([foundModel]) : result;
-      }, []);
+      }, []) as Array<InternalModel>;
     } else if (typeof param !== "number") {
       throw new Error(
         chalk.red(`[Memserver] ${this.name}.find(id) cannot be called without a valid id`)
@@ -111,7 +111,7 @@ export default abstract class MemServerModel {
 
     const models = Array.from(this.DB);
 
-    return models.find((model) => model.id === param);
+    return models.find((model) => model.id === param) as InternalModel | undefined;
   }
   static findBy(options: object): InternalModel | undefined {
     if (!options) {
@@ -287,10 +287,10 @@ export default abstract class MemServerModel {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
-      return objectOrArray.map((object) => this.serialize(object), []);
+      return (objectOrArray as Array<InternalModel>).map((object) => this.serialize(object), []);
     }
 
-    return this.serialize(objectOrArray);
+    return this.serialize(objectOrArray as InternalModel);
   }
   static serialize(object: InternalModel) {
     // NOTE: add links object ?
