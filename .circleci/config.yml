@@ -10,14 +10,14 @@ jobs:
       - run:
           name: Build application Docker image
           command: |
-            docker build -t new-memserver .
+            docker build -t memserver .
       - deploy:
           name: Push application Docker image
           command: |
-            DOCKER_TAG=$(echo new-memserver:${CIRCLE_BRANCH} | tr '/' '_')
+            DOCKER_TAG=$(echo memserver:${CIRCLE_BRANCH} | tr '/' '_')
             DOCKER_TARGET_REMOTE="${HUB_USERNAME}/${DOCKER_TAG}"
             echo $HUB_KEY | docker login -u $HUB_USERNAME --password-stdin
-            docker tag new-memserver "${DOCKER_TARGET_REMOTE}"
+            docker tag memserver "${DOCKER_TARGET_REMOTE}"
             docker push "${DOCKER_TARGET_REMOTE}"
   test:
     docker:
@@ -28,10 +28,10 @@ jobs:
       - run:
           name: Pull and run a docker container
           command: |
-            DOCKER_TAG=$(echo new-memserver:${CIRCLE_BRANCH} | tr '/' '_')
+            DOCKER_TAG=$(echo memserver:${CIRCLE_BRANCH} | tr '/' '_')
             docker pull ${HUB_USERNAME}/${DOCKER_TAG}
-            docker run -t -d --name="new-memserver" ${HUB_USERNAME}/${DOCKER_TAG} /bin/bash
-      - run: docker exec -it -e NODE_OPTIONS=--experimental-modules new-memserver npm test
+            docker run -t -d --name="memserver" ${HUB_USERNAME}/${DOCKER_TAG} /bin/bash
+      - run: docker exec -it memserver npm test
 
 workflows:
   version: 2
