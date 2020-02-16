@@ -34,25 +34,25 @@
     "ts-node": "^8.6.2"
   },
   "devDependencies": {
-    "@ava/typescript": "^1.1.0",
+    "@ava/typescript": "^1.1.1",
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.8.4",
-    "ember-source": "3.16.1",
+    "ember-source": "3.16.2",
     "@babel/plugin-transform-modules-commonjs": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
     "@rollup/plugin-commonjs": "^11.0.2",
     "@rollup/plugin-node-resolve": "^7.1.1",
     "@types/fs-extra": "^8.0.1",
     "@types/jquery": "^3.3.31",
-    "@types/node": "^13.5.3",
+    "@types/node": "^13.7.1",
     "tsconfig-paths": "^3.9.0",
-    "ava": "3.2.0",
+    "ava": "3.3.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.1",
     "express": "^4.17.1",
     "fastboot": "^2.0.3",
     "jquery": "^3.4.1",
-    "mber": "^0.9.1",
+    "mber": "^0.11.11",
     "sinon": "^8.1.1",
     "@ember/string": "file:@ember/string",
     "@ember/error": "file:@ember/error",
@@ -79,6 +79,6 @@
     "failFast": true
   },
   "volta": {
-    "node": "13.6.0"
+    "node": "13.8.0"
   }
 }
