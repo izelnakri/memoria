@@ -26,16 +26,27 @@ interface MemserverOptions {
   [propName: string]: any;
 }
 
-export default class Memserver {
+interface Memserver {
+  get: (urlPath, any?) => any;
+  put: (urlPath, any?) => any;
+  delete: (urlPath, any?) => any;
+  post: (urlPath, any?) => any;
+  patch: (urlPath, any?) => any;
+  shutdown: () => any;
+}
+
+class Memserver {
   Models = {};
 
   constructor(options: MemserverOptions = { logging: true }) {
     const initializer = options.initializer || async function() {};
     const routes = options.routes || function() {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
-    const initializerReturn = initializer();
 
     window.MemserverModel = window.MemserverModel || TargetModel;
+
+    const initializerReturn = initializer();
+
     this.Models = window.MemserverModel._modelDefinitions;
     window.MemServer = startPretender(routes, Object.assign(options, { logging }), this.Models);
     window.MemServer.Models = this.Models;
@@ -43,6 +54,8 @@ export default class Memserver {
     return window.MemServer;
   }
 }
+
+export default Memserver;
 
 function startPretender(routes, options, Models) {
   window.FakeXMLHttpRequest = FakeXMLHttpRequest;

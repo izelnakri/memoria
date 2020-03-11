@@ -2,3 +2,5 @@
 node_modules
 /@ember
 /ember-inflector
+/examples/dist
+/examples/.cache

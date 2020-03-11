@@ -161,7 +161,7 @@ function getDefaultStatusCode(verb) {
 ["get", "put", "post", "delete"].forEach((verb) => {
   window.Pretender.prototype[verb] = function(path, handler, async) {
     const fullPath = (this.urlPrefix || "") + (this.namespace ? "/" + this.namespace : "") + path;
-    const MemServerModel = window.MemServerModel || Model;
+    const MemServerModel = window.MemserverModel || Model;
     const defaultResourceDefinition = MemServerModel.isPrototypeOf(handler) ? handler : null;
     const targetHandler = handler || getDefaultRouteHandler(verb.toUpperCase(), fullPath, this, defaultResourceDefinition);
     const timing = async ? async.timing || this.timing : this.timing;
