@@ -52,7 +52,7 @@
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.1",
     "express": "^4.17.1",
-    "fastboot": "^2.0.3",
+    "fastboot": "^3.0.1",
     "jquery": "^3.4.1",
     "mber": "^0.12.5",
     "sinon": "^9.0.1",
@@ -76,6 +76,7 @@
     "require": [
       "ts-node/register"
     ],
+    "timeout": "30000",
     "cache": false,
     "concurrency": 1,
     "failFast": true
