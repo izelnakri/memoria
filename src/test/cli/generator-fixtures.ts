@@ -266,6 +266,7 @@ test.serial("$ memserver g fixtures [modelName] works", async (t) => {
 
   await generateMemServerState();
   const { stdout } = await shell(`ts-node ${CWD}/dist/cli.js g fixtures users`);
+
   t.true(stdout.includes("[MemServer] data written to /fixtures/users.ts"));
 
   const fixturesPath = `${CWD}/memserver/fixtures`;

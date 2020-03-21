@@ -133,16 +133,18 @@ test.serial(
       distPath: FASTBOOT_DIST_PATH,
       resilient: true,
       shouldRender: true,
-      sandboxGlobals: {
-        global: global,
-        self: global.self,
-        window: global.window,
-        document: global.document,
-        location: global.window.location,
-        XMLHttpRequest: global.window.XMLHttpRequest,
-        $: window.$,
-        jQuery: window.$,
-        navigator: global.window.navigator
+      buildSandboxGlobals: (defaultGlobals) => {
+        return Object.assign(defaultGlobals, {
+          global: global,
+          self: global.self,
+          window: global.window,
+          document: global.document,
+          location: global.window.location,
+          XMLHttpRequest: global.window.XMLHttpRequest,
+          $: window.$,
+          jQuery: window.$,
+          navigator: global.window.navigator
+        });
       }
     });
 
