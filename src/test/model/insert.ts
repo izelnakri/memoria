@@ -11,7 +11,7 @@ test.before(async () => {
   await fs.mkdir(`${CWD}/memserver/models`);
   await Promise.all([
     fs.writeFile(`${CWD}/memserver/models/user.ts`, modelFileContent("User")),
-    fs.mkdir(`${CWD}/memserver/fixtures`)
+    fs.mkdir(`${CWD}/memserver/fixtures`),
   ]);
   await Promise.all([
     fs.writeFile(
@@ -65,7 +65,7 @@ test.before(async () => {
         user_id: 1
       }
     ];`
-    )
+    ),
   ]);
 });
 
@@ -100,7 +100,7 @@ test.beforeEach(async () => {
         is_important: true
       }
     }`
-    )
+    ),
   ]);
 });
 
@@ -121,7 +121,7 @@ test.serial(
 
     await Promise.all([
       fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
-      fs.writeFile(`${CWD}/memserver/models/photo-comment.ts`, modelFileContent("PhotoComment"))
+      fs.writeFile(`${CWD}/memserver/models/photo-comment.ts`, modelFileContent("PhotoComment")),
     ]);
 
     const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
@@ -133,11 +133,17 @@ test.serial(
     PhotoFixtures.forEach((photo) => Photo.insert(photo));
     PhotoCommentFixtures.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-    t.deepEqual(Photo.findAll().map((photo) => photo.id), [1, 2, 3]);
+    t.deepEqual(
+      Photo.findAll().map((photo) => photo.id),
+      [1, 2, 3]
+    );
 
     Photo.insert();
 
-    t.deepEqual(Photo.findAll().map((photo) => photo.id), [1, 2, 3, 4]);
+    t.deepEqual(
+      Photo.findAll().map((photo) => photo.id),
+      [1, 2, 3, 4]
+    );
 
     Photo.insert();
 
@@ -147,32 +153,32 @@ test.serial(
         id: 1,
         name: "Ski trip",
         href: "ski-trip.jpeg",
-        is_public: false
+        is_public: false,
       },
       {
         id: 2,
         name: "Family photo",
         href: "family-photo.jpeg",
-        is_public: true
+        is_public: true,
       },
       {
         id: 3,
         name: "Selfie",
         href: "selfie.jpeg",
-        is_public: false
+        is_public: false,
       },
       {
         id: 4,
         href: undefined,
         is_public: undefined,
-        name: undefined
+        name: undefined,
       },
       {
         id: 5,
         href: undefined,
         is_public: undefined,
-        name: undefined
-      }
+        name: undefined,
+      },
     ]);
 
     const initialCommentUUIDs = PhotoComment.findAll().map((photoComment) => photoComment.uuid);
@@ -181,7 +187,7 @@ test.serial(
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
       "d351963d-e725-4092-a37c-1ca1823b57d3",
-      "374c7f4a-85d6-429a-bf2a-0719525f5f29"
+      "374c7f4a-85d6-429a-bf2a-0719525f5f29",
     ]);
 
     PhotoComment.insert();
@@ -217,42 +223,42 @@ test.serial(
         id: 1,
         name: "Ski trip",
         href: "ski-trip.jpeg",
-        is_public: false
+        is_public: false,
       },
       {
         id: 2,
         name: "Family photo",
         href: "family-photo.jpeg",
-        is_public: true
+        is_public: true,
       },
       {
         id: 3,
         name: "Selfie",
         href: "selfie.jpeg",
-        is_public: false
+        is_public: false,
       },
       {
         id: 99,
         href: "/izel.html",
         is_public: false,
-        name: "Some default name"
+        name: "Some default name",
       },
       {
         id: 4,
         href: "/baby.jpg",
         is_public: true,
-        name: "Baby photo"
-      }
+        name: "Baby photo",
+      },
     ]);
 
     const initialCommentUUIDs = PhotoComment.findAll().map((comment) => comment.uuid);
     const commentOne = PhotoComment.insert({
       inserted_at: "2015-10-25T20:54:04.447Z",
-      photo_id: 1
+      photo_id: 1,
     });
     const commentTwo = PhotoComment.insert({
       uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
-      is_important: false
+      is_important: false,
     });
 
     t.is(PhotoComment.count(), 6);
@@ -360,7 +366,7 @@ test("$Model.insert(attributes) can add new values to $Model.attributes when new
     "href",
     "published_at",
     "description",
-    "location"
+    "location",
   ]);
   t.deepEqual(PhotoComment.attributes, [
     "inserted_at",
@@ -371,26 +377,26 @@ test("$Model.insert(attributes) can add new values to $Model.attributes when new
     "user_id",
     "updated_at",
     "like_count",
-    "reply_id"
+    "reply_id",
   ]);
   t.deepEqual(Photo.findAll(), [
     {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
-      is_public: false
+      is_public: false,
     },
     {
       id: 2,
       name: "Family photo",
       href: "family-photo.jpeg",
-      is_public: true
+      is_public: true,
     },
     {
       id: 3,
       name: "Selfie",
       href: "selfie.jpeg",
-      is_public: false
+      is_public: false,
     },
     {
       id: 4,
@@ -398,7 +404,7 @@ test("$Model.insert(attributes) can add new values to $Model.attributes when new
       is_public: true,
       published_at: "2017-10-10T00:00:00.000Z",
       description: "Some description",
-      name: "Some default name"
+      name: "Some default name",
     },
     {
       id: 5,
@@ -407,7 +413,7 @@ test("$Model.insert(attributes) can add new values to $Model.attributes when new
       location: "Istanbul",
       published_at: undefined,
       name: "Some default name",
-      description: undefined
-    }
+      description: undefined,
+    },
   ]);
 });

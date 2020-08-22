@@ -3,7 +3,6 @@ import fs from "fs-extra";
 
 const CWD = process.cwd();
 
-// TODO: test reset() function, if implementation is required
 test.before(async () => {
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
@@ -22,9 +21,6 @@ test.before(async () => {
             return 'Imported photo';
           },
           href() {
-            console.log(super);
-            console.log(super.name);
-
             return this.name;
           }
         }
@@ -55,7 +51,11 @@ test.before(async () => {
       {
         id: 3,
         name: 'Selfie',
-        href: 'selfie.jpeg',
+        href: null,
+        is_public: false
+      },
+      {
+        id: 4,
         is_public: false
       }
     ];`
@@ -88,7 +88,7 @@ test.serial(
     PhotoFixtures.forEach((photo) => Photo.insert(photo));
 
     t.deepEqual(
-      Photo.findAll().map((photo) => photo.id),
+      Photo.findAll(),
       [
         {
           id: 1,
@@ -105,16 +105,46 @@ test.serial(
         {
           id: 3,
           name: "Selfie",
-          href: "selfie.jpeg",
+          href: null,
+          is_public: false,
+        },
+        {
+          id: 4,
+          name: "Imported photo",
+          href: "Imported photo",
           is_public: false,
         },
       ]
     );
 
-    Photo.insert();
+    const target = Photo.insert({ name: 'Izel' });
+
+    t.deepEqual(target, {
+      id: 5,
+      name: "Izel",
+      href: "Izel",
+      is_public: true
+    });
+    t.deepEqual(target, Photo.find(target.id));
+
+    const secondTarget = Photo.insert({ name: 'Izel', href: 'something else' });
+
+    t.deepEqual(secondTarget, {
+      id: 6,
+      name: "Izel",
+      href: "something else",
+      is_public: true
+    });
+    t.deepEqual(secondTarget, Photo.find(secondTarget.id));
+
+    const thirdTarget = Photo.insert({ name: 'Izel', href: null });
+
+    t.deepEqual(thirdTarget, {
+      id: 7,
+      name: "Izel",
+      href: null,
+      is_public: true
+    });
+    t.deepEqual(thirdTarget, Photo.find(thirdTarget.id));
   }
 );
-
-// test.serial("$Model.update() doesnt set defaultAttributes", async (t) => {
-
-// });
