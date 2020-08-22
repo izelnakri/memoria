@@ -24,7 +24,7 @@ export default class MemServerModel {
   static _defaultAttributes = {}; // NOTE: probably a decorator here in future
   static _embedReferences = {}; // NOTE: serializer concern
 
-  static primaryKey: string | null = null; // NOTE: this might be problematic!!
+  static primaryKey: string | null = null;
 
   static get DB(): Array<InternalModel> {
     if (!this._DB[this.name]) {
@@ -142,33 +142,19 @@ export default class MemServerModel {
       this.attributes.push(this.primaryKey);
     }
 
-    const defaultAttributes = this.attributes.reduce((result, attribute) => {
-      if (attribute === this.primaryKey) {
-        result[attribute] = this.primaryKey === "id" ? incrementId(this.DB, this) : generateUUID();
+    if (!(this.primaryKey in options)) {
+      options[this.primaryKey] = this.primaryKey === "id" ? incrementId(this.DB, this) : generateUUID();
+    }
 
-        return result;
-      }
+    primaryKeyTypeSafetyCheck(this.primaryKey, options[this.primaryKey], this.name);
 
-      const target = this.defaultAttributes[attribute]; // NOTE: check if I can optimize this earlier
-
-      // result[attribute] = typeof target === "function" ? target() : target; // TODO: here we apply the defaultAttribute
-      result[attribute] = target;
-
-      return result;
-    }, {});
-    const defaultTarget = Object.assign(defaultAttributes, options);
-    const target = Object.keys(defaultTarget).reduce((result, attribute) => {
-      if (typeof defaultTarget[attribute] === "function") {
-        result[attribute] = defaultTarget[attribute].apply(defaultTarget); // NOTE: functions will be functions here;
-      } else {
-        result[attribute] = defaultTarget[attribute];
+    const target = this.attributes.reduce((result, attribute) => {
+      if (typeof result[attribute] === "function") {
+        result[attribute] = result[attribute].apply(result);
       }
 
       return result;
-    }, defaultTarget);
-
-    primaryKeyTypeSafetyCheck(this.primaryKey, target[this.primaryKey], this.name);
-
+    }, Object.assign({}, this.defaultAttributes, options));
     const existingRecord = target.id ? this.find(target.id) : this.findBy({ uuid: target.uuid });
 
     if (existingRecord) {
