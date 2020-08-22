@@ -135,7 +135,7 @@ export default class MemServerModel {
       this.attributes.push(this.primaryKey);
     }
 
-    if (!(this.primaryKey in options)) {
+    if (!options.hasOwnProperty(this.primaryKey)) {
       options[this.primaryKey] = this.primaryKey === "id" ? incrementId(this.DB, this) : generateUUID();
     }
 
