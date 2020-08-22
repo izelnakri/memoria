@@ -24,9 +24,6 @@ test.before(async () => {
             return this.name;
           }
         }
-        static publicPhotos() {
-          return super.findAll({ is_public: true });
-        }
       }
     `
     ),
@@ -87,63 +84,60 @@ test.serial(
 
     PhotoFixtures.forEach((photo) => Photo.insert(photo));
 
-    t.deepEqual(
-      Photo.findAll(),
-      [
-        {
-          id: 1,
-          name: "Ski trip",
-          href: "ski-trip.jpeg",
-          is_public: false,
-        },
-        {
-          id: 2,
-          name: "Family photo",
-          href: "family-photo.jpeg",
-          is_public: true,
-        },
-        {
-          id: 3,
-          name: "Selfie",
-          href: null,
-          is_public: false,
-        },
-        {
-          id: 4,
-          name: "Imported photo",
-          href: "Imported photo",
-          is_public: false,
-        },
-      ]
-    );
+    t.deepEqual(Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+      {
+        id: 2,
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      },
+      {
+        id: 3,
+        name: "Selfie",
+        href: null,
+        is_public: false,
+      },
+      {
+        id: 4,
+        name: "Imported photo",
+        href: "Imported photo",
+        is_public: false,
+      },
+    ]);
 
-    const target = Photo.insert({ name: 'Izel' });
+    const target = Photo.insert({ name: "Izel" });
 
     t.deepEqual(target, {
       id: 5,
       name: "Izel",
       href: "Izel",
-      is_public: true
+      is_public: true,
     });
     t.deepEqual(target, Photo.find(target.id));
 
-    const secondTarget = Photo.insert({ name: 'Izel', href: 'something else' });
+    const secondTarget = Photo.insert({ name: "Izel", href: "something else" });
 
     t.deepEqual(secondTarget, {
       id: 6,
       name: "Izel",
       href: "something else",
-      is_public: true
+      is_public: true,
     });
     t.deepEqual(secondTarget, Photo.find(secondTarget.id));
 
-    const thirdTarget = Photo.insert({ name: 'Izel', href: null });
+    const thirdTarget = Photo.insert({ name: "Izel", href: null });
 
     t.deepEqual(thirdTarget, {
       id: 7,
       name: "Izel",
       href: null,
-      is_public: true
+      is_public: true,
     });
     t.deepEqual(thirdTarget, Photo.find(thirdTarget.id));
   }
