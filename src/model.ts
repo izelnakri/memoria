@@ -24,7 +24,7 @@ export default class MemServerModel {
   static _defaultAttributes = {}; // NOTE: probably a decorator here in future
   static _embedReferences = {}; // NOTE: serializer concern
 
-  static primaryKey: string | null = null; // NOTE: this might be problematic!!
+  static primaryKey: string | null = null;
 
   static get DB(): Array<InternalModel> {
     if (!this._DB[this.name]) {
@@ -74,7 +74,7 @@ export default class MemServerModel {
     return this._embedReferences[this.name];
   }
 
-  static resetDatabase(fixtures: Array<InternalModel> | undefined): Array<InternalModel> {
+  static resetDatabase(fixtures?: Array<InternalModel>): Array<InternalModel> {
     this.DB.length = 0;
     this.attributes.length = 0;
     this.defaultAttributes = this.defaultAttributes;
@@ -96,9 +96,7 @@ export default class MemServerModel {
         chalk.red(`[Memserver] ${this.name}.find(id) cannot be called without a valid id`)
       );
     } else if (Array.isArray(param)) {
-      const models = Array.from(this.DB);
-
-      return models.reduce((result: InternalModel[], model) => {
+      return Array.from(this.DB).reduce((result: InternalModel[], model) => {
         const foundModel = param.includes(model.id) ? model : null;
 
         return foundModel ? result.concat([foundModel]) : result;
@@ -109,9 +107,7 @@ export default class MemServerModel {
       );
     }
 
-    const models = Array.from(this.DB);
-
-    return models.find((model) => model.id === param) as InternalModel | undefined;
+    return Array.from(this.DB).find((model) => model.id === param) as InternalModel | undefined;
   }
   static findBy(options: object): InternalModel | undefined {
     if (!options) {
@@ -125,40 +121,37 @@ export default class MemServerModel {
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
   static findAll(options = {}): Array<InternalModel> {
-    const models: Array<InternalModel> = Array.from(this.DB);
     const keys = Object.keys(options);
 
     if (keys.length === 0) {
-      return models;
+      return Array.from(this.DB);
     }
 
-    return models.filter((model) => comparison(model, options, keys, 0));
+    return Array.from(this.DB).filter((model) => comparison(model, options, keys, 0));
   }
-  static insert(options: InternalModelShape | undefined): InternalModel {
-    if (this.DB.length === 0) {
-      const recordsPrimaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
+  static insert(options?: InternalModelShape): InternalModel {
+    options = options || {};
 
-      this.primaryKey = recordsPrimaryKey;
+    if (this.DB.length === 0) {
+      this.primaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
       this.attributes.push(this.primaryKey);
     }
 
-    const defaultAttributes = this.attributes.reduce((result, attribute) => {
-      if (attribute === this.primaryKey) {
-        result[attribute] = this.primaryKey === "id" ? incrementId(this.DB, this) : generateUUID();
+    if (!options.hasOwnProperty(this.primaryKey)) {
+      options[this.primaryKey] = this.primaryKey === "id" ? incrementId(this.DB, this) : generateUUID();
+    }
 
-        return result;
+    primaryKeyTypeSafetyCheck(this.primaryKey, options[this.primaryKey], this.name);
+
+    const target = this.attributes.reduce((result, attribute) => {
+      if (typeof result[attribute] === "function") {
+        result[attribute] = result[attribute].apply(result);
+      } else if (!result.hasOwnProperty(attribute)) {
+        result[attribute] = undefined;
       }
 
-      const target = this.defaultAttributes[attribute];
-
-      result[attribute] = typeof target === "function" ? target() : target;
-
       return result;
-    }, {});
-    const target = Object.assign(defaultAttributes, options);
-
-    primaryKeyTypeSafetyCheck(this.primaryKey, target[this.primaryKey], this.name);
-
+    }, Object.assign({}, this.defaultAttributes, options));
     const existingRecord = target.id ? this.find(target.id) : this.findBy({ uuid: target.uuid });
 
     if (existingRecord) {
@@ -216,7 +209,7 @@ export default class MemServerModel {
 
     return Object.assign(targetRecord, record);
   }
-  static delete(record: InternalModel | undefined) {
+  static delete(record?: InternalModel) {
     if (this.DB.length === 0) {
       throw new Error(
         chalk.red(
@@ -338,13 +331,13 @@ export default class MemServerModel {
     } else if (hasManyRelationship) {
       if (parentObject.id) {
         const hasManyIDRecords = targetRelationshipModel.findAll({
-          [`${underscore(this.name)}_id`]: parentObject.id
+          [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
         return hasManyIDRecords.length > 0 ? hasManyIDRecords : [];
       } else if (parentObject.uuid) {
         const hasManyUUIDRecords = targetRelationshipModel.findAll({
-          [`${underscore(this.name)}_uuid`]: parentObject.uuid
+          [`${underscore(this.name)}_uuid`]: parentObject.uuid,
         });
 
         return hasManyUUIDRecords.length > 0 ? hasManyUUIDRecords : [];
@@ -365,11 +358,11 @@ export default class MemServerModel {
 
     if (parentObject.id) {
       return targetRelationshipModel.findBy({
-        [`${underscore(this.name)}_id`]: parentObject.id
+        [`${underscore(this.name)}_id`]: parentObject.id,
       });
     } else if (parentObject.uuid) {
       return targetRelationshipModel.findBy({
-        [`${underscore(this.name)}_uuid`]: parentObject.uuid
+        [`${underscore(this.name)}_uuid`]: parentObject.uuid,
       });
     }
   }
