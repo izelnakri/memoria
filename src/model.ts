@@ -149,13 +149,23 @@ export default class MemServerModel {
         return result;
       }
 
-      const target = this.defaultAttributes[attribute];
+      const target = this.defaultAttributes[attribute]; // NOTE: check if I can optimize this earlier
 
-      result[attribute] = typeof target === "function" ? target() : target;
+      // result[attribute] = typeof target === "function" ? target() : target; // TODO: here we apply the defaultAttribute
+      result[attribute] = target;
 
       return result;
     }, {});
-    const target = Object.assign(defaultAttributes, options);
+    const defaultTarget = Object.assign(defaultAttributes, options);
+    const target = Object.keys(defaultTarget).reduce((result, attribute) => {
+      if (typeof defaultTarget[attribute] === "function") {
+        result[attribute] = defaultTarget[attribute].apply(defaultTarget); // NOTE: functions will be functions here;
+      } else {
+        result[attribute] = defaultTarget[attribute];
+      }
+
+      return result;
+    }, defaultTarget);
 
     primaryKeyTypeSafetyCheck(this.primaryKey, target[this.primaryKey], this.name);
 
@@ -338,13 +348,13 @@ export default class MemServerModel {
     } else if (hasManyRelationship) {
       if (parentObject.id) {
         const hasManyIDRecords = targetRelationshipModel.findAll({
-          [`${underscore(this.name)}_id`]: parentObject.id
+          [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
         return hasManyIDRecords.length > 0 ? hasManyIDRecords : [];
       } else if (parentObject.uuid) {
         const hasManyUUIDRecords = targetRelationshipModel.findAll({
-          [`${underscore(this.name)}_uuid`]: parentObject.uuid
+          [`${underscore(this.name)}_uuid`]: parentObject.uuid,
         });
 
         return hasManyUUIDRecords.length > 0 ? hasManyUUIDRecords : [];
@@ -365,11 +375,11 @@ export default class MemServerModel {
 
     if (parentObject.id) {
       return targetRelationshipModel.findBy({
-        [`${underscore(this.name)}_id`]: parentObject.id
+        [`${underscore(this.name)}_id`]: parentObject.id,
       });
     } else if (parentObject.uuid) {
       return targetRelationshipModel.findBy({
-        [`${underscore(this.name)}_uuid`]: parentObject.uuid
+        [`${underscore(this.name)}_uuid`]: parentObject.uuid,
       });
     }
   }
