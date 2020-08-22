@@ -96,9 +96,7 @@ export default class MemServerModel {
         chalk.red(`[Memserver] ${this.name}.find(id) cannot be called without a valid id`)
       );
     } else if (Array.isArray(param)) {
-      const models = Array.from(this.DB);
-
-      return models.reduce((result: InternalModel[], model) => {
+      return Array.from(this.DB).reduce((result: InternalModel[], model) => {
         const foundModel = param.includes(model.id) ? model : null;
 
         return foundModel ? result.concat([foundModel]) : result;
@@ -109,9 +107,7 @@ export default class MemServerModel {
       );
     }
 
-    const models = Array.from(this.DB);
-
-    return models.find((model) => model.id === param) as InternalModel | undefined;
+    return Array.from(this.DB).find((model) => model.id === param) as InternalModel | undefined;
   }
   static findBy(options: object): InternalModel | undefined {
     if (!options) {
@@ -125,20 +121,17 @@ export default class MemServerModel {
     return this.DB.find((model) => comparison(model, options, keys, 0));
   }
   static findAll(options = {}): Array<InternalModel> {
-    const models: Array<InternalModel> = Array.from(this.DB);
     const keys = Object.keys(options);
 
     if (keys.length === 0) {
-      return models;
+      return Array.from(this.DB);
     }
 
-    return models.filter((model) => comparison(model, options, keys, 0));
+    return Array.from(this.DB).filter((model) => comparison(model, options, keys, 0));
   }
   static insert(options: InternalModelShape | undefined): InternalModel {
     if (this.DB.length === 0) {
-      const recordsPrimaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
-
-      this.primaryKey = recordsPrimaryKey;
+      this.primaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
       this.attributes.push(this.primaryKey);
     }
 
