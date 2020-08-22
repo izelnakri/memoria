@@ -74,7 +74,7 @@ export default class MemServerModel {
     return this._embedReferences[this.name];
   }
 
-  static resetDatabase(fixtures: Array<InternalModel> | undefined): Array<InternalModel> {
+  static resetDatabase(fixtures?: Array<InternalModel>): Array<InternalModel> {
     this.DB.length = 0;
     this.attributes.length = 0;
     this.defaultAttributes = this.defaultAttributes;
@@ -129,7 +129,9 @@ export default class MemServerModel {
 
     return Array.from(this.DB).filter((model) => comparison(model, options, keys, 0));
   }
-  static insert(options: InternalModelShape | undefined): InternalModel {
+  static insert(options?: InternalModelShape): InternalModel {
+    options = options || {};
+
     if (this.DB.length === 0) {
       this.primaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
       this.attributes.push(this.primaryKey);
@@ -144,6 +146,8 @@ export default class MemServerModel {
     const target = this.attributes.reduce((result, attribute) => {
       if (typeof result[attribute] === "function") {
         result[attribute] = result[attribute].apply(result);
+      } else if (!result.hasOwnProperty(attribute)) {
+        result[attribute] = undefined;
       }
 
       return result;
@@ -205,7 +209,7 @@ export default class MemServerModel {
 
     return Object.assign(targetRecord, record);
   }
-  static delete(record: InternalModel | undefined) {
+  static delete(record?: InternalModel) {
     if (this.DB.length === 0) {
       throw new Error(
         chalk.red(
