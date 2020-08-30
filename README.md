@@ -197,3 +197,25 @@ export default MemServer;
 ```
 
 This is basically a superior mirage.js API & implementation. Also check the tests...
+
+### Why this is superior to Mirage?
+
+- Data stored as pure JS objects and their Model module methods provides a functional way to work on the data.
+This makes the inserts, updates faster and encourages a better programming model.
+
+- Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key constraints are not strings.
+
+- `memserver/response` does not require `new Reponse`, just `Response`.
+
+- Less code output and dependencies.
+
+- route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize, underscore or do any other string manipulation to get the reference model definition.
+It also returns correct default http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
+
+- very easy to debug/develop the server, serialize any data in a very predictable and functional way.
+
+- API is very similar to Mirage, it can do everything mirage can do, while all redudant and worse API removed.
+
+- can run on node.js thus allows frontend mocking on server-side rendering context.
+
+- written in Typescript, thus provides type definitions by default.
