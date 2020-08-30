@@ -65,4 +65,88 @@ NOTE: API also works for UUIDs instead of id primary keys
 
 ### Memserver Server API
 
-Its stable but needs documentation, check tests for now
+```js
+
+// in memserver/routes.ts:
+
+import User from './models/user';
+import Response from 'memserver/response';
+
+interface Request {
+  headers: object,
+  params: object,
+  queryParams: object,
+  body: object
+}
+
+export default function() {
+  this.logging = true; // OPTIONAL: only if you want to log incoming requests/responses
+  this.urlPrefix = 'http://localhost:8000/api'; // OPTIONAL: if you want to scope all the routes under a host/url
+
+  this.post('/users', (request: Request, response) => {
+    const user = User.insert(request.params.user);
+
+    return { user: User.serializer(user) };
+  });
+
+  // OR:
+  this.post('/users'. User);
+
+  this.get('/users', (request: Request, response) => {
+    if (request.queryParams.filter === 'is_active') {
+      const users = User.findAll({ is_active: true });
+
+      return { users: User.serializer(user) };
+    }
+
+    return Response(422, { error: 'filter is required' });
+  });
+
+  // Shorthand without filter, displaying all users: this.get('/users'. User);
+
+  this.get('/users/:id', (request: Request, response) => {
+    return { user: User.serializer(User.find(request.params.id)) };
+    // NOTE: you can wrap it with auth through custom User.findFromHeaders(request.headers) if needed.
+  });
+
+  // OR:
+  this.get('/users/:id', User);
+
+
+  this.update('/users/:id', (request: Request, response) => {
+    let user = User.find(request.params.id);
+
+    if (!user) {
+      return Response(404, { error: 'user not found');
+    }
+
+    return { user: User.serializer(User.update(user.params.user)) };
+  });
+
+  // OR:
+  this.update('/users/:id', User);
+
+  this.delete('/users/:id', (request) => {
+    const user = User.find(request.params.id);
+
+    if (!user) {
+      return Response(404, { errors: 'user not found' });
+    }
+
+    return User.delete(user);
+  });
+
+  // OR:
+  this.delete('/users/:id');
+
+  // OTHER OPTIONS:
+
+  this.passthrough('https://api.stripe.com');
+  // OR: this.passthrough('https://somedomain.com/api');
+
+  // OPTIONAL: this.timing(500); if you want to slow down responses for testing something etc.
+  // BookRoutes.apply(this); // if you want to apply routes from a separate file
+}
+```
+
+This is basically a superior mirage.js API & implementation. Also check the tests...
