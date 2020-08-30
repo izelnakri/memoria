@@ -21,7 +21,7 @@ You can use the CLI to create relevant boilerplate files and initial setup
 // MEMSERVER MODEL API
 import Model from 'memserver/model';
 // OR:
-const Model = require('memserver/model');
+const Model = require('memserver/model').default;
 // THEN:
 
 class User extends Model {
@@ -48,7 +48,7 @@ User.update(insertedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
 User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
 
-let updatedUser = User.find(1); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
+let updatedUser = User.find(1); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
 let anotherUser = User.insert({ firstName: 'Brendan' }); // { id: 2, firstName: 'Brendan', lastName: null }
 
@@ -96,7 +96,7 @@ export default function() {
     if (request.queryParams.filter === 'is_active') {
       const users = User.findAll({ is_active: true });
 
-      return { users: User.serializer(user) };
+      return { users: User.serializer(users) };
     }
 
     return Response(422, { error: 'filter is required' });
@@ -138,6 +138,12 @@ export default function() {
   // OR:
   this.delete('/users/:id');
 
+  // You can also mock APIs under different hostname
+
+  this.get('https://api.github.com/users/:username', (request) => {
+    // NOTE: your mocking logic
+  });
+
   // OTHER OPTIONS:
 
   this.passthrough('https://api.stripe.com');
@@ -165,7 +171,7 @@ test('testing form submit errors when backend is offline', async function (asser
   await visit('/form');
 
   // submit the form
-  // GET /users will be added to your route handlers or gets overwritten if it exists
+  // POST /users will be added to your route handlers or gets overwritten if it exists
 });
 ```
 
@@ -186,6 +192,8 @@ const MemServer = new Memserver({
 export default MemServer;
 
 // If you want to shutdown request mocking: MemServer.shutdown();
+// If you want to reset a database with predefined data:
+// User.resetDatabase([{ id: 1, firstName: 'Izel', lastName: 'Nakri}, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
 ```
 
 This is basically a superior mirage.js API & implementation. Also check the tests...
