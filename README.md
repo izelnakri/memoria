@@ -3,11 +3,12 @@
 </a>
 
 # What is MemServer?
-MemServer is an in-memory database/ORM and http mock server you can run in-browser and node environments. Extremely useful library for fast frontend tests, rapid prototyping, single-file SPA demo deployments.
+MemServer is an in-memory database/ORM and http mock server you can run in-browser and node environments.
+Extremely useful library for fast frontend tests, rapid prototyping, single-file SPA demo deployments.
 
 ## Installation
 In order to use memserver CLI you need to have typescript set up in your project folder.
-`memserver` binary will only work on typescript project directories since it uses ts-node under the hood to for `memserver console` and `memserver g fixtures $modelName` generation commands.
+`memserver` binary will only work on typescript project directories since it uses ts-node under the hood for `memserver console` and `memserver g fixtures $modelName` generation commands.
 
 ``` npm install -g memserver ```
 
@@ -102,7 +103,7 @@ export default function() {
     return Response(422, { error: 'filter is required' });
   });
 
-  // Shorthand without filter, displaying all users: this.get('/users'. User);
+  // Shorthand without filter, displaying all users: this.get('/users', User);
 
   this.get('/users/:id', (request: Request) => {
     return { user: User.serializer(User.find(request.params.id)) };
@@ -136,7 +137,7 @@ export default function() {
   });
 
   // OR:
-  this.delete('/users/:id');
+  this.delete('/users/:id', User);
 
   // You can also mock APIs under different hostname
 
@@ -160,7 +161,7 @@ You can also add routes on demand for your tests:
 import Server from './memserver/index';
 import Response from 'memserver/response';
 
-test('testing form submit errors when backend is offline', async function (assert)  {
+test('testing form submit errors when backend is down', async function (assert)  {
 
   Server.post('/users'. (request) => {
     return Response(500, {});
@@ -193,7 +194,7 @@ export default MemServer;
 
 // If you want to shutdown request mocking: MemServer.shutdown();
 // If you want to reset a database with predefined data:
-// User.resetDatabase([{ id: 1, firstName: 'Izel', lastName: 'Nakri}, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
+// User.resetDatabase([{ id: 1, firstName: 'Izel', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
 ```
 
 This is basically a superior mirage.js API & implementation. Also check the tests...

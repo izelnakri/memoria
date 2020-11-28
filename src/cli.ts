@@ -1,4 +1,4 @@
-#! /usr/bin/env -S ts-node
+#!/usr/bin/env -S ts-node-script
 import fs from "fs-extra";
 import util from "util";
 import child_process from "child_process";

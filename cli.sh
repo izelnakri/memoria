@@ -1,2 +1,2 @@
 #!/bin/bash
-ts-node $0/../dist/cli.js $@
+ts-node $0/../../memserver/dist/cli.js $@
