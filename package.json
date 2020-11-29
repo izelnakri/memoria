@@ -1,6 +1,6 @@
 {
   "name": "memserver",
-  "version": "2.2.0",
+  "version": "2.2.3",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
   "author": "Izel Nakri",
   "repository": {
@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "bin": {
-    "memserver": "cli.sh"
+    "memserver": "src/cli.ts"
   },
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
@@ -32,7 +32,8 @@
     "pretender": "^3.4.3",
     "qs": "^6.9.4",
     "route-recognizer": "^0.3.4",
-    "ts-node": "^9.0.0"
+    "ts-node": "^9.0.0",
+    "@types/node": "^14.14.10"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
@@ -49,7 +50,6 @@
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-node-resolve": "^10.0.0",
     "@types/jquery": "^3.5.4",
-    "@types/node": "^14.6.0",
     "ava": "3.13.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.3",

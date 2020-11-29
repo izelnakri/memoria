@@ -1,4 +1,4 @@
-#!/usr/bin/env -S ts-node-script
+#!/usr/bin/env -S TS_NODE_LOG_ERROR=true ts-node-script
 import fs from 'fs/promises';
 import path from 'path';
 import util from "util";

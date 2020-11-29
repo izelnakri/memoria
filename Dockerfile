@@ -2,7 +2,6 @@ FROM node:15.3.0-slim
 
 WORKDIR /code/
 
-ADD cli.sh /code/cli.sh
 ADD .babelrc /code/.babelrc
 ADD tsconfig.json /code/tsconfig.json
 ADD package-lock.json /code/package-lock.json
