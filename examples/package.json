@@ -10,11 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "jquery": "^3.4.1",
-    "memserver": "2.0.7"
+    "jquery": "^3.5.1",
+    "memserver": "2.2.5"
   },
   "devDependencies": {
-    "@babel/core": "^7.8.4"
+    "@babel/core": "^7.12.9"
   },
   "browserslist": [
     "last 1 chrome version"
