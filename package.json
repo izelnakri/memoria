@@ -7,10 +7,6 @@
     "type": "git",
     "url": "https://github.com/izelnakri/memserver.git"
   },
-  "funding": {
-    "type": "opencollective",
-    "url": "https://opencollective.com/memserver"
-  },
   "license": "MIT",
   "bin": {
     "memserver": "src/cli.ts"
@@ -18,6 +14,7 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "dev": "tsc --watch",
+    "build": "tsc",
     "bin": "sh cli.sh",
     "test": "node_modules/.bin/ava --verbose",
     "prepublishOnly": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser",
