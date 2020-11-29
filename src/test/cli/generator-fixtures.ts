@@ -503,6 +503,6 @@ function generateMemServerState() {
       )
     ]);
 
-    resolve();
+    resolve(null);
   });
 }

@@ -14,4 +14,4 @@ node_modules
 ember-inflector
 src
 Dockerfile
-
+dist/test

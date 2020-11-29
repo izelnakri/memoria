@@ -158,6 +158,6 @@ function initializeMemServer() {
       fs.mkdir(`${memServerDirectory}/models`)
     ]);
 
-    resolve();
+    resolve(null);
   });
 }

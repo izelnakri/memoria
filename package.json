@@ -1,6 +1,6 @@
 {
   "name": "memserver",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
   "author": "Izel Nakri",
   "repository": {
@@ -39,22 +39,22 @@
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.11.4",
     "ember-source": "3.20.4",
-    "@babel/plugin-transform-modules-commonjs": "^7.10.4",
-    "@babel/preset-typescript": "^7.10.4",
-    "@rollup/plugin-commonjs": "^15.0.0",
-    "@rollup/plugin-node-resolve": "^9.0.0",
-    "@types/fs-extra": "^9.0.1",
-    "@types/jquery": "^3.5.1",
+    "@babel/plugin-transform-modules-commonjs": "^7.12.1",
+    "@babel/preset-typescript": "^7.12.7",
+    "@rollup/plugin-commonjs": "^16.0.0",
+    "@rollup/plugin-node-resolve": "^10.0.0",
+    "@types/fs-extra": "^9.0.4",
+    "@types/jquery": "^3.5.4",
     "@types/node": "^14.6.0",
     "tsconfig-paths": "^3.9.0",
     "ava": "3.13.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.3",
     "express": "^4.17.1",
-    "fastboot": "^3.1.0",
+    "fastboot": "^3.1.2",
     "jquery": "^3.5.1",
     "mber": "^0.13.2",
-    "sinon": "^9.0.3",
+    "sinon": "^9.2.1",
     "@ember/string": "file:@ember/string",
     "@ember/error": "file:@ember/error",
     "@ember/-internals": "file:@ember/-internals",
@@ -62,7 +62,7 @@
     "@ember/debug": "file:@ember/debug",
     "@ember/polyfills": "file:@ember/polyfills",
     "ember-inflector": "file:ember-inflector",
-    "typescript": "^4.0.2"
+    "typescript": "^4.1.2"
   },
   "ava": {
     "files": [
