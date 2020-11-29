@@ -1,3 +1,5 @@
+- move to 4 packages? then its harder to use in project: @memserver/cli @memserver/server @memserver/model @memserver/response
+- move to 2 packages? : @memserver/cli @memserver
 - move to github actions
 - add release-it/auto CHANGELOG
 - remove qs?
