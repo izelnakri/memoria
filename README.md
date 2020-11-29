@@ -215,11 +215,11 @@ class User extends Model {
 
 const user = User.find(1);
 
-const serializedUserForEndpoint = User.serializer(user); // or User.serialize(user);
+const serializedUserForEndpoint = { user: User.serializer(user); } // or User.serialize(user);
 
 const users = User.findAll({ active: true });
 
-const serializedUsersForEndpoint = User.serializer(users); // or users.map((user) => User.serialize(user));
+const serializedUsersForEndpoint = { users: User.serializer(users); } // or users.map((user) => User.serialize(user));
 ```
 
 Custom serializers:
@@ -245,11 +245,11 @@ class User extends Model {
 
 const user = User.find(1);
 
-const serializedUserForEndpoint = User.customSerializer(user); // or User.customSerialize(user);
+const serializedUserForEndpoint = { user: User.customSerializer(user) }; // or User.customSerialize(user);
 
 const users = User.findAll({ active: true });
 
-const serializedUsersForEndpoint = User.customSerializer(users); // or users.map((user) => User.customSerialize(user));
+const serializedUsersForEndpoint = { users: User.customSerializer(users); } // or users.map((user) => User.customSerialize(user));
 ```
 
 ### Why this is superior to Mirage?
@@ -270,8 +270,8 @@ methods on the model modules, thus memserver is easier and better to extend.
 - No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
 This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation in our
 runtimes. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations could be done
-in future as types or TS type decorators, thus validations won't happen in runtime and all would be check during
-development via typescript typecheck/linting.
+in future as types or TS type decorators(like `class-validator` npm package), thus validations don't need to  happen in
+runtime and all would be check during development via typescript typecheck/linting.
 
 - No implicit relationship tracking, creating and updating a relationship should be done on the foreign-key of the
 models relationship. This might seem verbose, but leads to faster runtime and in future might allow better
