@@ -1,4 +1,3 @@
-import qs from "qs";
 import chalk from "ansi-colors";
 import { singularize } from "ember-inflector";
 import { classify } from "@ember/string";
@@ -25,14 +24,10 @@ window.Pretender.prototype._handlerFor = function(verb, url, request) {
       return Object.assign(result, { [key]: targetValue });
     }, {});
 
-    var contentHeader = request.headers["Content-Type"] || request.headers["content-type"];
-
-    if (request.requestBody && contentHeader && contentHeader.includes("application/json")) {
-      request.params = nilifyStrings(
-        Object.assign(request.params, JSON.parse(request.requestBody))
-      );
-    } else {
-      request.params = nilifyStrings(Object.assign(request.params, qs.parse(request.requestBody)));
+    let newParamsFromBody = tryConvertingJSONStringToObject(request.requestBody) ||
+      tryConvertingQueryStringToObject(request.requestBody);
+    if (newParamsFromBody) {
+      request.params = nilifyStrings(Object.assign(request.params, newParamsFromBody));
     }
   }
 
@@ -51,6 +46,33 @@ function castCorrectType(value) {
   }
 
   return nilifyStrings(value);
+}
+
+function tryConvertingJSONStringToObject(string) {
+  let object;
+  try {
+    object = JSON.parse(string);
+  } catch (e) {
+    return false;
+  }
+
+  if (typeof object === "object" && object !== null) {
+    return object;
+  }
+
+  return false;
+}
+
+function tryConvertingQueryStringToObject(queryString) {
+  let result = {};
+  let entries = new URLSearchParams(queryString);
+  for (const [key, value] of entries) { // each 'entry' is a [queryParamKey, queryParamValue] tupple
+    result[key] = value;
+  }
+
+  if (Object.keys(result).length > 0) {
+    return result;
+  }
 }
 
 function nilifyStrings(value) {

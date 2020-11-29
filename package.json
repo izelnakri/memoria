@@ -12,25 +12,23 @@
     "memserver": "src/cli.ts"
   },
   "scripts": {
-    "typecheck": "tsc --project tsconfig.json --noEmit",
-    "dev": "tsc --watch",
-    "build": "tsc",
-    "bin": "sh cli.sh",
+    "typecheck": "node_modules/.bin/tsc --project tsconfig.json --noEmit",
+    "dev": "node_modules/.bin/tsc --watch",
+    "bin": "src/cli.ts",
     "test": "node_modules/.bin/ava --verbose",
     "prepublishOnly": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser",
     "npm-link-ember-packages": "node scripts/npm-link-ember-packages.js",
     "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js"
   },
   "dependencies": {
+    "@types/node": "^14.14.10",
     "ansi-colors": "4.1.1",
     "fake-xml-http-request": "^2.1.1",
     "inflected": "^2.1.0",
     "jsdom": "^16.4.0",
     "pretender": "^3.4.3",
-    "qs": "^6.9.4",
     "route-recognizer": "^0.3.4",
-    "ts-node": "^9.0.0",
-    "@types/node": "^14.14.10"
+    "ts-node": "^9.0.0"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
