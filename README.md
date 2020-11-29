@@ -210,8 +210,25 @@ This makes the inserts, updates faster and encourages a better programming model
 
 - Less code output and dependencies.
 
-- route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize, underscore or do any other string manipulation to get the reference model definition.
-It also returns correct default http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
+- No bad APIs such as association(). Better APIs, no strange factory API that introduces redundant concepts as traits,
+or implicit association behavior. Your model inserts are your factories. You can easily create different ES6 standard
+methods on the model modules, thus memserver is easier and better to extend.
+
+- No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
+This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation in our
+runtimes. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations could be done
+in future as types or TS type decorators, thus validations won't happen in runtime and all would be check during
+development via typescript typecheck/linting.
+
+- No implicit relationship tracking, creating and updating a relationship should be done on the foreign-key of the
+models relationship. This might seem verbose, but leads to faster runtime and in future might allow better
+typechecking/annotated validations on model properties. Due to unresolved nature of this situation we leave implicit
+relationship settings. Instead users should set the related foreign keys and change that value to relationship
+primary key just as it would have been done on a SQL database.
+
+- route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,
+underscore or do any other string manipulation to get the reference model definition. It also returns correct default
+http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
 
 - very easy to debug/develop the server, serialize any data in a very predictable and functional way.
 
