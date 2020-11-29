@@ -1,13 +1,13 @@
 import util from "util";
 import test from "ava";
-import fs from "fs-extra";
+import fs from "fs/promises";
 import child_process from "child_process";
 
 const CWD = process.cwd();
 const shell = util.promisify(child_process.exec);
 
 test.beforeEach(async () => {
-  await fs.remove(`${CWD}/memserver`);
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial(
@@ -71,8 +71,8 @@ test.serial("$ memserver g [modelName] | works", async (t) => {
   await initializeMemServer();
 
   const [emailModelExists, emailFixturesBuffer] = await Promise.all([
-    fs.pathExists(`${CWD}/memserver/models/email.ts`),
-    fs.pathExists(`${CWD}/memserver/fixtures/emails.ts`)
+    pathExists(`${CWD}/memserver/models/email.ts`),
+    pathExists(`${CWD}/memserver/fixtures/emails.ts`)
   ]);
 
   t.true(!emailModelExists);
@@ -105,8 +105,8 @@ test.serial("$ memserver generate [modelName] | works", async (t) => {
 
   await initializeMemServer();
   const [emailModelExists, emailFixturesBuffer] = await Promise.all([
-    fs.pathExists(`${CWD}/memserver/models/user.ts`),
-    fs.pathExists(`${CWD}/memserver/fixtures/users.ts`)
+    pathExists(`${CWD}/memserver/models/user.ts`),
+    pathExists(`${CWD}/memserver/fixtures/users.ts`)
   ]);
 
   t.true(!emailModelExists);
@@ -136,9 +136,7 @@ export default class Email extends Model {
 
 function initializeMemServer() {
   return new Promise(async (resolve) => {
-    if (await fs.pathExists(`${CWD}/memserver`)) {
-      await fs.remove(`${CWD}/memserver`);
-    }
+    await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 
     const memServerDirectory = `${CWD}/memserver`;
 
@@ -160,4 +158,14 @@ function initializeMemServer() {
 
     resolve(null);
   });
+}
+
+async function pathExists(path) {
+  try {
+    await fs.access(path);
+
+    return true;
+  } catch {
+    return false;
+  }
 }

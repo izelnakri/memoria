@@ -1,5 +1,5 @@
 import test from "ava";
-import fs from "fs-extra";
+import fs from "fs/promises";
 
 const CWD = process.cwd();
 const modelFileContent = (className) => `import Model from '${CWD}/dist/model';
@@ -7,8 +7,8 @@ export default class ${className} extends Model{
 }`;
 
 test.beforeEach(async (t) => {
-  await fs.mkdirp(`${CWD}/memserver`);
-  await fs.mkdirp(`${CWD}/memserver/models`);
+  await fs.mkdir(`${CWD}/memserver`, { recursive: true });
+  await fs.mkdir(`${CWD}/memserver/models`,  { recursive: true });
   await Promise.all([
     fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
     fs.writeFile(`${CWD}/memserver/models/user.ts`, modelFileContent("User")),
@@ -23,9 +23,7 @@ test.afterEach.always(async () => {
   // NOTE: maybe remove require cache if needed
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial(
@@ -33,9 +31,7 @@ test.serial(
   async (t) => {
     t.plan(2);
 
-    if (!(await fs.pathExists(`${CWD}/memserver/fixtures`))) {
-      await fs.mkdir(`${CWD}/memserver/fixtures`);
-    }
+    await fs.mkdir(`${CWD}/memserver/fixtures`, { recursive: true });
 
     await fs.writeFile(
       `${CWD}/memserver/fixtures/photo-comments.ts`,
@@ -83,7 +79,7 @@ test.serial(
   async (t) => {
     t.plan(2);
 
-    await fs.mkdirp(`${CWD}/memserver/fixtures`);
+    await fs.mkdir(`${CWD}/memserver/fixtures`, { recursive: true });
     await fs.writeFile(
       `${process.cwd()}/memserver/fixtures/photos.ts`,
       `export default [
@@ -125,7 +121,7 @@ test.serial(
 test("Memserver fixtures should throw error if any of the uuid fixtures have an incorrect type", async (t) => {
   t.plan(2);
 
-  await fs.mkdirp("./memserver/fixtures");
+  await fs.mkdir("./memserver/fixtures", { recursive: true });
   await fs.writeFile(
     `${CWD}/memserver/fixtures/photo-comments.ts`,
     `export default [
@@ -175,7 +171,7 @@ test.serial(
   async (t) => {
     t.plan(2);
 
-    await fs.mkdirp(`${CWD}/memserver/fixtures`);
+    await fs.mkdir(`${CWD}/memserver/fixtures`, { recursive: true });
     await fs.writeFile(
       `${CWD}/memserver/fixtures/photos.ts`,
       `export default [
@@ -219,7 +215,7 @@ test.serial(
   async (t) => {
     t.plan(2);
 
-    await fs.mkdirp("./memserver/fixtures");
+    await fs.mkdir("./memserver/fixtures", { recursive: true });
     await fs.writeFile(
       `${CWD}/memserver/fixtures/photo-comments.ts`,
       `export default [

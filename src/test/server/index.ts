@@ -5,7 +5,7 @@ declare global {
 }
 
 import test from "ava";
-import fs from "fs-extra";
+import fs from "fs/promises";
 
 const AUTHENTICATION_TOKEN = "ec25fc7b-6ee2-4bda-b57c-6c9867b30ff4";
 const AJAX_AUTHORIZATION_HEADERS = {
@@ -212,9 +212,7 @@ test.beforeEach(() => {
 });
 
 test.after.always(async () => {
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial("POST /resources work with custom headers and responses", async (t) => {

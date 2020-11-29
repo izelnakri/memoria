@@ -7,7 +7,7 @@ declare global {
 import test from "ava";
 import cors from "cors";
 import express from "express";
-import fs from "fs-extra";
+import fs from "fs/promises";
 import sinon from "sinon";
 
 let actualServer;
@@ -104,9 +104,7 @@ test.beforeEach(async () => {
 });
 
 test.after.always(async () => {
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 
   actualServer.close();
 });

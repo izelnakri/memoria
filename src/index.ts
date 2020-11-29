@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-import fs from "fs-extra";
+import fs from 'fs/promises';
 import chalk from "ansi-colors";
 import { classify, dasherize } from "@ember/string";
 import { pluralize } from "ember-inflector";
@@ -27,9 +27,9 @@ import setupDom from "./setup-dom";
 const CWD = process.cwd();
 
 export default async function(): Promise<any> {
-  if (!(await fs.pathExists(`${CWD}/memserver`))) {
+  if (!(await pathExists(`${CWD}/memserver`))) {
     throw new Error(chalk.red("/memserver folder doesn't exist for this directory!"));
-  } else if (!(await fs.pathExists(`${CWD}/memserver/models`))) {
+  } else if (!(await pathExists(`${CWD}/memserver/models`))) {
     throw new Error(chalk.red("/memserver/models folder doesn't exist for this directory!"));
   } else if (!(await checkFile(`${CWD}/memserver/routes`))) {
     throw new Error(chalk.red("/memserver/routes.ts doesn't exist for this directory!"));
@@ -56,5 +56,15 @@ export default async function(): Promise<any> {
 }
 
 async function checkFile(filePath) {
-  return await fs.pathExists(`${filePath}.ts`) || await fs.pathExists(`${filePath}.js`);
+  return await pathExists(`${filePath}.ts`) || await pathExists(`${filePath}.js`);
+}
+
+async function pathExists(path) {
+  try {
+    await fs.access(path);
+
+    return true;
+  } catch {
+    return false;
+  }
 }

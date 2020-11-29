@@ -1,5 +1,6 @@
 #!/usr/bin/env -S ts-node-script
-import fs from "fs-extra";
+import fs from 'fs/promises';
+import path from 'path';
 import util from "util";
 import child_process from "child_process";
 import chalk from "ansi-colors";
@@ -34,7 +35,9 @@ CLI.command(["init", "new"], async () => {
     await fs.mkdir(memServerDirectory);
   }
 
-  if (!(await fs.pathExists(`${memServerDirectory}/index.ts`))) {
+  try {
+    await fs.access(`${memServerDirectory}/index.ts`)
+  } catch(error) {
     const indexCode = await fs.readFile(`${boilerplateDirectory}/index.ts`);
 
     await fs.writeFile(`${memServerDirectory}/index.ts`, indexCode);
@@ -42,7 +45,9 @@ CLI.command(["init", "new"], async () => {
     console.log(chalk.cyan("[Memserver CLI] /memserver/index.ts created"));
   }
 
-  if (!(await fs.pathExists(`${memServerDirectory}/routes.ts`))) {
+  try {
+    await fs.access(`${memServerDirectory}/routes.ts`)
+  } catch(error) {
     const routesCode = await fs.readFile(`${boilerplateDirectory}/routes.ts`);
 
     await fs.writeFile(`${memServerDirectory}/routes.ts`, routesCode);
@@ -50,7 +55,9 @@ CLI.command(["init", "new"], async () => {
     console.log(chalk.cyan("[Memserver CLI] /memserver/routes.ts created"));
   }
 
-  if (!(await fs.pathExists(`${memServerDirectory}/initializer.ts`))) {
+  try {
+    await fs.access(`${memServerDirectory}/initializer.ts`)
+  } catch(error) {
     const initializerCode = await fs.readFile(`${boilerplateDirectory}/initializer.ts`);
 
     await fs.writeFile(`${memServerDirectory}/initializer.ts`, initializerCode);
@@ -135,7 +142,9 @@ async function generateModel(modelName, memServerDirectory) {
   const modelFileName = dasherize(singularize(modelName));
   const fixtureFileName = dasherize(pluralize(modelName));
 
-  if (!(await fs.pathExists(`${memServerDirectory}/models/${modelFileName}.ts`))) {
+  try {
+    await fs.access(`${memServerDirectory}/models/${modelFileName}.ts`)
+  } catch(error) {
     const classModelName = classify(modelName);
 
     await fs.writeFile(
@@ -151,7 +160,9 @@ export default class ${classModelName} extends Model {
     console.log(chalk.cyan(`[Memserver CLI] /memserver/models/${modelFileName}.ts created`));
   }
 
-  if (!(await fs.pathExists(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`))) {
+  try {
+    await fs.access(`${memServerDirectory}/fixtures/${fixtureFileName}.ts`)
+  } catch(error) {
     await fs.writeFile(
       `${memServerDirectory}/fixtures/${fixtureFileName}.ts`,
       `export default [
@@ -172,7 +183,7 @@ async function generateFixtures(modelName, memServerDirectory) {
     ? [classify(singularize(modelName))]
     : Object.keys(ModelDefinitions);
 
-  targetModels.forEach(async (Model) => {
+  await Promise.all(targetModels.map(async (Model) => {
     const sortedState = ModelDefinitions[Model].findAll().sort(sortFunction);
     const arrayOfRecords = util.inspect(sortedState, {
       depth: null,
@@ -181,30 +192,41 @@ async function generateFixtures(modelName, memServerDirectory) {
     const targetFileName = pluralize(dasherize(underscore(Model)));
     const fileRelativePath = `/fixtures/${targetFileName}.ts`;
     const fileAbsolutePath = `${memServerDirectory}${fileRelativePath}`;
-    if (await fs.pathExists(fileAbsolutePath)) {
+
+    try {
+      await fs.access(fileAbsolutePath);
+
       const previousModels = (await import(fileAbsolutePath)).default;
+
       if (JSON.stringify(previousModels.sort(sortFunction)) === JSON.stringify(sortedState)) {
         return;
       }
-    }
-    await fs.writeFile(fileAbsolutePath, `export default ${arrayOfRecords};`, () => {
+    } catch(error) {
+    } finally {
+      await fs.writeFile(fileAbsolutePath, `export default ${arrayOfRecords};`);
+
       console.log(chalk.yellow(`[MemServer] data written to ${fileRelativePath}`));
-    });
-  });
+    }
+  }));
 }
 
 async function createFixtureAndModelFoldersIfNeeded(memServerDirectory) {
   let boilerplateDirectory = `${__dirname}/../memserver-boilerplate`;
 
-  if (!(await fs.pathExists(`${memServerDirectory}/fixtures`))) {
+  try {
+    await fs.access(`${memServerDirectory}/fixtures`)
+  } catch(error) {
     await fs.mkdir(`${memServerDirectory}/fixtures`);
-    await fs.copy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`),
-      console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
+    await recursiveCopy(`${boilerplateDirectory}/fixtures`, `${memServerDirectory}/fixtures`);
+
+    console.log(chalk.cyan("[Memserver CLI] /memserver/fixtures folder created"));
   }
 
-  if (!(await fs.pathExists(`${memServerDirectory}/models`))) {
+  try {
+    await fs.access(`${memServerDirectory}/models`)
+  } catch(error) {
     await fs.mkdir(`${memServerDirectory}/models`);
-    await fs.copy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`);
+    await recursiveCopy(`${boilerplateDirectory}/models`, `${memServerDirectory}/models`);
 
     console.log(chalk.cyan("[Memserver CLI] /memserver/models folder created"));
   }
@@ -261,4 +283,31 @@ async function getModelDefinitions(memServerDirectory) {
   return modelDefinitions.reduce((result, modelDefinition) => {
     return Object.assign(result, { [modelDefinition.name]: modelDefinition });
   }, {});
+}
+
+async function recursiveCopy(sourcePath, targetPath) {
+  try {
+    await fs.access(sourcePath)
+
+    let stats = await fs.stat(sourcePath);
+
+    if (stats.isDirectory()) {
+      try {
+        await fs.access(targetPath);
+      } catch {
+        await fs.mkdir(targetPath);
+      }
+
+      let entries = await fs.readdir(sourcePath);
+
+      await Promise.all(
+        entries.map((entry) => recursiveCopy(path.join(sourcePath, entry), path.join(targetPath, entry)))
+      );
+    } else {
+      await fs.copyFile(sourcePath, targetPath);
+    }
+  } catch(error) {
+    console.log('Recursive copy error:');
+    throw error;
+  }
 }

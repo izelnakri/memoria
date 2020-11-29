@@ -1,5 +1,5 @@
 import test from "ava";
-import fs from "fs-extra";
+import fs from 'fs/promises';
 import util from "util";
 import child_process from "child_process";
 
@@ -7,9 +7,7 @@ const CWD = process.cwd();
 const shell = util.promisify(child_process.exec);
 
 test.afterEach.always(async () => {
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial(
@@ -45,7 +43,7 @@ memserver console                       # Starts a MemServer console in node.js 
 test.serial("$ memserver init | sets up the initial folder structure", async (t) => {
   t.plan(7);
 
-  t.true(!fs.pathExistsSync(`${CWD}/memserver`));
+  t.true(!(await pathExists(`${CWD}/memserver`)));
 
   const expectedOutput =
     "[Memserver CLI] /memserver/index.ts created\n" +
@@ -68,8 +66,8 @@ test.serial("$ memserver init | sets up the initial folder structure", async (t)
     fs.readFile(`${CWD}/memserver/index.ts`),
     fs.readFile(`${CWD}/memserver/routes.ts`),
     fs.readFile(`${CWD}/memserver/initializer.ts`),
-    fs.pathExists(`${CWD}/memserver/fixtures`),
-    fs.pathExists(`${CWD}/memserver/models`)
+    pathExists(`${CWD}/memserver/fixtures`),
+    pathExists(`${CWD}/memserver/models`)
   ]);
 
   const [
@@ -92,7 +90,7 @@ test.serial("$ memserver init | sets up the initial folder structure", async (t)
 test.serial("$ memserver new | sets up the initial folder structure", async (t) => {
   t.plan(7);
 
-  t.true(!fs.pathExistsSync(`${CWD}/memserver`));
+  t.true(!(await pathExists(`${CWD}/memserver`)));
 
   const expectedOutput =
     "[Memserver CLI] /memserver/index.ts created\n" +
@@ -115,8 +113,8 @@ test.serial("$ memserver new | sets up the initial folder structure", async (t) 
     fs.readFile(`${CWD}/memserver/index.ts`),
     fs.readFile(`${CWD}/memserver/routes.ts`),
     fs.readFile(`${CWD}/memserver/initializer.ts`),
-    fs.pathExists(`${CWD}/memserver/fixtures`),
-    fs.pathExists(`${CWD}/memserver/models`)
+    pathExists(`${CWD}/memserver/fixtures`),
+    pathExists(`${CWD}/memserver/models`)
   ]);
 
   const [
@@ -147,3 +145,14 @@ test.serial("$ memserver version | and $ memserver v", async (t) => {
 
   t.is(result.stdout, `[Memserver CLI] ${require(`${CWD}/package.json`).version}\n`);
 });
+
+
+async function pathExists(path) {
+  try {
+    await fs.access(path);
+
+    return true;
+  } catch {
+    return false;
+  }
+}

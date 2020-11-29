@@ -16,7 +16,7 @@ declare global {
 
 import test from "ava";
 import express from "express";
-import fs from "fs-extra";
+import fs from "fs/promises";
 import FastBootExpressMiddleware from "./test-helpers/fastboot-dist/mber-fastboot-express-middleware";
 import http from "http";
 
@@ -26,8 +26,8 @@ export default class ${fileName} extends Model{
 }`;
 
 test.beforeEach(async () => {
-  await fs.mkdirp(`${CWD}/memserver`);
-  await Promise.all([fs.mkdirp(`${CWD}/memserver/models`), fs.mkdirp(`${CWD}/memserver/fixtures`)]);
+  await fs.mkdir(`${CWD}/memserver`, { recursive: true });
+  await Promise.all([fs.mkdir(`${CWD}/memserver/models`), fs.mkdir(`${CWD}/memserver/fixtures`)]);
   await Promise.all([
     fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
     fs.writeFile(`${CWD}/memserver/models/user.ts`, modelFileContent("User")),
@@ -94,9 +94,7 @@ test.afterEach.always(async () => {
   // NOTE: maybe remove require cache if needed
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial(

@@ -1,5 +1,5 @@
 import test from "ava";
-import fs from "fs-extra";
+import fs from "fs/promises";
 
 const CWD = process.cwd();
 
@@ -123,9 +123,7 @@ test.afterEach(() => {
 });
 
 test.after.always(async () => {
-  if (await fs.pathExists(`${CWD}/memserver`)) {
-    await fs.remove(`${CWD}/memserver`);
-  }
+  await fs.rmdir(`${CWD}/memserver`, { recursive: true });
 });
 
 test.serial("$Model.name gets set correctly", async (t) => {
