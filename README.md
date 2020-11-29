@@ -199,6 +199,59 @@ export default MemServer;
 
 This is basically a superior mirage.js API & implementation. Also check the tests...
 
+### Memserver serializer API:
+
+Memserver serializer is very straight-forward, performant and functional/explicit. We have two ways to serialize model
+data, it is up to you the developer if you want to serialize it in a custom format(for example JSONAPI) by adding a new
+static method(`static customSerializer(modelOrArray) {}`) on the model:
+
+Memserver serializer API:
+
+```js
+import Model from 'memserver/model';
+
+class User extends Model {
+}
+
+const user = User.find(1);
+
+const serializedUserForEndpoint = User.serializer(user); // or User.serialize(user);
+
+const users = User.findAll({ active: true });
+
+const serializedUsersForEndpoint = User.serializer(users); // or users.map((user) => User.serialize(user));
+```
+
+Custom serializers:
+
+```js
+import Model from 'memserver/model';
+
+class User extends Model {
+  static customSerializer(modelObjectOrArray) {
+    if (Array.isArray(objectOrArray)) {
+      return modelObjectOrArray.map((object) => this.serialize(object));
+    }
+
+    return this.customSerialize(objectOrArray);
+  }
+
+  static customSerialize(object) {
+    return Object.assign({}, object, {
+      newKey: 'something'
+    });
+  }
+}
+
+const user = User.find(1);
+
+const serializedUserForEndpoint = User.customSerializer(user); // or User.customSerialize(user);
+
+const users = User.findAll({ active: true });
+
+const serializedUsersForEndpoint = User.customSerializer(users); // or users.map((user) => User.customSerialize(user));
+```
+
 ### Why this is superior to Mirage?
 
 - Data stored as pure JS objects and their Model module methods provides a functional way to work on the data.
@@ -225,6 +278,10 @@ models relationship. This might seem verbose, but leads to faster runtime and in
 typechecking/annotated validations on model properties. Due to unresolved nature of this situation we leave implicit
 relationship settings. Instead users should set the related foreign keys and change that value to relationship
 primary key just as it would have been done on a SQL database.
+
+- No implicit/custom serializer abstraction/API. Memserver model serializer is more sane than mirage. It makes it easier
+and more functional to create your own serializers since all `MemserverModel.serializer(modelOrArray)` does is, it embeds
+defined `embedReferences`s and sets undefined or null values to null in the resulted objectOrArray.
 
 - route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,
 underscore or do any other string manipulation to get the reference model definition. It also returns correct default
