@@ -280,7 +280,7 @@ export default class MemServerModel {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
-      return (objectOrArray as Array<InternalModel>).map((object) => this.serialize(object), []);
+      return (objectOrArray as Array<InternalModel>).map((object) => this.serialize(object));
     }
 
     return this.serialize(objectOrArray as InternalModel);
