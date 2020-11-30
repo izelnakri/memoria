@@ -4,3 +4,14 @@ node_modules
 /ember-inflector
 /examples/dist
 /examples/.cache
+
+index.d.ts
+index.js
+model.d.ts
+model.js
+response.d.ts
+response.js
+server.d.ts
+server.js
+setup-dom.d.ts
+setup-dom.js
