@@ -58,6 +58,14 @@
     "tsconfig-paths": "^3.9.0",
     "typescript": "^4.1.2"
   },
+  "babel": {
+    "presets": [
+      "@babel/preset-typescript"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-modules-commonjs"
+    ]
+  },
   "ava": {
     "files": [
       "src/test/**/*",
@@ -73,6 +81,10 @@
     "cache": false,
     "concurrency": 1,
     "failFast": true
+  },
+  "prettier": {
+    "printWidth": 100,
+    "arrowParens": "always"
   },
   "volta": {
     "node": "15.3.0"

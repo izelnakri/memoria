@@ -1,4 +1,4 @@
-FROM node:15.3.0-slim
+FROM node:15.3.0-alpine
 
 WORKDIR /code/
 
@@ -13,6 +13,7 @@ ADD memserver-boilerplate /code/memserver-boilerplate
 ADD vendor /code/vendor/
 ADD scripts /code/scripts
 ADD src /code/src
+
 RUN npm run npm-link-ember-packages
 RUN node_modules/.bin/tsc
 
