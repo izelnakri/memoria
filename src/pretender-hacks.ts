@@ -49,29 +49,25 @@ function castCorrectType(value) {
 }
 
 function tryConvertingJSONStringToObject(string) {
-  let object;
   try {
-    object = JSON.parse(string);
-  } catch (e) {
-    return false;
-  }
+    let object = JSON.parse(string);
 
-  if (typeof object === "object" && object !== null) {
-    return object;
+    if (typeof object === "object" && object !== null) {
+      return object;
+    }
+  } catch(error) {
   }
-
-  return false;
 }
 
 function tryConvertingQueryStringToObject(queryString) {
-  let result = {};
-  let entries = new URLSearchParams(queryString);
-  for (const [key, value] of entries) { // each 'entry' is a [queryParamKey, queryParamValue] tupple
-    result[key] = value;
-  }
+  let entries = Array.from(new URLSearchParams(queryString));
 
-  if (Object.keys(result).length > 0) {
-    return result;
+  if (entries.length > 0) {
+    return entries.reduce((result, entry) => {
+      result[entry[0]] = entry[1];
+
+      return result;
+    }, {});
   }
 }
 
