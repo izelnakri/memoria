@@ -15,10 +15,13 @@
     "typecheck": "node_modules/.bin/tsc --project tsconfig.json --noEmit",
     "dev": "node_modules/.bin/tsc --watch",
     "bin": "src/cli.ts",
+    "changelog:preview": "node_modules/.bin/auto-changelog --stdout --commit-limit false -u",
+    "changelog:update": "node_modules/.bin/auto-changelog --commit-limit false --package",
     "test": "node_modules/.bin/ava --verbose",
     "prepublishOnly": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser",
     "npm-link-ember-packages": "node scripts/npm-link-ember-packages.js",
-    "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js"
+    "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js",
+    "release": "release-it"
   },
   "dependencies": {
     "@types/node": "^14.14.10",
@@ -45,6 +48,7 @@
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-node-resolve": "^10.0.0",
     "@types/jquery": "^3.5.4",
+    "auto-changelog": "^2.2.1",
     "ava": "3.13.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.3",
@@ -54,6 +58,7 @@
     "fastboot": "^3.1.2",
     "jquery": "^3.5.1",
     "mber": "^0.13.2",
+    "release-it": "^14.2.2",
     "sinon": "^9.2.1",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^4.1.2"
@@ -88,5 +93,13 @@
   },
   "volta": {
     "node": "15.3.0"
+  },
+  "release-it": {
+    "git": {
+      "changelog": "npm run changelog:preview"
+    },
+    "hooks": {
+      "after:bump": "npm run changelog:update"
+    }
   }
 }
