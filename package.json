@@ -13,7 +13,8 @@
   },
   "scripts": {
     "bin": "src/cli.ts",
-    "changelog": "node_modules/.bin/lerna-changelog",
+    "changelog:preview": "node_modules/.bin/auto-changelog --stdout --commit-limit false -u",
+    "changelog:update": "node_modules/.bin/auto-changelog --commit-limit false --package",
     "dev": "node_modules/.bin/tsc --watch",
     "typecheck": "node_modules/.bin/tsc --project tsconfig.json --noEmit",
     "test": "node_modules/.bin/ava --verbose",
@@ -47,6 +48,7 @@
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-node-resolve": "^10.0.0",
     "@types/jquery": "^3.5.4",
+    "auto-changelog": "^2.2.1",
     "ava": "3.13.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.3",
@@ -58,7 +60,6 @@
     "lerna-changelog": "^1.0.1",
     "mber": "^0.13.2",
     "release-it": "^14.2.2",
-    "release-it-lerna-changelog": "^3.1.0",
     "sinon": "^9.2.1",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^4.1.2"
@@ -95,9 +96,11 @@
     "node": "15.3.0"
   },
   "release-it": {
-    "release-it-lerna-changelog": {
-      "infile": "CHANGELOG.md",
-      "launchEditor": true
+    "git": {
+      "changelog": "npm run changelog:preview"
+    },
+    "hooks": {
+      "after:bump": "npm run changelog:update"
     }
   }
 }
