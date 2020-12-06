@@ -99,6 +99,9 @@
     "git": {
       "changelog": "npm run changelog:preview"
     },
+    "github": {
+      "release": true
+    },
     "hooks": {
       "after:bump": "npm run changelog:update"
     }
