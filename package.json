@@ -13,15 +13,17 @@
   },
   "scripts": {
     "bin": "src/cli.ts",
-    "changelog:preview": "node_modules/.bin/auto-changelog --stdout --commit-limit false -u",
-    "changelog:update": "node_modules/.bin/auto-changelog --commit-limit false --package",
+    "changelog:unreleased": "node_modules/.bin/auto-changelog --stdout --commit-limit false --package --unreleased-only --hide-credit",
+    "changelog:preview": "node_modules/.bin/auto-changelog --stdout --commit-limit false -u --hide-credit",
+    "changelog:update": "node_modules/.bin/auto-changelog --commit-limit false --package --hide-credit",
     "dev": "node_modules/.bin/tsc --watch",
     "typecheck": "node_modules/.bin/tsc --project tsconfig.json --noEmit",
     "test": "node_modules/.bin/ava --verbose",
     "prepublishOnly": "npm run npm-link-ember-packages && tsc --build && npm run publish-modules-for-browser",
     "npm-link-ember-packages": "node scripts/npm-link-ember-packages.js",
     "publish-modules-for-browser": "node scripts/publish-modules-for-browser-and-node.js",
-    "release": "release-it"
+    "release": "release-it",
+    "release:beta": "release-it --preRelease=beta"
   },
   "dependencies": {
     "@types/node": "^14.14.10",
@@ -97,7 +99,7 @@
   },
   "release-it": {
     "git": {
-      "changelog": "npm run changelog:preview"
+      "changelog": "npm run changelog:unreleased"
     },
     "github": {
       "release": true
