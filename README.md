@@ -89,7 +89,7 @@ export default function() {
   });
 
   // OR:
-  this.post('/users'. User);
+  this.post('/users', User);
 
   this.get('/users', (request: Request) => {
     if (request.queryParams.filter === 'is_active') {
@@ -213,11 +213,11 @@ class User extends Model {
 
 const user = User.find(1);
 
-const serializedUserForEndpoint = { user: User.serializer(user); } // or User.serialize(user);
+const serializedUserForEndpoint = { user: User.serializer(user) }; // or User.serialize(user);
 
 const users = User.findAll({ active: true });
 
-const serializedUsersForEndpoint = { users: User.serializer(users); } // or users.map((user) => User.serialize(user));
+const serializedUsersForEndpoint = { users: User.serializer(users) }; // or users.map((user) => User.serialize(user));
 ```
 
 Custom serializers:
@@ -247,7 +247,7 @@ const serializedUserForEndpoint = { user: User.customSerializer(user) }; // or U
 
 const users = User.findAll({ active: true });
 
-const serializedUsersForEndpoint = { users: User.customSerializer(users); } // or users.map((user) => User.customSerialize(user));
+const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // or users.map((user) => User.customSerialize(user));
 ```
 
 ### Why this is superior to Mirage?
