@@ -20,7 +20,6 @@ declare global {
 
 import fs from 'fs/promises';
 import chalk from "ansi-colors";
-import { classify, dasherize } from "@ember/string";
 import { pluralize } from "ember-inflector";
 import setupDom from "./setup-dom";
 

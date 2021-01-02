@@ -1,6 +1,6 @@
 import util from "util";
 import chalk from "ansi-colors";
-import { classify, underscore } from "@ember/string";
+import { underscore } from "@ember/string";
 import { pluralize, singularize } from "ember-inflector";
 import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 
