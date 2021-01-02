@@ -30,7 +30,7 @@ export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, mode
 }
 
 export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
-  const modelPrimaryKey = fixtures.reduce((primaryKeys, fixture) => {
+  fixtures.reduce((primaryKeys, fixture) => {
     const modelName = modelDefinition.name;
     const primaryKey = (fixture.uuid ? "uuid" : null) || (fixture.id ? "id" : null);
 
@@ -51,7 +51,7 @@ export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
     modelDefinition.insert(fixture);
 
     return primaryKeys.concat([fixture[primaryKey]]);
-  }, [])[0];
+  }, []);
 
   return fixtures;
 }
