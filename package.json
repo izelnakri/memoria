@@ -26,14 +26,14 @@
     "release:beta": "release-it --preRelease=beta"
   },
   "dependencies": {
-    "@types/node": "^14.14.10",
+    "@types/node": "^14.14.20",
     "ansi-colors": "4.1.1",
     "fake-xml-http-request": "^2.1.1",
     "inflected": "^2.1.0",
     "jsdom": "^16.4.0",
     "pretender": "^3.4.3",
     "route-recognizer": "^0.3.4",
-    "ts-node": "^9.0.0"
+    "ts-node": "^9.1.1"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
@@ -47,24 +47,24 @@
     "@ember/error": "file:@ember/error",
     "@ember/polyfills": "file:@ember/polyfills",
     "@ember/string": "file:@ember/string",
-    "@rollup/plugin-commonjs": "^16.0.0",
-    "@rollup/plugin-node-resolve": "^10.0.0",
-    "@types/jquery": "^3.5.4",
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@types/jquery": "^3.5.5",
     "auto-changelog": "^2.2.1",
-    "ava": "3.13.0",
+    "ava": "3.15.0",
     "cors": "^2.8.5",
     "ember-cli-fastboot": "2.2.3",
     "ember-inflector": "file:ember-inflector",
-    "ember-source": "3.20.4",
+    "ember-source": "3.24.0",
     "express": "^4.17.1",
     "fastboot": "^3.1.2",
     "jquery": "^3.5.1",
     "lerna-changelog": "^1.0.1",
-    "mber": "^0.13.2",
+    "mber": "^0.14.2",
     "release-it": "^14.2.2",
-    "sinon": "^9.2.1",
+    "sinon": "^9.2.2",
     "tsconfig-paths": "^3.9.0",
-    "typescript": "^4.1.2"
+    "typescript": "^4.1.3"
   },
   "babel": {
     "presets": [

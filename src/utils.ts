@@ -49,8 +49,9 @@ export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
     }
 
     modelDefinition.insert(fixture);
+    primaryKeys.push(fixture[primaryKey]);
 
-    return primaryKeys.concat([fixture[primaryKey]]);
+    return primaryKeys;
   }, []);
 
   return fixtures;
