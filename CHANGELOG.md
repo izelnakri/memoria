@@ -2,9 +2,16 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.3.7](https://github.com/izelnakri/memserver/compare/v2.3.6...v2.3.7)
+
+- Revert strange internal test failure [`9679cea`](https://github.com/izelnakri/memserver/commit/9679cea195facff76d45370fc6ce5cda2ea69d9b)
+
 #### [v2.3.6](https://github.com/izelnakri/memserver/compare/v2.3.6-beta.0...v2.3.6)
 
+> 6 January 2021
+
 - internal pkg-upgrades [`469dd79`](https://github.com/izelnakri/memserver/commit/469dd79e1bc378f288df41e7c0cb154fae3a8c83)
+- Release 2.3.6 [`1cecf82`](https://github.com/izelnakri/memserver/commit/1cecf82ea1b95fa1efe2cf76e53a7235954c5b9c)
 - add more npm scripts [`7fb5953`](https://github.com/izelnakri/memserver/commit/7fb5953c1e760f5aa522929efc9d88f12db2e1a9)
 - README.md typofixes [`121ece4`](https://github.com/izelnakri/memserver/commit/121ece4b6ec4bcc0fc7d3c8a68e6f808419c09a7)
 - remove a redundant variable on src/utils.ts func [`494a16e`](https://github.com/izelnakri/memserver/commit/494a16e73c12794c55f48879190cd72994f1bdf6)
