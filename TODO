@@ -25,3 +25,80 @@ JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and runtimes n
 
 import { cast, validateLength, validateRequired, foreignKeyConstraint } from 'memserver/changeset'; // instead use class-validator
 import { from } from 'memserver/query';
+
+
+// MODEL API:
+import Model from 'memserver/model';
+
+class User extends Model {
+  Adapter: MemoryAdapter, // or SQLAdapter, JSONAPIAdapter, JSONAdapter, GraphQLAdapter
+  Serializer: ModelSerializer // or JSONSerializer, JSONAPISerializer, GraphQLSerializer
+
+  primaryKey = 'id' // or uuid or function(?)
+
+  insert(options) {
+
+  }
+  update(options) {
+
+  }
+  delete(options) {
+
+  }
+  serializer(userOrUsers) {
+
+  }
+  serialize(user) {
+
+  }
+  resetDatabase(targetInitialState: object[]) {
+
+  }
+
+  // Model Query Interface:
+  find(idOrIds) {
+
+  }
+  findBy(options) {
+
+  }
+  findAll(options) {
+
+  }
+  count(options) { // in memory, or in the resource through adapter with options?
+
+  }
+
+  // Extra examples: customAPIActions:
+  confirm = APIAction({
+    type: 'POST',
+    before() {
+
+    },
+    after() {
+
+    }
+  })
+
+
+  // private API: attributes, DB, defaultAttributes(string or lazy(with functions)) in future maybe as prop or decorator etc
+  // maybe default App or DB validations expressed as decorators
+}
+Sketch:
+User.insert({});
+
+User { emails: hasManyProxy{}, firstName: 'Izel', lastName: 'Nakri' }
+
+user.emails.then((emails) => {});
+
+User.Adapter [sql, jsonapi, json, memory] , includes Repo reference, Repo setting at the beginning, synchronization strategies(later stage)
+User.Serializer
+
+User.findBy({}); => request
+
+import { from, where, join, leftJoin, innerJoin } from 'memserver/query';
+
+from()
+
+Repo.one(query);
+Repo.all(
