@@ -6,5 +6,8 @@ export default {
   output: {
     format: "cjs"
   },
-  plugins: [resolve({ preferBuiltins: false, mainFields: ["jsnext"] }), commonjs({ ignore: ['./model'] })]
+  plugins: [
+    resolve({ preferBuiltins: false, mainFields: ["jsnext"] }),
+    commonjs({ ignore: ['./model'] })
+  ]
 };
