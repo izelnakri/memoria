@@ -31,7 +31,7 @@
     "ansi-colors": "4.1.1",
     "fake-xml-http-request": "^2.1.2",
     "inflected": "^2.1.0",
-    "jsdom": "^16.4.0",
+    "jsdom": "^16.5.2",
     "pretender": "^3.4.3",
     "route-recognizer": "^0.3.4",
     "ts-node": "^9.1.1"
