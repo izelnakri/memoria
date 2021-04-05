@@ -2,9 +2,18 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.3.8](https://github.com/izelnakri/memserver/compare/v2.3.7...v2.3.8)
+
+- packages upgraded [`56dd91d`](https://github.com/izelnakri/memserver/commit/56dd91d4dc5469ba26213c484da3b0883779e765)
+- TODO upgrade for v2 thoughts [`426bb37`](https://github.com/izelnakri/memserver/commit/426bb370208d7534eaa7f2050bf9add82fca5be0)
+- rollup.config.js js styling [`d91c304`](https://github.com/izelnakri/memserver/commit/d91c304465fe946cc3eb5f7108f0c8fdff9cc121)
+
 #### [v2.3.7](https://github.com/izelnakri/memserver/compare/v2.3.6...v2.3.7)
 
+> 6 January 2021
+
 - Revert strange internal test failure [`9679cea`](https://github.com/izelnakri/memserver/commit/9679cea195facff76d45370fc6ce5cda2ea69d9b)
+- Release 2.3.7 [`fc83b61`](https://github.com/izelnakri/memserver/commit/fc83b61a67e2cac70557efaa28afaa45be3ddca3)
 
 #### [v2.3.6](https://github.com/izelnakri/memserver/compare/v2.3.6-beta.0...v2.3.6)
 
