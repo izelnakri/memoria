@@ -2,8 +2,15 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [v2.5.1](https://github.com/izelnakri/memserver/compare/v2.5.1...v2.5.1)
+#### [v2.5.2](https://github.com/izelnakri/memserver/compare/v2.5.2...v2.5.2)
 
+- release @memserver/cli last [`22dfa3b`](https://github.com/izelnakri/memserver/commit/22dfa3b25b364af2d22b33d9594bb1256619630c)
+
+#### [v2.5.2](https://github.com/izelnakri/memserver/compare/v2.5.1...v2.5.2)
+
+> 14 June 2021
+
+- Release 2.5.2 [`bcfa874`](https://github.com/izelnakri/memserver/commit/bcfa8749ec13c945fae65d4790561649c2ff1db6)
 - add jsdom to @memserver/server [`5bc6bd9`](https://github.com/izelnakri/memserver/commit/5bc6bd928671a266ef416bdbe216be18cf295839)
 
 #### [v2.5.1](https://github.com/izelnakri/memserver/compare/v2.5.0...v2.5.1)
