@@ -15,6 +15,7 @@
     "kleur": "4.1.4",
     "fake-xml-http-request": "^2.1.2",
     "pretender": "^3.4.3",
-    "route-recognizer": "^0.3.4"
+    "route-recognizer": "^0.3.4",
+    "jsdom": "16.6.0"
   }
 }
