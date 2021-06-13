@@ -2,8 +2,21 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [v2.4.0](https://github.com/izelnakri/memserver/compare/v2.4.0...v2.4.0)
+#### [v2.5.0](https://github.com/izelnakri/memserver/compare/v2.5.0...v2.5.0)
 
+- Bump actions/cache from 2 to 2.1.5 [`#230`](https://github.com/izelnakri/memserver/pull/230)
+- Bump docker/login-action from 1 to 1.9.0 [`#229`](https://github.com/izelnakri/memserver/pull/229)
+- Bump docker/setup-buildx-action from 1 to 1.3.0 [`#231`](https://github.com/izelnakri/memserver/pull/231)
+- Bump actions/checkout from 2 to 2.3.4 [`#232`](https://github.com/izelnakri/memserver/pull/232)
+- Bump docker/build-push-action from 2 to 2.4.0 [`#233`](https://github.com/izelnakri/memserver/pull/233)
+- update examples to @memserver pkgs [`a50c4a0`](https://github.com/izelnakri/memserver/commit/a50c4a017a738196f9a7617df94c673b2ca56dfa)
+- remove esbuild dep from cli [`3d36d2c`](https://github.com/izelnakri/memserver/commit/3d36d2c89ef9093b29f94fa55cdc28e2c5955809)
+
+#### [v2.5.0](https://github.com/izelnakri/memserver/compare/v2.4.0...v2.5.0)
+
+> 14 June 2021
+
+- Release 2.5.0 [`00276d2`](https://github.com/izelnakri/memserver/commit/00276d21e8a488a45f725624db4315a20725ce0c)
 - release micro packages [`ccfac8c`](https://github.com/izelnakri/memserver/commit/ccfac8c65e2b0c2aa166c65442fedcee58542549)
 
 #### [v2.4.0](https://github.com/izelnakri/memserver/compare/v2.3.9...v2.4.0)
