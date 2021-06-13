@@ -92,9 +92,6 @@ async function generateFixtures(modelName, memserverDirectory) {
     ? await buildTmpDirectory(memserverDirectory)
     : memserverDirectory;
 
-  console.log("memserverImportDirectory is:");
-  console.log(memserverImportDirectory);
-
   const Server = await startMemserver(memserverDirectory); // TODO: this will be from cli/index.js
   const ModelDefinitions = await importModelDefinitions(memserverImportDirectory, modelFiles, IS_TYPESCRIPT);
   const targetModels = modelName
@@ -103,16 +100,12 @@ async function generateFixtures(modelName, memserverDirectory) {
 
   await Promise.all(
     targetModels.map(async (Model) => {
-      console.log('ModelDefinitions are');
-      console.log(ModelDefinitions);
-
       let sortedState = ModelDefinitions[Model].findAll().sort(sortFunction);
       let arrayOfRecords = util.inspect(sortedState, {
         depth: null,
         maxArrayLength: null,
       });
-      console.log('ARRAY OF RECORDS ARE');
-      console.log(arrayOfRecords);
+
       let targetFileName = pluralize(dasherize(underscore(Model)));
       let fixtureToImport = `/fixtures/${targetFileName}`;
       let expectedFixtureRelativePath = `${fixtureToImport}` + (IS_TYPESCRIPT ? ".ts" : ".js");
