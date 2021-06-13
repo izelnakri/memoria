@@ -2,9 +2,16 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.4.0](https://github.com/izelnakri/memserver/compare/v2.4.0...v2.4.0)
+
+- release micro packages [`ccfac8c`](https://github.com/izelnakri/memserver/commit/ccfac8c65e2b0c2aa166c65442fedcee58542549)
+
 #### [v2.4.0](https://github.com/izelnakri/memserver/compare/v2.3.9...v2.4.0)
 
+> 14 June 2021
+
 - Workspaces(@memserver/model, @memserver/server) [`#235`](https://github.com/izelnakri/memserver/pull/235)
+- Release 2.4.0 [`8f31cc1`](https://github.com/izelnakri/memserver/commit/8f31cc1b28775d5654f0afbd17fd4c1af1602e8d)
 
 #### [v2.3.9](https://github.com/izelnakri/memserver/compare/v2.3.8...v2.3.9)
 

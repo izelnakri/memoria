@@ -1,7 +1,7 @@
 {
   "name": "@memserver/response",
   "type": "module",
-  "version": "0.0.1",
+  "version": "2.5.0",
   "description": "",
   "author": "Izel Nakri",
   "license": "MIT",
@@ -9,6 +9,5 @@
   "files": [
     "dist/*"
   ],
-  "dependencies": {
-  }
+  "dependencies": {}
 }
