@@ -11,10 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "jquery": "^3.5.1",
-    "memserver": "2.2.5"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.12.9"
+    "@memserver/model": "3.0.0",
+    "@memserver/server": "3.0.0"
   },
   "browserslist": [
     "last 1 chrome version"

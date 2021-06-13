@@ -8,7 +8,7 @@ Extremely useful library for fast frontend tests, rapid prototyping, single-file
 In order to use memserver CLI you need to have typescript set up in your project folder.
 `memserver` binary will only work on typescript project directories since it uses ts-node under the hood for `memserver console` and `memserver g fixtures $modelName` generation commands.
 
-``` npm install -g memserver ```
+``` npm install -g @memserver/cli ```
 
 ``` memserver ```
 
@@ -18,9 +18,9 @@ You can use the CLI to create relevant boilerplate files and initial setup
 
 ```js
 // MEMSERVER MODEL API
-import Model from 'memserver/model';
+import Model from '@memserver/model';
 // OR:
-const Model = require('memserver/model').default;
+const Model = require('@memserver/model').default;
 // THEN:
 
 class User extends Model {
@@ -69,7 +69,7 @@ NOTE: API also works for UUIDs instead of id primary keys
 // in memserver/routes.ts:
 
 import User from './models/user';
-import Response from 'memserver/response';
+import Response from '@memserver/response';
 
 interface Request {
   headers: object,
@@ -157,7 +157,7 @@ You can also add routes on demand for your tests:
 
 ```ts
 import Server from './memserver/index';
-import Response from 'memserver/response';
+import Response from '@memserver/response';
 
 test('testing form submit errors when backend is down', async function (assert)  {
 
@@ -179,7 +179,7 @@ test('testing form submit errors when backend is down', async function (assert) 
 ```ts
 // in memserver/index.ts:
 
-import Memserver from "memserver/server";
+import Memserver from "@memserver/server";
 import initializer from "./initializer";
 import routes from "./routes";
 
@@ -206,7 +206,7 @@ static method(`static customSerializer(modelOrArray) {}`) on the model:
 Memserver serializer API:
 
 ```js
-import Model from 'memserver/model';
+import Model from '@memserver/model';
 
 class User extends Model {
 }
@@ -223,7 +223,7 @@ const serializedUsersForEndpoint = { users: User.serializer(users) }; // or user
 Custom serializers:
 
 ```js
-import Model from 'memserver/model';
+import Model from '@memserver/model';
 
 class User extends Model {
   static customSerializer(modelObjectOrArray) {
@@ -257,7 +257,7 @@ This makes the inserts, updates faster and encourages a better programming model
 
 - Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key constraints are not strings.
 
-- `memserver/response` does not require `new Reponse`, just `Response`.
+- `@memserver/response` does not require `new Reponse`, just `Response`.
 
 - Less code output and dependencies.
 

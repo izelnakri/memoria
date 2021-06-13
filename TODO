@@ -1,15 +1,5 @@
-- move to 4 packages? then its harder to use in project: @memserver/cli @memserver/server @memserver/model @memserver/response
-- move to 2 packages? : @memserver/cli @memserver
-- move to github actions
-- add release-it/auto CHANGELOG
-- remove qs?
-- move @ember/string to emberx/string
 - investigate decorator validations
 - maybe a more in-depth serializer
-
-through embroider create a local ember-packages and wire them to memserver with right module names
-
-maybe remove require.caches for tests
 
 JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and runtimes need to have ava API as default testing API(test.serial, test etc)
 

@@ -1,0 +1,25 @@
+{
+  "name": "@memserver/cli",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Izel Nakri",
+  "license": "MIT",
+  "bin": {
+    "memserver": "src/cli.js"
+  },
+  "main": "src/index.js",
+  "files": [
+    "src/*",
+    "memserver-boilerplate/*"
+  ],
+  "dependencies": {
+    "@memserver/server": "0.0.1",
+    "kleur": "4.1.4",
+    "inflected": "^2.1.0",
+    "recursive-lookup": "1.0.0",
+    "@babel/core": "7.14.5",
+    "@babel/preset-typescript": "7.14.5",
+    "babel-plugin-module-extension-resolver": "1.0.0-rc.2"
+  }
+}
