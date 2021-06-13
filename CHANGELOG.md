@@ -2,10 +2,24 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v2.4.0](https://github.com/izelnakri/memserver/compare/v2.3.9...v2.4.0)
+
+- Workspaces(@memserver/model, @memserver/server) [`#235`](https://github.com/izelnakri/memserver/pull/235)
+
+#### [v2.3.9](https://github.com/izelnakri/memserver/compare/v2.3.8...v2.3.9)
+
+> 5 April 2021
+
+- upgrade jsdom to 16.5.2 [`b09a1ab`](https://github.com/izelnakri/memserver/commit/b09a1abf25d61e6f08fa5daf8afb16a427993182)
+- Release 2.3.9 [`7eb4b6b`](https://github.com/izelnakri/memserver/commit/7eb4b6bfbe80610a024a2ca301ae67b8086c97da)
+
 #### [v2.3.8](https://github.com/izelnakri/memserver/compare/v2.3.7...v2.3.8)
+
+> 5 April 2021
 
 - packages upgraded [`56dd91d`](https://github.com/izelnakri/memserver/commit/56dd91d4dc5469ba26213c484da3b0883779e765)
 - TODO upgrade for v2 thoughts [`426bb37`](https://github.com/izelnakri/memserver/commit/426bb370208d7534eaa7f2050bf9add82fca5be0)
+- Release 2.3.8 [`29ba9d3`](https://github.com/izelnakri/memserver/commit/29ba9d319cfa32b1785b8963336b7a4f9b607592)
 - rollup.config.js js styling [`d91c304`](https://github.com/izelnakri/memserver/commit/d91c304465fe946cc3eb5f7108f0c8fdff9cc121)
 
 #### [v2.3.7](https://github.com/izelnakri/memserver/compare/v2.3.6...v2.3.7)
