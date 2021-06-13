@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import esbuild from "esbuild";
 import kleur from "kleur";
 import { pluralize } from "inflected";
 import recursiveLookup from 'recursive-lookup';
