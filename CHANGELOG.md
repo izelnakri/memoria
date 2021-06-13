@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [v2.5.0](https://github.com/izelnakri/memserver/compare/v2.5.0...v2.5.0)
+#### [v2.5.1](https://github.com/izelnakri/memserver/compare/v2.5.1...v2.5.1)
+
+- add jsdom to @memserver/server [`5bc6bd9`](https://github.com/izelnakri/memserver/commit/5bc6bd928671a266ef416bdbe216be18cf295839)
+
+#### [v2.5.1](https://github.com/izelnakri/memserver/compare/v2.5.0...v2.5.1)
+
+> 14 June 2021
 
 - Bump actions/cache from 2 to 2.1.5 [`#230`](https://github.com/izelnakri/memserver/pull/230)
 - Bump docker/login-action from 1 to 1.9.0 [`#229`](https://github.com/izelnakri/memserver/pull/229)
@@ -10,6 +16,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - Bump actions/checkout from 2 to 2.3.4 [`#232`](https://github.com/izelnakri/memserver/pull/232)
 - Bump docker/build-push-action from 2 to 2.4.0 [`#233`](https://github.com/izelnakri/memserver/pull/233)
 - update examples to @memserver pkgs [`a50c4a0`](https://github.com/izelnakri/memserver/commit/a50c4a017a738196f9a7617df94c673b2ca56dfa)
+- Release 2.5.1 [`2d47968`](https://github.com/izelnakri/memserver/commit/2d47968840d19197084d4740697d7e5c7badc58c)
 - remove esbuild dep from cli [`3d36d2c`](https://github.com/izelnakri/memserver/commit/3d36d2c89ef9093b29f94fa55cdc28e2c5955809)
 
 #### [v2.5.0](https://github.com/izelnakri/memserver/compare/v2.4.0...v2.5.0)
