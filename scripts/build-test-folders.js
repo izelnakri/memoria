@@ -6,9 +6,10 @@ import recursiveLookup from 'recursive-lookup';
 const shell = promisify(exec);
 
 let targetPackages = [
-  '@memserver/model',
-  '@memserver/response',
-  '@memserver/server',
+  '@memoria/adapters',
+  '@memoria/model',
+  // '@memoria/response',
+  // '@memoria/server',
 ];
 
 await targetPackages.reduce(async (lastCompile, packageName) => {
@@ -32,7 +33,7 @@ async function buildPackage(packageName) {
         .replace(`packages/${packageName}/test`, `tmp/${packageName}`)
       targetPath = targetPath.slice(0, targetPath.length - 3) + '.js';
 
-      return shell(`node_modules/.bin/babel ${fileAbsolutePath} --presets @babel/preset-typescript --plugins babel-plugin-module-extension-resolver -o ${targetPath}`);
+      return shell(`node_modules/.bin/babel ${fileAbsolutePath} --presets @babel/preset-typescript --config-file ${process.cwd()}/.babelrc --plugins babel-plugin-module-extension-resolver -o ${targetPath}`);
     }));
 
   } catch (error) {

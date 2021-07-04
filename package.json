@@ -1,5 +1,6 @@
 {
-  "name": "memserver",
+  "name": "memoria",
+  "private": true,
   "type": "module",
   "version": "2.5.3",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
@@ -13,7 +14,7 @@
     "memserver": "src/cli.ts"
   },
   "workspaces": [
-    "packages/@memserver/*"
+    "packages/@memoria/*"
   ],
   "scripts": {
     "bin": "src/cli.ts",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.14.3",
+    "@babel/helper-hoist-variables": "^7.14.5",
     "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/plugin-proposal-decorators": "^7.14.2",
     "@babel/plugin-proposal-private-methods": "^7.13.0",

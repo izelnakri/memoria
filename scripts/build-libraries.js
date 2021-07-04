@@ -6,9 +6,10 @@ import recursiveLookup from 'recursive-lookup';
 const shell = promisify(exec);
 
 let targetPackages = [
-  '@memserver/model',
-  '@memserver/response',
-  '@memserver/server'
+  '@memoria/adapters',
+  '@memoria/model',
+  // '@memoria/response',
+  // '@memoria/server'
 ];
 
 await targetPackages.reduce(async (lastCompile, packageName) => {
@@ -31,7 +32,7 @@ async function buildPackage(packageName) {
       let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/dist`, (path) => path.endsWith('.js'));
 
       await Promise.all(fileAbsolutePaths.map((fileAbsolutePath) => {
-        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --plugins babel-plugin-module-extension-resolver -o ${fileAbsolutePath}`);
+        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --plugins babel-plugin-module-extension-resolver --config-file ${process.cwd()}/.babelrc -o ${fileAbsolutePath}`);
       }));
     } else {
       let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/src`, (path) => path.endsWith('.ts') || path.endsWith('.js'));
@@ -41,7 +42,7 @@ async function buildPackage(packageName) {
           .replace(`packages/${packageName}/src`, `packages/${packageName}/dist`)
         targetPath = targetPath.slice(0, targetPath.length - 3) + '.js';
 
-        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --presets @babel/preset-typescript --plugins babel-plugin-module-extension-resolver -o ${targetPath}`);
+        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --presets @babel/preset-typescript --config-file ${process.cwd()}/.babelrc --plugins babel-plugin-module-extension-resolver -o ${targetPath}`);
       }));
     }
   } catch (error) {
@@ -55,4 +56,3 @@ async function buildPackage(packageName) {
 // await Promise.all(fileAbsolutePaths.map((fileAbsolutePath) => {
 //   return shell(`node_modules/.bin/babel ${fileAbsolutePath} --plugins babel-plugin-module-extension-resolver -o ${fileAbsolutePath}`);
 // }));
-

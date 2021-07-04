@@ -12,10 +12,11 @@ if (!version) {
 }
 
 const TARGET_LIBRARIES = [
-  '@memserver/model',
-  '@memserver/response',
-  '@memserver/server',
-  '@memserver/cli',
+  '@memoria/adapters',
+  '@memoria/model',
+  // '@memoria/response',
+  // '@memoria/server',
+  // '@memoria/cli',
 ]
 let PROJECT_JSON = JSON.parse((await fs.readFile(`package.json`)).toString());
 

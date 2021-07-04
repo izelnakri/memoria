@@ -1,0 +1,14 @@
+{
+  "name": "@memoria/adapters",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Izel Nakri <contact@izelnakri.com>",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "files": [
+    "dist/*"
+  ],
+  "dependencies": {
+  }
+}

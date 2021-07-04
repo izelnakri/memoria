@@ -1,5 +1,5 @@
 {
-  "name": "@memserver/model",
+  "name": "@memoria/server",
   "type": "module",
   "version": "2.5.3",
   "description": "",
@@ -10,8 +10,12 @@
     "dist/*"
   ],
   "dependencies": {
-    "kleur": "4.1.4",
+    "@emberx/string": "^0.0.11",
     "inflected": "^2.1.0",
-    "object-inspect": "^1.10.3"
+    "kleur": "4.1.4",
+    "fake-xml-http-request": "^2.1.2",
+    "pretender": "^3.4.3",
+    "route-recognizer": "^0.3.4",
+    "jsdom": "16.6.0"
   }
 }

@@ -2,6 +2,7 @@ import kleur from "kleur";
 import inspect from "object-inspect";
 import { underscore } from "@emberx/string";
 import { pluralize, singularize } from "inflected";
+import { MemoryAdapter } from "@memoria/adapters";
 import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck, generateUUID } from "./utils";
 
 type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
@@ -19,14 +20,11 @@ export type InternalModel = RequireOnlyOne<InternalModelShape, "id" | "uuid">;
 
 // TODO: remove static setters and maybe getters
 export default class MemServerModel {
-  static _DB = {};
-  static _modelDefinitions = {};
-  static _attributes = {};
-  static _defaultAttributes = {}; // NOTE: probably a decorator here in future
-  static _embedReferences = {}; // NOTE: serializer concern
+  static Adapter = MemoryAdapter;
 
   static primaryKey: string | null = null;
-
+  static _modelDefinitions = {};
+  static _DB = {};
   static get DB(): Array<InternalModel> {
     if (!this._DB[this.name]) {
       this._DB[this.name] = [];
@@ -36,6 +34,13 @@ export default class MemServerModel {
 
     return this._DB[this.name];
   }
+
+  static _DEFAULT_ATTRIBUTES = {}; // NOTE: probably a decorator here in future
+  static get DEFAULT_ATTRIBUTES(): Set<string> {
+    return this._DEFAULT_ATTRIBUTES[this.name];
+  }
+
+  static _attributes = {};
   static get attributes(): Set<string> {
     if (!this._attributes[this.name]) {
       this._attributes[this.name] = new Set();
@@ -47,20 +52,7 @@ export default class MemServerModel {
     return this._attributes[this.name];
   }
 
-  static set defaultAttributes(value: object) {
-    Object.keys(value).forEach((key) => {
-      if (!this.attributes.has(key)) {
-        this.attributes.add(key);
-      }
-    });
-
-    this._defaultAttributes = value;
-  }
-
-  static get defaultAttributes(): object {
-    return this._defaultAttributes;
-  }
-
+  static _embedReferences = {}; // NOTE: serializer concern
   static set embedReferences(references: Object) {
     this._embedReferences[this.name] = references;
   }
@@ -78,7 +70,7 @@ export default class MemServerModel {
   static resetDatabase(fixtures?: Array<InternalModel>): Array<InternalModel> {
     this.DB.length = 0;
     this.attributes.clear();
-    Object.keys(this.defaultAttributes).forEach((key) => this.attributes.add(key));
+    Object.keys(this.DEFAULT_ATTRIBUTES).forEach((key) => this.attributes.add(key));
 
     if (fixtures) {
       insertFixturesWithTypechecks(this, fixtures);
@@ -136,7 +128,7 @@ export default class MemServerModel {
     if (this.DB.length === 0) {
       this.primaryKey = this.primaryKey || (options.uuid ? "uuid" : "id");
       this.attributes.add(this.primaryKey);
-      Object.keys(this.defaultAttributes).forEach((attribute) => this.attributes.add(attribute));
+      Object.keys(this.DEFAULT_ATTRIBUTES).forEach((attribute) => this.attributes.add(attribute));
     }
 
     if (!options.hasOwnProperty(this.primaryKey)) {
@@ -147,14 +139,16 @@ export default class MemServerModel {
     primaryKeyTypeSafetyCheck(this.primaryKey, options[this.primaryKey], this.name);
 
     const target = Array.from(this.attributes).reduce((result, attribute) => {
-      if (typeof result[attribute] === "function") {
+      if (result[attribute] === Date) {
+        result[attribute] = "2017-10-25T20:54:04.447Z"; // TODO: change
+      } else if (typeof result[attribute] === "function") {
         result[attribute] = result[attribute].apply(result);
       } else if (!result.hasOwnProperty(attribute)) {
         result[attribute] = undefined;
       }
 
       return result;
-    }, Object.assign({}, this.defaultAttributes, options));
+    }, Object.assign({}, this.DEFAULT_ATTRIBUTES, options));
     const existingRecord = target.id ? this.find(target.id) : this.findBy({ uuid: target.uuid });
 
     if (existingRecord) {
@@ -379,7 +373,6 @@ export function resetMemory(DefaultBaseModel) {
   DefaultBaseModel._DB = {};
   DefaultBaseModel._modelDefinitions = {};
   DefaultBaseModel._attributes = {};
-  DefaultBaseModel._defaultAttributes = {};
   DefaultBaseModel._embedReferences = {};
 }
 

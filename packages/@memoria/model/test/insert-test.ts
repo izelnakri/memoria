@@ -1,8 +1,9 @@
-import Model from "@memserver/model";
+// TODO: how can i do the function default values?
+import Model, { Column, CreateDateColumn } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
-module("@memserver/model | $Model.insert()", function (hooks) {
+module("@memoria/model | $Model.insert()", function (hooks) {
   setupMemserver(hooks);
 
   const PHOTO_FIXTURES = [
@@ -55,20 +56,18 @@ module("@memserver/model | $Model.insert()", function (hooks) {
   function prepare() {
     class User extends Model {}
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Some default name";
-        },
-      };
+      @Column({ type: "bool", default: true })
+      is_public: boolean;
+
+      @Column({ type: "varchar", default: "Some default name" })
+      name: string;
     }
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return "2017-10-25T20:54:04.447Z";
-        },
-        is_important: true,
-      };
+      @CreateDateColumn()
+      inserted_at: Date;
+
+      @Column({ type: "bool", default: true })
+      is_important: boolean;
     }
 
     return { Photo, PhotoComment, User };
