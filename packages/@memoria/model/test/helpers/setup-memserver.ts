@@ -1,6 +1,6 @@
-import Model, { resetMemory } from "@memoria/model";
+import Model, { Store } from "@memoria/model";
 
 export default function (hooks) {
-  hooks.beforeEach(() => resetMemory(Model));
-  hooks.afterEach(() => resetMemory(Model));
+  hooks.beforeEach(() => Store.reset());
+  hooks.afterEach(() => Store.reset());
 }

@@ -1,8 +1,8 @@
-import Model from "@memserver/model";
+import Model from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
-module("@memserver/model | $Model.delete()", function (hooks) {
+module("@memoria/model | $Model.delete()", function (hooks) {
   setupMemserver(hooks);
 
   const PHOTO_FIXTURES = [

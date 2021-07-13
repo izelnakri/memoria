@@ -7,11 +7,11 @@
   "author": "Izel Nakri",
   "repository": {
     "type": "git",
-    "url": "https://github.com/izelnakri/memserver.git"
+    "url": "https://github.com/izelnakri/memoria.git"
   },
   "license": "MIT",
   "bin": {
-    "memserver": "src/cli.ts"
+    "memoria": "src/cli.ts"
   },
   "workspaces": [
     "packages/@memoria/*"
@@ -32,11 +32,14 @@
     "release:beta": "release-it --preRelease=beta",
     "test": "npm run test:browser && npm run test:node && npm run test:cli",
     "test:ci": "npm run test:browser:ci && npm run test:node:ci",
+    "test:watch": "npm run test:browser:watch",
     "test:browser": "ENVIRONMENT=development npm run test:browser:ci",
-    "test:browser:ci": "npm run build && node_modules/.bin/qunitx test/index.ts --browser --debug --failFast --before=packages/@memserver/server/test/helpers/webserver-for-passthrough.js",
+    "test:browser:ci": "npm run build && qunitx test/index.ts --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:browser:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters packages/@memoria/model test/index.ts --watch --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:node": "ENVIRONMENT=development npm run test:node:ci",
-    "test:node:ci": "npm run build:tests && qunitx tmp/@memserver/model/index.js tmp/@memserver/response/index.js tmp/@memserver/server/index.js --before=packages/@memserver/server/test/helpers/webserver-for-passthrough.js",
-    "test:cli": "node_modules/.bin/qunitx packages/@memserver/cli/test/index.js",
+    "test:node:ci": "npm run build:tests && qunitx tmp/@memoria/model/index.js tmp/@memoria/response/index.js tmp/@memoria/server/index.js --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:node:watch": "ENVIRONMENT=development npm run build:tests && qunitx tmp/@memoria/**/*.js --watch --debug --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:cli": "qunitx packages/@memoria/cli/test/index.js",
     "typecheck": "tsc --project tsconfig.json --noEmit --skipLibCheck"
   },
   "dependencies": {

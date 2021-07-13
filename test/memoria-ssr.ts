@@ -26,15 +26,15 @@ export default class ${fileName} extends Model{
 }`;
 
 test.beforeEach(async () => {
-  await fs.mkdir(`${CWD}/memserver`, { recursive: true });
-  await Promise.all([fs.mkdir(`${CWD}/memserver/models`), fs.mkdir(`${CWD}/memserver/fixtures`)]);
+  await fs.mkdir(`${CWD}/memoria`, { recursive: true });
+  await Promise.all([fs.mkdir(`${CWD}/memoria/models`), fs.mkdir(`${CWD}/memoria/fixtures`)]);
   await Promise.all([
-    fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
-    fs.writeFile(`${CWD}/memserver/models/user.ts`, modelFileContent("User")),
-    fs.writeFile(`${CWD}/memserver/models/photo-comment.ts`, modelFileContent("PhotoComment")),
-    fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}"),
+    fs.writeFile(`${CWD}/memoria/models/photo.ts`, modelFileContent("Photo")),
+    fs.writeFile(`${CWD}/memoria/models/user.ts`, modelFileContent("User")),
+    fs.writeFile(`${CWD}/memoria/models/photo-comment.ts`, modelFileContent("PhotoComment")),
+    fs.writeFile(`${CWD}/memoria/routes.ts`, "export default function() {}"),
     fs.writeFile(
-      `${CWD}/memserver/fixtures/photos.ts`,
+      `${CWD}/memoria/fixtures/photos.ts`,
       `export default [
       {
         id: 1,
@@ -57,7 +57,7 @@ test.beforeEach(async () => {
     ];`
     ),
     fs.writeFile(
-      `${CWD}/memserver/fixtures/photo-comments.ts`,
+      `${CWD}/memoria/fixtures/photo-comments.ts`,
       `export default [
       {
         uuid: '499ec646-493f-4eea-b92e-e383d94182f4',
@@ -84,7 +84,7 @@ test.beforeEach(async () => {
         user_id: 1
       }
     ];`
-    )
+    ),
   ]);
 
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
@@ -94,11 +94,11 @@ test.afterEach.always(async () => {
   // NOTE: maybe remove require cache if needed
   Object.keys(require.cache).forEach((key) => delete require.cache[key]);
 
-  await fs.rm(`${CWD}/memserver`, { recursive: true, recursive: true });
+  await fs.rm(`${CWD}/memoria`, { recursive: true, recursive: true });
 });
 
 test.serial(
-  "MemServer with JSDOM could be used with ember fastboot for server side rendering",
+  "memoria with JSDOM could be used with ember fastboot for server side rendering",
   async (t) => {
     const FASTBOOT_DIST_PATH = `${CWD}/src/test/test-helpers/fastboot-dist`;
     const jsdom = (await import("jsdom")).default;
@@ -109,10 +109,10 @@ test.serial(
     global.document = dom.window.document;
     global.self = dom.window.self;
 
-    const Photo = (await import(`${CWD}/memserver/models/photo.ts`)).default;
-    const PhotoComment = (await import(`${CWD}/memserver/models/photo-comment.ts`)).default;
-    const PhotoFixtures = (await import(`${CWD}/memserver/fixtures/photos.ts`)).default;
-    const PhotoCommentFixtures = (await import(`${CWD}/memserver/fixtures/photo-comments.ts`))
+    const Photo = (await import(`${CWD}/memoria/models/photo.ts`)).default;
+    const PhotoComment = (await import(`${CWD}/memoria/models/photo-comment.ts`)).default;
+    const PhotoFixtures = (await import(`${CWD}/memoria/fixtures/photos.ts`)).default;
+    const PhotoCommentFixtures = (await import(`${CWD}/memoria/fixtures/photo-comments.ts`))
       .default;
 
     PhotoFixtures.forEach((photo) => Photo.insert(photo));
@@ -120,9 +120,9 @@ test.serial(
 
     await (await import(`${CWD}/dist/setup-dom`)).default();
 
-    const MemServer = (await import(`${CWD}/dist/server`)).default;
-    const Server = new MemServer({
-      routes: (await import(`${CWD}/memserver/routes`)).default
+    const memoria = (await import(`${CWD}/dist/server`)).default;
+    const Server = new memoria({
+      routes: (await import(`${CWD}/memoria/routes`)).default,
     });
 
     window.$ = await import("jquery");
@@ -141,9 +141,9 @@ test.serial(
           XMLHttpRequest: global.window.XMLHttpRequest,
           $: window.$,
           jQuery: window.$,
-          navigator: global.window.navigator
+          navigator: global.window.navigator,
         });
-      }
+      },
     });
 
     const server = express();
@@ -161,7 +161,7 @@ test.serial(
         distPath: FASTBOOT_DIST_PATH,
         fastboot: global.fastboot,
         resilient: true,
-        shouldRender: true
+        shouldRender: true,
       });
 
       return middleware(req, res, next);

@@ -6,7 +6,7 @@ declare global {
 }
 
 import kleur from "kleur";
-import TargetModel from "@memserver/model";
+import TargetModel from "@memoria/model";
 import "./set-pretender-context";
 import Pretender from "pretender/dist/pretender.js";
 import hackPretender from "./pretender-hacks"; // NOTE: check this

@@ -1,11 +1,9 @@
-import Memserver from "@memserver/server";
+import Memoria from "@memoria/server";
 import initializer from "./initializer";
 import routes from "./routes";
 
-const MemServer = new Memserver({
+export default new Memoria({
   globalizeModels: true,
   initializer: initializer,
   routes: routes,
 });
-
-export default MemServer;

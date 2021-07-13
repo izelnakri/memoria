@@ -1,4 +1,4 @@
-import Model, { resetMemory } from "@memserver/model";
+import Model, { resetMemory } from "@memoria/model";
 
 export default function (hooks) {
   hooks.beforeEach(function () {

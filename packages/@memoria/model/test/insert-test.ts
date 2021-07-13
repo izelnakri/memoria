@@ -1,5 +1,5 @@
 // TODO: how can i do the function default values?
-import Model, { Column, CreateDateColumn } from "@memoria/model";
+import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
@@ -56,17 +56,23 @@ module("@memoria/model | $Model.insert()", function (hooks) {
   function prepare() {
     class User extends Model {}
     class Photo extends Model {
-      @Column({ type: "bool", default: true })
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("bool", { default: true })
       is_public: boolean;
 
-      @Column({ type: "varchar", default: "Some default name" })
+      @Column("varchar", { default: "Some default name" })
       name: string;
     }
     class PhotoComment extends Model {
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
       @CreateDateColumn()
       inserted_at: Date;
 
-      @Column({ type: "bool", default: true })
+      @Column("bool", { default: true })
       is_important: boolean;
     }
 
@@ -75,26 +81,30 @@ module("@memoria/model | $Model.insert()", function (hooks) {
 
   test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
     const { Photo, PhotoComment } = prepare();
+    debugger;
+    console.log("zzaaa");
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
     assert.deepEqual(
-      Photo.findAll().map((photo) => photo.id),
+      (await Photo.findAll()).map((photo) => photo.id),
       [1, 2, 3]
     );
 
-    Photo.insert();
+    await Photo.insert();
 
     assert.deepEqual(
-      Photo.findAll().map((photo) => photo.id),
+      (await Photo.findAll()).map((photo) => photo.id),
       [1, 2, 3, 4]
     );
 
-    Photo.insert();
+    await Photo.insert();
 
-    assert.equal(Photo.count(), 5);
-    assert.deepEqual(Photo.findAll(), [
+    assert.equal(await Photo.count(), 5);
+    assert.deepEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -127,7 +137,9 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       },
     ]);
 
-    const initialCommentUUIDs = PhotoComment.findAll().map((photoComment) => photoComment.uuid);
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map(
+      (photoComment) => photoComment.uuid
+    );
 
     assert.deepEqual(initialCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -136,26 +148,28 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       "374c7f4a-85d6-429a-bf2a-0719525f5f29",
     ]);
 
-    PhotoComment.insert();
+    await PhotoComment.insert();
 
-    const allPhotoComments = PhotoComment.findAll();
+    const allPhotoComments = await PhotoComment.findAll();
     const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
 
-    assert.equal(PhotoComment.count(), 5);
+    assert.equal(await PhotoComment.count(), 5);
     assert.ok(!initialCommentUUIDs[lastPhotoComment.uuid], "inserted comment has a unique uuid");
   });
 
   test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    Photo.insert({ id: 99, href: "/izel.html", is_public: false });
-    Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
+    await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
+    await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
 
-    assert.equal(Photo.count(), 5);
-    assert.deepEqual(Photo.findAll(), [
+    assert.equal(await Photo.count(), 5);
+    assert.deepEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -188,29 +202,29 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       },
     ]);
 
-    const initialCommentUUIDs = PhotoComment.findAll().map((comment) => comment.uuid);
-    const commentOne = PhotoComment.insert({
-      inserted_at: "2015-10-25T20:54:04.447Z",
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map((comment) => comment.uuid);
+    const commentOne = await PhotoComment.insert({
+      inserted_at: new Date("2015-10-25T20:54:04.447Z"),
       photo_id: 1,
     });
-    const commentTwo = PhotoComment.insert({
+    const commentTwo = await PhotoComment.insert({
       uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
       is_important: false,
     });
 
-    assert.equal(PhotoComment.count(), 6);
+    assert.equal(await PhotoComment.count(), 6);
 
-    const allComments = PhotoComment.findAll();
+    const allComments = await PhotoComment.findAll();
     const lastInsertedComments = allComments.slice(4, allComments.length);
 
     assert.ok(allComments.includes(commentOne), "first comment inserassert.equal in the database");
     assert.ok(allComments.includes(commentTwo), "second comment inserassert.equal in the database");
 
-    assert.equal(commentOne.inserted_at, "2015-10-25T20:54:04.447Z");
+    assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
     assert.equal(commentOne.photo_id, 1);
     assert.equal(commentOne.is_important, true);
     assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
-    assert.equal(commentTwo.inserted_at, "2017-10-25T20:54:04.447Z");
+    assert.ok(new Date() - commentTwo.inserted_at < 10000);
     assert.equal(commentTwo.photo_id, undefined);
     assert.equal(commentTwo.is_important, false);
 
@@ -222,65 +236,75 @@ module("@memoria/model | $Model.insert()", function (hooks) {
   test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    assert.throws(
-      () => Photo.insert({ id: 1 }),
-      /\[Memserver\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/
-    );
-    assert.throws(
-      () => PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
-      /\[Memserver\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/
-    );
+
+    try {
+      await Photo.insert({ id: 1 });
+    } catch (error) {
+      assert.ok(/\[Memserver\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(error.message));
+    }
+    try {
+      await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" })
+    } catch (error) {
+      assert.ok(/\[Memserver\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(error.message));
+    }
   });
 
   test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
-
-    assert.throws(
-      () => Photo.insert({ id: "99" }),
-      /\[Memserver\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.throws(
-      () => PhotoComment.insert({ uuid: 1 }),
-      /\[Memserver\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/
-    );
+    try {
+      await Photo.insert({ id: "99" });
+    } catch (error) {
+      assert.ok(/\[Memserver\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(error.message));
+    }
+    try {
+      await PhotoComment.insert({ uuid: 1 });
+    } catch (error) {
+      assert.ok(/\[Memserver\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(error.message));
+    }
   });
 
   test("$Model.insert(attributes) can add new values to $Model.attributes when new attributes are discovered", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    [Photo, PhotoComment].forEach((model) => model.resetDatabase());
+    await Promise.all([Photo, PhotoComment].map((model) => model.resetCache()));
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    Photo.insert({
+    await Photo.insert({
       published_at: new Date("2017-10-10").toJSON(),
       description: "Some description",
     });
-    Photo.insert({ location: "Istanbul", is_public: false });
-    PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-    PhotoComment.insert({ reply_id: 1 });
+    await Photo.insert({ location: "Istanbul", is_public: false });
+    await PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+    await PhotoComment.insert({ reply_id: 1 });
 
-    assert.deepEqual(Array.from(Photo.attributes), [
+    assert.deepEqual(Array.from(Photo.columnNames), [
+      "id",
       "is_public",
       "name",
-      "id",
       "href",
       "published_at",
       "description",
       "location",
     ]);
-    assert.deepEqual(Array.from(PhotoComment.attributes), [
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
+      "uuid",
       "inserted_at",
       "is_important",
-      "uuid",
       "content",
       "photo_id",
       "user_id",
@@ -288,7 +312,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       "like_count",
       "reply_id",
     ]);
-    assert.deepEqual(Photo.findAll(), [
+    assert.deepEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",

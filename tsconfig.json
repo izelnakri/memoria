@@ -30,13 +30,18 @@
 
     "newLine": "LF",
 
+    "paths": {
+      "@memoria/model": ["packages/@memoria/model/src"]
+    },
+
     "types": [
       "qunit",
       "node"
     ]
   },
-  "include": [
-  ],
-  "exclude": [
-  ]
+//  "include": [
+//    "packages/@memoria/*/src/**/*.ts"
+//  ],
+//  "exclude": [
+//  ]
 }

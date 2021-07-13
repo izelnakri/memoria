@@ -7,21 +7,17 @@ import {
   PrimaryGeneratedColumn,
   Generated,
 } from "./column";
+import { Index, Unique, Check, Exclusion } from "./other";
+import { OneToOne, ManyToOne, OneToMany, ManyToMany, JoinColumn, JoinTable } from "./relationship";
 
-// something(options) {
-//   return function (target, propertyKey, descriptor) {
-//   }
-// }
-
-export function proxyToAdapter(decoratorName, options) {
+// NOTE: maybe I can remove one call with: returning the function directly:
+export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
   return function (target, propertyKey, descriptor) {
-    console.log("descriptor is");
-    console.log(descriptor);
     return target.constructor.Adapter.Decorators[decoratorName](
       target.constructor,
       propertyKey,
-      options,
-      descriptor
+      firstParam,
+      secondParam
     );
   };
 }
@@ -34,6 +30,16 @@ export default {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Generated,
+  Index,
+  Unique,
+  Check,
+  Exclusion,
+  OneToOne,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinColumn,
+  JoinTable,
 };
 
 export {
@@ -44,4 +50,16 @@ export {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Generated,
+  Index,
+  Unique,
+  Check,
+  Exclusion,
+  OneToOne,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinColumn,
+  JoinTable,
 };
+
+// NOTE: not implementing Embedded entities, Tree Entities, View Entity

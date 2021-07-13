@@ -57,4 +57,4 @@ PROJECT_JSON.version = version;
 
 await fs.writeFile('package.json', JSON.stringify(PROJECT_JSON, null, 2));
 
-console.log(`Released memserver v${version} successfully`);
+console.log(`Released memoria v${version} successfully`);

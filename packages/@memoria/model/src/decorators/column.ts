@@ -30,10 +30,6 @@ export function Generated(generateFunction) {
   return proxyToAdapter("Generated", generateFunction);
 }
 
-export function Index(generateFunction) {
-  return proxyToAdapter("Index", generateFunction);
-}
-
 export default {
   Column,
   CreateDateColumn,
@@ -43,3 +39,7 @@ export default {
   PrimaryGeneratedColumn,
   Generated,
 };
+
+// NOTE: in future do VersionColumn
+// NOTE: implement Enum check, Set column, simple-array, simple-json, @Generated('uuid')
+// NOTE: some constraints: length, unique,

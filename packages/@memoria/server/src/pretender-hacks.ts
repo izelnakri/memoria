@@ -1,7 +1,7 @@
 import kleur from "kleur";
 import { singularize } from "inflected";
 import { classify } from "@emberx/string";
-import Model from "@memserver/model";
+import Model from "@memoria/model";
 
 export default function hackPretender(Pretender) {
   // HACK START: Pretender Request Parameter Type Casting Hack: Because types are important.
@@ -199,10 +199,7 @@ export default function hackPretender(Pretender) {
     const pluralResourceName = lastPath.includes(":") ? paths[paths.length - 2] : lastPath;
     const resourceName = singularize(pluralResourceName);
     const resourceClassName = classify(resourceName);
-    const ResourceModel =
-      defaultResourceDefinition ||
-      Model._modelDefinitions[resourceClassName] ||
-      serverContext.Models[resourceClassName];
+    const ResourceModel = defaultResourceDefinition || serverContext.Models[resourceClassName];
 
     if (!ResourceModel) {
       serverContext.shutdown();

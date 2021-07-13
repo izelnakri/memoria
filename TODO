@@ -1,24 +1,39 @@
+make in build src adjust package.json main to dist or src based on clean or build script
+- investigate relationship setting (!!)
+- investigate error handling (!!)
+- investigate changeset / repository / normal configuration
+- investigate class-validator to ajv/JSON Schema exports (!!)
+- investigate Adapter & Serializer interface
+- investigate Query Interface
+
+
+
+
+getters and instance method dont show on Object.keys etc Reflect.ownKeys
+
+
+
 - investigate decorator validations
 - maybe a more in-depth serializer
 
 JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and runtimes need to have ava API as default testing API(test.serial, test etc)
 
-- investigate silent Errors within MemServer.Server handler context
+- investigate silent Errors within memoria.Server handler context
 - make passthrough PASS
 - add initializer.js
-- memserver command shows options + loader + memserver browserify [dist] creates memserver.dist.js
+- memoria command shows options + loader + memoria browserify [dist] creates memoria.dist.js
 - non-json request/responses? - just kidding... or do I?!?
 - rollup -i ./lib/response.js -o response.js -f cjs
-- memserver glue [jsonEndpoint]
+- memoria glue [jsonEndpoint]
 
 // relationships declaration
 
-import { cast, validateLength, validateRequired, foreignKeyConstraint } from 'memserver/changeset'; // instead use class-validator
-import { from } from 'memserver/query';
+import { cast, validateLength, validateRequired, foreignKeyConstraint } from 'memoria/changeset'; // instead use class-validator
+import { from } from 'memoria/query';
 
 
 // MODEL API:
-import Model from 'memserver/model';
+import Model from 'memoria/model';
 
 class User extends Model {
   Adapter: MemoryAdapter, // or SQLAdapter, JSONAPIAdapter, JSONAdapter, GraphQLAdapter
@@ -86,7 +101,7 @@ User.Serializer
 
 User.findBy({}); => request
 
-import { from, where, join, leftJoin, innerJoin } from 'memserver/query';
+import { from, where, join, leftJoin, innerJoin } from 'memoria/query';
 
 from()
 

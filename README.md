@@ -1,26 +1,26 @@
-![docker-based-ci](https://github.com/izelnakri/memserver/workflows/docker-based-ci/badge.svg)
+![docker-based-ci](https://github.com/izelnakri/memoria/workflows/docker-based-ci/badge.svg)
 
-# What is MemServer?
-MemServer is an in-memory database/ORM and http mock server you can run in-browser and node environments.
+# What is Memoria?
+Memoria is an in-memory database/ORM and http mock server you can run in-browser and node environments.
 Extremely useful library for fast frontend tests, rapid prototyping, single-file SPA demo deployments.
 
 ## Installation
-In order to use memserver CLI you need to have typescript set up in your project folder.
-`memserver` binary will only work on typescript project directories since it uses ts-node under the hood for `memserver console` and `memserver g fixtures $modelName` generation commands.
+In order to use memoria CLI you need to have typescript set up in your project folder.
+`memoria` binary will only work on typescript project directories since it uses ts-node under the hood for `memoria console` and `memoria g fixtures $modelName` generation commands.
 
-``` npm install -g @memserver/cli ```
+``` npm install -g @memoria/cli ```
 
-``` memserver ```
+``` memoria ```
 
 You can use the CLI to create relevant boilerplate files and initial setup
 
-### Memserver Model API
+### memoria Model API
 
 ```js
-// MEMSERVER MODEL API
-import Model from '@memserver/model';
+// memoria MODEL API
+import Model from '@memoria/model';
 // OR:
-const Model = require('@memserver/model').default;
+const Model = require('@memoria/model').default;
 // THEN:
 
 class User extends Model {
@@ -62,14 +62,14 @@ User.findAll(); // [{ id: 2, firstName: 'Brendan', lastName: null }]
 
 NOTE: API also works for UUIDs instead of id primary keys
 
-### Memserver Server API
+### memoria Server API
 
 ```js
 
-// in memserver/routes.ts:
+// in memoria/routes.ts:
 
 import User from './models/user';
-import Response from '@memserver/response';
+import Response from '@memoria/response';
 
 interface Request {
   headers: object,
@@ -156,8 +156,8 @@ export default function() {
 You can also add routes on demand for your tests:
 
 ```ts
-import Server from './memserver/index';
-import Response from '@memserver/response';
+import Server from './memoria/index';
+import Response from '@memoria/response';
 
 test('testing form submit errors when backend is down', async function (assert)  {
 
@@ -174,39 +174,39 @@ test('testing form submit errors when backend is down', async function (assert) 
 });
 ```
 
-### Memserver init/shutdown API
+### memoria init/shutdown API
 
 ```ts
-// in memserver/index.ts:
+// in memoria/index.ts:
 
-import Memserver from "@memserver/server";
+import memoria from "@memoria/server";
 import initializer from "./initializer";
 import routes from "./routes";
 
-const MemServer = new Memserver({
+const Memoria = new memoria({
   initializer: initializer,
   routes: routes
 });
 
-export default MemServer;
+export default Memoria;
 
-// If you want to shutdown request mocking: MemServer.shutdown();
+// If you want to shutdown request mocking: Memoria.shutdown();
 // If you want to reset a database with predefined data:
 // User.resetDatabase([{ id: 1, firstName: 'Izel', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
 ```
 
 This is basically a superior mirage.js API & implementation. Also check the tests...
 
-### Memserver serializer API:
+### memoria serializer API:
 
-Memserver serializer is very straight-forward, performant and functional/explicit. We have two ways to serialize model
+memoria serializer is very straight-forward, performant and functional/explicit. We have two ways to serialize model
 data, it is up to you the developer if you want to serialize it in a custom format(for example JSONAPI) by adding a new
 static method(`static customSerializer(modelOrArray) {}`) on the model:
 
-Memserver serializer API:
+memoria serializer API:
 
 ```js
-import Model from '@memserver/model';
+import Model from '@memoria/model';
 
 class User extends Model {
 }
@@ -223,7 +223,7 @@ const serializedUsersForEndpoint = { users: User.serializer(users) }; // or user
 Custom serializers:
 
 ```js
-import Model from '@memserver/model';
+import Model from '@memoria/model';
 
 class User extends Model {
   static customSerializer(modelObjectOrArray) {
@@ -257,13 +257,13 @@ This makes the inserts, updates faster and encourages a better programming model
 
 - Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key constraints are not strings.
 
-- `@memserver/response` does not require `new Reponse`, just `Response`.
+- `@memoria/response` does not require `new Reponse`, just `Response`.
 
 - Less code output and dependencies.
 
 - No bad APIs such as association(). Better APIs, no strange factory API that introduces redundant concepts as traits,
 or implicit association behavior. Your model inserts are your factories. You can easily create different ES6 standard
-methods on the model modules, thus memserver is easier and better to extend.
+methods on the model modules, thus memoria is easier and better to extend.
 
 - No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
 This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation in our
@@ -277,8 +277,8 @@ typechecking/annotated validations on model properties. Due to unresolved nature
 relationship settings. Instead users should set the related foreign keys and change that value to relationship
 primary key just as it would have been done on a SQL database.
 
-- No implicit/custom serializer abstraction/API. Memserver model serializer is more sane than mirage. It makes it easier
-and more functional to create your own serializers since all `MemserverModel.serializer(modelOrArray)` does is, it embeds
+- No implicit/custom serializer abstraction/API. memoria model serializer is more sane than mirage. It makes it easier
+and more functional to create your own serializers since all `memoriaModel.serializer(modelOrArray)` does is, it embeds
 defined `embedReferences`s and sets undefined or null values to null in the resulted objectOrArray.
 
 - route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,

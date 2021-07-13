@@ -8,8 +8,8 @@ const shell = promisify(exec);
 let targetPackages = [
   '@memoria/adapters',
   '@memoria/model',
-  // '@memoria/response',
-  // '@memoria/server',
+  '@memoria/response',
+  '@memoria/server',
 ];
 
 await targetPackages.reduce(async (lastCompile, packageName) => {

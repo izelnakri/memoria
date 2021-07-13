@@ -1,9 +1,9 @@
-import Model from "@memserver/model";
+import Model from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
 // NOTE: maybe add modelNames, and fixtures
-module("@memserver/model | Public API", function (hooks) {
+module("@memoria/model | Public API", function (hooks) {
   setupMemserver(hooks);
 
   const PHOTO_FIXTURES = [

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 if (!globalThis.window) {
-  let setupDom = await import('@memserver/server/dist/setup-dom.js');
+  let setupDom = await import('@memoria/server/dist/setup-dom.js');
   setupDom.default();
 }
 
