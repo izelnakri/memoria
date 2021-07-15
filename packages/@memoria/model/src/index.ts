@@ -1,5 +1,7 @@
 import Model from "./model";
 import Store from "./store";
+export type { ColumnDefinition } from "./store";
+export { generateUUID } from "./utils";
 export {
   Column,
   CreateDateColumn,
@@ -24,8 +26,8 @@ export type ModelRef = RequireOnlyOne<ModelRefShape, "id" | "uuid">;
 export interface QueryObject {
   [propName: string]: any;
 }
-
 export default Model;
+
 export { Store };
 
 // Query, Serialization and Reset interface

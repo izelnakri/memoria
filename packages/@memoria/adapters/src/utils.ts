@@ -1,14 +1,5 @@
 import kleur from "kleur";
 
-export function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
-
-    return v.toString(16);
-  });
-}
-
 export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, modelName) {
   const primaryKeyType = typeof primaryKey;
 
@@ -55,24 +46,4 @@ export function insertFixturesWithTypechecks(modelDefinition, fixtures) {
   }, []);
 
   return fixtures;
-}
-
-function getModelPrimaryKey(model, existingPrimaryKeyType, modelName) {
-  if (existingPrimaryKeyType) {
-    return primaryKeyTypeSafetyCheck(
-      existingPrimaryKeyType,
-      model[existingPrimaryKeyType],
-      modelName
-    );
-  }
-
-  const primaryKey = model.id || model.uuid;
-
-  if (!primaryKey) {
-    return;
-  }
-
-  existingPrimaryKeyType = model.id ? "id" : "uuid";
-
-  return primaryKeyTypeSafetyCheck(existingPrimaryKeyType, primaryKey, modelName);
 }

@@ -1,33 +1,85 @@
-import { proxyToAdapter } from "./index";
+import Store from "../store";
+import type { ColumnDefinition } from "../store";
+import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
-export function Column(keyOrOptions = {}, options?) {
+// NOTE: options manglings here are done for defaultValue generation
+export function Column(
+  keyOrOptions: ColumnDefinition | ColumnType = { type: "varchar" },
+  options?: ColumnDefinition
+) {
+  let optionsObject =
+    typeof keyOrOptions === "string" ? { type: keyOrOptions as ColumnType } : keyOrOptions;
+
+  return proxyColumnToAdapter("Column", {
+    nullable: false,
+    ...optionsObject,
+    ...options,
+  });
+}
+
+export function CreateDateColumn(options?: ColumnDefinition) {
+  return proxyColumnToAdapter("CreateDateColumn", {
+    type: "timestamp with time zone",
+    nullable: false,
+    createDate: true,
+    ...options,
+  });
+}
+
+export function UpdateDateColumn(options?: ColumnDefinition) {
+  return proxyColumnToAdapter("UpdateDateColumn", {
+    type: "timestamp with time zone",
+    nullable: false,
+    updateDate: true,
+    ...options,
+  });
+}
+
+export function DeleteDateColumn(options?: ColumnDefinition) {
+  return proxyColumnToAdapter("DeleteDateColumn", {
+    type: "timestamp with time zone",
+    nullable: true,
+    deleteDate: true,
+    ...options,
+  });
+}
+
+export function PrimaryColumn(keyOrOptions = {}, options?: ColumnDefinition) {
   let optionsObject = typeof keyOrOptions === "string" ? { type: keyOrOptions } : keyOrOptions;
-  return proxyToAdapter("Column", { ...optionsObject, ...options });
+  return Column({
+    type: "varchar",
+    primary: true,
+    nullable: false,
+    ...optionsObject,
+    ...options,
+  });
 }
 
-export function CreateDateColumn(options) {
-  return proxyToAdapter("CreateDateColumn", options);
-}
+export function PrimaryGeneratedColumn(
+  strategyOrOptions?: string | ColumnDefinition,
+  options?: ColumnDefinition
+) {
+  let firstParamOptions = {};
+  let targetStrategy;
+  if (!strategyOrOptions || strategyOrOptions === "increment") {
+    targetStrategy = "increment";
+  } else if (strategyOrOptions === "uuid") {
+    targetStrategy = "uuid";
+  } else if (strategyOrOptions instanceof Object) {
+    targetStrategy = strategyOrOptions.generated || "increment";
+    Object.assign(firstParamOptions, strategyOrOptions);
+  } else {
+    targetStrategy = "increment";
+  }
 
-export function UpdateDateColumn(options) {
-  return proxyToAdapter("UpdateDateColumn", options);
-}
-
-export function DeleteDateColumn(options) {
-  return proxyToAdapter("DeleteDateColumn", options);
-}
-
-export function PrimaryColumn(keyOrOptions = {}, options) {
-  let optionsObject = typeof keyOrOptions === "string" ? { type: keyOrOptions } : keyOrOptions;
-  return Column({ ...optionsObject, ...options, primary: true });
-}
-
-export function PrimaryGeneratedColumn(strategy) {
-  return proxyToAdapter("PrimaryGeneratedColumn", strategy);
-}
-
-export function Generated(generateFunction) {
-  return proxyToAdapter("Generated", generateFunction);
+  return proxyColumnToAdapter("PrimaryGeneratedColumn", {
+    primary: true,
+    nullable: false,
+    type: targetStrategy === "uuid" ? "uuid" : "bigint",
+    generated: targetStrategy as true | "uuid" | "increment",
+    ...firstParamOptions,
+    ...options,
+  });
 }
 
 export default {
@@ -37,8 +89,20 @@ export default {
   DeleteDateColumn,
   PrimaryColumn,
   PrimaryGeneratedColumn,
-  Generated,
 };
+
+function proxyColumnToAdapter(decoratorName: string, firstParam: ColumnDefinition) {
+  return function (target: any, propertyKey: string, descriptor: any) {
+    Store.setColumnMetadata(target.constructor, propertyKey, firstParam);
+
+    return target.constructor.Adapter.Decorators[decoratorName](
+      target.constructor,
+      propertyKey,
+      firstParam
+    );
+    // (target.constructor, propertyKey, descriptor);
+  };
+}
 
 // NOTE: in future do VersionColumn
 // NOTE: implement Enum check, Set column, simple-array, simple-json, @Generated('uuid')

@@ -1,18 +1,18 @@
 import kleur from "kleur";
 import inspect from "object-inspect";
 import Decorators from "./decorators";
-import { generateUUID, insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck } from "../utils";
+import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck } from "../utils";
 import MemoriaModel, { Store } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
 type primaryKey = number | string;
+type QueryObject = { [key: string]: any };
 
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
   static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): ModelRef[] {
     Model.cache.length = 0;
-    Model.columnNames.clear();
 
     if (targetState) {
       insertFixturesWithTypechecks(Model, targetState);
@@ -34,21 +34,21 @@ export default class MemoryAdapter {
   ): ModelRef[] | ModelRef | void {
     if (Array.isArray(primaryKey as primaryKey[])) {
       return Array.from(Model.cache).reduce((result: ModelRef[], model: ModelRef) => {
-        const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKey])
+        const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
           ? model
           : null;
 
         return foundModel ? result.concat([foundModel]) : result;
       }, []) as ModelRef[];
-    } else if (typeof primaryKey !== "number") {
-      throw new Error(
-        kleur.red(`[Memserver] ${Model.name}.find(id) cannot be called without a valid id`)
-      );
+    } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
+      return Array.from(Model.cache).find(
+        (model: ModelRef) => model[Model.primaryKeyName] === primaryKey
+      ) as ModelRef | undefined;
     }
 
-    return Array.from(Model.cache).find((model: ModelRef) => model.id === primaryKey) as
-      | ModelRef
-      | undefined;
+    throw new Error(
+      kleur.red(`[Memserver] ${Model.name}.find(id) cannot be called without a valid id`)
+    );
   }
 
   static peekBy(Model: typeof MemoriaModel, queryObject: object): ModelRef | void {
@@ -58,14 +58,13 @@ export default class MemoryAdapter {
       );
     }
 
-    const keys = Object.keys(queryObject);
+    let keys = Object.keys(queryObject);
 
     return Model.cache.find((model: ModelRef) => comparison(model, queryObject, keys, 0));
   }
 
   static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): ModelRef[] | void {
-    const keys = Object.keys(queryObject);
-
+    let keys = Object.keys(queryObject);
     if (keys.length === 0) {
       return Array.from(Model.cache);
     }
@@ -98,7 +97,7 @@ export default class MemoryAdapter {
   }
 
   static async save(Model: typeof MemoriaModel, model: ModelRef): Promise<ModelRef> {
-    let modelId = model[Model.primaryKey];
+    let modelId = model[Model.primaryKeyName];
     if (modelId) {
       let foundModel = await this.find(Model, modelId);
 
@@ -109,52 +108,40 @@ export default class MemoryAdapter {
   }
 
   static async insert(Model: typeof MemoriaModel, model: ModelRef): Promise<ModelRef> {
-    if (Model.cache.length === 0) {
-      Store.setPrimaryKey(Model, Model.primaryKey || (model.uuid ? "uuid" : "id"));
-      Model.columnNames.add(Model.primaryKey);
-      Object.keys(Model.defaultValues).forEach((key) => Model.columnNames.add(key));
-    }
-
-    if (!model.hasOwnProperty(Model.primaryKey)) {
-      model[Model.primaryKey] =
-        Model.primaryKey === "id" ? incrementId(Model.cache, Model) : generateUUID();
-    }
-
-    primaryKeyTypeSafetyCheck(Model.primaryKey, model[Model.primaryKey], Model.name);
-
-    let target = Array.from(Model.columnNames).reduce((result: ModelRef, attribute) => {
-      if (result[attribute] === Date) {
-        result[attribute] = new Date(); // NOTE: changed from: "2017-10-25T20:54:04.447Z";
-      } else if (typeof result[attribute] === "function") {
-        result[attribute] = result[attribute].apply(result);
-      } else if (!result.hasOwnProperty(attribute)) {
-        result[attribute] = undefined;
+    let filledModel = Object.assign({}, Store.getDefaultValues(Model, "insert"), model);
+    let target = Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+      if (typeof filledModel[attribute] === "function") {
+        result[attribute] = filledModel[attribute].apply(null, [Model]); // TODO: this changed
+      } else if (!filledModel.hasOwnProperty(attribute)) {
+        result[attribute] = null;
+      } else {
+        result[attribute] = filledModel[attribute];
       }
 
       return result;
-    }, Object.assign({}, Model.defaultValues, model));
+    }, {});
+
+    primaryKeyTypeSafetyCheck(Model.primaryKeyType, target[Model.primaryKeyName], Model.name);
+
     let existingRecord = target.id
       ? await this.find(Model, target.id)
       : await this.findBy(Model, { uuid: target.uuid });
     if (existingRecord) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name} ${Model.primaryKey} ${
-            target[Model.primaryKey]
+          `[Memserver] ${Model.name} ${Model.primaryKeyName} ${
+            target[Model.primaryKeyName]
           } already exists in the database! ${Model.name}.insert(${inspect(model)}) fails`
         )
       );
     }
-
-    Object.keys(target)
-      .filter((attribute) => !Model.columnNames.has(attribute))
-      .forEach((attribute) => Model.columnNames.add(attribute));
 
     Model.cache.push(target as ModelRef);
 
     return target as ModelRef;
   }
 
+  // TODO: HANDLE updateDate default generation
   static async update(Model: typeof MemoriaModel, record: ModelRef): Promise<ModelRef> {
     if (!record || (!record.id && !record.uuid)) {
       throw new Error(
@@ -167,7 +154,7 @@ export default class MemoryAdapter {
     let targetRecord = record.id
       ? await this.find(Model, record.id)
       : await this.findBy(Model, { uuid: record.uuid });
-    let primaryKey = Model.primaryKey;
+    let primaryKey = Model.primaryKeyName;
     if (!targetRecord) {
       throw new Error(
         kleur.red(
@@ -187,9 +174,22 @@ export default class MemoryAdapter {
       );
     }
 
-    return Object.assign(targetRecord, record);
+    let defaultColumnsForUpdate = Store.getDefaultValues(Model, "update");
+    return Object.assign(
+      targetRecord,
+      Object.keys(defaultColumnsForUpdate).reduce((result: QueryObject, keyName) => {
+        if (typeof defaultColumnsForUpdate[keyName] === "function") {
+          result[keyName] = defaultColumnsForUpdate[keyName].apply(null, [Model]);
+          debugger;
+        }
+
+        return result;
+      }, {}),
+      record
+    );
   }
 
+  // TODO: HANDLE deleteDate generation
   static unload(Model: typeof MemoriaModel, record: ModelRef): ModelRef {
     if (Model.cache.length === 0) {
       throw new Error(
@@ -213,8 +213,8 @@ export default class MemoryAdapter {
     if (!targetRecord) {
       throw new Error(
         kleur.red(
-          `[Memserver] Could not find ${Model.name} with ${Model.primaryKey} ${
-            record[Model.primaryKey]
+          `[Memserver] Could not find ${Model.name} with ${Model.primaryKeyName} ${
+            record[Model.primaryKeyName]
           } to delete. ${this.name}.delete(${inspect(record)}) failed`
         )
       );
@@ -258,19 +258,8 @@ export default class MemoryAdapter {
   }
 }
 
-function incrementId(DB: ModelRef[], Model: typeof MemoriaModel) {
-  if (!DB || DB.length === 0) {
-    return 1;
-  }
-
-  let lastIdInSequence = DB.map((model) => model.id)
-    .sort((a, b) => a - b)
-    .find((id, index, array) => (index === array.length - 1 ? true : id + 1 !== array[index + 1]));
-  return lastIdInSequence + 1;
-}
-
 // NOTE: if records were ordered by ID, then there could be performance benefit
-function comparison(model, options, keys, index = 0) {
+function comparison(model: ModelRef, options: QueryObject, keys: string[], index = 0): boolean {
   const key = keys[index];
 
   if (keys.length === index) {

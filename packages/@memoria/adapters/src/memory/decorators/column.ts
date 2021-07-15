@@ -1,32 +1,59 @@
-import { Store } from "@memoria/model";
+import Model from "@memoria/model";
+import type { ColumnDefinition } from "@memoria/model";
 
-interface ColumnOptions {
-  default?: any;
+export function Column(
+  _target: typeof Model,
+  _propertyKey: string,
+  _options: ColumnDefinition,
+  _descriptor: any
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 
-// TODO: these are used in the adapter, thus needs to be registered there?
-export function Column(target, propertyKey, options: ColumnOptions = {}, descriptor) {
-  if (options.default) {
-    Store.getDefaultValues(target)[propertyKey] = options.default;
-  }
+export function CreateDateColumn(
+  _target: typeof Model,
+  _propertyKey: string,
+  _options: ColumnDefinition,
+  _descriptor: any
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 
-export function CreateDateColumn(target, propertyKey, options = {}, descriptor) {
-  Store.getDefaultValues(target)[propertyKey] = Date;
+export function UpdateDateColumn(
+  _target: typeof Model,
+  _propertyKey: string,
+  _options: ColumnDefinition,
+  _descriptor: any
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 
-export function UpdateDateColumn(target, propertyKey, options = {}, descriptor) {
-  Store.getDefaultValues(target)[propertyKey] = Date;
+export function DeleteDateColumn(
+  _target: typeof Model,
+  _propertyKey: string,
+  _options: ColumnDefinition,
+  _descriptor: any
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 
-export function DeleteDateColumn(target, propertyKey, options = {}, descriptor) {} // NOTE: in future: add delete date
+// NOTE: in future: add delete date
 
-export function PrimaryGeneratedColumn(target, propertyKey, strategy) {
-  // TODO: strategy is id by default or uuid
-  // TODO: do this
+export function PrimaryColumn(
+  _target: typeof Model,
+  _propertyKey: string,
+  _options: ColumnDefinition,
+  _descriptor: any
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
 }
-
-export function Generated(target, propertyKey, generateFunction) {} // NOTE: this can be uuid or smt else
+export function PrimaryGeneratedColumn(
+  _target: typeof Model,
+  _propertyKey: string,
+  _strategy: string
+) {
+  return function (_object: ColumnDefinition, _propertyName: string) {};
+}
 
 export default {
   Column,
@@ -34,7 +61,6 @@ export default {
   UpdateDateColumn,
   DeleteDateColumn,
   PrimaryGeneratedColumn,
-  Generated,
 };
 
 // NOTE: in future do VersionColumn

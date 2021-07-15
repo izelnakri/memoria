@@ -2,6 +2,10 @@ import { proxyToAdapter } from "./index";
 
 // NOTE: maybe use another proxy method as the decorator could also be used in class
 
+export function Generated(generateFunction) {
+  return proxyToAdapter("Generated", generateFunction);
+}
+
 export function Index(indexNameOrColumnList?, columnListOrOptions?) {
   return proxyToAdapter("Index", indexNameOrColumnList, columnListOrOptions);
 }
@@ -23,6 +27,7 @@ export default {
   Unique,
   Check,
   Exclusion,
+  Generated,
 };
 
 // @Transaction

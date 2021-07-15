@@ -1,8 +1,7 @@
-import Model from "@memoria/model";
+import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
-// NOTE: maybe add modelNames, and fixtures
 module("@memoria/model | Public API", function (hooks) {
   setupMemserver(hooks);
 
@@ -55,25 +54,34 @@ module("@memoria/model | Public API", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Imported photo";
-        },
-      };
-      static publicPhotos() {
-        return super.findAll({ is_public: true });
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("boolean", { default: true })
+      is_public: boolean;
+
+      @Column({ type: "varchar", default: "Imported Photo" })
+      name: string;
+
+      static async publicPhotos() {
+        return await super.findAll({ is_public: true });
       }
     }
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return new Date().toJSON();
-        },
-        is_important: true,
-      };
-      static forPhoto(photo) {
-        return super.findAll({ photo_id: photo.id });
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @CreateDateColumn()
+      inserted_at: Date;
+
+      @Column("boolean", { default: true })
+      is_important: boolean;
+
+      @Column("bigint")
+      photo_id: number;
+
+      static async forPhoto(photo) {
+        return await super.findAll({ photo_id: photo.id });
       }
     }
     class User extends Model {}
@@ -91,91 +99,79 @@ module("@memoria/model | Public API", function (hooks) {
   test("$Model.primaryKey gets set correctly", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    assert.equal(Photo.primaryKey, null);
-    assert.equal(PhotoComment.primaryKey, null);
-    assert.equal(User.primaryKey, null);
+    assert.equal(Photo.primaryKeyName, "id");
+    assert.equal(PhotoComment.primaryKeyName, "uuid");
+    assert.equal(User.primaryKeyName, null);
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    assert.equal(Photo.primaryKey, "id");
-    assert.equal(PhotoComment.primaryKey, "uuid");
-    assert.equal(User.primaryKey, null);
-    assert.ok(Photo._DB === PhotoComment._DB);
+    assert.equal(Photo.primaryKeyName, "id");
+    assert.equal(PhotoComment.primaryKeyName, "uuid");
+    assert.equal(User.primaryKeyName, null);
+    assert.ok(Photo._Store._DB === PhotoComment._Store._DB);
   });
 
-  test("$Model.defaultAttributes gets set correctly", async function (assert) {
+  test("$Model.columnNames gets set correctly", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    let initialPhotoDefaultAttributes = Photo.defaultAttributes;
-    let initialPhotoCommentDefaultAttributes = PhotoComment.defaultAttributes;
+    await Promise.all([Photo, PhotoComment, User].map((model) => model.resetCache()));
 
-    assert.deepEqual(Object.keys(initialPhotoDefaultAttributes), ["is_public", "name"]);
-    assert.equal(initialPhotoDefaultAttributes.is_public, true);
-    assert.ok(initialPhotoDefaultAttributes.name.toString().includes("Imported photo"));
-
-    assert.deepEqual(Object.keys(initialPhotoCommentDefaultAttributes), [
-      "inserted_at",
-      "is_important",
-    ]);
-    assert.ok(initialPhotoCommentDefaultAttributes.inserted_at.toString().includes(".toJSON();"));
-    assert.equal(initialPhotoCommentDefaultAttributes.is_important, true);
-    assert.deepEqual(User.defaultAttributes, {});
-
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
-
-    assert.equal(Photo.defaultAttributes, initialPhotoDefaultAttributes);
-    assert.deepEqual(PhotoComment.defaultAttributes, initialPhotoCommentDefaultAttributes);
-    assert.deepEqual(User.defaultAttributes, {});
-  });
-
-  test("$Model.attributes gets set correctly", async function (assert) {
-    const { Photo, PhotoComment, User } = prepare();
-
-    [Photo, PhotoComment, User].forEach((model) => model.resetDatabase());
-
-    assert.deepEqual(Array.from(Photo.attributes), ["is_public", "name"]);
-    assert.deepEqual(Array.from(PhotoComment.attributes), ["inserted_at", "is_important"]);
-    assert.deepEqual(Array.from(User.attributes), []);
-
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
-
-    assert.deepEqual(Array.from(Photo.attributes), ["is_public", "name", "id", "href"]);
-    assert.deepEqual(Array.from(PhotoComment.attributes), [
-      "inserted_at",
-      "is_important",
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
       "uuid",
-      "content",
+      "inserted_at",
+      "is_important",
       "photo_id",
-      "user_id",
     ]);
-    assert.deepEqual(Array.from(User.attributes), []);
+    assert.deepEqual(Array.from(User.columnNames), []);
+
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
+
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
+      "uuid",
+      "inserted_at",
+      "is_important",
+      "photo_id",
+    ]);
+    assert.deepEqual(Array.from(User.columnNames), []);
   });
 
   test("$Model.count counts the models correctly", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    assert.equal(Photo.count(), 0);
-    assert.equal(PhotoComment.count(), 0);
+    assert.equal(await Photo.count(), 0);
+    assert.equal(await PhotoComment.count(), 0);
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    assert.equal(Photo.count(), 3);
-    assert.equal(PhotoComment.count(), 4);
+    assert.equal(await Photo.count(), 3);
+    assert.equal(await PhotoComment.count(), 4);
   });
 
   test("$Model can have custom methods/queries for the model", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    let photo = Photo.find(1);
+    let photo = await Photo.find(1);
 
-    assert.deepEqual(PhotoComment.forPhoto(photo), PhotoComment.findAll({ photo_id: photo.id }));
-    assert.deepEqual(Photo.publicPhotos(), Photo.findAll({ is_public: true }));
+    assert.deepEqual(
+      await PhotoComment.forPhoto(photo),
+      await PhotoComment.findAll({ photo_id: photo.id })
+    );
+    assert.deepEqual(await Photo.publicPhotos(), await Photo.findAll({ is_public: true }));
   });
 });

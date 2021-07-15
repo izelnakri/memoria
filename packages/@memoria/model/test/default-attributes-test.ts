@@ -1,4 +1,4 @@
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
@@ -32,26 +32,28 @@ module("@memoria/model | Default Attributes", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Imported photo";
-        },
-        href() {
-          return this.name;
-        },
-      };
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("bool", { default: true })
+      is_public: boolean;
+
+      @Column("varchar", { default: "Imported photo" })
+      name: string;
+
+      @Column("varchar")
+      href: string;
     }
 
     return { Photo };
   }
 
-  test("$Model.insert() sets dynamic defaultAttributes when target attribute doest exist", function (assert) {
+  test("$Model.insert() sets default attributes when target attribute doesnt exist", async function (assert) {
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
-    assert.deepEqual(Photo.findAll(), [
+    assert.deepEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -73,22 +75,22 @@ module("@memoria/model | Default Attributes", function (hooks) {
       {
         id: 4,
         name: "Imported photo",
-        href: "Imported photo",
+        href: null,
         is_public: false,
       },
     ]);
 
-    const target = Photo.insert({ name: "Izel" });
+    let target = await Photo.insert({ name: "Izel" });
 
     assert.deepEqual(target, {
       id: 5,
       name: "Izel",
-      href: "Izel",
+      href: null,
       is_public: true,
     });
-    assert.deepEqual(target, Photo.find(target.id));
+    assert.deepEqual(target, await Photo.find(target.id));
 
-    const secondTarget = Photo.insert({ name: "Izel", href: "something else" });
+    let secondTarget = await Photo.insert({ name: "Izel", href: "something else" });
 
     assert.deepEqual(secondTarget, {
       id: 6,
@@ -96,9 +98,9 @@ module("@memoria/model | Default Attributes", function (hooks) {
       href: "something else",
       is_public: true,
     });
-    assert.deepEqual(secondTarget, Photo.find(secondTarget.id));
+    assert.deepEqual(secondTarget, await Photo.find(secondTarget.id));
 
-    const thirdTarget = Photo.insert({ name: "Izel", href: null });
+    let thirdTarget = await Photo.insert({ name: "Izel", href: null });
 
     assert.deepEqual(thirdTarget, {
       id: 7,
@@ -106,6 +108,6 @@ module("@memoria/model | Default Attributes", function (hooks) {
       href: null,
       is_public: true,
     });
-    assert.deepEqual(thirdTarget, Photo.find(thirdTarget.id));
+    assert.deepEqual(thirdTarget, await Photo.find(thirdTarget.id));
   });
 });

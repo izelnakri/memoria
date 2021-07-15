@@ -10,19 +10,21 @@ type primaryKey = number | string;
 // TODO: remove static setters and maybe getters
 export default class Model {
   static Adapter = MemoryAdapter;
+  static _Store = Store;
 
   static get cache(): ModelRef[] {
     return Store.getDB(this);
   }
 
-  static get primaryKey(): string {
-    return Store.getPrimaryKey(this);
+  static get primaryKeyName(): string {
+    return Store.getPrimaryKeyName(this);
   }
 
-  static get defaultValues(): Set<{ [column: string]: any }> {
-    return Store.getDefaultValues(this);
+  static get primaryKeyType(): "uuid" | "id" {
+    return Store.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid" ? "uuid" : "id";
   }
 
+  // NOTE: not fully cached
   static get columnNames(): Set<string> {
     return Store.getColumnNames(this);
   }
@@ -108,7 +110,6 @@ export default class Model {
   static async deleteAll(records: ModelRef[]): Promise<void> {
     return await this.Adapter.deleteAll(this, records);
   }
-  // TODO: add here adapter methods:
 
   // NOTE: serializer functions
   static embed(relationship): object {

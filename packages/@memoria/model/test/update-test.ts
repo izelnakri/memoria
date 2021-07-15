@@ -1,4 +1,9 @@
-import Model from "@memoria/model";
+import Model, {
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemserver from "./helpers/setup-memserver";
 
@@ -54,22 +59,38 @@ module("@memoria/model | $Model.update()", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Some default name";
-        },
-      };
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("varchar", { default: "Some default name" })
+      name: string;
+
+      @Column("varchar")
+      href: string;
+
+      @Column("boolean", { default: true })
+      is_public: boolean;
     }
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return "2017-10-25T20:54:04.447Z";
-        },
-        is_important: true,
-      };
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @CreateDateColumn()
+      inserted_at: Date;
+
+      @UpdateDateColumn()
+      updated_at: Date;
+
+      @Column("boolean", { default: true })
+      is_important: boolean;
+
+      @Column()
+      content: string;
     }
-    class User extends Model {}
+    class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+    }
 
     return { Photo, PhotoComment, User };
   }
@@ -77,70 +98,110 @@ module("@memoria/model | $Model.update()", function (hooks) {
   test("$Model.update(attributes) can update models", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    Photo.update({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
-    Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-    PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
+    let firstComment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    assert.matchJson(firstComment, {
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      inserted_at: String,
+      updated_at: String,
+      is_important: true,
+      content: "Interesting indeed",
+    });
+    assert.ok(firstComment.inserted_at instanceof Date);
+    assert.ok(firstComment.updated_at instanceof Date);
 
-    assert.deepEqual(Photo.find(1), {
+    await Photo.update({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
+    await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
+    await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
+
+    assert.deepEqual(await Photo.find(1), {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.deepEqual(Photo.find(2), {
+    assert.deepEqual(await Photo.find(2), {
       id: 2,
       name: "Family photo",
       href: "family-photo-2.jpeg",
       is_public: false,
     });
-    assert.deepEqual(PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }), {
+    let comment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    assert.matchJson(comment, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: "2017-10-25T20:54:04.447Z",
+      inserted_at: String,
+      updated_at: String,
       is_important: true,
       content: "Cool",
-      photo_id: 2,
-      user_id: 1,
     });
+    assert.ok(comment.inserted_at instanceof Date);
+    assert.ok(comment.updated_at instanceof Date);
+    assert.equal(firstComment.inserted_at, comment.inserted_at);
+    assert.equal(firstComment.updated_at, comment.updated_at);
   });
 
   test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
-
-    assert.throws(
-      () => Photo.update({ id: 99, href: "family-photo-2.jpeg" }),
-      /\[Memserver\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.throws(
-      () => PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" }),
-      /\[Memserver\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/
-    );
+    try {
+      await Photo.update({ id: 99, href: "family-photo-2.jpeg" });
+    } catch (error) {
+      assert.ok(
+        /\[Memserver\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
+          error.message
+        )
+      );
+    }
+
+    try {
+      await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
+    } catch (error) {
+      assert.ok(
+        /\[Memserver\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
+          error.message
+        )
+      );
+    }
   });
 
   test("$Model.update(attributes) throws an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
-
-    assert.throws(
-      () => Photo.update({ id: 1, name: "ME", is_verified: false }),
-      /\[Memserver\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.throws(
-      () =>
-        PhotoComment.update({
-          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-          location: "Amsterdam",
-        }),
-      /\[Memserver\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/
-    );
+    try {
+      await Photo.update({ id: 1, name: "ME", is_verified: false });
+    } catch (error) {
+      assert.ok(
+        /\[Memserver\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
+          error.message
+        )
+      );
+    }
+
+    try {
+      await PhotoComment.update({
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        location: "Amsterdam",
+      });
+    } catch (error) {
+      assert.ok(
+        /\[Memserver\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
+          error.message
+        )
+      );
+    }
   });
 });

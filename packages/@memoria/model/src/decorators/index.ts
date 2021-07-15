@@ -5,9 +5,8 @@ import {
   DeleteDateColumn,
   PrimaryColumn,
   PrimaryGeneratedColumn,
-  Generated,
 } from "./column";
-import { Index, Unique, Check, Exclusion } from "./other";
+import { Index, Unique, Check, Exclusion, Generated } from "./other";
 import { OneToOne, ManyToOne, OneToMany, ManyToMany, JoinColumn, JoinTable } from "./relationship";
 
 // NOTE: maybe I can remove one call with: returning the function directly:
