@@ -185,7 +185,7 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
 
     assert.deepEqual(activity, activityLookupWithoutModel);
     assert.deepEqual(activity, activityLookupWithDifferentReferenceName);
-    assert.deepEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
+    assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
     assert.equal(Photo.getRelationship(Photo.peek(2), "activity", Activity), undefined);
     assert.deepEqual(Activity.getRelationship(activity, "photo", Photo), await Photo.find(1));
     assert.equal(Activity.getRelationship(Activity.peek(2), "photo", Photo), undefined);
@@ -207,7 +207,7 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
     );
     const thirdPhotoComments = Photo.getRelationship(await Photo.find(3), "comments", PhotoComment);
 
-    assert.deepEqual(firstPhotoComments, [
+    assert.propEqual(firstPhotoComments, [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
@@ -227,7 +227,7 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
         user_id: 1,
       },
     ]);
-    assert.deepEqual(secondPhotoComments, [
+    assert.propEqual(secondPhotoComments, [
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         content: "Interesting indeed",
@@ -247,13 +247,13 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
       );
     }
 
-    assert.deepEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
+    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.deepEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
+    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
       id: 2,
       name: "Family photo",
       href: "family-photo.jpeg",
@@ -271,8 +271,8 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
 
     const activity = Photo.getRelationship(await Photo.find(1), "userActivity", Activity);
 
-    assert.deepEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
-    assert.deepEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
+    assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
+    assert.propEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
       id: 1,
       address: "contact@izelnakri.com",
       is_public: false,
@@ -303,7 +303,7 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
     );
     const thirdPhotoComments = Photo.getRelationship(await Photo.find(3), "comments", PhotoComment);
 
-    assert.deepEqual(firstPhotoComments, [
+    assert.propEqual(firstPhotoComments, [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
@@ -323,7 +323,7 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
         user_id: 1,
       },
     ]);
-    assert.deepEqual(secondPhotoComments, [
+    assert.propEqual(secondPhotoComments, [
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         content: "Interesting indeed",
@@ -343,13 +343,13 @@ module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
       );
     }
 
-    assert.deepEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
+    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.deepEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
+    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
       id: 2,
       name: "Family photo",
       href: "family-photo.jpeg",

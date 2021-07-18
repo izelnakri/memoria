@@ -101,7 +101,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
     await Photo.insert();
 
     assert.equal(await Photo.count(), 5);
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -161,7 +161,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
     await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
 
     assert.equal(await Photo.count(), 5);
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -204,8 +204,8 @@ module("@memoria/model | $Model.insert()", function (hooks) {
     const allComments = await PhotoComment.findAll();
     const lastInsertedComments = allComments.slice(4, allComments.length);
 
-    assert.ok(allComments.includes(commentOne), "first comment inserassert.equal in the database");
-    assert.ok(allComments.includes(commentTwo), "second comment inserassert.equal in the database");
+    assert.ok(allComments.includes(commentOne), "first comment insert in the database");
+    assert.ok(allComments.includes(commentTwo), "second comment insert in the database");
 
     assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
     assert.equal(commentOne.photo_id, undefined);
@@ -295,7 +295,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
 
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
     assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important"]);
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",

@@ -53,7 +53,7 @@ module("@memoria/model | Default Attributes", function (hooks) {
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -82,7 +82,7 @@ module("@memoria/model | Default Attributes", function (hooks) {
 
     let target = await Photo.insert({ name: "Izel" });
 
-    assert.deepEqual(target, {
+    assert.propEqual(target, {
       id: 5,
       name: "Izel",
       href: null,
@@ -92,7 +92,7 @@ module("@memoria/model | Default Attributes", function (hooks) {
 
     let secondTarget = await Photo.insert({ name: "Izel", href: "something else" });
 
-    assert.deepEqual(secondTarget, {
+    assert.propEqual(secondTarget, {
       id: 6,
       name: "Izel",
       href: "something else",
@@ -102,7 +102,7 @@ module("@memoria/model | Default Attributes", function (hooks) {
 
     let thirdTarget = await Photo.insert({ name: "Izel", href: null });
 
-    assert.deepEqual(thirdTarget, {
+    assert.propEqual(thirdTarget, {
       id: 7,
       name: "Izel",
       href: null,

@@ -139,10 +139,10 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
     await Photo.resetRecords(PHOTO_FIXTURES);
     await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
 
-    assert.deepEqual(await Photo.findAll(), PHOTO_FIXTURES);
+    assert.propEqual(await Photo.findAll(), PHOTO_FIXTURES);
 
     let photoComments = await PhotoComment.findAll();
-    assert.deepEqual(await PhotoComment.findAll(), [
+    assert.propEqual(await PhotoComment.findAll(), [
       {
         content: "What a nice photo!",
         inserted_at: photoComments[0].inserted_at,

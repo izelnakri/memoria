@@ -1,6 +1,12 @@
+import MemoriaModel from "@memoria/model";
+import type { ModelRef } from "@memoria/model";
 import kleur from "kleur";
 
-export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, modelName) {
+export function primaryKeyTypeSafetyCheck(
+  targetPrimaryKeyType: string,
+  primaryKey: number | string,
+  modelName: string
+) {
   const primaryKeyType = typeof primaryKey;
 
   if (targetPrimaryKeyType === "id" && primaryKeyType !== "number") {
@@ -20,11 +26,16 @@ export function primaryKeyTypeSafetyCheck(targetPrimaryKeyType, primaryKey, mode
   return targetPrimaryKeyType;
 }
 
-export async function insertFixturesWithTypechecks(modelDefinition, fixtures) {
-  let result = await fixtures.reduce(async (primaryKeysP, fixture) => {
-    let primaryKeys = await primaryKeysP;
-    const modelName = modelDefinition.name;
-    const primaryKey = (fixture.uuid ? "uuid" : null) || (fixture.id ? "id" : null);
+type primaryKey = string | number;
+
+export async function insertFixturesWithTypechecks(
+  modelDefinition: typeof MemoriaModel,
+  fixtures: ModelRef[]
+) {
+  let result = await fixtures.reduce(async (primaryKeysPromise: Promise<primaryKey[]>, fixture) => {
+    let primaryKeys = await primaryKeysPromise;
+    let modelName = modelDefinition.name;
+    let primaryKey = (fixture.uuid ? "uuid" : null) || (fixture.id ? "id" : null);
 
     if (!primaryKey) {
       throw new Error(

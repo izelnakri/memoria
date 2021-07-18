@@ -118,13 +118,13 @@ module("@memoria/model | $Model.update()", function (hooks) {
     await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
     await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
 
-    assert.deepEqual(await Photo.find(1), {
+    assert.propEqual(await Photo.find(1), {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.deepEqual(await Photo.find(2), {
+    assert.propEqual(await Photo.find(2), {
       id: 2,
       name: "Family photo",
       href: "family-photo-2.jpeg",

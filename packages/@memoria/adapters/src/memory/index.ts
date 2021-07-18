@@ -11,7 +11,10 @@ type QueryObject = { [key: string]: any };
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
-  static async resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): ModelRef[] {
+  static async resetCache(
+    Model: typeof MemoriaModel,
+    targetState?: ModelRef[]
+  ): Promise<ModelRef[]> {
     Model.cache.length = 0;
 
     if (targetState) {
@@ -107,19 +110,21 @@ export default class MemoryAdapter {
     return await this.insert(Model, model);
   }
 
-  static async insert(Model: typeof MemoriaModel, model: ModelRef): Promise<ModelRef> {
-    let filledModel = Object.assign({}, Store.getDefaultValues(Model, "insert"), model);
-    let target = Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
-      if (typeof filledModel[attribute] === "function") {
-        result[attribute] = filledModel[attribute].apply(null, [Model]); // TODO: this changed
-      } else if (!filledModel.hasOwnProperty(attribute)) {
-        result[attribute] = null;
-      } else {
-        result[attribute] = filledModel[attribute];
-      }
+  static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<ModelRef> {
+    let filledModel = Object.assign({}, Store.getDefaultValues(Model, "insert"), model); // TODO: maybe remove this var in future
+    let target = new Model(
+      Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+        if (typeof filledModel[attribute] === "function") {
+          result[attribute] = filledModel[attribute].apply(null, [Model]); // TODO: this changed
+        } else if (!filledModel.hasOwnProperty(attribute)) {
+          result[attribute] = null;
+        } else {
+          result[attribute] = filledModel[attribute];
+        }
 
-      return result;
-    }, {});
+        return result;
+      }, {})
+    ) as ModelRef;
 
     primaryKeyTypeSafetyCheck(Model.primaryKeyType, target[Model.primaryKeyName], Model.name);
 

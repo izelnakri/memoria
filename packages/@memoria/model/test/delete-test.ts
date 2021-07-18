@@ -102,19 +102,19 @@ module("@memoria/model | $Model.delete()", function (hooks) {
 
     await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
 
-    assert.deepEqual(deletedPhoto, {
+    assert.propEqual(deletedPhoto, {
       id: 2,
       name: "Family photo",
       href: "family-photo.jpeg",
       is_public: true,
     });
-    assert.deepEqual(deletedComment, {
+    assert.propEqual(deletedComment, {
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       content: "What a nice photo!",
       photo_id: 1,
       user_id: 1,
     });
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -128,7 +128,7 @@ module("@memoria/model | $Model.delete()", function (hooks) {
         is_public: false,
       },
     ]);
-    assert.deepEqual(await PhotoComment.findAll(), [
+    assert.propEqual(await PhotoComment.findAll(), [
       {
         uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
         content: "I agree",

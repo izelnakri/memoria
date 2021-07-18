@@ -222,15 +222,15 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const firstPhoto = await Photo.find(1);
     const targetSerializedUser = await User.find(1);
 
-    assert.deepEqual(targetSerializedUser, { id: 1, first_name: "Izel", last_name: "Nakri" });
-    assert.deepEqual(User.serializer(targetSerializedUser), targetSerializedUser);
-    assert.deepEqual(
+    assert.propEqual(targetSerializedUser, { id: 1, first_name: "Izel", last_name: "Nakri" });
+    assert.propEqual(User.serializer(targetSerializedUser), targetSerializedUser);
+    assert.propEqual(
       PhotoComment.serializer(firstComment),
       Object.assign({}, firstComment, {
         author: targetSerializedUser,
       })
     );
-    assert.deepEqual(
+    assert.propEqual(
       Photo.serializer(firstPhoto),
       Object.assign({}, firstPhoto, {
         comments: PhotoComment.peekAll({ photo_id: 1 }).map((comment) => {
@@ -243,18 +243,18 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const photoComments = await PhotoComment.findAll();
     const targetPhotos = await Promise.all([Photo.find(1), Photo.find(2)]);
 
-    assert.deepEqual(await User.findAll(), [
+    assert.propEqual(await User.findAll(), [
       { id: 1, first_name: "Izel", last_name: "Nakri" },
       { id: 2, first_name: "Benjamin", last_name: "Graham" },
     ]);
-    assert.deepEqual(User.serializer(targetUsers), targetUsers);
-    assert.deepEqual(
+    assert.propEqual(User.serializer(targetUsers), targetUsers);
+    assert.propEqual(
       PhotoComment.serializer(photoComments),
       photoComments.map((comment) => {
         return Object.assign({}, comment, { author: User.peek(comment.user_id) });
       })
     );
-    assert.deepEqual(
+    assert.propEqual(
       Photo.serializer(targetPhotos),
       targetPhotos.map((photo) => {
         return Object.assign({}, photo, {

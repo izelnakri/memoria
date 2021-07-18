@@ -1,13 +1,15 @@
 import kleur from "kleur";
 import { underscore } from "@emberx/string";
-import { pluralize, singularize } from "inflected";
+import { pluralize } from "inflected";
 import { MemoryAdapter } from "@memoria/adapters";
 import Store from "./store";
 import type { ModelRef } from "./index";
 
 type primaryKey = number | string;
+type QueryObject = { [key: string]: any };
 
-// TODO: remove static setters and maybe getters
+// TODO: remove embedReferences getter
+// TODO: implement push interface
 export default class Model {
   static Adapter = MemoryAdapter;
   static embedReferences = {}; // TODO: move to serializer
@@ -25,7 +27,6 @@ export default class Model {
     return Store.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid" ? "uuid" : "id";
   }
 
-  // NOTE: not fully cached
   static get columnNames(): Set<string> {
     return Store.getColumnNames(this);
   }
@@ -48,11 +49,11 @@ export default class Model {
     return this.Adapter.peek(this, primaryKey);
   }
 
-  static peekBy(queryObject: object): ModelRef | void {
+  static peekBy(queryObject: QueryObject): ModelRef | void {
     return this.Adapter.peekBy(this, queryObject);
   }
 
-  static peekAll(queryObject: object = {}): ModelRef[] | void {
+  static peekAll(queryObject: QueryObject = {}): ModelRef[] | void {
     return this.Adapter.peekAll(this, queryObject);
   }
 
@@ -64,11 +65,11 @@ export default class Model {
     return await this.Adapter.find(this, primaryKey);
   }
 
-  static async findBy(queryObject: object): Promise<ModelRef | void> {
+  static async findBy(queryObject: QueryObject): Promise<ModelRef | void> {
     return await this.Adapter.findBy(this, queryObject);
   }
 
-  static async findAll(queryObject: object = {}): Promise<ModelRef[] | void> {
+  static async findAll(queryObject: QueryObject = {}): Promise<ModelRef[] | void> {
     return await this.Adapter.findAll(this, queryObject);
   }
 
@@ -110,6 +111,19 @@ export default class Model {
 
   static async deleteAll(records: ModelRef[]): Promise<void> {
     return await this.Adapter.deleteAll(this, records);
+  }
+
+  constructor(options?: QueryObject) {
+    Array.from((this.constructor as typeof Model).columnNames).forEach((keyName) => {
+      Object.defineProperty(this, keyName, {
+        enumerable: true,
+        writable: true,
+        configurable: false,
+        value: options && keyName in options ? options[keyName] : null
+      });
+    });
+
+    return Object.seal(this);
   }
 
   // NOTE: serializer functions
@@ -172,7 +186,11 @@ export default class Model {
     }, objectWithAllColumns);
   }
 
-  static getRelationship(parentObject, relationshipName: string, relationshipModel?: ModelRef) {
+  static getRelationship(
+    parentObject: ModelRef,
+    relationshipName: string,
+    relationshipModel?: ModelRef
+  ) {
     if (Array.isArray(parentObject)) {
       throw new Error(
         kleur.red(

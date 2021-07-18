@@ -30,12 +30,8 @@ export default Model;
 
 export { Store };
 
-// Query, Serialization and Reset interface
-
-// find, findAll, findBy, peek, peekAll, peekBy, save, insert, update, remove, delete(deleting from memory vs delete req!!), destroy
+// Serialization
 // relationship setting and fetching
-// destroy
-
 // insertAll, updateAll, destroyAll
 // Error Handlings
 

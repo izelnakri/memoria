@@ -124,13 +124,13 @@ module("@memoria/model | Query API", function (hooks) {
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
-    assert.deepEqual(await Photo.find(1), {
+    assert.propEqual(await Photo.find(1), {
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.deepEqual(await Photo.find(3), {
+    assert.propEqual(await Photo.find(3), {
       id: 3,
       name: "Selfie",
       href: "selfie.jpeg",
@@ -143,11 +143,11 @@ module("@memoria/model | Query API", function (hooks) {
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
-    assert.deepEqual(await Photo.find([1, 3]), [
+    assert.propEqual(await Photo.find([1, 3]), [
       { id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false },
       { id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false },
     ]);
-    assert.deepEqual(await Photo.find([2, 3]), [
+    assert.propEqual(await Photo.find([2, 3]), [
       { id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true },
       { id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false },
     ]);
@@ -177,15 +177,15 @@ module("@memoria/model | Query API", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.deepEqual(await Photo.findBy({ is_public: false }), firstPhoto);
-    assert.deepEqual(await Photo.findBy(firstPhoto), firstPhoto);
-    assert.deepEqual(await Photo.findBy({ name: "Family photo", href: "family-photo.jpeg" }), {
+    assert.propEqual(await Photo.findBy({ is_public: false }), firstPhoto);
+    assert.propEqual(await Photo.findBy(firstPhoto), firstPhoto);
+    assert.propEqual(await Photo.findBy({ name: "Family photo", href: "family-photo.jpeg" }), {
       id: 2,
       name: "Family photo",
       href: "family-photo.jpeg",
       is_public: true,
     });
-    assert.deepEqual(await PhotoComment.findBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), {
+    assert.propEqual(await PhotoComment.findBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), {
       uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
       content: "I was kidding",
       photo_id: 1,
@@ -201,7 +201,7 @@ module("@memoria/model | Query API", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.deepEqual(await Photo.findAll(), [
+    assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -221,7 +221,7 @@ module("@memoria/model | Query API", function (hooks) {
         is_public: false,
       },
     ]);
-    assert.deepEqual(await PhotoComment.findAll(), [
+    assert.propEqual(await PhotoComment.findAll(), [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
@@ -257,7 +257,7 @@ module("@memoria/model | Query API", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    assert.deepEqual(await Photo.findAll({ is_public: false }), [
+    assert.propEqual(await Photo.findAll({ is_public: false }), [
       {
         id: 1,
         name: "Ski trip",
@@ -271,7 +271,7 @@ module("@memoria/model | Query API", function (hooks) {
         is_public: false,
       },
     ]);
-    assert.deepEqual(await PhotoComment.findAll({ photo_id: 1, user_id: 1 }), [
+    assert.propEqual(await PhotoComment.findAll({ photo_id: 1, user_id: 1 }), [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
@@ -285,7 +285,7 @@ module("@memoria/model | Query API", function (hooks) {
         user_id: 1,
       },
     ]);
-    assert.deepEqual(await PhotoComment.findAll({ user_id: 1 }), [
+    assert.propEqual(await PhotoComment.findAll({ user_id: 1 }), [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
