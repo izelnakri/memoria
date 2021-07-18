@@ -4342,9 +4342,9 @@ var MEMSERVER = (function () {
               const primaryKey = getModelPrimaryKey(model, existingPrimaryKey, modelName);
 
               if (!primaryKey) {
-                throw new Error(ansiColors.red(`[MemServer] DATABASE ERROR: At least one of your ${modelName} fixtures missing a primary key. Please make sure all your ${modelName} fixtures have either id or uuid primaryKey`));
+                throw new Error(ansiColors.red(`[MemServer] DB ERROR: At least one of your ${modelName} fixtures missing a primary key. Please make sure all your ${modelName} fixtures have either id or uuid primaryKey`));
               } else if (primaryKeys.includes(model[primaryKey])) {
-                throw new Error(ansiColors.red(`[MemServer] DATABASE ERROR: Duplication in ${modelName} fixtures with ${primaryKey}: ${model[primaryKey]}`));
+                throw new Error(ansiColors.red(`[MemServer] DB ERROR: Duplication in ${modelName} fixtures with ${primaryKey}: ${model[primaryKey]}`));
               }
 
               const existingAttributes = targetNamespace$2.MemServer.Models[modelName].attributes;

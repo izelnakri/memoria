@@ -1,9 +1,10 @@
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
+// TODO: half of the time fails even with commented out tests
 module("@memoria/model | $Model.serialize()", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -53,9 +54,43 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   ];
 
   function prepare() {
-    class Photo extends Model {}
-    class PhotoComment extends Model {}
-    class User extends Model {}
+    class Photo extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column("boolean")
+      is_public: boolean;
+    }
+    class PhotoComment extends Model {
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column("int")
+      photo_id: number;
+
+      @Column("int")
+      user_id: number;
+    }
+    class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      first_name: string;
+
+      @Column()
+      last_name: string;
+    }
+    [Photo, PhotoComment, User].forEach((Model) => (Model.embedReferences = {})); // TODO: REMOVE THIS REGISTRATION BY IMPLEMENTING SERIALIZER
 
     return { User, Photo, PhotoComment };
   }
@@ -63,11 +98,15 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   test("$Model.serialize(model) serializes a model", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    const photo = Photo.find(1);
-    const photoComment = PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    const photo = await Photo.find(1);
+    const photoComment = await PhotoComment.findBy({
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+    });
 
     assert.deepEqual(Photo.serialize(photo), {
       id: 1,
@@ -86,11 +125,13 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   test("$Model.serialize(models) can serialize models", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    const photos = Photo.findAll({ is_public: false });
-    const photoComments = PhotoComment.findAll({ photo_id: 1 });
+    const photos = await Photo.findAll({ is_public: false });
+    const photoComments = await PhotoComment.findAll({ photo_id: 1 });
 
     assert.deepEqual(Photo.serializer(photos), [
       {
@@ -131,13 +172,17 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   test("$Model.serialize() can serialize empty record and record arrays", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    const notFoundPhoto = Photo.find(99);
-    const notFoundPhotos = Photo.findAll({ name: "Wubba lubba dub" });
-    const notFoundComment = PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
-    const notFoundComments = Photo.findAll({ content: "Aint easy" });
+    const notFoundPhoto = await Photo.find(99);
+    const notFoundPhotos = await Photo.findAll({ name: "Wubba lubba dub" });
+    const notFoundComment = await PhotoComment.findBy({
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111",
+    });
+    const notFoundComments = await Photo.findAll({ content: "Aint easy" });
 
     assert.equal(Photo.serializer(notFoundPhoto), undefined);
     assert.deepEqual(Photo.serializer({}), {
@@ -160,18 +205,22 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   test("$Model.serialize(model) can serialize embeded records recursively", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
-    User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });
+    await User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
+    await User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });
 
     Photo.embed({ comments: PhotoComment });
     PhotoComment.embed({ author: User });
 
-    const firstComment = PhotoComment.findBy({ uuid: "499ec646-493f-4eea-b92e-e383d94182f4" });
-    const firstPhoto = Photo.find(1);
-    const targetSerializedUser = User.find(1);
+    const firstComment = await PhotoComment.findBy({
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+    });
+    const firstPhoto = await Photo.find(1);
+    const targetSerializedUser = await User.find(1);
 
     assert.deepEqual(targetSerializedUser, { id: 1, first_name: "Izel", last_name: "Nakri" });
     assert.deepEqual(User.serializer(targetSerializedUser), targetSerializedUser);
@@ -184,17 +233,17 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     assert.deepEqual(
       Photo.serializer(firstPhoto),
       Object.assign({}, firstPhoto, {
-        comments: PhotoComment.findAll({ photo_id: 1 }).map((comment) => {
-          return Object.assign({}, comment, { author: User.find(comment.user_id) });
+        comments: PhotoComment.peekAll({ photo_id: 1 }).map((comment) => {
+          return Object.assign({}, comment, { author: User.peek(comment.user_id) });
         }),
       })
     );
 
-    const targetUsers = User.findAll();
-    const photoComments = PhotoComment.findAll();
-    const targetPhotos = [Photo.find(1), Photo.find(2)];
+    const targetUsers = await User.findAll();
+    const photoComments = await PhotoComment.findAll();
+    const targetPhotos = await Promise.all([Photo.find(1), Photo.find(2)]);
 
-    assert.deepEqual(User.findAll(), [
+    assert.deepEqual(await User.findAll(), [
       { id: 1, first_name: "Izel", last_name: "Nakri" },
       { id: 2, first_name: "Benjamin", last_name: "Graham" },
     ]);
@@ -202,15 +251,15 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     assert.deepEqual(
       PhotoComment.serializer(photoComments),
       photoComments.map((comment) => {
-        return Object.assign({}, comment, { author: User.find(comment.user_id) });
+        return Object.assign({}, comment, { author: User.peek(comment.user_id) });
       })
     );
     assert.deepEqual(
       Photo.serializer(targetPhotos),
       targetPhotos.map((photo) => {
         return Object.assign({}, photo, {
-          comments: PhotoComment.findAll({ photo_id: photo.id }).map((comment) => {
-            return Object.assign({}, comment, { author: User.find(comment.user_id) });
+          comments: PhotoComment.peekAll({ photo_id: photo.id }).map((comment) => {
+            return Object.assign({}, comment, { author: User.peek(comment.user_id) });
           }),
         });
       })
@@ -220,8 +269,8 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
   test("$Model allows for custom serializer declarations", async function (assert) {
     const { User, Photo, PhotoComment } = prepare();
 
-    const user = User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
-    const secondUser = User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });
+    const user = await User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
+    const secondUser = await User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });
 
     User.authenticationSerializer = function (user) {
       let serializedResponse = User.serializer(user);

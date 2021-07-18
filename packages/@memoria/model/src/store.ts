@@ -200,7 +200,7 @@ export default class Store {
   static _embedReferences: { [className: string]: { [columnName: string]: any } } = {};
   static getEmbedDataForSerialization(Class: typeof Model) {
     if (!this._embedReferences[Class.name]) {
-      this._embedReferences[Class.name] = {};
+      this._embedReferences[Class.name] = Class.embedReferences;
 
       return this._embedReferences[Class.name];
     }
@@ -214,7 +214,14 @@ export default class Store {
     for (let cache in this._columnNames) delete this._columnNames[cache];
     for (let cache in this._primaryKeyNameCache) delete this._primaryKeyNameCache[cache];
     for (let cache in this._defaultValuesCache) delete this._defaultValuesCache[cache];
-    for (let cache in this._embedReferences) delete this._embedReferences[cache];
+    for (let cache in this._embedReferences) {
+      // TODO: this only cleans registered data!!
+      let embedReferences = this._embedReferences[cache];
+      for (let reference in embedReferences) {
+        delete embedReferences[reference];
+      }
+      delete this._embedReferences[cache];
+    }
   }
 }
 

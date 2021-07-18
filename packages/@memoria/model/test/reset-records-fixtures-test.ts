@@ -1,9 +1,9 @@
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
-module("@memoria/model | $Model.resetDatabase()", function (hooks) {
-  setupMemserver(hooks);
+module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -60,8 +60,25 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
           return "Imported photo";
         },
       };
+
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column()
+      is_public: boolean;
     }
-    class User extends Model {}
+
+    class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+    }
+
     class PhotoComment extends Model {
       static defaultAttributes = {
         inserted_at() {
@@ -69,43 +86,63 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
         },
         is_important: true,
       };
+
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column("int")
+      photo_id: number;
+
+      @Column("int")
+      user_id: number;
+
+      @Column("boolean", { default: true })
+      is_important: boolean;
+
+      @CreateDateColumn()
+      inserted_at: Date;
     }
 
     return { Photo, PhotoComment, User };
   }
 
-  test("$Model.resetDatabase() resets the models DB", async function (assert) {
+  test("$Model.resetRecords() resets the models DB", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    assert.deepEqual(Photo.findAll(), []);
-    assert.deepEqual(PhotoComment.findAll(), []);
+    assert.deepEqual(await Photo.findAll(), []);
+    assert.deepEqual(await PhotoComment.findAll(), []);
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    assert.notDeepEqual(Photo.findAll(), []);
-    assert.notDeepEqual(PhotoComment.findAll(), []);
+    assert.notDeepEqual(await Photo.findAll(), []);
+    assert.notDeepEqual(await PhotoComment.findAll(), []);
 
-    Photo.resetDatabase();
-    PhotoComment.resetDatabase();
+    await Photo.resetRecords();
+    await PhotoComment.resetRecords();
 
-    assert.deepEqual(Photo.findAll(), []);
-    assert.deepEqual(PhotoComment.findAll(), []);
+    assert.deepEqual(await Photo.findAll(), []);
+    assert.deepEqual(await PhotoComment.findAll(), []);
   });
 
-  test("$Model.resetDatabase(fixtures) resets the models DB with initial state and defaultAttributes", function (assert) {
+  test("$Model.resetRecords(fixtures) resets the models DB with initial state and defaultAttributes", async function (assert) {
     const { Photo, PhotoComment, User } = prepare();
 
-    assert.deepEqual(Photo.findAll(), []);
-    assert.deepEqual(PhotoComment.findAll(), []);
+    assert.deepEqual(await Photo.findAll(), []);
+    assert.deepEqual(await PhotoComment.findAll(), []);
 
-    Photo.resetDatabase(PHOTO_FIXTURES);
-    PhotoComment.resetDatabase(PHOTO_COMMENT_FIXTURES);
+    await Photo.resetRecords(PHOTO_FIXTURES);
+    await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
 
-    assert.deepEqual(Photo.findAll(), PHOTO_FIXTURES);
+    assert.deepEqual(await Photo.findAll(), PHOTO_FIXTURES);
 
-    let photoComments = PhotoComment.findAll();
-    assert.deepEqual(PhotoComment.findAll(), [
+    let photoComments = await PhotoComment.findAll();
+    assert.deepEqual(await PhotoComment.findAll(), [
       {
         content: "What a nice photo!",
         inserted_at: photoComments[0].inserted_at,
@@ -141,7 +178,7 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
     ]);
   });
 
-  test("Memserver fixtures should throw error if any of the fixtures missing id or uuid", async function (assert) {
+  test("Memoria fixtures should throw error if any of the fixtures missing id or uuid", async function (assert) {
     const { PhotoComment } = prepare();
 
     const PHOTO_COMMENT_FIXTURES = [
@@ -167,13 +204,18 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
       },
     ];
 
-    assert.throws(
-      () => PhotoComment.resetDatabase(PHOTO_COMMENT_FIXTURES),
-      /\[Memserver\] DATABASE ERROR: At least one of your PhotoComment fixtures missing a primary key\. Please make sure all your PhotoComment fixtures have either id or uuid primaryKey/
-    );
+    try {
+      await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] DB ERROR: At least one of your PhotoComment fixtures missing a primary key\. Please make sure all your PhotoComment fixtures have either id or uuid primaryKey/.test(
+          error.message
+        )
+      );
+    }
   });
 
-  test("Memserver fixtures should throw error if any of the id fixtures have an incorrect type", async function (assert) {
+  test("Memoria fixtures should throw error if any of the id fixtures have an incorrect type", async function (assert) {
     const { Photo } = prepare();
 
     const PHOTO_FIXTURES = [
@@ -197,13 +239,18 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
       },
     ];
 
-    assert.throws(
-      () => Photo.resetDatabase(PHOTO_FIXTURES),
-      /\[Memserver\] Photo model primaryKey type is 'id'\. Instead you've tried to enter id: 2 with string type/
-    );
+    try {
+      await Photo.resetRecords(PHOTO_FIXTURES);
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] Photo model primaryKey type is 'id'\. Instead you've tried to enter id: 2 with string type/.test(
+          error.message
+        )
+      );
+    }
   });
 
-  test("Memserver fixtures should throw error if any of the uuid fixtures have an incorrect type", async function (assert) {
+  test("Memoria fixtures should throw error if any of the uuid fixtures have an incorrect type", async function (assert) {
     const { PhotoComment } = prepare();
 
     const PHOTO_COMMENT_FIXTURES = [
@@ -233,13 +280,18 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
       },
     ];
 
-    assert.throws(
-      () => PhotoComment.resetDatabase(PHOTO_COMMENT_FIXTURES),
-      /\[Memserver\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 12 with number type/
-    );
+    try {
+      await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 12 with number type/.test(
+          error.message
+        )
+      );
+    }
   });
 
-  test("Memserver fixtures should throw error if there are duplicate id fixtures", async function (assert) {
+  test("Memoria fixtures should throw error if there are duplicate id fixtures", async function (assert) {
     const { Photo } = prepare();
 
     const PHOTO_FIXTURES = [
@@ -263,13 +315,16 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
       },
     ];
 
-    assert.throws(
-      () => Photo.resetDatabase(PHOTO_FIXTURES),
-      /\[Memserver\] DATABASE ERROR: Duplication in Photo fixtures with id: 2/
-    );
+    try {
+      await Photo.resetRecords(PHOTO_FIXTURES);
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] DB ERROR: Duplication in Photo fixtures with id: 2/.test(error.message)
+      );
+    }
   });
 
-  test("Memserver fixtures should throw error if there are duplicate uuid fixtures", async function (assert) {
+  test("Memoria fixtures should throw error if there are duplicate uuid fixtures", async function (assert) {
     const { PhotoComment } = prepare();
 
     const PHOTO_COMMENT_FIXTURES = [
@@ -299,9 +354,14 @@ module("@memoria/model | $Model.resetDatabase()", function (hooks) {
       },
     ];
 
-    assert.throws(
-      () => PhotoComment.resetDatabase(PHOTO_COMMENT_FIXTURES),
-      /\[Memserver\] DATABASE ERROR: Duplication in PhotoComment fixtures with uuid: 499ec646-493f-4eea-b92e-e383d94182f4/
-    );
+    try {
+      await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] DB ERROR: Duplication in PhotoComment fixtures with uuid: 499ec646-493f-4eea-b92e-e383d94182f4/.test(
+          error.message
+        )
+      );
+    }
   });
 });

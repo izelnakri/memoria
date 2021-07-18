@@ -1,9 +1,9 @@
 import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | Default Attributes", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {

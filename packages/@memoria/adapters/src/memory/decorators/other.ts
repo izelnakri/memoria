@@ -6,11 +6,14 @@ export function Check(checkExpression) {}
 
 export function Exclusion(exclusingQuery) {}
 
+export function Generated(strategy) {}
+
 export default {
   Index,
   Unique,
   Check,
   Exclusion,
+  Generated,
 };
 
 // @Transaction

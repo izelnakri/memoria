@@ -5,10 +5,10 @@ import Model, {
   UpdateDateColumn,
 } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | $Model.update()", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -156,7 +156,7 @@ module("@memoria/model | $Model.update()", function (hooks) {
       await Photo.update({ id: 99, href: "family-photo-2.jpeg" });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
+        /\[Memoria\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
           error.message
         )
       );
@@ -166,7 +166,7 @@ module("@memoria/model | $Model.update()", function (hooks) {
       await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
+        /\[Memoria\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
           error.message
         )
       );
@@ -185,7 +185,7 @@ module("@memoria/model | $Model.update()", function (hooks) {
       await Photo.update({ id: 1, name: "ME", is_verified: false });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
+        /\[Memoria\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
           error.message
         )
       );
@@ -198,7 +198,7 @@ module("@memoria/model | $Model.update()", function (hooks) {
       });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
+        /\[Memoria\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
           error.message
         )
       );

@@ -1,9 +1,9 @@
 import Model, { Column, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | Query API", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -103,14 +103,14 @@ module("@memoria/model | Query API", function (hooks) {
           await Photo.find(param);
         } catch (error) {
           assert.ok(
-            /\[Memserver\] Photo.find\(id\) cannot be called without a valid id/.test(error.message)
+            /\[Memoria\] Photo.find\(id\) cannot be called without a valid id/.test(error.message)
           );
         }
         try {
           await PhotoComment.find(param);
         } catch (error) {
           assert.ok(
-            /\[Memserver\] PhotoComment.find\(id\) cannot be called without a valid id/.test(
+            /\[Memoria\] PhotoComment.find\(id\) cannot be called without a valid id/.test(
               error.message
             )
           );
@@ -162,7 +162,7 @@ module("@memoria/model | Query API", function (hooks) {
       await Photo.findBy();
     } catch (error) {
       assert.ok(
-        /\[Memserver\] Photo.findBy\(id\) cannot be called without a parameter/.test(error.message)
+        /\[Memoria\] Photo.findBy\(id\) cannot be called without a parameter/.test(error.message)
       );
     }
   });

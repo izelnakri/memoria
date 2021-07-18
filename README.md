@@ -31,33 +31,33 @@ class User extends Model {
 };
 // allows User.serializer(user);
 
-User.findAll(); // [];
+await User.findAll(); // [];
 
-User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // { id: 1, firstName: 'Izel', lastName: 'Nakri' }
+await User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // { id: 1, firstName: 'Izel', lastName: 'Nakri' }
 
-let usersAfterInsert = User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
+let usersAfterInsert = await User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
 let insertedUser = usersAfterInsert[0];
 
 insertedUser.firstName = 'Isaac';
 
-User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
+await User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
-User.update(insertedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+await User.update(insertedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
+await User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
 
-let updatedUser = User.find(1); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+let updatedUser = await User.find(1); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-let anotherUser = User.insert({ firstName: 'Brendan' }); // { id: 2, firstName: 'Brendan', lastName: null }
+let anotherUser = await User.insert({ firstName: 'Brendan' }); // { id: 2, firstName: 'Brendan', lastName: null }
 
 updatedUser.firstName = 'Izel';
 
-User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: null }]
+await User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: null }]
 
-User.delete(updatedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+await User.delete(updatedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-User.findAll(); // [{ id: 2, firstName: 'Brendan', lastName: null }]
+await User.findAll(); // [{ id: 2, firstName: 'Brendan', lastName: null }]
 ```
 
 NOTE: API also works for UUIDs instead of id primary keys
@@ -82,8 +82,8 @@ export default function() {
   this.logging = true; // OPTIONAL: only if you want to log incoming requests/responses
   this.urlPrefix = 'http://localhost:8000/api'; // OPTIONAL: if you want to scope all the routes under a host/url
 
-  this.post('/users', (request: Request) => {
-    const user = User.insert(request.params.user);
+  this.post('/users', async (request: Request) => {
+    const user = await User.insert(request.params.user);
 
     return { user: User.serializer(user) };
   });
@@ -91,9 +91,9 @@ export default function() {
   // OR:
   this.post('/users', User);
 
-  this.get('/users', (request: Request) => {
+  this.get('/users', async (request: Request) => {
     if (request.queryParams.filter === 'is_active') {
-      const users = User.findAll({ is_active: true });
+      const users = await User.findAll({ is_active: true });
 
       return { users: User.serializer(users) };
     }
@@ -103,16 +103,16 @@ export default function() {
 
   // Shorthand without filter, displaying all users: this.get('/users', User);
 
-  this.get('/users/:id', (request: Request) => {
-    return { user: User.serializer(User.find(request.params.id)) };
+  this.get('/users/:id', async (request: Request) => {
+    return { user: User.serializer(await User.find(request.params.id)) };
     // NOTE: you can wrap it with auth through custom User.findFromHeaders(request.headers) if needed.
   });
 
   // OR:
   this.get('/users/:id', User);
 
-  this.put('/users/:id', (request: Request) => {
-    let user = User.find(request.params.id);
+  this.put('/users/:id', async (request: Request) => {
+    let user = await User.find(request.params.id);
 
     if (!user) {
       return Response(404, { error: 'user not found');
@@ -124,14 +124,14 @@ export default function() {
   // OR:
   this.put('/users/:id', User);
 
-  this.delete('/users/:id', ({ params }) => {
-    const user = User.find(params.id);
+  this.delete('/users/:id', async ({ params }) => {
+    const user = await User.find(params.id);
 
     if (!user) {
       return Response(404, { errors: 'user not found' });
     }
 
-    return User.delete(user);
+    return await User.delete(user);
   });
 
   // OR:
@@ -192,7 +192,7 @@ export default Memoria;
 
 // If you want to shutdown request mocking: Memoria.shutdown();
 // If you want to reset a database with predefined data:
-// User.resetDatabase([{ id: 1, firstName: 'Izel', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
+// User.resetRecords([{ id: 1, firstName: 'Izel', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
 ```
 
 This is basically a superior mirage.js API & implementation. Also check the tests...
@@ -211,11 +211,11 @@ import Model from '@memoria/model';
 class User extends Model {
 }
 
-const user = User.find(1);
+const user = await User.find(1);
 
 const serializedUserForEndpoint = { user: User.serializer(user) }; // or User.serialize(user);
 
-const users = User.findAll({ active: true });
+const users = await User.findAll({ active: true });
 
 const serializedUsersForEndpoint = { users: User.serializer(users) }; // or users.map((user) => User.serialize(user));
 ```
@@ -241,11 +241,11 @@ class User extends Model {
   }
 }
 
-const user = User.find(1);
+const user = await User.find(1);
 
 const serializedUserForEndpoint = { user: User.customSerializer(user) }; // or User.customSerialize(user);
 
-const users = User.findAll({ active: true });
+const users = await User.findAll({ active: true });
 
 const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // or users.map((user) => User.customSerialize(user));
 ```

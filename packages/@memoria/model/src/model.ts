@@ -10,6 +10,7 @@ type primaryKey = number | string;
 // TODO: remove static setters and maybe getters
 export default class Model {
   static Adapter = MemoryAdapter;
+  static embedReferences = {}; // TODO: move to serializer
   static _Store = Store;
 
   static get cache(): ModelRef[] {
@@ -112,12 +113,12 @@ export default class Model {
   }
 
   // NOTE: serializer functions
-  static embed(relationship): object {
+  static embed(relationship: { [key: string]: any }): object {
     // EXAMPLE: { comments: Comment }
     if (typeof relationship !== "object" || relationship.name) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
+          `[Memoria] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
         )
       );
     }
@@ -127,12 +128,12 @@ export default class Model {
     if (!relationship[key]) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
+          `[Memoria] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
         )
       );
     }
 
-    return Object.assign(Store.getEmbedDataForSerialization(Model), relationship);
+    return Object.assign(Store.getEmbedDataForSerialization(this), relationship);
   }
 
   static serializer(objectOrArray: ModelRef | Array<ModelRef>) {
@@ -150,7 +151,7 @@ export default class Model {
     if (Array.isArray(object)) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
+          `[Memoria] ${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
         )
       );
     }
@@ -164,8 +165,8 @@ export default class Model {
     }, Object.assign({}, object));
     let embedReferences = Store.getEmbedDataForSerialization(this);
     return Object.keys(embedReferences).reduce((result, embedKey) => {
-      const embedModel = embedReferences[embedKey];
-      const embeddedRecords = this.getRelationship(object, embedKey, embedModel);
+      let embedModel = embedReferences[embedKey];
+      let embeddedRecords = this.getRelationship(object, embedKey, embedModel);
 
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllColumns);
@@ -175,7 +176,7 @@ export default class Model {
     if (Array.isArray(parentObject)) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${this.name}.getRelationship expects model input to be an object not an array`
+          `[Memoria] ${this.name}.getRelationship expects model input to be an object not an array`
         )
       );
     }
@@ -187,18 +188,18 @@ export default class Model {
     if (!targetRelationshipModel) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
+          `[Memoria] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
         )
       );
     } else if (hasManyRelationship) {
       if (parentObject.id) {
-        const hasManyIDRecords = targetRelationshipModel.findAll({
+        const hasManyIDRecords = targetRelationshipModel.peekAll({
           [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
         return hasManyIDRecords.length > 0 ? hasManyIDRecords : [];
       } else if (parentObject.uuid) {
-        const hasManyUUIDRecords = targetRelationshipModel.findAll({
+        const hasManyUUIDRecords = targetRelationshipModel.peekAll({
           [`${underscore(this.name)}_uuid`]: parentObject.uuid,
         });
 
@@ -213,17 +214,17 @@ export default class Model {
       parentObject[`${underscore(targetRelationshipModel.name)}_uuid`];
 
     if (objectRef && typeof objectRef === "number") {
-      return targetRelationshipModel.find(objectRef);
+      return targetRelationshipModel.peek(objectRef);
     } else if (objectRef) {
-      return targetRelationshipModel.findBy({ uuid: objectRef });
+      return targetRelationshipModel.peekBy({ uuid: objectRef });
     }
 
     if (parentObject.id) {
-      return targetRelationshipModel.findBy({
+      return targetRelationshipModel.peekBy({
         [`${underscore(this.name)}_id`]: parentObject.id,
       });
     } else if (parentObject.uuid) {
-      return targetRelationshipModel.findBy({
+      return targetRelationshipModel.peekBy({
         [`${underscore(this.name)}_uuid`]: parentObject.uuid,
       });
     }

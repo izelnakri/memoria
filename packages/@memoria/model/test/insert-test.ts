@@ -1,9 +1,9 @@
 import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | $Model.insert()", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -232,7 +232,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await Photo.insert({ id: 1 });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(
+        /\[Memoria\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(
           error.message
         )
       );
@@ -241,7 +241,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(
+        /\[Memoria\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(
           error.message
         )
       );
@@ -260,7 +260,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await Photo.insert({ id: "99" });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(
+        /\[Memoria\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(
           error.message
         )
       );
@@ -269,7 +269,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await PhotoComment.insert({ uuid: 1 });
     } catch (error) {
       assert.ok(
-        /\[Memserver\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(
+        /\[Memoria\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(
           error.message
         )
       );

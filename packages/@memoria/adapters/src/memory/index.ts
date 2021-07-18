@@ -11,11 +11,11 @@ type QueryObject = { [key: string]: any };
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
-  static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): ModelRef[] {
+  static async resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): ModelRef[] {
     Model.cache.length = 0;
 
     if (targetState) {
-      insertFixturesWithTypechecks(Model, targetState);
+      await insertFixturesWithTypechecks(Model, targetState);
     }
 
     return Model.cache;
@@ -25,7 +25,7 @@ export default class MemoryAdapter {
     Model: typeof MemoriaModel,
     targetState?: ModelRef[]
   ): Promise<ModelRef[]> {
-    return this.resetCache(Model, targetState);
+    return await this.resetCache(Model, targetState);
   }
 
   static peek(
@@ -47,14 +47,14 @@ export default class MemoryAdapter {
     }
 
     throw new Error(
-      kleur.red(`[Memserver] ${Model.name}.find(id) cannot be called without a valid id`)
+      kleur.red(`[Memoria] ${Model.name}.find(id) cannot be called without a valid id`)
     );
   }
 
   static peekBy(Model: typeof MemoriaModel, queryObject: object): ModelRef | void {
     if (!queryObject) {
       throw new Error(
-        kleur.red(`[Memserver] ${Model.name}.findBy(id) cannot be called without a parameter`)
+        kleur.red(`[Memoria] ${Model.name}.findBy(id) cannot be called without a parameter`)
       );
     }
 
@@ -129,7 +129,7 @@ export default class MemoryAdapter {
     if (existingRecord) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name} ${Model.primaryKeyName} ${
+          `[Memoria] ${Model.name} ${Model.primaryKeyName} ${
             target[Model.primaryKeyName]
           } already exists in the database! ${Model.name}.insert(${inspect(model)}) fails`
         )
@@ -146,7 +146,7 @@ export default class MemoryAdapter {
     if (!record || (!record.id && !record.uuid)) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name}.update(record) requires id or uuid primary key to update a record`
+          `[Memoria] ${Model.name}.update(record) requires id or uuid primary key to update a record`
         )
       );
     }
@@ -158,7 +158,7 @@ export default class MemoryAdapter {
     if (!targetRecord) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name}.update(record) failed because ${Model.name} with ${primaryKey}: ${record[primaryKey]} does not exist`
+          `[Memoria] ${Model.name}.update(record) failed because ${Model.name} with ${primaryKey}: ${record[primaryKey]} does not exist`
         )
       );
     }
@@ -169,7 +169,7 @@ export default class MemoryAdapter {
     if (recordsUnknownAttribute) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name}.update ${primaryKey}: ${record[primaryKey]} fails, ${Model.name} model does not have ${recordsUnknownAttribute} attribute to update`
+          `[Memoria] ${Model.name}.update ${primaryKey}: ${record[primaryKey]} fails, ${Model.name} model does not have ${recordsUnknownAttribute} attribute to update`
         )
       );
     }
@@ -180,7 +180,6 @@ export default class MemoryAdapter {
       Object.keys(defaultColumnsForUpdate).reduce((result: QueryObject, keyName) => {
         if (typeof defaultColumnsForUpdate[keyName] === "function") {
           result[keyName] = defaultColumnsForUpdate[keyName].apply(null, [Model]);
-          debugger;
         }
 
         return result;
@@ -194,7 +193,7 @@ export default class MemoryAdapter {
     if (Model.cache.length === 0) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name} has no records in the database to delete. ${
+          `[Memoria] ${Model.name} has no records in the database to delete. ${
             Model.name
           }.delete(${inspect(record)}) failed`
         )
@@ -202,7 +201,7 @@ export default class MemoryAdapter {
     } else if (!record) {
       throw new Error(
         kleur.red(
-          `[Memserver] ${Model.name}.delete(model) model object parameter required to delete a model`
+          `[Memoria] ${Model.name}.delete(model) model object parameter required to delete a model`
         )
       );
     }
@@ -213,9 +212,9 @@ export default class MemoryAdapter {
     if (!targetRecord) {
       throw new Error(
         kleur.red(
-          `[Memserver] Could not find ${Model.name} with ${Model.primaryKeyName} ${
+          `[Memoria] Could not find ${Model.name} with ${Model.primaryKeyName} ${
             record[Model.primaryKeyName]
-          } to delete. ${this.name}.delete(${inspect(record)}) failed`
+          } to delete. ${Model.name}.delete(${inspect(record)}) failed`
         )
       );
     }

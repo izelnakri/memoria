@@ -1,9 +1,9 @@
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -85,17 +85,83 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   ];
 
   function prepare() {
-    class User extends Model {}
-    class Email extends Model {}
-    class Activity extends Model {}
+    class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
 
-    class Photo extends Model {}
+      @Column()
+      authentication_token: string;
+
+      @Column()
+      password_digest: string;
+
+      @Column()
+      primary_email_uuid: string;
+    }
+    class Email extends Model {
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      address: string;
+
+      @Column("boolean")
+      is_public: boolean;
+
+      @Column()
+      confirmed_at: string;
+
+      @Column()
+      confirmation_token: string;
+
+      @Column()
+      confirmation_token_sent_at: string;
+
+      @Column("int")
+      person_id: number;
+    }
+    class Activity extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("int")
+      user_id: number;
+
+      @Column()
+      photo_uuid: string;
+    }
+    class Photo extends Model {
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column()
+      is_public: boolean;
+    }
     class PhotoComment extends Model {
       static embedReferences = {
         photo: Photo,
         author: User,
       };
+
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column()
+      photo_uuid: string;
+
+      @Column("int")
+      user_id: number;
     }
+
     Photo.embedReferences = {
       activity: Activity,
       comments: PhotoComment,
@@ -107,11 +173,11 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   test("$Model.getRelationship() works for hasOne/belongsTo uuid relationships both sides on uuid relationship", async function (assert) {
     const { Activity, Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    ACITIVITY_FIXTURES.forEach((activity) => Activity.insert(activity));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
 
     const activity = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "activity"
@@ -124,7 +190,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
     });
     assert.equal(
       Photo.getRelationship(
-        Photo.findBy({
+        await Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
         "activity"
@@ -133,33 +199,35 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
     );
     assert.deepEqual(
       Activity.getRelationship(activity, "photo", Photo),
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       })
     );
-    assert.equal(Activity.getRelationship(Activity.find(2), "photo", Photo), undefined);
+    assert.equal(Activity.getRelationship(await Activity.find(2), "photo", Photo), undefined);
   });
 
   test("$Model.getRelationship() works for hasMany/belongsTo uuid relationship both sides on uuid", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
     const firstPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "comments"
     );
     const secondPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
       "comments"
     );
     const thirdPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
       "comments"
@@ -197,7 +265,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
 
     assert.throws(
       () => PhotoComment.getRelationship(firstPhotoComments, "photo"),
-      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/
+      /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/
     );
 
     assert.deepEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
@@ -217,13 +285,13 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   test("$Model.getRelationship() works for custom named hasOne/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
     const { Activity, Email, User, Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    ACITIVITY_FIXTURES.forEach((activity) => Activity.insert(activity));
-    USER_FIXTURES.forEach((user) => User.insert(user));
-    EMAIL_FIXTURES.forEach((email) => Email.insert(email));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
+    await Promise.all(EMAIL_FIXTURES.map((email) => Email.insert(email)));
 
     const activity = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "userActivity",
@@ -235,7 +303,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       user_id: 1,
       photo_uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
     });
-    assert.deepEqual(User.getRelationship(User.find(1), "primaryEmail", Email), {
+    assert.deepEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
       uuid: "951d3321-9e66-4099-a4a5-cc1e4795d4zz",
       address: "contact@izelnakri.com",
       is_public: false,
@@ -246,7 +314,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
     });
     assert.equal(
       Photo.getRelationship(
-        Photo.findBy({
+        await Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
         "userActivity",
@@ -256,35 +324,37 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
     );
     assert.deepEqual(
       Activity.getRelationship(activity, "photo", Photo),
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       })
     );
-    assert.equal(Activity.getRelationship(Activity.find(2), "photo", Photo), undefined);
+    assert.equal(Activity.getRelationship(await Activity.find(2), "photo", Photo), undefined);
   });
 
   test("$Model.getRelationship() works for custom named hasMany/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
     const firstPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "comments",
       PhotoComment
     );
     const secondPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
       "comments",
       PhotoComment
     );
     const thirdPhotoComments = Photo.getRelationship(
-      Photo.findBy({
+      await Photo.findBy({
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
       "comments",
@@ -323,7 +393,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
 
     assert.throws(
       () => PhotoComment.getRelationship(firstPhotoComments, "photo"),
-      /\[Memserver\] PhotoComment\.getRelationship expects model input to be an object not an array/
+      /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/
     );
     assert.deepEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
       uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
@@ -342,7 +412,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   test("$Model.getRelationship() throws an error when uuid relationship reference is invalid", async function (assert) {
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     assert.throws(() => {
       return Photo.getRelationship(
@@ -351,7 +421,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
         }),
         "userComments"
       );
-    }, /\[Memserver\] userComments relationship could not be found on Photo model\. Please put the userComments Model object as the third parameter to Photo\.getRelationship function/);
+    }, /\[Memoria\] userComments relationship could not be found on Photo model\. Please put the userComments Model object as the third parameter to Photo\.getRelationship function/);
     assert.throws(() => {
       Photo.getRelationship(
         Photo.findBy({
@@ -359,6 +429,6 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
         }),
         "userActivity"
       );
-    }, /\[Memserver\] userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the third parameter to Photo\.getRelationship function/);
+    }, /\[Memoria\] userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the third parameter to Photo\.getRelationship function/);
   });
 });

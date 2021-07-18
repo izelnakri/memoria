@@ -1,9 +1,9 @@
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemserver from "./helpers/setup-memserver";
+import setupMemoria from "./helpers/setup-memoria";
 
 module("@memoria/model | $Model.delete()", function (hooks) {
-  setupMemserver(hooks);
+  setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
     {
@@ -53,9 +53,36 @@ module("@memoria/model | $Model.delete()", function (hooks) {
   ];
 
   function prepare() {
-    class User extends Model {}
-    class Photo extends Model {}
-    class PhotoComment extends Model {}
+    class User extends Model {
+      @PrimaryGeneratedColumn("increment")
+      id: number;
+    }
+    class Photo extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column("varchar")
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column("boolean")
+      is_public: boolean;
+    }
+    class PhotoComment extends Model {
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column("bigint")
+      photo_id: number;
+
+      @Column("bigint")
+      user_id: number;
+    }
 
     return { User, Photo, PhotoComment };
   }
@@ -63,13 +90,17 @@ module("@memoria/model | $Model.delete()", function (hooks) {
   test("$Model.delete() can delete existing items", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    const deletedPhoto = Photo.delete({ id: 2 });
-    const deletedComment = PhotoComment.delete({ uuid: "499ec646-493f-4eea-b92e-e383d94182f4" });
+    const deletedPhoto = await Photo.delete({ id: 2 });
+    const deletedComment = await PhotoComment.delete({
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+    });
 
-    PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
 
     assert.deepEqual(deletedPhoto, {
       id: 2,
@@ -83,7 +114,7 @@ module("@memoria/model | $Model.delete()", function (hooks) {
       photo_id: 1,
       user_id: 1,
     });
-    assert.deepEqual(Photo.findAll(), [
+    assert.deepEqual(await Photo.findAll(), [
       {
         id: 1,
         name: "Ski trip",
@@ -97,7 +128,7 @@ module("@memoria/model | $Model.delete()", function (hooks) {
         is_public: false,
       },
     ]);
-    assert.deepEqual(PhotoComment.findAll(), [
+    assert.deepEqual(await PhotoComment.findAll(), [
       {
         uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
         content: "I agree",
@@ -116,44 +147,78 @@ module("@memoria/model | $Model.delete()", function (hooks) {
   test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    assert.throws(
-      () => Photo.delete({ id: 1 }),
-      /\[Memserver\] Photo has no records in the database to delete\. Photo\.delete\(\{ id: 1 \}\) failed/
-    );
-    assert.throws(
-      () => PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" }),
-      /\[Memserver\] PhotoComment has no records in the database to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/
+    try {
+      await Photo.delete({ id: 1 });
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] Photo has no records in the database to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
+          error.message
+        )
+      );
+    }
+    try {
+      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] PhotoComment has no records in the database to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
+          error.message
+        )
+      );
+    }
+
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Photo.delete({ id: 1 });
 
-    Photo.delete({ id: 1 });
-
-    assert.throws(
-      () => Photo.delete({ id: 1 }),
-      /\[Memserver\] Could not find Photo with id 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/
-    );
-    assert.throws(
-      () => PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" }),
-      /\[Memserver\] Could not find PhotoComment with uuid 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/
-    );
+    try {
+      await Photo.delete({ id: 1 });
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] Could not find Photo with id 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
+          error.message
+        )
+      );
+    }
+    try {
+      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] Could not find PhotoComment with uuid 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
+          error.message
+        )
+      );
+    }
   });
 
   test("$Model.delete() throws when called without a parameter", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-    assert.throws(
-      () => Photo.delete(),
-      /\[Memserver\] Photo\.delete\(model\) model object parameter required to delete a model/
-    );
-    assert.throws(
-      () => PhotoComment.delete(),
-      /\[Memserver\] PhotoComment\.delete\(model\) model object parameter required to delete a model/
-    );
+    try {
+      await Photo.delete();
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] Photo\.delete\(model\) model object parameter required to delete a model/.test(
+          error.message
+        )
+      );
+    }
+    try {
+      await PhotoComment.delete();
+    } catch (error) {
+      assert.ok(
+        /\[Memoria\] PhotoComment\.delete\(model\) model object parameter required to delete a model/.test(
+          error.message
+        )
+      );
+    }
   });
 });
 
