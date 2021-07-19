@@ -15,7 +15,7 @@ export default class Model {
   static embedReferences = {}; // TODO: move to serializer
   static _Store = Store;
 
-  static get cache(): ModelRef[] {
+  static get Cache(): Model[] {
     return Store.getDB(this);
   }
 
@@ -31,77 +31,79 @@ export default class Model {
     return Store.getColumnNames(this);
   }
 
-  static resetCache(fixtures?: Array<ModelRef>): Array<ModelRef> {
+  static resetCache(fixtures?: ModelRef[]): Model[] {
     return this.Adapter.resetCache(this, fixtures);
   }
 
-  static async resetRecords(targetState?: ModelRef[]): Promise<ModelRef[]> {
+  static async resetRecords(targetState?: ModelRef[]): Promise<Model[]> {
     return await this.Adapter.resetRecords(this, targetState);
   }
 
-  static peek(primaryKey: primaryKey | primaryKey[]): ModelRef[] | ModelRef | void {
+  static peek(primaryKey: primaryKey | primaryKey[]): Model[] | Model | void {
     if (!primaryKey) {
       throw new Error(
-        kleur.red(`[Memoria] ${Model.name}.find(id) cannot be called without a valid id`)
+        kleur.red(
+          `[Memoria] ${Model.name}.find(id) or ${Model.name}.peek(id) cannot be called without a valid id`
+        )
       );
     }
 
     return this.Adapter.peek(this, primaryKey);
   }
 
-  static peekBy(queryObject: QueryObject): ModelRef | void {
+  static peekBy(queryObject: QueryObject): Model | void {
     return this.Adapter.peekBy(this, queryObject);
   }
 
-  static peekAll(queryObject: QueryObject = {}): ModelRef[] | void {
+  static peekAll(queryObject: QueryObject = {}): Model[] | void {
     return this.Adapter.peekAll(this, queryObject);
   }
 
-  static async count(): Promise<number> {
-    return await this.Adapter.count(this);
-  }
-
-  static async find(primaryKey: primaryKey | primaryKey[]): Promise<ModelRef[] | ModelRef | void> {
+  static async find(primaryKey: primaryKey | primaryKey[]): Promise<Model[] | Model | void> {
     return await this.Adapter.find(this, primaryKey);
   }
 
-  static async findBy(queryObject: QueryObject): Promise<ModelRef | void> {
+  static async findBy(queryObject: QueryObject): Promise<Model | void> {
     return await this.Adapter.findBy(this, queryObject);
   }
 
-  static async findAll(queryObject: QueryObject = {}): Promise<ModelRef[] | void> {
+  static async findAll(queryObject: QueryObject = {}): Promise<Model[] | void> {
     return await this.Adapter.findAll(this, queryObject);
   }
 
-  static async save(record: ModelRef): Promise<ModelRef> {
-    return await this.Adapter.save(this, record);
+  static cache(fixture: ModelRef): Model {
+    return this.Adapter.cache(this, fixture);
   }
 
-  static async insert(record?: ModelRef): Promise<ModelRef> {
+  static async insert(record?: ModelRef): Promise<Model> {
     return await this.Adapter.insert(this, record || {});
   }
 
-  static async update(record: ModelRef): Promise<ModelRef> {
+  static async update(record: ModelRef): Promise<Model> {
     return await this.Adapter.update(this, record);
   }
 
-  static unload(record: ModelRef): ModelRef {
+  static async save(record: ModelRef): Promise<Model> {
+    return await this.Adapter.save(this, record);
+  }
+
+  static unload(record: ModelRef): Model {
     return this.Adapter.unload(this, record);
   }
 
-  static async delete(record: ModelRef): Promise<ModelRef> {
+  static async delete(record: ModelRef): Promise<Model> {
     return await this.Adapter.delete(this, record);
   }
 
-  static async saveAll(records: ModelRef[]): Promise<ModelRef[]> {
+  static async saveAll(records: ModelRef[]): Promise<Model[]> {
     return await this.Adapter.saveAll(this, records);
   }
 
-  static async insertAll(records: ModelRef[]): Promise<ModelRef[]> {
+  static async insertAll(records: ModelRef[]): Promise<Model[]> {
     return await this.Adapter.insertAll(this, records);
   }
 
-  static async updateAll(records: ModelRef[]): Promise<ModelRef[]> {
+  static async updateAll(records: ModelRef[]): Promise<Model[]> {
     return await this.Adapter.updateAll(this, records);
   }
 
@@ -113,13 +115,17 @@ export default class Model {
     return await this.Adapter.deleteAll(this, records);
   }
 
+  static async count(): Promise<number> {
+    return await this.Adapter.count(this);
+  }
+
   constructor(options?: QueryObject) {
     Array.from((this.constructor as typeof Model).columnNames).forEach((keyName) => {
       Object.defineProperty(this, keyName, {
         enumerable: true,
         writable: true,
         configurable: false,
-        value: options && keyName in options ? options[keyName] : null
+        value: options && keyName in options ? options[keyName] : null,
       });
     });
 

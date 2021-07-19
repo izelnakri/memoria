@@ -232,7 +232,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await Photo.insert({ id: 1 });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] Photo id 1 already exists in the database! Photo.insert\(\{ id: 1 \}\) fails/.test(
+        /\[Memoria\] Photo\.insert\(record\) fails: id 1 already exists in the database!/.test(
           error.message
         )
       );
@@ -241,7 +241,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] PhotoComment uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database! PhotoComment.insert\(\{ uuid: 'd351963d-e725-4092-a37c-1ca1823b57d3' \}\) fails/.test(
+        /\[Memoria\] PhotoComment\.insert\(record\) fails: uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database!/.test(
           error.message
         )
       );
@@ -260,7 +260,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await Photo.insert({ id: "99" });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] Photo model primaryKey type is 'id'. Instead you've tried to enter id: 99 with string type/.test(
+        /\[Memoria\] Photo.primaryKeyType is 'id'. Instead you've tried: 99 with string type/.test(
           error.message
         )
       );
@@ -269,7 +269,7 @@ module("@memoria/model | $Model.insert()", function (hooks) {
       await PhotoComment.insert({ uuid: 1 });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 1 with number type/.test(
+        /\[Memoria\] PhotoComment.primaryKeyType is 'uuid'. Instead you've tried: 1 with number type/.test(
           error.message
         )
       );

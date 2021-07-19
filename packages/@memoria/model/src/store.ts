@@ -175,7 +175,7 @@ export default class Store {
             [columnName]:
               column.generated === "uuid"
                 ? generateUUID
-                : (Class: typeof Model) => incrementId(Class.cache, columnName),
+                : (Class: typeof Model) => incrementId(Class.Cache as ModelRef[], columnName),
           });
         }
 

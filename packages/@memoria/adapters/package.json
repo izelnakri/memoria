@@ -9,6 +9,5 @@
   "files": [
     "dist/*"
   ],
-  "dependencies": {
-  }
+  "dependencies": {}
 }

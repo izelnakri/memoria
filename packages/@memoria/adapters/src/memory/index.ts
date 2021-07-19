@@ -1,42 +1,45 @@
 import kleur from "kleur";
 import inspect from "object-inspect";
 import Decorators from "./decorators";
-import { insertFixturesWithTypechecks, primaryKeyTypeSafetyCheck } from "../utils";
+import { primaryKeyTypeSafetyCheck } from "../utils";
 import MemoriaModel, { Store } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 
+// NewBucket, InFlightBucket, DirtyBucket, PersistedBucket, HistoryBucket, ErrorBucket, RollbackBucket
+
+// What is the different between push and insert?
+// Push replaces existing record!, doesnt have defaultValues
+
+// static push(changes existing model data)
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
-  static async resetCache(
-    Model: typeof MemoriaModel,
-    targetState?: ModelRef[]
-  ): Promise<ModelRef[]> {
-    Model.cache.length = 0;
+  static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): MemoriaModel[] {
+    Model.Cache.length = 0;
 
     if (targetState) {
-      await insertFixturesWithTypechecks(Model, targetState);
+      targetState.map((targetFixture) => this.cache(Model, targetFixture));
     }
 
-    return Model.cache;
+    return Model.Cache;
   }
 
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRef[]
-  ): Promise<ModelRef[]> {
-    return await this.resetCache(Model, targetState);
+  ): Promise<MemoriaModel[]> {
+    return this.resetCache(Model, targetState);
   }
 
   static peek(
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[]
-  ): ModelRef[] | ModelRef | void {
+  ): MemoriaModel[] | MemoriaModel | void {
     if (Array.isArray(primaryKey as primaryKey[])) {
-      return Array.from(Model.cache).reduce((result: ModelRef[], model: ModelRef) => {
+      return Array.from(Model.Cache).reduce((result: ModelRef[], model: ModelRef) => {
         const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
           ? model
           : null;
@@ -44,7 +47,7 @@ export default class MemoryAdapter {
         return foundModel ? result.concat([foundModel]) : result;
       }, []) as ModelRef[];
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      return Array.from(Model.cache).find(
+      return Array.from(Model.Cache).find(
         (model: ModelRef) => model[Model.primaryKeyName] === primaryKey
       ) as ModelRef | undefined;
     }
@@ -54,7 +57,7 @@ export default class MemoryAdapter {
     );
   }
 
-  static peekBy(Model: typeof MemoriaModel, queryObject: object): ModelRef | void {
+  static peekBy(Model: typeof MemoriaModel, queryObject: object): MemoriaModel | void {
     if (!queryObject) {
       throw new Error(
         kleur.red(`[Memoria] ${Model.name}.findBy(id) cannot be called without a parameter`)
@@ -63,43 +66,74 @@ export default class MemoryAdapter {
 
     let keys = Object.keys(queryObject);
 
-    return Model.cache.find((model: ModelRef) => comparison(model, queryObject, keys, 0));
+    return Model.Cache.find((model: ModelRef) => comparison(model, queryObject, keys, 0));
   }
 
-  static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): ModelRef[] | void {
+  static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): MemoriaModel[] | void {
     let keys = Object.keys(queryObject);
     if (keys.length === 0) {
-      return Array.from(Model.cache);
+      return Array.from(Model.Cache);
     }
 
-    return Array.from(Model.cache as ModelRef[]).filter((model: ModelRef) =>
-      comparison(model, queryObject, keys, 0)
+    return Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
+      comparison(model as ModelRef, queryObject, keys, 0)
     );
   }
 
   static async count(Model: typeof MemoriaModel): Promise<number> {
-    return Model.cache.length;
+    return Model.Cache.length;
   }
 
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[]
-  ): Promise<ModelRef[] | ModelRef | void> {
+  ): Promise<MemoriaModel[] | MemoriaModel | void> {
     return this.peek(Model, primaryKey);
   }
 
-  static async findBy(Model: typeof MemoriaModel, queryObject: object): Promise<ModelRef | void> {
+  static async findBy(
+    Model: typeof MemoriaModel,
+    queryObject: object
+  ): Promise<MemoriaModel | void> {
     return this.peekBy(Model, queryObject);
   }
 
   static async findAll(
     Model: typeof MemoriaModel,
     queryObject: object = {}
-  ): Promise<ModelRef[] | void> {
+  ): Promise<MemoriaModel[] | void> {
     return this.peekAll(Model, queryObject);
   }
 
-  static async save(Model: typeof MemoriaModel, model: ModelRef): Promise<ModelRef> {
+  static cache(Model: typeof MemoriaModel, fixture: ModelRef): MemoriaModel {
+    if (!fixture.hasOwnProperty(Model.primaryKeyName)) {
+      throw new Error(
+        kleur.red(
+          `[Memoria] CacheError: A ${Model.name} Record is missing a primary key(${Model.primaryKeyName}) to add to cache. Please make sure all your ${Model.name} fixtures have ${Model.primaryKeyName} key`
+        )
+      );
+    }
+
+    primaryKeyTypeSafetyCheck(Model, fixture[Model.primaryKeyName]);
+
+    if (this.peek(Model, fixture[Model.primaryKeyName])) {
+      throw new Error(
+        kleur.red(
+          `[Memoria] CacheError: ${Model.name}.cache() fails: ${Model.primaryKeyName} ${
+            fixture[Model.primaryKeyName]
+          } already exists in the cache! `
+        )
+      );
+    }
+
+    let target = new Model(fixture) as ModelRef;
+
+    Model.Cache.push(target);
+
+    return target;
+  }
+
+  static async save(Model: typeof MemoriaModel, model: ModelRef): Promise<MemoriaModel> {
     let modelId = model[Model.primaryKeyName];
     if (modelId) {
       let foundModel = await this.find(Model, modelId);
@@ -110,45 +144,49 @@ export default class MemoryAdapter {
     return await this.insert(Model, model);
   }
 
-  static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<ModelRef> {
-    let filledModel = Object.assign({}, Store.getDefaultValues(Model, "insert"), model); // TODO: maybe remove this var in future
+  static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<MemoriaModel> {
     let target = new Model(
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
-        if (typeof filledModel[attribute] === "function") {
-          result[attribute] = filledModel[attribute].apply(null, [Model]); // TODO: this changed
-        } else if (!filledModel.hasOwnProperty(attribute)) {
+        if (model.hasOwnProperty(attribute)) {
+          result[attribute] = model[attribute];
+
+          return result;
+        }
+
+        let defaultValues = Object.assign({}, Store.getDefaultValues(Model, "insert"));
+        if (!defaultValues.hasOwnProperty(attribute)) {
           result[attribute] = null;
+        } else if (typeof defaultValues[attribute] === "function") {
+          result[attribute] = defaultValues[attribute].apply(null, [Model]); // TODO: this changed
         } else {
-          result[attribute] = filledModel[attribute];
+          result[attribute] = defaultValues[attribute];
         }
 
         return result;
       }, {})
-    ) as ModelRef;
+    ) as MemoriaModel;
+    let primaryKey = (target as ModelRef)[Model.primaryKeyName];
 
-    primaryKeyTypeSafetyCheck(Model.primaryKeyType, target[Model.primaryKeyName], Model.name);
+    primaryKeyTypeSafetyCheck(Model, primaryKey);
 
-    let existingRecord = target.id
-      ? await this.find(Model, target.id)
-      : await this.findBy(Model, { uuid: target.uuid });
-    if (existingRecord) {
+    if (this.peek(Model, primaryKey)) {
       throw new Error(
         kleur.red(
-          `[Memoria] ${Model.name} ${Model.primaryKeyName} ${
-            target[Model.primaryKeyName]
-          } already exists in the database! ${Model.name}.insert(${inspect(model)}) fails`
+          `[Memoria] ${Model.name}.insert(record) fails: ${
+            Model.primaryKeyName
+          } ${primaryKey} already exists in the database! ${Model.name}.insert(${inspect(model)})`
         )
       );
     }
 
-    Model.cache.push(target as ModelRef);
+    Model.Cache.push(target as MemoriaModel);
 
-    return target as ModelRef;
+    return target as MemoriaModel;
   }
 
-  // TODO: HANDLE updateDate default generation
   static async update(Model: typeof MemoriaModel, record: ModelRef): Promise<ModelRef> {
-    if (!record || (!record.id && !record.uuid)) {
+    let primaryKey = record[Model.primaryKeyName];
+    if (!primaryKey) {
       throw new Error(
         kleur.red(
           `[Memoria] ${Model.name}.update(record) requires id or uuid primary key to update a record`
@@ -156,14 +194,11 @@ export default class MemoryAdapter {
       );
     }
 
-    let targetRecord = record.id
-      ? await this.find(Model, record.id)
-      : await this.findBy(Model, { uuid: record.uuid });
-    let primaryKey = Model.primaryKeyName;
+    let targetRecord = this.peek(Model, primaryKey);
     if (!targetRecord) {
       throw new Error(
         kleur.red(
-          `[Memoria] ${Model.name}.update(record) failed because ${Model.name} with ${primaryKey}: ${record[primaryKey]} does not exist`
+          `[Memoria] ${Model.name}.update(record) failed because ${Model.name} with ${Model.primaryKeyName}: ${primaryKey} does not exist`
         )
       );
     }
@@ -174,7 +209,7 @@ export default class MemoryAdapter {
     if (recordsUnknownAttribute) {
       throw new Error(
         kleur.red(
-          `[Memoria] ${Model.name}.update ${primaryKey}: ${record[primaryKey]} fails, ${Model.name} model does not have ${recordsUnknownAttribute} attribute to update`
+          `[Memoria] ${Model.name}.update ${Model.primaryKeyName}: ${primaryKey} fails, ${Model.name} model does not have ${recordsUnknownAttribute} attribute to update`
         )
       );
     }
@@ -195,7 +230,7 @@ export default class MemoryAdapter {
 
   // TODO: HANDLE deleteDate generation
   static unload(Model: typeof MemoriaModel, record: ModelRef): ModelRef {
-    if (Model.cache.length === 0) {
+    if (Model.Cache.length === 0) {
       throw new Error(
         kleur.red(
           `[Memoria] ${Model.name} has no records in the database to delete. ${
@@ -211,45 +246,43 @@ export default class MemoryAdapter {
       );
     }
 
-    let targetRecord = record.id
-      ? (this.peek(Model, record.id) as ModelRef)
-      : (this.peekBy(Model, { uuid: record.uuid }) as ModelRef);
+    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as ModelRef;
     if (!targetRecord) {
       throw new Error(
         kleur.red(
-          `[Memoria] Could not find ${Model.name} with ${Model.primaryKeyName} ${
+          `[Memoria] Could not find ${Model.name} with ${Model.primaryKeyName}: ${
             record[Model.primaryKeyName]
           } to delete. ${Model.name}.delete(${inspect(record)}) failed`
         )
       );
     }
 
-    let targetIndex = Model.cache.indexOf(targetRecord);
+    let targetIndex = Model.Cache.indexOf(targetRecord);
 
-    Model.cache.splice(targetIndex, 1);
+    Model.Cache.splice(targetIndex, 1);
 
     return targetRecord;
   }
 
-  static async delete(Model: typeof MemoriaModel, record: ModelRef): Promise<ModelRef> {
+  static async delete(Model: typeof MemoriaModel, record: ModelRef): Promise<MemoriaModel> {
     return this.unload(Model, record);
   }
 
-  static async saveAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<ModelRef[]> {
+  static async saveAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.save(Model, model)));
   }
 
-  static async insertAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<ModelRef[]> {
+  static async insertAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.insert(Model, model)));
   }
 
-  static async updateAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<ModelRef[]> {
+  static async updateAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.update(Model, model)));
   }
 
   static unloadAll(Model: typeof MemoriaModel, models?: ModelRef[]): void {
     if (!models) {
-      Model.cache.length = 0;
+      Model.Cache.length = 0;
 
       return;
     }

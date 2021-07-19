@@ -1,14 +1,14 @@
-export function OneToOne(modelFunction, inversionFunction) {}
+export function OneToOne(_modelFunction, _inversionFunction) {}
 
-export function ManyToOne(modelFunction, inversionFunction) {}
+export function ManyToOne(_modelFunction, _inversionFunction) {}
 
-export function OneToMany(modelFunction, inversionFunction) {}
+export function OneToMany(_modelFunction, _inversionFunction) {}
 
-export function ManyToMany(modelFunction, inversionFunction) {}
+export function ManyToMany(_modelFunction, _inversionFunction) {}
 
-export function JoinColumn(joinColumnOptions) {}
+export function JoinColumn(_joinColumnOptions) {}
 
-export function JoinTable(joinTableOptions) {}
+export function JoinTable(_joinTableOptions) {}
 
 export default {
   OneToOne,

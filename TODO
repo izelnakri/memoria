@@ -1,10 +1,15 @@
+- push interface
+- Serializer interface
+- SQL Adapter tests
+- relationships
+
+
 make in build src adjust package.json main to dist or src based on clean or build script
 - investigate relationship setting (!!)
 - investigate error handling (!!)
 - investigate changeset / repository / normal configuration
 - investigate class-validator to ajv/JSON Schema exports (!!)
 - investigate Adapter & Serializer interface
-- investigate Query Interface
 
 
 

@@ -146,7 +146,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       {
         content: "What a nice photo!",
         inserted_at: photoComments[0].inserted_at,
-        is_important: true,
+        is_important: null,
         photo_id: 1,
         user_id: 1,
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -154,7 +154,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       {
         content: "I agree",
         inserted_at: photoComments[1].inserted_at,
-        is_important: true,
+        is_important: null,
         photo_id: 1,
         user_id: 2,
         uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -162,7 +162,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       {
         content: "I was kidding",
         inserted_at: photoComments[2].inserted_at,
-        is_important: true,
+        is_important: null,
         photo_id: 1,
         user_id: 1,
         uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
@@ -170,7 +170,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       {
         content: "Interesting indeed",
         inserted_at: photoComments[3].inserted_at,
-        is_important: true,
+        is_important: null,
         photo_id: 2,
         user_id: 1,
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
@@ -208,7 +208,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] DB ERROR: At least one of your PhotoComment fixtures missing a primary key\. Please make sure all your PhotoComment fixtures have either id or uuid primaryKey/.test(
+        /\[Memoria\] CacheError: A PhotoComment Record is missing a primary key\(uuid\) to add to cache/.test(
           error.message
         )
       );
@@ -243,7 +243,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] Photo model primaryKey type is 'id'\. Instead you've tried to enter id: 2 with string type/.test(
+        /\[Memoria\] Photo.primaryKeyType is 'id'\. Instead you've tried: 2 with string type/.test(
           error.message
         )
       );
@@ -284,7 +284,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] PhotoComment model primaryKey type is 'uuid'. Instead you've tried to enter uuid: 12 with number type/.test(
+        /\[Memoria\] PhotoComment\.primaryKeyType is 'uuid'\. Instead you've tried: 12 with number type/.test(
           error.message
         )
       );
@@ -319,7 +319,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] DB ERROR: Duplication in Photo fixtures with id: 2/.test(error.message)
+        /\[Memoria\] CacheError: Photo.cache\(\) fails: id 2 already exists in the cache!/.test(error.message)
       );
     }
   });
@@ -358,7 +358,7 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] DB ERROR: Duplication in PhotoComment fixtures with uuid: 499ec646-493f-4eea-b92e-e383d94182f4/.test(
+        /\[Memoria\] CacheError: PhotoComment.cache\(\) fails: uuid 499ec646-493f-4eea-b92e-e383d94182f4 already exists in the cache!/.test(
           error.message
         )
       );

@@ -30,6 +30,14 @@ TARGET_LIBRARIES.forEach((libraryName) => {
   console.log(`Released v${version} of ${libraryName} on npm!`);
 });
 
+PROJECT_JSON.version = version;
+
+await fs.writeFile('package.json', JSON.stringify(PROJECT_JSON, null, 2));
+
+await Promise.all(TARGET_LIBRARIES.map((libraryName) => makeLibEntrypointTS(libraryName)));
+
+console.log(`Released memoria v${version} successfully`);
+
 async function bumpVersion(libraryName, version, projectJSONDependencies) {
   let packageJSON = await fs.readFile(`packages/${libraryName}/package.json`);
 
@@ -50,11 +58,16 @@ async function bumpVersion(libraryName, version, projectJSONDependencies) {
     return { ...result, [dependency]: oldJSON.dependencies[dependency] };
   }, oldDependencies);
 
+  oldJSON.main = 'dist/index.js'; // NOTE: make npm packages target JS
+
   await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
 }
 
-PROJECT_JSON.version = version;
+async function makeLibEntrypointTS(libraryName) {
+  let packageJSON = await fs.readFile(`packages/${libraryName}/package.json`);
+  let oldJSON = JSON.parse(packageJSON.toString());
 
-await fs.writeFile('package.json', JSON.stringify(PROJECT_JSON, null, 2));
+  oldJSON.main = 'src/index.ts'; // NOTE: make npm packages target TS for development
 
-console.log(`Released memoria v${version} successfully`);
+  await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
+}

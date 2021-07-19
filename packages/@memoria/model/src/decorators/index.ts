@@ -11,7 +11,7 @@ import { OneToOne, ManyToOne, OneToMany, ManyToMany, JoinColumn, JoinTable } fro
 
 // NOTE: maybe I can remove one call with: returning the function directly:
 export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
-  return function (target, propertyKey, descriptor) {
+  return function (target, propertyKey, _descriptor) {
     return target.constructor.Adapter.Decorators[decoratorName](
       target.constructor,
       propertyKey,

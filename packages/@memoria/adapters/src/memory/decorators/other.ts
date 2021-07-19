@@ -1,12 +1,12 @@
-export function Index(indexNameOrColumnList?, columnListOrOptions?) {}
+export function Index(_indexNameOrColumnList?, _columnListOrOptions?) {}
 
-export function Unique(indexNameOrColumnList?, columnList?) {} // NOTE: maybe do this in future
+export function Unique(_indexNameOrColumnList?, _columnList?) {} // NOTE: maybe do this in future
 
-export function Check(checkExpression) {}
+export function Check(_checkExpression) {}
 
-export function Exclusion(exclusingQuery) {}
+export function Exclusion(_exclusingQuery) {}
 
-export function Generated(strategy) {}
+export function Generated(_strategy) {}
 
 export default {
   Index,

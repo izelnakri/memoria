@@ -6,8 +6,8 @@ import recursiveLookup from 'recursive-lookup';
 const shell = promisify(exec);
 
 let targetPackages = [
-  '@memoria/adapters',
   '@memoria/model',
+  '@memoria/adapters',
   '@memoria/response',
   '@memoria/server'
 ];
@@ -25,7 +25,6 @@ async function buildPackage(packageName) {
   await fs.mkdir(`${targetFolder}/dist`, { recursive: true });
 
   try {
-
     if (process.env.ENVIRONMENT !== 'development') {
       await shell(`node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ES2018 --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`);
 

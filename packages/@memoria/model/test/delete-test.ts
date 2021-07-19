@@ -177,7 +177,7 @@ module("@memoria/model | $Model.delete()", function (hooks) {
       await Photo.delete({ id: 1 });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] Could not find Photo with id 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
+        /\[Memoria\] Could not find Photo with id: 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
           error.message
         )
       );
@@ -186,7 +186,7 @@ module("@memoria/model | $Model.delete()", function (hooks) {
       await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
     } catch (error) {
       assert.ok(
-        /\[Memoria\] Could not find PhotoComment with uuid 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
+        /\[Memoria\] Could not find PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
           error.message
         )
       );

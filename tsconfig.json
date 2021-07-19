@@ -2,11 +2,14 @@
   "ts-node": {
     "transpileOnly": true
   },
+  "typedocOptions": {
+    "entryPoints": ["packages/@memoria/model/src/index.ts", "packages/@memoria/adapters/src/index.ts"],
+    "out": "docs"
+  },
   "compilerOptions": {
     "target": "ES2018",                          /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */
     "module": "commonjs",
     "declaration": true,                   /* Generates corresponding '.d.ts' file. */
-    "rootDir": "./packages",
     "outDir": "./dist",                        /* Redirect output structure to the directory. */
     "inlineSourceMap": true,
     "inlineSources": true,
@@ -19,7 +22,7 @@
     "noUnusedLocals": true,
     "noImplicitThis": true,
     // Enabling these breaks @glimmer/application, fix and reenable this
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "suppressImplicitAnyIndexErrors": false,
     "noUnusedParameters": true,
     "strictNullChecks": true,
@@ -35,13 +38,12 @@
     },
 
     "types": [
-      "qunit",
       "node"
     ]
   },
-//  "include": [
-//    "packages/@memoria/*/src/**/*.ts"
-//  ],
-//  "exclude": [
-//  ]
+  "include": ["packages/@memoria/adapter/src/**/*", "packages/@memoria/model/src/**/*"],
+  "exclude": [
+    "test",
+    "packages/@memoria/server"
+  ]
 }

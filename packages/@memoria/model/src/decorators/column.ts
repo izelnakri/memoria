@@ -92,7 +92,7 @@ export default {
 };
 
 function proxyColumnToAdapter(decoratorName: string, firstParam: ColumnDefinition) {
-  return function (target: any, propertyKey: string, descriptor: any) {
+  return function (target: any, propertyKey: string, _descriptor: any) {
     Store.setColumnMetadata(target.constructor, propertyKey, firstParam);
 
     return target.constructor.Adapter.Decorators[decoratorName](
