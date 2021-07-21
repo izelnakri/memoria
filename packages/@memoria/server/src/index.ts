@@ -7,9 +7,9 @@ declare global {
 
 import kleur from "kleur";
 import TargetModel from "@memoria/model";
-import "./set-pretender-context";
+import "./set-pretender-context.js";
 import Pretender from "pretender/dist/pretender.js";
-import hackPretender from "./pretender-hacks"; // NOTE: check this
+import hackPretender from "./pretender-hacks.js"; // NOTE: check this
 
 const DEFAULT_PASSTHROUGHS = [
   "http://localhost:0/chromecheckurl",

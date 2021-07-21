@@ -36,8 +36,8 @@
     "test:browser:ci": "npm run build && qunitx test/index.ts --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:browser:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters packages/@memoria/model test/index.ts --watch --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:node": "ENVIRONMENT=development npm run test:node:ci",
-    "test:node:ci": "npm run build && qunitx tmp/@memoria/model/index.js tmp/@memoria/response/index.js tmp/@memoria/server/index.js --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
-    "test:node:watch": "ENVIRONMENT=development npm run build && qunitx tmp/@memoria/**/*.js --watch --debug --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:node:ci": "npm run build && qunitx packages/@memoria/model/test/index.ts --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:node:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/model/test/index.ts --watch --debug --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:cli": "qunitx packages/@memoria/cli/test/index.js",
     "typecheck": "tsc --project tsconfig.json --noEmit --skipLibCheck"
   },

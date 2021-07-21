@@ -1,12 +1,12 @@
 import $ from "jquery";
-import Model from "@memserver/model";
-import Memserver from "@memserver/server";
-import Response from "@memserver/response";
+import Model from "@memoria/model";
+import Memoria from "@Memoria/server";
+import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 import sinon from "sinon/pkg/sinon.js";
 
-module("@memserver/server | passthrough tests", function (hooks) {
+module("@memoria/server | passthrough tests", function (hooks) {
   setupForTests(hooks);
 
   const AUTHENTICATION_TOKEN = "ec25fc7b-6ee2-4bda-b57c-6c9867b30ff4";
@@ -41,7 +41,7 @@ module("@memserver/server | passthrough tests", function (hooks) {
   function prepare() {
     class Photo extends Model {}
 
-    let Server = new Memserver({
+    let Server = new Memoria({
       routes() {
         this.get("/photos", () => {
           const photos = Photo.findAll();
@@ -62,7 +62,7 @@ module("@memserver/server | passthrough tests", function (hooks) {
     return { Photo, Server };
   }
 
-  test("throws an error when Memserver tried to intercept an undeclared route", async function (assert) {
+  test("throws an error when memoria tried to intercept an undeclared route", async function (assert) {
     let { Photo, Server } = prepare();
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
@@ -113,7 +113,7 @@ module("@memserver/server | passthrough tests", function (hooks) {
     });
   });
 
-  test("[MemServer.Server] can create global passthrough via this.passthrough()", async function (assert) {
+  test("[Memoria.Server] can create global passthrough via this.passthrough()", async function (assert) {
     assert.expect(6);
 
     let { Photo, Server } = prepare();

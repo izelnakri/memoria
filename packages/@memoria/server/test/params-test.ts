@@ -1,11 +1,11 @@
 import $ from "jquery";
-import Model from "@memserver/model";
-import Memserver from "@memserver/server";
-import Response from "@memserver/response";
+import Model from "@memoria/model";
+import Memoria from "@memoria/server";
+import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 
-module("@memserver/server | params, headers, queryParams tests", function (hooks) {
+module("@memoria/server | params, headers, queryParams tests", function (hooks) {
   setupForTests(hooks);
 
   const AUTHENTICATION_TOKEN = "ec25fc7b-6ee2-4bda-b57c-6c9867b30ff4";
@@ -111,7 +111,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
       USER_FIXTURES.forEach((user) => User.insert(user));
 
-      const Server = new Memserver({
+      const Server = new Memoria({
         routes() {
           this.post("/photos", ({ headers, params, queryParams }) => {
             const user = User.findFromHeaderToken(headers);
@@ -189,7 +189,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       return { Server, User, Photo };
     }
 
-    test("[MemServer.Server] POST /resources work with custom headers, queryParams and responses", async function (assert) {
+    test("[Memoria.Server] POST /resources work with custom headers, queryParams and responses", async function (assert) {
       assert.expect(8);
 
       const { Photo, User, Server } = prepareRESTServerTest();
@@ -227,7 +227,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server] GET /resources works with custom headers, queryParams and responses", async function (assert) {
+    test("[Memoria.Server] GET /resources works with custom headers, queryParams and responses", async function (assert) {
       assert.expect(6);
 
       const { Photo, User, Server } = prepareRESTServerTest();
@@ -264,7 +264,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server] GET /resources/:id works with custom headers, queryParams and responses", async function (assert) {
+    test("[Memoria.Server] GET /resources/:id works with custom headers, queryParams and responses", async function (assert) {
       assert.expect(4);
 
       const { Photo, User, Server } = prepareRESTServerTest();
@@ -290,7 +290,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server] PUT /resources/:id works with custom headers, queryParams and responses", async function (assert) {
+    test("[Memoria.Server] PUT /resources/:id works with custom headers, queryParams and responses", async function (assert) {
       assert.expect(4);
 
       const { Photo, User, Server } = prepareRESTServerTest();
@@ -318,7 +318,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server] DELETE /resources/:id works with custom headers, queryParams and responses", async function (assert) {
+    test("[Memoria.Server] DELETE /resources/:id works with custom headers, queryParams and responses", async function (assert) {
       assert.expect(3);
 
       const { Photo, User, Server } = prepareRESTServerTest();
@@ -357,7 +357,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       USER_FIXTURES.forEach((user) => User.insert(user));
       PHOTO_COMMENT_FIXTURES.forEach((photoComment) => PhotoComment.insert(photoComment));
 
-      const Server = new Memserver({
+      const Server = new Memoria({
         routes() {
           this.get("/ethereum-accounts", ({ queryParams }) => {
             const ethereumAccounts = EthereumAccount.findAll({ address: queryParams.address });
@@ -398,7 +398,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       return { EthereumAccount, Server, User, Photo, PhotoComment };
     }
 
-    test("[MemServer.Server Edge cases] Server works for coalasceFindRequests routes", async function (assert) {
+    test("[Memoria.Server Edge cases] Server works for coalasceFindRequests routes", async function (assert) {
       assert.expect(6);
 
       const { Photo, PhotoComment, Server } = prepareEdgeCaseServerTests();
@@ -433,7 +433,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server Edge cases] Server converts empty strings to null during a request and formats query params", async function (assert) {
+    test("[Memoria.Server Edge cases] Server converts empty strings to null during a request and formats query params", async function (assert) {
       assert.expect(4);
 
       const { Photo, Server } = prepareEdgeCaseServerTests();
@@ -456,7 +456,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server Edge cases] Server casts uuids correctly as params", async function (assert) {
+    test("[Memoria.Server Edge cases] Server casts uuids correctly as params", async function (assert) {
       assert.expect(2);
 
       const { Photo, PhotoComment, Server } = prepareEdgeCaseServerTests();
@@ -474,7 +474,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server Edge cases] Server casts uuids correct as queryParams", async function (assert) {
+    test("[Memoria.Server Edge cases] Server casts uuids correct as queryParams", async function (assert) {
       assert.expect(2);
 
       const { Photo, PhotoComment, Server } = prepareEdgeCaseServerTests();
@@ -492,7 +492,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server Edga cases] Server casts ethereum adresses correctly as string request.params", async function (assert) {
+    test("[Memoria.Server Edga cases] Server casts ethereum adresses correctly as string request.params", async function (assert) {
       assert.expect(2);
 
       const { EthereumAccount, Photo, PhotoComment, Server } = prepareEdgeCaseServerTests();
@@ -513,7 +513,7 @@ module("@memserver/server | params, headers, queryParams tests", function (hooks
       });
     });
 
-    test("[MemServer.Server Edge cases] Server casts ethereum addresses correctly as string in request.queryParams", async function (assert) {
+    test("[Memoria.Server Edge cases] Server casts ethereum addresses correctly as string in request.queryParams", async function (assert) {
       assert.expect(2);
 
       const { EthereumAccount, Photo, PhotoComment, Server } = prepareEdgeCaseServerTests();

@@ -1,11 +1,11 @@
 import $ from "jquery";
-import Model from "@memserver/model";
-import Memserver from "@memserver/server";
-import Response from "@memserver/response";
+import Model from "@memoria/model";
+import Memoria from "@memoria/server";
+import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 
-module("@memserver/server| init configurations", function (hooks) {
+module("@memoria/server| init configurations", function (hooks) {
   setupForTests(hooks);
 
   const PHOTO_FIXTURES = [
@@ -79,14 +79,14 @@ module("@memserver/server| init configurations", function (hooks) {
     return { Photo, PhotoComment };
   }
 
-  test("namespace configuration option could be passed in during MemServer.start()", async function (assert) {
+  test("namespace configuration option could be passed in during Memoria.start()", async function (assert) {
     assert.expect(2);
 
     const { Photo } = prepare();
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       namespace: "api/v1",
       routes() {
         this.get("/photos", () => {
@@ -118,7 +118,7 @@ module("@memserver/server| init configurations", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       namespace: "api/v1",
       routes() {
         this.namespace = "api/";
@@ -145,14 +145,14 @@ module("@memserver/server| init configurations", function (hooks) {
     });
   });
 
-  test("urlPrefix configuration option could be passed in during MemServer.start()", async function (assert) {
+  test("urlPrefix configuration option could be passed in during memoria.start()", async function (assert) {
     assert.expect(2);
 
     const { Photo } = prepare();
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       urlPrefix: "http://twitter.com",
       routes() {
         this.namespace = "api/";
@@ -185,7 +185,7 @@ module("@memserver/server| init configurations", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       urlPrefix: "http://twitter.com",
       routes() {
         this.urlPrefix = "http://facebook.com/";
@@ -213,14 +213,14 @@ module("@memserver/server| init configurations", function (hooks) {
     });
   });
 
-  test("timing configuration option could be passed in during MemServer.start()", async function (assert) {
+  test("timing configuration option could be passed in during Memoria.start()", async function (assert) {
     assert.expect(3);
 
     const { Photo } = prepare();
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       timing: 3000,
       routes() {
         this.get("/photos", () => {

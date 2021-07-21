@@ -1,9 +1,9 @@
 import $ from "jquery";
 import Model from "@memoria/model";
-import Memserver from "@memoria/server";
+import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 
 module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
   setupForTests(hooks);
@@ -98,7 +98,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
         is_important: true,
       };
     }
-    const Server = new Memserver({
+    const Server = new Memoria({
       routes() {
         this.post("/photos", ({ headers }) => {
           const user = User.findFromHeaderToken(headers);
@@ -316,7 +316,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
     });
   });
 
-  test("MemServer.Server works for external links", async function (assert) {
+  test("Memoria.Server works for external links", async function (assert) {
     assert.expect(2);
 
     const { Server } = prepare();

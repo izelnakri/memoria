@@ -1,11 +1,11 @@
 import $ from "jquery";
-import Model from "@memserver/model";
-import Memserver from "@memserver/server";
-import Response from "@memserver/response";
+import Model from "@memoria/model";
+import Memoria from "@memoria/server";
+import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 
-module("@memserver/server| handler defaults", function (hooks) {
+module("@memoria/server| handler defaults", function (hooks) {
   setupForTests(hooks);
 
   const PHOTO_FIXTURES = [
@@ -52,7 +52,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -90,7 +90,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -120,7 +120,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -147,7 +147,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -180,7 +180,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -211,7 +211,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     assert.throws(
       () =>
-        new Memserver({
+        new Memoria({
           routes() {
             this.post("/photos");
             this.get("/photos");
@@ -222,7 +222,7 @@ module("@memserver/server| handler defaults", function (hooks) {
             this.get("/houses");
           },
         }),
-      /\[Memserver\] GET \/houses route handler cannot be generated automatically: House is not on your window.House, also please check that your route name matches the model reference or create a custom handler function/
+      /\[Memoria\] GET \/houses route handler cannot be generated automatically: House is not on your window.House, also please check that your route name matches the model reference or create a custom handler function/
     );
   });
 
@@ -233,7 +233,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos");
         this.get("/photos");
@@ -265,7 +265,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos", () => {});
         this.get("/photos", () => {});
@@ -285,7 +285,7 @@ module("@memserver/server| handler defaults", function (hooks) {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
         error:
-          "[Memserver] POST /photos route handler did not return anything to respond to the request!",
+          "[Memoria] POST /photos route handler did not return anything to respond to the request!",
       });
       assert.equal(Photo.count(), 3);
     });
@@ -298,7 +298,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos", () => {});
         this.get("/photos", () => {});
@@ -316,7 +316,7 @@ module("@memserver/server| handler defaults", function (hooks) {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
         error:
-          "[Memserver] GET /photos route handler did not return anything to respond to the request!",
+          "[Memoria] GET /photos route handler did not return anything to respond to the request!",
       });
     });
   });
@@ -328,7 +328,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos", () => {});
         this.get("/photos", () => {});
@@ -346,7 +346,7 @@ module("@memserver/server| handler defaults", function (hooks) {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
         error:
-          "[Memserver] GET /photos/1 route handler did not return anything to respond to the request!",
+          "[Memoria] GET /photos/1 route handler did not return anything to respond to the request!",
       });
     });
   });
@@ -358,7 +358,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos", () => {});
         this.get("/photos", () => {});
@@ -377,7 +377,7 @@ module("@memserver/server| handler defaults", function (hooks) {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
         error:
-          "[Memserver] PUT /photos/1 route handler did not return anything to respond to the request!",
+          "[Memoria] PUT /photos/1 route handler did not return anything to respond to the request!",
       });
     });
   });
@@ -389,7 +389,7 @@ module("@memserver/server| handler defaults", function (hooks) {
 
     PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
 
-    this.Server = new Memserver({
+    this.Server = new Memoria({
       routes() {
         this.post("/photos", () => {});
         this.get("/photos", () => {});

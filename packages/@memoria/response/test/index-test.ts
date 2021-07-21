@@ -1,11 +1,11 @@
 import $ from "jquery";
-import Model from "@memserver/model";
-import Memserver from "@memserver/server";
-import Response from "@memserver/response";
+import Model from "@memoria/model";
+import memoria from "@memoria/server";
+import Response from "@memoria/response";
 import { module, test } from "qunitx";
-import setupForTests from "./helpers/setup-for-tests";
+import setupForTests from "./helpers/setup-for-tests.js";
 
-module("@memserver/response tests", function (hooks) {
+module("@memoria/response tests", function (hooks) {
   setupForTests(hooks);
 
   const PHOTO_FIXTURES = [
@@ -40,7 +40,7 @@ module("@memserver/response tests", function (hooks) {
     class Photo extends Model {}
     class User extends Model {}
 
-    let Server = new Memserver({
+    let Server = new memoria({
       routes() {
         this.get("/photos", () => {
           const photos = Photo.findAll();
