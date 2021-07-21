@@ -1,7 +1,7 @@
 import kleur from "kleur";
 import inspect from "object-inspect";
-import Decorators from "./decorators";
-import { primaryKeyTypeSafetyCheck } from "../utils";
+import Decorators from "./decorators/index.js";
+import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoriaModel, { Store } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 

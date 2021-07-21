@@ -1,7 +1,7 @@
-import Model from "./model";
-import Store from "./store";
-export type { ColumnDefinition } from "./store";
-export { generateUUID } from "./utils";
+import Model from "./model.js";
+import Store from "./store.js";
+export type { ColumnDefinition } from "./store.js";
+export { generateUUID } from "./utils.js";
 export {
   Column,
   CreateDateColumn,
@@ -10,7 +10,7 @@ export {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Generated,
-} from "./decorators/index";
+} from "./decorators/index.js";
 
 type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
   {

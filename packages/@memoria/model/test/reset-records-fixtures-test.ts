@@ -1,6 +1,6 @@
 import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria";
+import setupMemoria from "./helpers/setup-memoria.js";
 
 module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
   setupMemoria(hooks);
@@ -319,7 +319,9 @@ module("@memoria/model | $Model.resetRecords(initialState)", function (hooks) {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
       assert.ok(
-        /\[Memoria\] CacheError: Photo.cache\(\) fails: id 2 already exists in the cache!/.test(error.message)
+        /\[Memoria\] CacheError: Photo.cache\(\) fails: id 2 already exists in the cache!/.test(
+          error.message
+        )
       );
     }
   });

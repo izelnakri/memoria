@@ -27,12 +27,6 @@ async function buildPackage(packageName) {
   try {
     if (process.env.ENVIRONMENT !== 'development') {
       await shell(`node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ES2018 --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`);
-
-      let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/dist`, (path) => path.endsWith('.js'));
-
-      await Promise.all(fileAbsolutePaths.map((fileAbsolutePath) => {
-        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --plugins babel-plugin-module-extension-resolver --config-file ${process.cwd()}/.babelrc -o ${fileAbsolutePath}`);
-      }));
     } else {
       let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/src`, (path) => path.endsWith('.ts') || path.endsWith('.js'));
 
@@ -41,7 +35,7 @@ async function buildPackage(packageName) {
           .replace(`packages/${packageName}/src`, `packages/${packageName}/dist`)
         targetPath = targetPath.slice(0, targetPath.length - 3) + '.js';
 
-        return shell(`node_modules/.bin/babel ${fileAbsolutePath} --presets @babel/preset-typescript --config-file ${process.cwd()}/.babelrc --plugins babel-plugin-module-extension-resolver -o ${targetPath}`);
+        return shell(`node_modules/.bin/esbuild ${fileAbsolutePath} --format=esm --outfile=${targetPath}`);
       }));
     }
   } catch (error) {

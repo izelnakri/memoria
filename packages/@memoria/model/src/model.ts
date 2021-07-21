@@ -2,8 +2,8 @@ import kleur from "kleur";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
 import { MemoryAdapter } from "@memoria/adapters";
-import Store from "./store";
-import type { ModelRef } from "./index";
+import Store from "./store.js";
+import type { ModelRef } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };

@@ -1,4 +1,4 @@
-import { proxyToAdapter } from "./index";
+import { proxyToAdapter } from "./index.js";
 
 export function OneToOne(modelFunction, inversionFunction) {
   return proxyToAdapter("OneToOne", modelFunction, inversionFunction);

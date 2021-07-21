@@ -1,6 +1,6 @@
-import MemoryAdapter from "./memory/index";
-import RESTAdapter from "./rest/index";
-import SQLAdapter from "./sql/index";
+import MemoryAdapter from "./memory/index.js";
+import RESTAdapter from "./rest/index.js";
+import SQLAdapter from "./sql/index.js";
 
 export type primaryKey = number | string;
 

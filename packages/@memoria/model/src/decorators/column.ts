@@ -1,5 +1,5 @@
-import Store from "../store";
-import type { ColumnDefinition } from "../store";
+import Store from "../store.js";
+import type { ColumnDefinition } from "../store.js";
 import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
 // NOTE: options manglings here are done for defaultValue generation

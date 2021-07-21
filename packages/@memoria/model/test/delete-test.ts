@@ -1,6 +1,6 @@
 import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria";
+import setupMemoria from "./helpers/setup-memoria.js";
 
 module("@memoria/model | $Model.delete()", function (hooks) {
   setupMemoria(hooks);

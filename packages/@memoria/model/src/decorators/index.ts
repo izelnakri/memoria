@@ -5,9 +5,16 @@ import {
   DeleteDateColumn,
   PrimaryColumn,
   PrimaryGeneratedColumn,
-} from "./column";
-import { Index, Unique, Check, Exclusion, Generated } from "./other";
-import { OneToOne, ManyToOne, OneToMany, ManyToMany, JoinColumn, JoinTable } from "./relationship";
+} from "./column.js";
+import { Index, Unique, Check, Exclusion, Generated } from "./other.js";
+import {
+  OneToOne,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinColumn,
+  JoinTable,
+} from "./relationship.js";
 
 // NOTE: maybe I can remove one call with: returning the function directly:
 export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {

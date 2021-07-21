@@ -1,4 +1,4 @@
-import { proxyToAdapter } from "./index";
+import { proxyToAdapter } from "./index.js";
 
 // NOTE: maybe use another proxy method as the decorator could also be used in class
 

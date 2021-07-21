@@ -1,7 +1,7 @@
-import Model from "./index";
-import { ModelRef } from "./index";
+import Model from "./index.js";
+import { ModelRef } from "./index.js";
 import { ColumnType } from "typeorm/driver/types/ColumnTypes";
-import { generateUUID } from "./utils";
+import { generateUUID } from "./utils.js";
 
 interface SchemaDefinition {
   name: string;

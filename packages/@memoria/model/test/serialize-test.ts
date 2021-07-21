@@ -1,6 +1,6 @@
 import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria";
+import setupMemoria from "./helpers/setup-memoria.js";
 
 // TODO: half of the time fails even with commented out tests
 module("@memoria/model | $Model.serialize()", function (hooks) {
