@@ -6,7 +6,6 @@ declare global {
 }
 
 import kleur from "kleur";
-import TargetModel from "@memoria/model";
 import "./set-pretender-context.js";
 import Pretender from "pretender/dist/pretender.js";
 import hackPretender from "./pretender-hacks.js"; // NOTE: check this
@@ -36,38 +35,28 @@ interface Memserver {
 // globalizeModules: true,
 // globalizeModels: true,
 class Memserver {
-  Models = {};
-
   constructor(options: MemserverOptions = { logging: true }) {
     hackPretender(Pretender as any);
     const initializer = options.initializer || async function () {};
     const routes = options.routes || function () {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
 
-    window.MemserverModel = window.MemserverModel || TargetModel;
-
     const initializerReturn = initializer();
 
-    this.Models = window.MemserverModel._modelDefinitions;
-    window.MemServer = startPretender(routes, Object.assign(options, { logging }), this.Models);
-    window.MemServer.Models = this.Models;
-
-    return window.MemServer;
+    return startPretender(routes, Object.assign(options, { logging }));
   }
 }
 
 export default Memserver;
 
-function startPretender(routes, options, Models) {
+function startPretender(routes, options) {
   Pretender.prototype.namespace = options.namespace;
   Pretender.prototype.urlPrefix = options.urlPrefix;
   Pretender.prototype.timing = options.timing;
 
   let pretender = new Pretender(
     function () {
-      const Memserver = kleur.cyan("[Memserver]");
-
-      this.Models = Models;
+      const Memserver = kleur.cyan("[Memoria]");
 
       if (options.logging) {
         this.handledRequest = function (verb, path, request) {

@@ -47,7 +47,7 @@ const devConfig = {
       path.resolve(process.cwd(), 'node_modules/qunitx/vendor'),
     ],
     onBeforeSetupMiddleware: function (app, server) {
-      // import("@memserver/server/test/helpers/webserver-for-passthrough.js");
+      import("@memoria/server/test/helpers/webserver-for-passthrough.js");
     },
     devMiddleware: {
       writeToDisk: true

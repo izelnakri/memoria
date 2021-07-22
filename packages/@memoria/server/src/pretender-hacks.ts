@@ -121,7 +121,7 @@ export default function hackPretender(Pretender) {
             headers,
             pretender.prepareBody(
               JSON.stringify({
-                error: `[Memserver] ${verb} ${path} route handler did not return anything to respond to the request!`,
+                error: `[Memoria] ${verb} ${path} route handler did not return anything to respond to the request!`,
               }),
               headers
             )
@@ -181,11 +181,17 @@ export default function hackPretender(Pretender) {
   ["get", "put", "post", "delete"].forEach((verb) => {
     Pretender.prototype[verb] = function (path, handler, async) {
       const fullPath = (this.urlPrefix || "") + (this.namespace ? "/" + this.namespace : "") + path;
-      const MemServerModel = window.MemserverModel || Model;
-      const defaultResourceDefinition = MemServerModel.isPrototypeOf(handler) ? handler : null;
-      const targetHandler =
-        handler ||
-        getDefaultRouteHandler(verb.toUpperCase(), fullPath, this, defaultResourceDefinition);
+      const isModelDefinition = Model.isPrototypeOf(handler) ? handler : null;
+      const targetHandler = Model.isPrototypeOf(handler)
+        ? getDefaultRouteHandler(verb.toUpperCase(), fullPath, this, handler)
+        : handler;
+
+      if (!targetHandler) {
+        this.shutdown();
+        throw new Error(
+          kleur.red(`[Memoria] ${verb} ${path} route handler cannot be generated automatically`)
+        );
+      }
       const timing = async ? async.timing || this.timing : this.timing;
 
       return this.register(verb.toUpperCase(), fullPath, targetHandler, timing);
@@ -193,52 +199,44 @@ export default function hackPretender(Pretender) {
   });
   // END: Pretender REST default hack: For better UX
 
-  function getDefaultRouteHandler(verb, path, serverContext, defaultResourceDefinition) {
+  function getDefaultRouteHandler(verb, path, serverContext, ResourceModel) {
     const paths = path.split(/\//g);
     const lastPath = paths[paths.length - 1];
     const pluralResourceName = lastPath.includes(":") ? paths[paths.length - 2] : lastPath;
     const resourceName = singularize(pluralResourceName);
     const resourceClassName = classify(resourceName);
-    const ResourceModel = defaultResourceDefinition || serverContext.Models[resourceClassName];
 
-    if (!ResourceModel) {
-      serverContext.shutdown();
-      throw new Error(
-        kleur.red(
-          `[Memserver] ${verb} ${path} route handler cannot be generated automatically: ${classify(
-            resourceName
-          )} is not on your window.${classify(
-            resourceName
-          )}, also please check that your route name matches the model reference or create a custom handler function`
-        )
-      );
-    } else if (verb === "GET") {
+    if (verb === "GET") {
       if (lastPath.includes(":")) {
-        return (request) => {
+        return async (request) => {
           return {
-            [resourceName]: ResourceModel.serializer(ResourceModel.find(request.params.id)),
+            [resourceName]: ResourceModel.serializer(await ResourceModel.find(request.params.id)),
           };
         };
       }
 
-      return () => {
-        return { [pluralResourceName]: ResourceModel.serializer(ResourceModel.findAll()) };
+      return async () => {
+        return { [pluralResourceName]: ResourceModel.serializer(await ResourceModel.findAll()) };
       };
     } else if (verb === "POST") {
-      return (request) => {
+      return async (request) => {
         const resourceParams = request.params[resourceName];
 
-        return { [resourceName]: ResourceModel.serializer(ResourceModel.insert(resourceParams)) };
+        return {
+          [resourceName]: ResourceModel.serializer(await ResourceModel.insert(resourceParams)),
+        };
       };
     } else if (verb === "PUT") {
-      return (request) => {
+      return async (request) => {
         const resourceParams = request.params[resourceName];
 
-        return { [resourceName]: ResourceModel.serializer(ResourceModel.update(resourceParams)) };
+        return {
+          [resourceName]: ResourceModel.serializer(await ResourceModel.update(resourceParams)),
+        };
       };
     } else if (verb === "DELETE") {
-      return (request) => {
-        ResourceModel.delete({ id: request.params.id });
+      return async (request) => {
+        await ResourceModel.delete({ id: request.params.id });
       };
     }
   }

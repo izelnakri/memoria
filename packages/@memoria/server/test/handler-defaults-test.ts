@@ -72,29 +72,23 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     assert.equal(await Photo.count(), 3);
 
-    debugger;
-    try {
-      await $.ajax({
-        type: "POST",
-        url: "/photos",
-        headers: { "Content-Type": "application/json" },
-        data: JSON.stringify({ photo: { name: "Izel Nakri" } }),
-      }).then((data, textStatus, jqXHR) => {
-        debugger;
-        assert.equal(jqXHR.status, 201);
-        assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(4)) });
-        assert.equal(Photo.Cache.length, 4);
-        assert.deepEqual(Photo.peek(4), {
-          id: 4,
-          name: "Izel Nakri",
-          is_public: true,
-          href: undefined,
-          user_id: undefined,
-        });
+    await $.ajax({
+      type: "POST",
+      url: "/photos",
+      headers: { "Content-Type": "application/json" },
+      data: JSON.stringify({ photo: { name: "Izel Nakri" } }),
+    }).then((data, textStatus, jqXHR) => {
+      assert.equal(jqXHR.status, 201);
+      assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(4)) });
+      assert.equal(Photo.Cache.length, 4);
+      assert.propEqual(Photo.peek(4), {
+        id: 4,
+        name: "Izel Nakri",
+        is_public: true,
+        href: null,
+        user_id: null,
       });
-    } catch (error) {
-      debugger;
-    }
+    });
   });
 
   test("GET /resources works with shortcut", async function (assert) {
@@ -236,7 +230,7 @@ module("@memoria/server| handler defaults", function (hooks) {
             this.get("/houses");
           },
         }),
-      /\[Memoria\] GET \/houses route handler cannot be generated automatically: House is not on your window.House, also please check that your route name matches the model reference or create a custom handler function/
+      /houses route handler cannot be generated automatically/
     );
   });
 

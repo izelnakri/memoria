@@ -143,9 +143,7 @@ module("@memoria/server | passthrough tests", function (hooks) {
       url: "/photos",
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
-      debugger;
       assert.equal(jqXHR.status, 200);
-      debugger;
       assert.deepEqual(jqXHR.responseJSON, { photos: Photo.serializer(Photo.peekAll()) });
     });
     await $.ajax({
@@ -153,9 +151,7 @@ module("@memoria/server | passthrough tests", function (hooks) {
       url: "http://localhost:4000/films",
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
-      debugger;
       assert.equal(jqXHR.status, 200);
-      debugger;
       assert.deepEqual(jqXHR.responseJSON, { film: "responsed correctly" });
     });
     await $.ajax({
@@ -164,7 +160,6 @@ module("@memoria/server | passthrough tests", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      debugger;
       assert.deepEqual(jqXHR.responseJSON, { movie: "is too-big-to-fail" });
     });
   });
