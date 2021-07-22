@@ -1,6 +1,6 @@
 import $ from "jquery";
-import Model from "@memoria/model";
-import memoria from "@memoria/server";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
 import setupForTests from "./helpers/setup-for-tests.js";
@@ -37,13 +37,34 @@ module("@memoria/response tests", function (hooks) {
   ];
 
   function prepare() {
-    class Photo extends Model {}
-    class User extends Model {}
+    class Photo extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
 
-    let Server = new memoria({
+      @Column()
+      name: string;
+
+      @Column()
+      href: string
+
+      @Column()
+      is_public: boolean;
+    }
+    class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      first_name: string;
+
+      @Column()
+      last_name: string;
+    }
+
+    let Server = new Memoria({
       routes() {
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           return Response(202, { photos: Photo.serializer(photos) });
         });
@@ -60,10 +81,10 @@ module("@memoria/response tests", function (hooks) {
 
     this.Server = Server;
 
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
     Server.get("/users/:id", (request) => {
-      const user = User.find(Number(request.params.id));
+      const user = User.peek(Number(request.params.id));
 
       if (user) {
         return Response(200, { user: User.serializer(user) });
@@ -90,11 +111,11 @@ module("@memoria/response tests", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     await $.getJSON("/photos", (data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 202);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     }).catch((error) => console.log(error));
   });
 
@@ -105,7 +126,7 @@ module("@memoria/response tests", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server.get("/photos", () => Response(500, { error: "Internal Server Error" }));
 
