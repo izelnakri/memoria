@@ -1,6 +1,6 @@
 import $ from "jquery";
-import Model from "@memoria/model";
-import Memoria from "@Memoria/server";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
 import setupForTests from "./helpers/setup-for-tests.js";
@@ -39,12 +39,27 @@ module("@memoria/server | passthrough tests", function (hooks) {
   ];
 
   function prepare() {
-    class Photo extends Model {}
+    class Photo extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column("boolean")
+      is_public: boolean;
+
+      @Column("int")
+      user_id: number;
+    }
 
     let Server = new Memoria({
       routes() {
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -65,7 +80,7 @@ module("@memoria/server | passthrough tests", function (hooks) {
   test("throws an error when memoria tried to intercept an undeclared route", async function (assert) {
     let { Photo, Server } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = Server;
     this.Server.unhandledRequest = sinon.spy();
@@ -118,7 +133,7 @@ module("@memoria/server | passthrough tests", function (hooks) {
 
     let { Photo, Server } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = Server;
     this.Server.unhandledRequest = sinon.spy();
@@ -128,15 +143,19 @@ module("@memoria/server | passthrough tests", function (hooks) {
       url: "/photos",
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
+      debugger;
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(jqXHR.responseJSON, { photos: Photo.serializer(Photo.findAll()) });
+      debugger;
+      assert.deepEqual(jqXHR.responseJSON, { photos: Photo.serializer(Photo.peekAll()) });
     });
     await $.ajax({
       type: "GET",
       url: "http://localhost:4000/films",
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
+      debugger;
       assert.equal(jqXHR.status, 200);
+      debugger;
       assert.deepEqual(jqXHR.responseJSON, { film: "responsed correctly" });
     });
     await $.ajax({
@@ -145,6 +164,7 @@ module("@memoria/server | passthrough tests", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
+      debugger;
       assert.deepEqual(jqXHR.responseJSON, { movie: "is too-big-to-fail" });
     });
   });

@@ -1,5 +1,5 @@
 import $ from "jquery";
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
@@ -34,12 +34,20 @@ module("@memoria/server| handler defaults", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Some default name";
-        },
-      };
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column({ default: "Some default name" })
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column("boolean", { default: true })
+      is_public: boolean;
+
+      @Column("int")
+      user_id: number;
     }
 
     return { Photo };
@@ -50,37 +58,43 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
       },
     });
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(await Photo.count(), 3);
 
-    await $.ajax({
-      type: "POST",
-      url: "/photos",
-      headers: { "Content-Type": "application/json" },
-      data: JSON.stringify({ photo: { name: "Izel Nakri" } }),
-    }).then((data, textStatus, jqXHR) => {
-      assert.equal(jqXHR.status, 201);
-      assert.deepEqual(data, { photo: Photo.serializer(Photo.find(4)) });
-      assert.equal(Photo.count(), 4);
-      assert.deepEqual(Photo.find(4), {
-        id: 4,
-        name: "Izel Nakri",
-        is_public: true,
-        href: undefined,
-        user_id: undefined,
+    debugger;
+    try {
+      await $.ajax({
+        type: "POST",
+        url: "/photos",
+        headers: { "Content-Type": "application/json" },
+        data: JSON.stringify({ photo: { name: "Izel Nakri" } }),
+      }).then((data, textStatus, jqXHR) => {
+        debugger;
+        assert.equal(jqXHR.status, 201);
+        assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(4)) });
+        assert.equal(Photo.Cache.length, 4);
+        assert.deepEqual(Photo.peek(4), {
+          id: 4,
+          name: "Izel Nakri",
+          is_public: true,
+          href: undefined,
+          user_id: undefined,
+        });
       });
-    });
+    } catch (error) {
+      debugger;
+    }
   });
 
   test("GET /resources works with shortcut", async function (assert) {
@@ -88,19 +102,19 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
       },
     });
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(Photo.Cache.length, 3);
 
     await $.ajax({
       type: "GET",
@@ -108,8 +122,8 @@ module("@memoria/server| handler defaults", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-      assert.equal(Photo.count(), 3);
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
+      assert.equal(Photo.Cache.length, 3);
     });
   });
 
@@ -118,15 +132,15 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
       },
     });
 
@@ -136,7 +150,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photo: Photo.serializer(Photo.find(1)) });
+      assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(1)) });
     });
   });
 
@@ -145,19 +159,19 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
       },
     });
 
-    assert.equal(Photo.find(1).name, "Ski trip");
+    assert.equal(Photo.peek(1).name, "Ski trip");
 
     await $.ajax({
       type: "PUT",
@@ -165,7 +179,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       headers: { "Content-Type": "application/json" },
       data: JSON.stringify({ photo: { id: 1, name: "New custom title" } }),
     }).then((data, textStatus, jqXHR) => {
-      const photo = Photo.find(1);
+      const photo = Photo.peek(1);
 
       assert.equal(jqXHR.status, 200);
       assert.deepEqual(data, { photo: Photo.serializer(photo) });
@@ -178,19 +192,19 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
       },
     });
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(Photo.Cache.length, 3);
 
     await $.ajax({
       type: "DELETE",
@@ -199,25 +213,25 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 204);
       assert.deepEqual(data, undefined);
-      assert.equal(Photo.count(), 2);
-      assert.equal(Photo.find(1), undefined);
+      assert.equal(Photo.Cache.length, 2);
+      assert.equal(Photo.peek(1), undefined);
     });
   });
 
   test("throws an helpful error message when shortcuts model is not found", async function (assert) {
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     assert.throws(
       () =>
         new Memoria({
           routes() {
-            this.post("/photos");
-            this.get("/photos");
-            this.get("/photos/:id");
-            this.put("/photos/:id");
-            this.delete("/photos/:id");
+            this.post("/photos", Photo);
+            this.get("/photos", Photo);
+            this.get("/photos/:id", Photo);
+            this.put("/photos/:id", Photo);
+            this.delete("/photos/:id", Photo);
 
             this.get("/houses");
           },
@@ -231,21 +245,21 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
-        this.post("/photos");
-        this.get("/photos");
-        this.get("/photos/:id");
-        this.put("/photos/:id");
-        this.delete("/photos/:id");
+        this.post("/photos", Photo);
+        this.get("/photos", Photo);
+        this.get("/photos/:id", Photo);
+        this.put("/photos/:id", Photo);
+        this.delete("/photos/:id", Photo);
 
         this.get("/houses", Photo);
       },
     });
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(Photo.Cache.length, 3);
 
     await $.ajax({
       type: "GET",
@@ -253,8 +267,8 @@ module("@memoria/server| handler defaults", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
-      assert.equal(Photo.count(), 3);
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
+      assert.equal(Photo.Cache.length, 3);
     });
   });
 
@@ -263,7 +277,7 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
@@ -275,7 +289,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       },
     });
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(Photo.Cache.length, 3);
 
     await $.ajax({
       type: "POST",
@@ -287,7 +301,7 @@ module("@memoria/server| handler defaults", function (hooks) {
         error:
           "[Memoria] POST /photos route handler did not return anything to respond to the request!",
       });
-      assert.equal(Photo.count(), 3);
+      assert.equal(Photo.Cache.length, 3);
     });
   });
 
@@ -296,7 +310,7 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
@@ -326,7 +340,7 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
@@ -356,7 +370,7 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {
@@ -387,7 +401,7 @@ module("@memoria/server| handler defaults", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       routes() {

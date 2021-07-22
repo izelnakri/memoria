@@ -1,5 +1,5 @@
 import $ from "jquery";
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn } from "@memoria/model";
 import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
@@ -60,20 +60,39 @@ module("@memoria/server| init configurations", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Some default name";
-        },
-      };
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column({ default: "Some default name" })
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column("boolean", { default: true })
+      is_public: boolean;
+
+      @Column("int")
+      user_id: number;
     }
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return "2017-10-25T20:54:04.447Z";
-        },
-        is_important: true,
-      };
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column("int")
+      photo_id: number;
+
+      @Column("int")
+      user_id: number;
+
+      @CreateDateColumn()
+      inserted_at: Date;
+
+      @Column("boolean", { default: true })
+      is_important: boolean;
     }
 
     return { Photo, PhotoComment };
@@ -90,7 +109,7 @@ module("@memoria/server| init configurations", function (hooks) {
       namespace: "api/v1",
       routes() {
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -107,7 +126,7 @@ module("@memoria/server| init configurations", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 
@@ -116,7 +135,7 @@ module("@memoria/server| init configurations", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       namespace: "api/v1",
@@ -124,7 +143,7 @@ module("@memoria/server| init configurations", function (hooks) {
         this.namespace = "api/";
 
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -141,7 +160,7 @@ module("@memoria/server| init configurations", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 
@@ -150,14 +169,14 @@ module("@memoria/server| init configurations", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       urlPrefix: "http://twitter.com",
       routes() {
         this.namespace = "api/";
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -174,7 +193,7 @@ module("@memoria/server| init configurations", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 
@@ -183,7 +202,7 @@ module("@memoria/server| init configurations", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       urlPrefix: "http://twitter.com",
@@ -192,7 +211,7 @@ module("@memoria/server| init configurations", function (hooks) {
         this.namespace = "api";
 
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -209,7 +228,7 @@ module("@memoria/server| init configurations", function (hooks) {
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 
@@ -218,13 +237,13 @@ module("@memoria/server| init configurations", function (hooks) {
 
     const { Photo } = prepare();
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
       timing: 3000,
       routes() {
         this.get("/photos", () => {
-          const photos = Photo.findAll();
+          const photos = Photo.peekAll();
 
           if (!photos || photos.length === 0) {
             return Response(404, { error: "Not found" });
@@ -248,7 +267,7 @@ module("@memoria/server| init configurations", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.ok(ThreeSecondsPassed);
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 });

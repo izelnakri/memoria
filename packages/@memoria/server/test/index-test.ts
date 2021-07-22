@@ -1,5 +1,5 @@
 import $ from "jquery";
-import Model from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn } from "@memoria/model";
 import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
@@ -74,85 +74,116 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
   function prepare() {
     class User extends Model {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column()
+      email: string;
+
+      @Column()
+      username: string;
+
+      @Column()
+      authentication_token: string;
+
       static findFromHeaderToken(headers) {
         console.log("headers are", headers);
         const authorizationHeader = headers.Authorization;
         const token = authorizationHeader ? authorizationHeader.slice(6) : false;
 
-        return this.findBy({ authentication_token: token }) || false;
+        return this.peekBy({ authentication_token: token }) || false;
       }
     }
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Some default name";
-        },
-      };
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column({ default: "Some default name" })
+      name: string;
+
+      @Column()
+      href: string;
+
+      @Column({ type: "boolean", default: true })
+      is_public: boolean;
+
+      @Column("int")
+      user_id: number;
     }
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return "2017-10-25T20:54:04.447Z";
-        },
-        is_important: true,
-      };
+      @PrimaryGeneratedColumn("uuid")
+      uuid: string;
+
+      @Column()
+      content: string;
+
+      @Column()
+      photo_id: number;
+
+      @Column()
+      user_id: number;
+
+      @Column("boolean", { default: true })
+      is_important: boolean;
+
+      @CreateDateColumn()
+      inserted_at: Date;
     }
     const Server = new Memoria({
       routes() {
-        this.post("/photos", ({ headers }) => {
+        this.post("/photos", async ({ headers }) => {
           const user = User.findFromHeaderToken(headers);
 
           if (!user) {
             return Response(401, { error: "Unauthorized" });
           }
 
-          const photo = Photo.insert({ user_id: user.id });
+          const photo = await Photo.insert({ user_id: user.id });
 
           return { photo: Photo.serializer(photo) };
         });
 
-        this.get("/photos", ({ headers }) => {
+        this.get("/photos", async ({ headers }) => {
           const user = User.findFromHeaderToken(headers);
 
           if (!user) {
             return Response(404, { error: "Not found" });
           }
 
-          const photos = Photo.findAll({ user_id: user.id });
+          const photos = await Photo.findAll({ user_id: user.id });
 
           return { photos: Photo.serializer(photos) };
         });
 
-        this.get("/photos/:id", ({ headers, params }) => {
+        this.get("/photos/:id", async ({ headers, params }) => {
           const user = User.findFromHeaderToken(headers);
 
           if (!user) {
             return Response(401, { error: "Unauthorized" });
           }
 
-          const photo = Photo.findBy({ id: params.id, user_id: user.id });
+          const photo = await Photo.findBy({ id: params.id, user_id: user.id });
 
           return photo ? { photo: Photo.serializer(photo) } : Response(404, { error: "Not found" });
         });
 
-        this.put("/photos/:id", ({ headers, params }) => {
+        this.put("/photos/:id", async ({ headers, params }) => {
           const user = User.findFromHeaderToken(headers);
 
           if (!user) {
             return Response(401, { error: "Unauthorized" });
           }
 
-          if (Photo.findBy({ id: params.id, user_id: user.id })) {
-            return { photo: Photo.update(params.photo) };
+          if (await Photo.findBy({ id: params.id, user_id: user.id })) {
+            return { photo: await Photo.update(params.photo) };
           }
         });
 
-        this.delete("/photos/:id", ({ headers, params }) => {
+        this.delete("/photos/:id", async ({ headers, params }) => {
           const user = User.findFromHeaderToken(headers);
 
-          if (user && Photo.findBy({ id: params.id, user_id: user.id })) {
-            return Photo.delete({ id: params.id });
+          if (user && (await Photo.findBy({ id: params.id, user_id: user.id }))) {
+            return await Photo.delete({ id: params.id });
           }
         });
 
@@ -172,10 +203,10 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
-    assert.equal(Photo.count(), 3);
+    assert.equal(await Photo.count(), 3);
 
     await $.ajax({
       type: "POST",
@@ -204,8 +235,8 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
     await $.ajax({
       type: "GET",
@@ -221,7 +252,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
       headers: AJAX_AUTHORIZATION_HEADERS,
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photos: Photo.serializer(Photo.findAll()) });
+      assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
   });
 
@@ -232,8 +263,8 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
     await $.ajax({
       type: "GET",
@@ -249,7 +280,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
       headers: AJAX_AUTHORIZATION_HEADERS,
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photo: Photo.serializer(Photo.find(1)) });
+      assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(1)) });
     });
   });
 
@@ -260,8 +291,8 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
     await $.ajax({
       type: "PUT",
@@ -279,8 +310,8 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
       data: JSON.stringify({ photo: { id: 1, name: "Photo after edit" } }),
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
-      assert.deepEqual(data, { photo: Photo.serializer(Photo.find(1)) });
-      assert.equal(Photo.find(1).name, "Photo after edit");
+      assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(1)) });
+      assert.equal(Photo.peek(1).name, "Photo after edit");
     });
   });
 
@@ -291,10 +322,10 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
 
     this.Server = Server;
 
-    PHOTO_FIXTURES.forEach((photo) => Photo.insert(photo));
-    USER_FIXTURES.forEach((user) => User.insert(user));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
 
-    assert.ok(Photo.find(1), "User id: 1 exists");
+    assert.ok(Photo.peek(1), "User id: 1 exists");
 
     await $.ajax({
       type: "DELETE",
@@ -303,7 +334,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
     }).catch((jqXHR) => {
       assert.equal(jqXHR.status, 401);
       assert.deepEqual(jqXHR.responseJSON, { error: "Unauthorized" });
-      assert.ok(Photo.find(1), "User id: 1 exists");
+      assert.ok(Photo.peek(1), "User id: 1 exists");
     });
     await $.ajax({
       type: "DELETE",
@@ -312,7 +343,7 @@ module("@memoria/server | index - REST/HTTP verbs test", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 204);
       assert.deepEqual(data, undefined);
-      assert.ok(!Photo.find(1), "User id: 1 gets deleted");
+      assert.ok(!Photo.peek(1), "User id: 1 gets deleted");
     });
   });
 
