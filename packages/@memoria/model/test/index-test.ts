@@ -101,7 +101,15 @@ module("@memoria/model | Public API", function (hooks) {
 
     assert.equal(Photo.primaryKeyName, "id");
     assert.equal(PhotoComment.primaryKeyName, "uuid");
-    assert.equal(User.primaryKeyName, null);
+    try {
+      User.primaryKeyName;
+    } catch (error) {
+      assert.ok(
+        /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
+          error.message
+        )
+      );
+    }
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -110,7 +118,15 @@ module("@memoria/model | Public API", function (hooks) {
 
     assert.equal(Photo.primaryKeyName, "id");
     assert.equal(PhotoComment.primaryKeyName, "uuid");
-    assert.equal(User.primaryKeyName, null);
+    try {
+      User.primaryKeyName;
+    } catch (error) {
+      assert.ok(
+        /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
+          error.message
+        )
+      );
+    }
     assert.ok(Photo._Store._DB === PhotoComment._Store._DB);
   });
 

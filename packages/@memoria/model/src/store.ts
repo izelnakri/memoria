@@ -105,6 +105,12 @@ export default class Store {
       (key) => columns[key].primary
     ) as string;
 
+    if (!this._primaryKeyNameCache[Class.name]) {
+      throw new Error(
+        `[@memoria/model] ${Class.name} has no primary key! Please declare one with @PrimaryGeneratedColumn`
+      );
+    }
+
     return this._primaryKeyNameCache[Class.name];
   }
   static getColumnsMetadata(Class: typeof Model): ColumnSchemaDefinition {
