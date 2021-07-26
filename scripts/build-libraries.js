@@ -26,7 +26,7 @@ async function buildPackage(packageName) {
 
   try {
     if (process.env.ENVIRONMENT !== 'development') {
-      await shell(`node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ES2018 --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`);
+      await shell(`node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ESNext --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`);
     } else {
       let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/src`, (path) => path.endsWith('.ts') || path.endsWith('.js'));
 

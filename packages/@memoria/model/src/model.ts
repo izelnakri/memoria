@@ -1,7 +1,7 @@
 import kleur from "kleur";
+import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
-import { MemoryAdapter } from "@memoria/adapters";
 import Store from "./store.js";
 import type { ModelRef } from "./index.js";
 
@@ -29,6 +29,10 @@ export default class Model {
 
   static get columnNames(): Set<string> {
     return Store.getColumnNames(this);
+  }
+
+  static push(model: QueryObject): Model {
+    return this.Adapter.push(this, model);
   }
 
   static resetCache(fixtures?: ModelRef[]): Model[] {
@@ -119,17 +123,21 @@ export default class Model {
     return await this.Adapter.count(this);
   }
 
+  static build(options: QueryObject = {}): Model {
+    return this.Adapter.build(this, options);
+  }
+
   constructor(options?: QueryObject) {
     Array.from((this.constructor as typeof Model).columnNames).forEach((keyName) => {
       Object.defineProperty(this, keyName, {
         enumerable: true,
         writable: true,
-        configurable: false,
+        configurable: true,
         value: options && keyName in options ? options[keyName] : null,
       });
     });
 
-    return Object.seal(this);
+    return this;
   }
 
   // NOTE: serializer functions

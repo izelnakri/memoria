@@ -73,10 +73,18 @@ interface DefaultValueReferences {
 
 type DB = { [className: string]: ModelRef[] };
 
+type Entity = any;
+
 export default class Store {
   // NOTE: this is only used by @memoria(not typeorm) to cache SchemaDefinition for different adapters
+  static Entities: Entity[] = [];
+  static getEntity(Class: typeof Model): Entity {
+    return this.Entities.find((entity) => entity.options.name === Class.name);
+  }
+
   static Schemas: SchemaDefinition[] = [];
   static getSchema(Class: typeof Model): SchemaDefinition {
+    // TODO: make this is a full schema
     let targetSchema = this.Schemas.find((schema) => schema.name === Class.name);
     if (!targetSchema) {
       targetSchema = {

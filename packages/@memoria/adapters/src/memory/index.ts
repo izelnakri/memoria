@@ -17,6 +17,21 @@ type QueryObject = { [key: string]: any };
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
+  static build(Model: typeof MemoriaModel, options): MemoriaModel {
+    let model = new Model(options);
+
+    Object.keys(model).forEach((keyName: string) => {
+      model[keyName] = model[keyName] || keyName in options ? options[keyName] : null;
+    });
+
+    return Object.seal(model);
+  }
+
+  static push(model: QueryObject): MemoriaModel {
+    // TODO: make this work, should check relationships and push to relationships if they exist
+    //
+  }
+
   static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): MemoriaModel[] {
     Model.Cache.length = 0;
 
@@ -126,7 +141,7 @@ export default class MemoryAdapter {
       );
     }
 
-    let target = new Model(fixture) as ModelRef;
+    let target = this.build(Model, fixture);
 
     Model.Cache.push(target);
 
@@ -145,7 +160,8 @@ export default class MemoryAdapter {
   }
 
   static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<MemoriaModel> {
-    let target = new Model(
+    let target = this.build(
+      Model,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (model.hasOwnProperty(attribute)) {
           result[attribute] = model[attribute];
@@ -157,14 +173,14 @@ export default class MemoryAdapter {
         if (!defaultValues.hasOwnProperty(attribute)) {
           result[attribute] = null;
         } else if (typeof defaultValues[attribute] === "function") {
-          result[attribute] = defaultValues[attribute].apply(null, [Model]); // TODO: this changed
+          result[attribute] = defaultValues[attribute](Model); // TODO: this changed
         } else {
           result[attribute] = defaultValues[attribute];
         }
 
         return result;
       }, {})
-    ) as MemoriaModel;
+    );
     let primaryKey = (target as ModelRef)[Model.primaryKeyName];
 
     primaryKeyTypeSafetyCheck(Model, primaryKey);

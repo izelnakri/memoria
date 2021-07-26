@@ -47,6 +47,5 @@ export interface QueryObject {
 //   // hasDirtyAttributes, dirtyType, fields, errors
 // }
 
-export default { MemoryAdapter, RESTAdapter, SQLAdapter };
-
 export { MemoryAdapter, RESTAdapter, SQLAdapter };
+export default { MemoryAdapter, RESTAdapter, SQLAdapter };
