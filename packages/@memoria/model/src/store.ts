@@ -5,6 +5,7 @@ import { generateUUID } from "./utils.js";
 
 interface SchemaDefinition {
   name: string;
+  target: typeof Model;
   columns: ColumnSchemaDefinition;
   relations?: RelationshipSchemaDefinition;
   checks?: CheckConstraintDefinition[];
@@ -89,6 +90,7 @@ export default class Store {
     if (!targetSchema) {
       targetSchema = {
         name: Class.name,
+        target: Class,
         columns: {},
         relations: {},
         checks: [],

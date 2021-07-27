@@ -12,6 +12,7 @@ type QueryObject = { [key: string]: any };
 // TODO: implement push interface
 export default class Model {
   static Adapter = MemoryAdapter;
+
   static embedReferences = {}; // TODO: move to serializer
   static _Store = Store;
 
