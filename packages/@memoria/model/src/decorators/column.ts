@@ -47,7 +47,7 @@ export function DeleteDateColumn(options?: ColumnDefinition) {
 export function PrimaryColumn(keyOrOptions = {}, options?: ColumnDefinition) {
   let optionsObject = typeof keyOrOptions === "string" ? { type: keyOrOptions } : keyOrOptions;
   return Column({
-    type: "varchar",
+    type: "int",
     primary: true,
     nullable: false,
     ...optionsObject,
@@ -75,7 +75,7 @@ export function PrimaryGeneratedColumn(
   return proxyColumnToAdapter("PrimaryGeneratedColumn", {
     primary: true,
     nullable: false,
-    type: targetStrategy === "uuid" ? "uuid" : "bigint",
+    type: targetStrategy === "uuid" ? "uuid" : "int",
     generated: targetStrategy as true | "uuid" | "increment",
     ...firstParamOptions,
     ...options,
