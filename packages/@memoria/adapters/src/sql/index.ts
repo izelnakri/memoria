@@ -2,6 +2,7 @@ import kleur from "kleur";
 import inspect from "object-inspect";
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
+import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoriaModel, { Store } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
@@ -16,8 +17,6 @@ interface FreeObject {
 
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
-// TODO: use manager always!
-// TODO: remove getRepository
 export default class SQLAdapter {
   static Decorators = Decorators;
 
@@ -45,6 +44,10 @@ export default class SQLAdapter {
 
     return this._connection;
   }
+  static async getEntityManager() {
+    let connection = await this.getConnection();
+    return connection.manager;
+  }
 
   static build(Model: typeof MemoriaModel, options): MemoriaModel {
     let model = new Model(options);
@@ -56,7 +59,9 @@ export default class SQLAdapter {
     return Object.seal(model);
   }
 
-  static push(model: QueryObject): MemoriaModel {}
+  static push(model: QueryObject): MemoriaModel {
+    // TODO: make this work, should check relationships and push to relationships if they exist
+  }
 
   static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): MemoriaModel[] {
     Model.Cache.length = 0;
@@ -72,10 +77,9 @@ export default class SQLAdapter {
     Model: typeof MemoriaModel,
     targetState?: ModelRef[]
   ): Promise<MemoriaModel[]> {
-    let connection = await this.getConnection();
-    let Repo = this.getRepository(Model, connection);
+    let Manager = await this.getEntityManager();
 
-    await Repo.clear();
+    await Manager.clear(Model);
 
     if (targetState) {
       return await this.insertAll(Model, targetState);
@@ -129,22 +133,20 @@ export default class SQLAdapter {
   }
 
   static async count(Model: typeof MemoriaModel, options?: object): Promise<number> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
 
     if (options) {
       return await Manager.count(Model, options); // TODO: update this
     }
 
-      return await Manager.count(Model); // TODO: update this
+    return await Manager.count(Model); // TODO: update this
   }
 
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[]
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
 
     return await Manager.findOne(Model, primaryKey);
   }
@@ -153,8 +155,7 @@ export default class SQLAdapter {
     Model: typeof MemoriaModel,
     queryObject: object
   ): Promise<MemoriaModel | void> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
 
     return await Manager.findOne(Model, queryObject);
   }
@@ -163,34 +164,56 @@ export default class SQLAdapter {
     Model: typeof MemoriaModel,
     queryObject: object = {}
   ): Promise<MemoriaModel[] | void> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
 
     return await Manager.find(Model, queryObject);
   }
 
-  static cache(Model: typeof MemoriaModel, fixture: ModelRef): MemoriaModel {}
+  static cache(Model: typeof MemoriaModel, fixture: ModelRef): MemoriaModel {
+    if (!fixture.hasOwnProperty(Model.primaryKeyName)) {
+      throw new Error(
+        kleur.red(
+          `[Memoria] CacheError: A ${Model.name} Record is missing a primary key(${Model.primaryKeyName}) to add to cache. Please make sure all your ${Model.name} fixtures have ${Model.primaryKeyName} key`
+        )
+      );
+    }
+
+    primaryKeyTypeSafetyCheck(Model, fixture[Model.primaryKeyName]);
+
+    if (this.peek(Model, fixture[Model.primaryKeyName])) {
+      throw new Error(
+        kleur.red(
+          `[Memoria] CacheError: ${Model.name}.cache() fails: ${Model.primaryKeyName} ${
+            fixture[Model.primaryKeyName]
+          } already exists in the cache! `
+        )
+      );
+    }
+
+    let target = this.build(Model, fixture);
+
+    Model.Cache.push(target);
+
+    return target;
+  }
 
   static async save(Model: typeof MemoriaModel, model: ModelRef): Promise<MemoriaModel> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
     let result = await Manager.save(Model, model);
 
     return this.build(Model, result.generatedMaps[0]);
   }
 
   static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<MemoriaModel> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
     let result = await Manager.insert(Model, model);
 
     return this.build(Model, result.generatedMaps[0]);
   }
 
   static async update(Model: typeof MemoriaModel, record: ModelRef): Promise<ModelRef> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
     let primaryKeyName = Model.primaryKeyName;
+    let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
       .update(Model)
       .set(record)
@@ -238,9 +261,8 @@ export default class SQLAdapter {
   }
 
   static async delete(Model: typeof MemoriaModel, record: ModelRef): Promise<MemoriaModel> {
-    let connection = await this.getConnection();
     let primaryKeyName = Model.primaryKeyName;
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
       .delete()
       .from(Model)
@@ -252,34 +274,39 @@ export default class SQLAdapter {
   }
 
   static async saveAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
-    // TODO: odd implementation
+    let Manager = await this.getEntityManager();
 
-    // await manager.save([
-    //     category1,
-    //     category2,
-    //     category3
-    // ]);
+    return await Manager.save(models);
   }
 
   static async insertAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
-    let result = Manager
-      .createQueryBuilder()
+    let Manager = await this.getEntityManager();
+    let result = await Manager.createQueryBuilder()
       .insert()
       .into(Model)
       .values(models)
-      .returning('*')
+      .returning("*")
       .execute();
 
     return result.raw.map((rawResult) => this.build(Model, rawResult));
   }
 
   static async updateAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
-    // TODO: odd implementation
+    // TODO: test when pure objects are provided
+    let Manager = await this.getEntityManager();
+
+    return await Manager.save(models);
   }
 
-  static unloadAll(Model: typeof MemoriaModel, models?: ModelRef[]): void {}
+  static unloadAll(Model: typeof MemoriaModel, models?: ModelRef[]): void {
+    if (!models) {
+      Model.Cache.length = 0;
+
+      return;
+    }
+
+    return models.forEach((model) => this.unload(Model, model));
+  }
 
   static async deleteAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<void> {
     if (!models) {
@@ -288,8 +315,7 @@ export default class SQLAdapter {
       );
     }
 
-    let connection = await this.getConnection();
-    let Manager = connection.manager;
+    let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
       .delete()
       .from(Model)
@@ -300,7 +326,7 @@ export default class SQLAdapter {
     return result.raw.map((rawResult) => this.build(Model, rawResult));
   }
 }
-//
+
 // NOTE: if records were ordered by ID, then there could be performance benefit
 function comparison(model: ModelRef, options: QueryObject, keys: string[], index = 0): boolean {
   const key = keys[index];

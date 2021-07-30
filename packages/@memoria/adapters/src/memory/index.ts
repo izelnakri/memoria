@@ -14,6 +14,7 @@ type QueryObject = { [key: string]: any };
 // Push replaces existing record!, doesnt have defaultValues
 
 // static push(changes existing model data)
+// TODO: always store id as string due to bigint!! Thats what SQLAdapter does
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
