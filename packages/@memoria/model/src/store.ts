@@ -7,10 +7,11 @@ interface SchemaDefinition {
   name: string;
   target: typeof Model;
   columns: ColumnSchemaDefinition;
-  relations?: RelationshipSchemaDefinition;
-  checks?: CheckConstraintDefinition[];
-  indices?: IndexDefinition[];
-  uniques?: UniqueIndexDefinition[];
+  relations: RelationshipSchemaDefinition;
+  checks: CheckConstraintDefinition[];
+  indices: IndexDefinition[];
+  uniques: UniqueIndexDefinition[];
+  exclusions: ExclusionConstraintDefinition[];
 }
 
 interface ColumnSchemaDefinition {
@@ -51,20 +52,34 @@ interface RelationshipDefinition {
 
 interface CheckConstraintDefinition {
   name?: string;
+  target: typeof Model;
+  expression: string;
+}
+
+interface ExclusionConstraintDefinition {
+  name?: string;
+  target: typeof Model;
   expression: string;
 }
 
 interface IndexDefinition {
   name?: string;
+  target: typeof Model;
   columns?: ((object?: any) => any[] | { [key: string]: number }) | string[];
   synchronize?: boolean;
   unique?: boolean;
   spatial?: boolean; // columns cannot contain null
-  where?: string;
+  where: any;
+  fulltext: boolean;
+  parser: any;
+  sparse: boolean;
+  background: boolean;
+  expireAfterSeconds: number | void;
 }
 
 interface UniqueIndexDefinition {
   name?: string;
+  target: typeof Model;
   columns?: ((object?: any) => any[] | { [key: string]: number }) | string[];
 }
 
@@ -96,6 +111,7 @@ export default class Store {
         checks: [],
         indices: [],
         uniques: [],
+        exclusions: [],
       };
       this.Schemas.push(targetSchema);
     }
@@ -136,14 +152,14 @@ export default class Store {
   static getColumnMetadata(Class: typeof Model, columnName: string): ColumnDefinition {
     return this.getColumnsMetadata(Class)[columnName];
   }
-  static setColumnMetadata(
+  static assignColumnMetadata(
     Class: typeof Model,
     columnName: string,
     columnMetadata: ColumnDefinition
   ): ColumnSchemaDefinition {
     let columns = this.getColumnsMetadata(Class);
 
-    columns[columnName] = columnMetadata;
+    columns[columnName] = { ...columns[columnName], ...columnMetadata };
 
     return columns;
   }
