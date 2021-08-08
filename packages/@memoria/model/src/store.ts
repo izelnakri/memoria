@@ -35,19 +35,94 @@ export interface ColumnDefinition {
   deleteDate?: boolean; // created by decorator
 }
 
+export interface RelationOptions {
+  cascade?: boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+  nullable?: boolean;
+  onDelete?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
+  onUpdate?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
+  deferrable?: "INITIALLY IMMEDIATE" | "INITIALLY DEFERRED";
+  primary?: boolean;
+  createForeignKeyConstraints?: boolean;
+  lazy?: boolean;
+  eager?: boolean;
+  persistence?: boolean;
+  orphanedRowAction?: "nullify" | "delete";
+}
+
+export interface JoinColumnOptions {
+  target?: any;
+  propertyName?: string;
+
+  name?: string;
+
+  referencedColumnName?: string;
+}
+
+export interface JoinTableOptions {
+  target?: any;
+  propertyName?: string;
+
+  /**
+   * Name of the table that will be created to store values of the both tables (join table).
+   * By default is auto generated.
+   */
+  name?: string;
+
+  /**
+   * First column of the join table.
+   */
+  joinColumn?: JoinColumnOptions;
+  joinColumns?: JoinColumnOptions[];
+
+  /**
+   * Second (inverse) column of the join table.
+   */
+  inverseJoinColumn?: JoinColumnOptions;
+  inverseJoinColumns?: JoinColumnOptions[];
+
+  database?: string;
+  schema?: string;
+}
+
 interface RelationshipSchemaDefinition {
   [relationshipName: string]: RelationshipDefinition;
 }
 
+// NOTE: this could be different definition: There is global and prop level one:
 interface RelationshipDefinition {
   target: Function | string;
   type: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
   inverseSide?: string;
   lazy?: boolean;
-  primary?: boolean; // indicates if its many-to-one or one-to-one primary key ref
+  eager?: boolean;
+  persistence?: boolean;
+  primary?: boolean;
+  /**
+   * Join table options of this column. If set to true then it simply means that it has a join table.
+   */
+  joinTable?: boolean | JoinTableOptions;
+
+  /**
+   * Join column options of this column. If set to true then it simply means that it has a join column.
+   */
+  joinColumn?: boolean | JoinColumnOptions | JoinColumnOptions[];
+
+  /**
+   * Indicates if this is a parent (can be only many-to-one relation) relation in the tree tables.
+   */
+  treeParent?: boolean;
+
+  /**
+   * Indicates if this is a children (can be only one-to-many relation) relation in the tree tables.
+   */
+  treeChildren?: boolean;
+  cascade?: boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+  default?: any;
   nullable?: boolean;
+  onDelete?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
+  onUpdate?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
   deferrable?: "INITIALLY IMMEDIATE" | "INITIALLY DEFERRED";
-  // THERE IS ALSO: persistance, eager, joinTable, joinColumn, default, onDelete, onUpdate
+  orphanedRowAction?: "nullify" | "delete";
 }
 
 interface CheckConstraintDefinition {

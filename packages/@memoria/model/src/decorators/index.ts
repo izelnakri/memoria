@@ -16,18 +16,6 @@ import {
   JoinTable,
 } from "./relationship.js";
 
-// NOTE: maybe I can remove one call with: returning the function directly:
-export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
-  return function (target, propertyKey, _descriptor) {
-    return target.constructor.Adapter.Decorators[decoratorName](
-      target.constructor,
-      propertyKey,
-      firstParam,
-      secondParam
-    );
-  };
-}
-
 export default {
   Column,
   CreateDateColumn,

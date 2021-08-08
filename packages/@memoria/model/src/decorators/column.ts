@@ -91,13 +91,20 @@ export default {
   PrimaryGeneratedColumn,
 };
 
-function proxyColumnToAdapter(decoratorName: string, firstParam: ColumnDefinition) {
-  return function (target: any, propertyKey: string, descriptor: any) {
-    Store.assignColumnMetadata(target.constructor, propertyKey, firstParam);
+function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    Store.assignColumnMetadata(target.constructor, propertyName, options);
 
-    return target.constructor.Adapter.Decorators[decoratorName](firstParam)(
+    if (options.unique) {
+      Store.getSchema(target.constructor).uniques.push({
+        target: target.constructor,
+        columns: [propertyName],
+      });
+    }
+
+    return target.constructor.Adapter.Decorators[decoratorName](options)(
       target.constructor,
-      propertyKey,
+      propertyName,
       descriptor
     );
   };

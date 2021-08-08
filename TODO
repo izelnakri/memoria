@@ -3,6 +3,7 @@
 - SQL Adapter tests
 - relationships
 
+- MemoryAdapter should be able to handle string id/bigint columns for increment
 
 make in build src adjust package.json main to dist or src based on clean or build script
 - investigate relationship setting (!!)

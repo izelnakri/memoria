@@ -1,14 +1,34 @@
 import Model, {
+  Store,
   PrimaryGeneratedColumn,
   Generated,
   PrimaryColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
+  ManyToOne,
 } from "@memoria/model";
-import { Entity } from "typeorm";
 import { SQLAdapter } from "@memoria/adapters"; // NOTE: this has to come AFTER @memoria/model import
 
-@Entity()
+class Photo extends Model {
+  static Adapter = SQLAdapter;
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  href: string;
+
+  @Column("bool")
+  is_public: boolean;
+
+  // @ManyToOne((type) => User, (user) => user.photos)
+  // user: User;
+}
+
 class User extends Model {
   static Adapter = SQLAdapter;
 
@@ -27,6 +47,9 @@ class User extends Model {
   @Column("int")
   @Generated()
   points: number;
+
+  @OneToMany((type) => Photo)
+  photos: Photo[];
 }
 
 let a = new User();
@@ -34,6 +57,7 @@ console.log("new User() output:");
 console.log(a);
 
 try {
+  console.log(Store.Schemas[1].relations);
   let user = await User.insert({ first_name: "Izel", last_name: "Nakri" });
   console.log("User insert:");
   console.log(user);
@@ -106,5 +130,7 @@ try {
   console.log("error:");
   console.log(error);
 }
+
+console.log("-------------- THE END ---------------");
 
 // TODO: save, saveAll, insertAll, updateAll, deleteAll, resetRecords, push, cache,

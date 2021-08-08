@@ -1,27 +1,302 @@
-import { proxyToAdapter } from "./index.js";
+import Store from "../store.js";
+import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../store.js";
 
-export function OneToOne(modelFunction, inversionFunction) {
-  return proxyToAdapter("OneToOne", modelFunction, inversionFunction);
+type ObjectType<T> = { new (): T } | Function;
+
+// TODO: clean-up repetition
+
+export function OneToOne<T>(
+  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
+  options?: RelationOptions
+) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    let inverseSideProperty: string | ((object: T) => any);
+    if (typeof inverseSideOrOptions === "object") {
+      options = <RelationOptions>inverseSideOrOptions;
+    } else {
+      inverseSideProperty = <string | ((object: T) => any)>inverseSideOrOptions;
+    }
+
+    if (!options) {
+      options = {} as RelationOptions;
+    }
+
+    // now try to determine it its lazy relation
+    let isLazy = options && options.lazy === true ? true : false;
+    if (!isLazy && Reflect && (Reflect as any).getMetadata) {
+      // automatic determination
+      let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
+      if (
+        reflectedType &&
+        typeof reflectedType.name === "string" &&
+        reflectedType.name.toLowerCase() === "promise"
+      ) {
+        isLazy = true;
+      }
+    }
+
+    let foundRelation = Store.getSchema(target.constructor).relations[propertyName];
+    Store.getSchema(target.constructor).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "one-to-one",
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return target.constructor.Adapter.Decorators.OneToOne(
+      typeFunctionOrTarget,
+      inverseSideOrOptions,
+      options
+    )(target.constructor, propertyName, descriptor);
+  };
 }
 
-export function ManyToOne(modelFunction, inversionFunction) {
-  return proxyToAdapter("ManyToOne", modelFunction, inversionFunction);
+export function ManyToOne<T>(
+  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
+  options?: RelationOptions
+) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    // Normalize parameters.
+    let inverseSideProperty: string | ((object: T) => any);
+    if (typeof inverseSideOrOptions === "object") {
+      options = <RelationOptions>inverseSideOrOptions;
+    } else {
+      inverseSideProperty = <string | ((object: T) => any)>inverseSideOrOptions;
+    }
+    if (!options) {
+      options = {} as RelationOptions;
+    }
+
+    // Now try to determine if it is a lazy relation.
+    let isLazy = options && options.lazy === true;
+    if (!isLazy && Reflect && (Reflect as any).getMetadata) {
+      // automatic determination
+      let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
+      if (
+        reflectedType &&
+        typeof reflectedType.name === "string" &&
+        reflectedType.name.toLowerCase() === "promise"
+      ) {
+        isLazy = true;
+      }
+    }
+
+    let foundRelation = Store.getSchema(target.constructor).relations[propertyName];
+    Store.getSchema(target.constructor).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "many-to-one",
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false, // should change with Decorator
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return target.constructor.Adapter.Decorators.ManyToOne(
+      typeFunctionOrTarget,
+      inverseSideOrOptions,
+      options
+    )(target.constructor, propertyName, descriptor);
+  };
 }
 
-export function OneToMany(modelFunction, inversionFunction) {
-  return proxyToAdapter("OneToMany", modelFunction, inversionFunction);
+export function OneToMany<T>(
+  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions: string | ((object: T) => any),
+  options?: RelationOptions
+) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    // TODO: inverse
+    if (!options) {
+      options = {};
+    }
+
+    let isLazy = options && options.lazy === true;
+    if (!isLazy && Reflect && (Reflect as any).getMetadata) {
+      let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
+      if (
+        reflectedType &&
+        typeof reflectedType.name === "string" &&
+        reflectedType.name.toLowerCase() === "promise"
+      ) {
+        isLazy = true;
+      }
+    }
+
+    let foundRelation = Store.getSchema(target.constructor).relations[propertyName];
+    Store.getSchema(target.constructor).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "one-to-many",
+      // inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return target.constructor.Adapter.Decorators.OneToMany(
+      typeFunctionOrTarget,
+      inverseSideOrOptions,
+      options
+    )(target.constructor, propertyName, descriptor);
+  };
 }
 
-export function ManyToMany(modelFunction, inversionFunction) {
-  return proxyToAdapter("ManyToMany", modelFunction, inversionFunction);
+export function ManyToMany<T>(
+  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
+  options?: RelationOptions
+) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    // normalize parameters
+    let inverseSideProperty: string | ((object: T) => any);
+    if (typeof inverseSideOrOptions === "object") {
+      options = <RelationOptions>inverseSideOrOptions;
+    } else {
+      inverseSideProperty = <string | ((object: T) => any)>inverseSideOrOptions;
+    }
+    if (!options) {
+      options = {} as RelationOptions;
+    }
+
+    // now try to determine it its lazy relation
+    let isLazy = options.lazy === true;
+    if (!isLazy && Reflect && (Reflect as any).getMetadata) {
+      // automatic determination
+      let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
+      if (
+        reflectedType &&
+        typeof reflectedType.name === "string" &&
+        reflectedType.name.toLowerCase() === "promise"
+      ) {
+        isLazy = true;
+      }
+    }
+
+    let foundRelation = Store.getSchema(target.constructor).relations[propertyName];
+    Store.getSchema(target.constructor).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "many-to-many",
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      // joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      // joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return target.constructor.Adapter.Decorators.ManyToMany(
+      typeFunctionOrTarget,
+      inverseSideOrOptions,
+      options
+    )(target.constructor, propertyName, descriptor);
+  };
 }
 
-export function JoinColumn(joinColumnOptions) {
-  return proxyToAdapter("JoinColumn", joinColumnOptions);
+export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColumnOptions[]) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    let targetRelationship = Store.getSchema(target.constructor).relations[propertyName];
+    if (!targetRelationship) {
+      throw new Error(
+        `@JoinColumn() on ${target.constructor.name} requires relationship declaration first`
+      );
+    }
+    let options = Array.isArray(optionsOrOptionsArray)
+      ? optionsOrOptionsArray
+      : [optionsOrOptionsArray || {}];
+
+    targetRelationship.joinColumn = options.map((options) => {
+      return {
+        target: target.constructor,
+        propertyName: propertyName,
+        name: options.name,
+        referencedColumnName: options.referencedColumnName,
+      };
+    });
+
+    return target.constructor.Adapter.Decorators.JoinColumn(optionsOrOptionsArray)(
+      target.constructor,
+      propertyName,
+      descriptor
+    );
+  };
 }
 
-export function JoinTable(joinTableOptions) {
-  return proxyToAdapter("JoinTable", joinTableOptions);
+export function JoinTable(options: JoinTableOptions = {}) {
+  return function (target: any, propertyName: string, descriptor: any) {
+    let targetRelationship = Store.getSchema(target.constructor).relations[propertyName];
+    if (!targetRelationship) {
+      throw new Error(
+        `@JoinTable() on ${target.constructor.name} requires relationship declaration first`
+      );
+    }
+
+    targetRelationship.joinTable = {
+      target: target.constructor,
+      propertyName: propertyName,
+      name: options.name,
+      joinColumns: options.joinColumn ? [options.joinColumn] : options.joinColumns,
+      inverseJoinColumns: options.inverseJoinColumn
+        ? [options.inverseJoinColumn]
+        : options.inverseJoinColumns,
+      schema: options && options.schema ? options.schema : undefined,
+      database: options && options.database ? options.database : undefined,
+    };
+
+    return target.constructor.Adapter.Decorators.JoinTable(options)(
+      target.constructor,
+      propertyName,
+      descriptor
+    );
+  };
 }
 
 export default {
@@ -33,3 +308,15 @@ export default {
   JoinTable,
 };
 // NOTE: not done: RelationId
+
+// NOTE: maybe I can remove one call with: returning the function directly:
+export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
+  return function (target, propertyKey, _descriptor) {
+    return target.constructor.Adapter.Decorators[decoratorName](
+      target.constructor,
+      propertyKey,
+      firstParam,
+      secondParam
+    );
+  };
+}

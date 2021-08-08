@@ -10,6 +10,16 @@ export {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Generated,
+  Index,
+  Unique,
+  Check,
+  Exclusion,
+  OneToOne,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  JoinColumn,
+  JoinTable,
 } from "./decorators/index.js";
 
 type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
