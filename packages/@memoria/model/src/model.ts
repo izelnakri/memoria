@@ -32,7 +32,7 @@ export default class Model {
     return Store.getColumnNames(this);
   }
 
-  static push(model: QueryObject): Model {
+  static push(model: QueryObject): void | Model {
     return this.Adapter.push(this, model);
   }
 

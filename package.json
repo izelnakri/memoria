@@ -2,7 +2,7 @@
   "name": "memoria",
   "private": true,
   "type": "module",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
   "author": "Izel Nakri",
   "repository": {
@@ -18,10 +18,10 @@
   ],
   "scripts": {
     "bin": "src/cli.ts",
-    "build": "npm run libs:build",
-    "changelog:unreleased": "node_modules/.bin/auto-changelog --stdout --commit-limit false --package --unreleased-only --hide-credit",
-    "changelog:preview": "node_modules/.bin/auto-changelog --stdout --commit-limit false -u --hide-credit",
-    "changelog:update": "node_modules/.bin/auto-changelog --commit-limit false --package --hide-credit",
+    "build": "node scripts/change-entrypoints.js ts && npm run libs:build",
+    "changelog:unreleased": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --stdout --commit-limit false --package --unreleased-only --hide-credit",
+    "changelog:preview": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --stdout --commit-limit false -u --hide-credit",
+    "changelog:update": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --commit-limit false --package --hide-credit",
     "libs:build": "node scripts/clean-libraries.js && node scripts/build-libraries.js",
     "libs:clean": "node scripts/clean-libraries.js",
     "libs:release": "node scripts/release-libraries.js",

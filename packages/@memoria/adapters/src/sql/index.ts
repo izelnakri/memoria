@@ -29,12 +29,13 @@ export default class SQLAdapter {
     password: "postgres",
     database: "postgres",
   };
-  static _connection: FreeObject = null;
+  static _connection: null | FreeObject = null;
   static async getConnection() {
     if (this._connection && this._connection.isConnected) {
       return this._connection;
     }
 
+    // @ts-ignore
     Store.Entities = Store.Schemas.map((schema) => new EntitySchema(schema));
     // @ts-ignore
     this._connection = (await createConnection({
@@ -59,7 +60,7 @@ export default class SQLAdapter {
     return Object.seal(model);
   }
 
-  static push(model: QueryObject): MemoriaModel {
+  static push(_model: QueryObject): void | MemoriaModel {
     // TODO: make this work, should check relationships and push to relationships if they exist
   }
 
@@ -76,7 +77,7 @@ export default class SQLAdapter {
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRef[]
-  ): Promise<MemoriaModel[]> {
+  ): Promise<void | MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
     await Manager.clear(Model);
@@ -221,7 +222,7 @@ export default class SQLAdapter {
       .returning("*")
       .execute();
 
-    return this.build(Model, result.raw[0]);
+    return this.build(Model, result.raw[0]) as ModelRef;
   }
 
   // TODO: HANDLE deleteDate generation
@@ -273,7 +274,7 @@ export default class SQLAdapter {
     return this.build(Model, result.raw[0]);
   }
 
-  static async saveAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
+  static async saveAll(_Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
     return await Manager.save(models);
@@ -291,7 +292,7 @@ export default class SQLAdapter {
     return result.raw.map((rawResult) => this.build(Model, rawResult));
   }
 
-  static async updateAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
+  static async updateAll(_Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
     // TODO: test when pure objects are provided
     let Manager = await this.getEntityManager();
 

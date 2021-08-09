@@ -28,7 +28,7 @@ export default class MemoryAdapter {
     return Object.seal(model);
   }
 
-  static push(model: QueryObject): MemoriaModel {
+  static push(_Model: typeof MemoriaModel, _model: QueryObject): void | MemoriaModel {
     // TODO: make this work, should check relationships and push to relationships if they exist
     //
   }

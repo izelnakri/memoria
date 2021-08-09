@@ -25,8 +25,8 @@ class Photo extends Model {
   @Column("bool")
   is_public: boolean;
 
-  // @ManyToOne((type) => User, (user) => user.photos)
-  // user: User;
+  @ManyToOne((type) => User, (user) => user.photos)
+  user: User;
 }
 
 class User extends Model {
