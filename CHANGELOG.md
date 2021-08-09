@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### 0.0.5
+#### [0.0.7](https://github.com/izelnakri/memoria/compare/0.0.6...0.0.7)
+
+- adjust @memoria/server test before await allowance [`06756e9`](https://github.com/izelnakri/memoria/commit/06756e9cd132b7b946f71c1a136a574c2e9b4c39)
+- refactor npm run libs:build for tsc hack [`738817b`](https://github.com/izelnakri/memoria/commit/738817b05ffb352e469ac6d3fe810f7c5c93806d)
+- all relationship decorators initial implementation [`2edb201`](https://github.com/izelnakri/memoria/commit/2edb201e3a75dc62a831e5cade32d8589a8c4993)
+- first operations on sketchpad.ts [`e3cb132`](https://github.com/izelnakri/memoria/commit/e3cb1321657480134e9a7c0006558c65fd3d1b67)
+- first working SQL insert from the SQLAdapter [`e4d3a1f`](https://github.com/izelnakri/memoria/commit/e4d3a1f73513fe8661037015d05a2e1d2e8bfdfc)
+- typeorm "Other" decorators for Memory & SQL [`716e5c0`](https://github.com/izelnakri/memoria/commit/716e5c05e349453e5cb0b10183b270644ec1d7ee)
+- SQLAdapter DB actions initial full working imp [`b6aaabd`](https://github.com/izelnakri/memoria/commit/b6aaabd4864ec6724f386f22ff485c6d3a429245)
+- fix first phase of universal tests references [`15b9823`](https://github.com/izelnakri/memoria/commit/15b98236d1db3c9a8ab2c8bf40127eb6ec1d2713)
+- all @memoria/server tests fixed [`a348a7b`](https://github.com/izelnakri/memoria/commit/a348a7b606751ce75f207efac3c262a5975b650b)
+- readjust @memoria/response tests [`47a7f88`](https://github.com/izelnakri/memoria/commit/47a7f88f9293c3b4264a52e803740cdcf6832d09)
+- add sql adapter decorators [`e6a7bde`](https://github.com/izelnakri/memoria/commit/e6a7bdee7d4a01288d001931ca4c90a21a76736e)
+- make RESTAdapter extends from MemoryAdapter [`21915f0`](https://github.com/izelnakri/memoria/commit/21915f007079df3ef80de62972a4b6af5373e5e7)
+- typefixes for new release [`bd8b4f2`](https://github.com/izelnakri/memoria/commit/bd8b4f2cf247c0ac4c006f833a3263591620db32)
+- throw exception when model has no primaryKey [`df58f48`](https://github.com/izelnakri/memoria/commit/df58f4890192ce584a80a722b1f093bd82d1d8f8)
+- make @PrimaryGeneratedColumn() int by default [`1fe46f1`](https://github.com/izelnakri/memoria/commit/1fe46f1807bfb8a6593c1a92a604de5ebaaff44c)
+
+#### 0.0.6
+
+> 19 July 2021
 
 - Bump actions/cache from 2 to 2.1.5 [`#230`](https://github.com/izelnakri/memoria/pull/230)
 - Bump docker/login-action from 1 to 1.9.0 [`#229`](https://github.com/izelnakri/memoria/pull/229)
@@ -107,6 +127,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - CI update [`3a98716`](https://github.com/izelnakri/memoria/commit/3a9871616b493e83c7f4a7f4c62a7286821dbf25)
 - Release 2.3.7 [`fc83b61`](https://github.com/izelnakri/memoria/commit/fc83b61a67e2cac70557efaa28afaa45be3ddca3)
 - Release 2.3.5 [`2c84b08`](https://github.com/izelnakri/memoria/commit/2c84b085d9a858cb9e18776008adc8203693faf5)
+- Release 0.0.6 [`014597e`](https://github.com/izelnakri/memoria/commit/014597e52753ecc02642a857602f517d00712c20)
 - Release 2.3.6-beta.0 [`00da13e`](https://github.com/izelnakri/memoria/commit/00da13edc16174c7741dd1e7682cc22e3795a894)
 - v2.0.5 another bugfix for route shortcuts [`6090b0a`](https://github.com/izelnakri/memoria/commit/6090b0aeb11e132b7e1300826335cc5cbb234f09)
 - add more npm scripts [`7fb5953`](https://github.com/izelnakri/memoria/commit/7fb5953c1e760f5aa522929efc9d88f12db2e1a9)
