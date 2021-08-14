@@ -3,7 +3,8 @@ import inspect from "object-inspect";
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
-import MemoriaModel, { Store } from "@memoria/model";
+import MemoryAdapter from "../memory/index.js";
+import MemoriaModel, { Config } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
 type primaryKey = number | string;
@@ -18,6 +19,7 @@ interface FreeObject {
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
 export default class SQLAdapter {
+export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
   static CONNECTION_OPTIONS = {
@@ -36,11 +38,9 @@ export default class SQLAdapter {
     }
 
     // @ts-ignore
-    Store.Entities = Store.Schemas.map((schema) => new EntitySchema(schema));
-    // @ts-ignore
     this._connection = (await createConnection({
-      entities: Store.Entities,
-      ...this.CONNECTION_OPTIONS,
+      entities: Config.Schemas.map((schema) => new EntitySchema(schema)),
+      ...{ logging: this.logging, ...this.CONNECTION_OPTIONS },
     })) as Connection;
 
     return this._connection;
@@ -87,52 +87,6 @@ export default class SQLAdapter {
     }
   }
 
-  static peek(
-    Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[]
-  ): MemoriaModel[] | MemoriaModel | void {
-    if (Array.isArray(primaryKey as primaryKey[])) {
-      return Array.from(Model.Cache).reduce((result: ModelRef[], model: ModelRef) => {
-        const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
-          ? model
-          : null;
-
-        return foundModel ? result.concat([foundModel]) : result;
-      }, []) as ModelRef[];
-    } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      return Array.from(Model.Cache).find(
-        (model: ModelRef) => model[Model.primaryKeyName] === primaryKey
-      ) as ModelRef | undefined;
-    }
-
-    throw new Error(
-      kleur.red(`[Memoria] ${Model.name}.find(id) cannot be called without a valid id`)
-    );
-  }
-
-  static peekBy(Model: typeof MemoriaModel, queryObject: object): MemoriaModel | void {
-    if (!queryObject) {
-      throw new Error(
-        kleur.red(`[Memoria] ${Model.name}.findBy(id) cannot be called without a parameter`)
-      );
-    }
-
-    let keys = Object.keys(queryObject);
-
-    return Model.Cache.find((model: ModelRef) => comparison(model, queryObject, keys, 0));
-  }
-
-  static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): MemoriaModel[] | void {
-    let keys = Object.keys(queryObject);
-    if (keys.length === 0) {
-      return Array.from(Model.Cache);
-    }
-
-    return Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
-      comparison(model as ModelRef, queryObject, keys, 0)
-    );
-  }
-
   static async count(Model: typeof MemoriaModel, options?: object): Promise<number> {
     let Manager = await this.getEntityManager();
 
@@ -170,34 +124,6 @@ export default class SQLAdapter {
     return await Manager.find(Model, queryObject);
   }
 
-  static cache(Model: typeof MemoriaModel, fixture: ModelRef): MemoriaModel {
-    if (!fixture.hasOwnProperty(Model.primaryKeyName)) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] CacheError: A ${Model.name} Record is missing a primary key(${Model.primaryKeyName}) to add to cache. Please make sure all your ${Model.name} fixtures have ${Model.primaryKeyName} key`
-        )
-      );
-    }
-
-    primaryKeyTypeSafetyCheck(Model, fixture[Model.primaryKeyName]);
-
-    if (this.peek(Model, fixture[Model.primaryKeyName])) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] CacheError: ${Model.name}.cache() fails: ${Model.primaryKeyName} ${
-            fixture[Model.primaryKeyName]
-          } already exists in the cache! `
-        )
-      );
-    }
-
-    let target = this.build(Model, fixture);
-
-    Model.Cache.push(target);
-
-    return target;
-  }
-
   static async save(Model: typeof MemoriaModel, model: ModelRef): Promise<MemoriaModel> {
     let Manager = await this.getEntityManager();
     let result = await Manager.save(Model, model);
@@ -223,42 +149,6 @@ export default class SQLAdapter {
       .execute();
 
     return this.build(Model, result.raw[0]) as ModelRef;
-  }
-
-  // TODO: HANDLE deleteDate generation
-  static unload(Model: typeof MemoriaModel, record: ModelRef): ModelRef {
-    if (Model.Cache.length === 0) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] ${Model.name} has no records in the database to delete. ${
-            Model.name
-          }.delete(${inspect(record)}) failed`
-        )
-      );
-    } else if (!record) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] ${Model.name}.delete(model) model object parameter required to delete a model`
-        )
-      );
-    }
-
-    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as ModelRef;
-    if (!targetRecord) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] Could not find ${Model.name} with ${Model.primaryKeyName}: ${
-            record[Model.primaryKeyName]
-          } to delete. ${Model.name}.delete(${inspect(record)}) failed`
-        )
-      );
-    }
-
-    let targetIndex = Model.Cache.indexOf(targetRecord);
-
-    Model.Cache.splice(targetIndex, 1);
-
-    return targetRecord;
   }
 
   static async delete(Model: typeof MemoriaModel, record: ModelRef): Promise<MemoriaModel> {
@@ -297,16 +187,6 @@ export default class SQLAdapter {
     let Manager = await this.getEntityManager();
 
     return await Manager.save(models);
-  }
-
-  static unloadAll(Model: typeof MemoriaModel, models?: ModelRef[]): void {
-    if (!models) {
-      Model.Cache.length = 0;
-
-      return;
-    }
-
-    return models.forEach((model) => this.unload(Model, model));
   }
 
   static async deleteAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<void> {

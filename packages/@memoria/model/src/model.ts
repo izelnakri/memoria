@@ -2,7 +2,7 @@ import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
-import Store from "./store.js";
+import Config from "./config.js";
 import type { ModelRef } from "./index.js";
 
 type primaryKey = number | string;
@@ -14,22 +14,23 @@ export default class Model {
   static Adapter = MemoryAdapter;
 
   static embedReferences = {}; // TODO: move to serializer
-  static _Store = Store;
 
   static get Cache(): Model[] {
-    return Store.getDB(this);
+    return Config.getDB(this);
   }
 
   static get primaryKeyName(): string {
-    return Store.getPrimaryKeyName(this);
+    return Config.getPrimaryKeyName(this);
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Store.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid" ? "uuid" : "id";
+    return Config.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
+      ? "uuid"
+      : "id";
   }
 
   static get columnNames(): Set<string> {
-    return Store.getColumnNames(this);
+    return Config.getColumnNames(this);
   }
 
   static push(model: QueryObject): void | Model {
@@ -162,7 +163,7 @@ export default class Model {
       );
     }
 
-    return Object.assign(Store.getEmbedDataForSerialization(this), relationship);
+    return Object.assign(Config.getEmbedDataForSerialization(this), relationship);
   }
 
   static serializer(objectOrArray: ModelRef | Array<ModelRef>) {
@@ -192,7 +193,7 @@ export default class Model {
 
       return result;
     }, Object.assign({}, object));
-    let embedReferences = Store.getEmbedDataForSerialization(this);
+    let embedReferences = Config.getEmbedDataForSerialization(this);
     return Object.keys(embedReferences).reduce((result, embedKey) => {
       let embedModel = embedReferences[embedKey];
       let embeddedRecords = this.getRelationship(object, embedKey, embedModel);
@@ -215,7 +216,7 @@ export default class Model {
     }
 
     const targetRelationshipModel =
-      relationshipModel || Store.getEmbedDataForSerialization(this)[relationshipName];
+      relationshipModel || Config.getEmbedDataForSerialization(this)[relationshipName];
     const hasManyRelationship = pluralize(relationshipName) === relationshipName;
 
     if (!targetRelationshipModel) {

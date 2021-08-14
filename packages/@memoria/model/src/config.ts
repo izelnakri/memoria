@@ -1,162 +1,11 @@
+// NOTE: investigate connection.entityMetadatas;
+// TRUNCATE TABLE my_table RESTART IDENTITY;
+// TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
 import Model from "./index.js";
 import { ModelRef } from "./index.js";
-import { ColumnType } from "typeorm/driver/types/ColumnTypes";
 import { generateUUID } from "./utils.js";
-
-interface SchemaDefinition {
-  name: string;
-  target: typeof Model;
-  columns: ColumnSchemaDefinition;
-  relations: RelationshipSchemaDefinition;
-  checks: CheckConstraintDefinition[];
-  indices: IndexDefinition[];
-  uniques: UniqueIndexDefinition[];
-  exclusions: ExclusionConstraintDefinition[];
-}
-
-interface ColumnSchemaDefinition {
-  [columnName: string]: ColumnDefinition;
-}
-
-export interface ColumnDefinition {
-  type?: ColumnType;
-  primary?: boolean;
-  generated?: true | "increment" | "uuid"; // created by decorator
-  unique?: boolean;
-  comment?: string;
-  default?: any;
-  enum?: any[] | Object;
-  precision?: number;
-  nullable?: boolean;
-  length?: number;
-  readonly?: boolean;
-  createDate?: boolean; // created by decorator
-  updateDate?: boolean; // created by decorator
-  deleteDate?: boolean; // created by decorator
-}
-
-export interface RelationOptions {
-  cascade?: boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-  nullable?: boolean;
-  onDelete?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
-  onUpdate?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
-  deferrable?: "INITIALLY IMMEDIATE" | "INITIALLY DEFERRED";
-  primary?: boolean;
-  createForeignKeyConstraints?: boolean;
-  lazy?: boolean;
-  eager?: boolean;
-  persistence?: boolean;
-  orphanedRowAction?: "nullify" | "delete";
-}
-
-export interface JoinColumnOptions {
-  target?: any;
-  propertyName?: string;
-
-  name?: string;
-
-  referencedColumnName?: string;
-}
-
-export interface JoinTableOptions {
-  target?: any;
-  propertyName?: string;
-
-  /**
-   * Name of the table that will be created to store values of the both tables (join table).
-   * By default is auto generated.
-   */
-  name?: string;
-
-  /**
-   * First column of the join table.
-   */
-  joinColumn?: JoinColumnOptions;
-  joinColumns?: JoinColumnOptions[];
-
-  /**
-   * Second (inverse) column of the join table.
-   */
-  inverseJoinColumn?: JoinColumnOptions;
-  inverseJoinColumns?: JoinColumnOptions[];
-
-  database?: string;
-  schema?: string;
-}
-
-interface RelationshipSchemaDefinition {
-  [relationshipName: string]: RelationshipDefinition;
-}
-
-// NOTE: this could be different definition: There is global and prop level one:
-interface RelationshipDefinition {
-  target: Function | string;
-  type: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
-  inverseSide?: string;
-  lazy?: boolean;
-  eager?: boolean;
-  persistence?: boolean;
-  primary?: boolean;
-  /**
-   * Join table options of this column. If set to true then it simply means that it has a join table.
-   */
-  joinTable?: boolean | JoinTableOptions;
-
-  /**
-   * Join column options of this column. If set to true then it simply means that it has a join column.
-   */
-  joinColumn?: boolean | JoinColumnOptions | JoinColumnOptions[];
-
-  /**
-   * Indicates if this is a parent (can be only many-to-one relation) relation in the tree tables.
-   */
-  treeParent?: boolean;
-
-  /**
-   * Indicates if this is a children (can be only one-to-many relation) relation in the tree tables.
-   */
-  treeChildren?: boolean;
-  cascade?: boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-  default?: any;
-  nullable?: boolean;
-  onDelete?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
-  onUpdate?: "RESTRICT" | "CASCADE" | "SET NULL" | "DEFAULT" | "NO ACTION";
-  deferrable?: "INITIALLY IMMEDIATE" | "INITIALLY DEFERRED";
-  orphanedRowAction?: "nullify" | "delete";
-}
-
-interface CheckConstraintDefinition {
-  name?: string;
-  target: typeof Model;
-  expression: string;
-}
-
-interface ExclusionConstraintDefinition {
-  name?: string;
-  target: typeof Model;
-  expression: string;
-}
-
-interface IndexDefinition {
-  name?: string;
-  target: typeof Model;
-  columns?: ((object?: any) => any[] | { [key: string]: number }) | string[];
-  synchronize?: boolean;
-  unique?: boolean;
-  spatial?: boolean; // columns cannot contain null
-  where: any;
-  fulltext: boolean;
-  parser: any;
-  sparse: boolean;
-  background: boolean;
-  expireAfterSeconds: number | void;
-}
-
-interface UniqueIndexDefinition {
-  name?: string;
-  target: typeof Model;
-  columns?: ((object?: any) => any[] | { [key: string]: number }) | string[];
-}
+import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "./types";
+import type { MemoryAdapter } from "@memoria/adapters";
 
 interface DefaultValueReferences {
   [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
@@ -164,13 +13,17 @@ interface DefaultValueReferences {
 
 type DB = { [className: string]: ModelRef[] };
 
-type Entity = any;
+// Stores all the internal data Memoria needs
+export default class MemoriaConfigurations {
+  // typeof MemoryAdapter[]
+  static get Adapters() {
+    let result = new Set();
 
-export default class Store {
-  // NOTE: this is only used by @memoria(not typeorm) to cache SchemaDefinition for different adapters
-  static Entities: Entity[] = [];
-  static getEntity(Class: typeof Model): Entity {
-    return this.Entities.find((entity) => entity.options.name === Class.name);
+    this.Schemas.forEach((schema) => {
+      result.add(schema.target.Adapter);
+    });
+
+    return Array.from(result) as typeof MemoryAdapter[];
   }
 
   static Schemas: SchemaDefinition[] = [];
@@ -315,23 +168,20 @@ export default class Store {
     return this._embedReferences[Class.name];
   }
 
-  static reset() {
-    this.Schemas.length = 0;
-    for (let cache in this._DB) delete this._DB[cache];
-    for (let cache in this._columnNames) delete this._columnNames[cache];
-    for (let cache in this._primaryKeyNameCache) delete this._primaryKeyNameCache[cache];
-    for (let cache in this._defaultValuesCache) delete this._defaultValuesCache[cache];
-    for (let cache in this._embedReferences) {
-      // TODO: this only cleans registered data!!
-      let embedReferences = this._embedReferences[cache];
-      for (let reference in embedReferences) {
-        delete embedReferences[reference];
-      }
-      delete this._embedReferences[cache];
-    }
+  static async resetSchemas(modelName?: string): Promise<MemoriaConfigurations> {
+    await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, modelName)));
+
+    return this;
+  }
+
+  static async resetForTests(): Promise<MemoriaConfigurations> {
+    await Promise.all(this.Adapters.map((Adapter) => Adapter.resetForTests(this)));
+
+    return this;
   }
 }
 
+// TODO: turn this into a sequence so no need for sorting, faster inserts
 function incrementId(DB: ModelRef[], keyName: string) {
   if (!DB || DB.length === 0) {
     return 1;

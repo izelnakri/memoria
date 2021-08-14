@@ -2,7 +2,7 @@ import kleur from "kleur";
 import inspect from "object-inspect";
 import Decorators from "./decorators/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
-import MemoriaModel, { Store } from "@memoria/model";
+import MemoriaModel, { Config } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
 type primaryKey = number | string;
@@ -18,7 +18,7 @@ type QueryObject = { [key: string]: any };
 export default class MemoryAdapter {
   static Decorators = Decorators;
 
-  static build(Model: typeof MemoriaModel, options): MemoriaModel {
+  static build(Model: typeof MemoriaModel, options: QueryObject): MemoriaModel {
     let model = new Model(options);
 
     Object.keys(model).forEach((keyName: string) => {
@@ -170,7 +170,7 @@ export default class MemoryAdapter {
           return result;
         }
 
-        let defaultValues = Object.assign({}, Store.getDefaultValues(Model, "insert"));
+        let defaultValues = Object.assign({}, Config.getDefaultValues(Model, "insert"));
         if (!defaultValues.hasOwnProperty(attribute)) {
           result[attribute] = null;
         } else if (typeof defaultValues[attribute] === "function") {
@@ -231,7 +231,7 @@ export default class MemoryAdapter {
       );
     }
 
-    let defaultColumnsForUpdate = Store.getDefaultValues(Model, "update");
+    let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
     return Object.assign(
       targetRecord,
       Object.keys(defaultColumnsForUpdate).reduce((result: QueryObject, keyName) => {

@@ -1,6 +1,6 @@
 import Model from "./model.js";
-import Store from "./store.js";
-export type { ColumnDefinition } from "./store.js";
+import Config from "./config.js";
+export type { ColumnDefinition } from "./types.js";
 export { generateUUID } from "./utils.js";
 export {
   Column,
@@ -38,7 +38,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Store };
+export { Config };
 
 // Serialization
 // relationship setting and fetching

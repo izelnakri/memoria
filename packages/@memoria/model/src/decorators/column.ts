@@ -1,5 +1,5 @@
-import Store from "../store.js";
-import type { ColumnDefinition } from "../store.js";
+import Config from "../config.js";
+import type { ColumnDefinition } from "../types.js";
 import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
 // NOTE: options manglings here are done for defaultValue generation
@@ -93,10 +93,10 @@ export default {
 
 function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) {
   return function (target: any, propertyName: string, descriptor: any) {
-    Store.assignColumnMetadata(target.constructor, propertyName, options);
+    Config.assignColumnMetadata(target.constructor, propertyName, options);
 
     if (options.unique) {
-      Store.getSchema(target.constructor).uniques.push({
+      Config.getSchema(target.constructor).uniques.push({
         target: target.constructor,
         columns: [propertyName],
       });
