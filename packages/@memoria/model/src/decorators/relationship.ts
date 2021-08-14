@@ -135,6 +135,8 @@ export function ManyToOne<T>(
   };
 }
 
+export const BelongsTo = ManyToOne;
+
 export function OneToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions: string | ((object: T) => any),
@@ -191,6 +193,8 @@ export function OneToMany<T>(
     )(target.constructor, propertyName, descriptor);
   };
 }
+
+export const HasMany = OneToMany;
 
 export function ManyToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
@@ -318,7 +322,9 @@ export function JoinTable(options: JoinTableOptions = {}) {
 export default {
   OneToOne,
   ManyToOne,
+  BelongsTo,
   OneToMany,
+  HasMany,
   ManyToMany,
   JoinColumn,
   JoinTable,

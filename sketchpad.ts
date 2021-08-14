@@ -1,17 +1,21 @@
 import Model, {
-  Store,
+  Config,
   PrimaryGeneratedColumn,
   Generated,
   PrimaryColumn,
   Column,
+  BelongsTo,
+  HasMany,
   CreateDateColumn,
-  OneToMany,
-  ManyToOne,
 } from "@memoria/model";
 import { SQLAdapter } from "@memoria/adapters"; // NOTE: this has to come AFTER @memoria/model import
 
+class MySQLAdapter extends SQLAdapter {
+  static logging = false;
+}
+
 class Photo extends Model {
-  static Adapter = SQLAdapter;
+  static Adapter = MySQLAdapter;
 
   @PrimaryGeneratedColumn()
   id: number;
@@ -25,12 +29,12 @@ class Photo extends Model {
   @Column("bool")
   is_public: boolean;
 
-  @ManyToOne((type) => User, (user) => user.photos)
+  @BelongsTo((type) => User, (user) => user.photos)
   user: User;
 }
 
 class User extends Model {
-  static Adapter = SQLAdapter;
+  static Adapter = MySQLAdapter;
 
   @PrimaryGeneratedColumn("increment")
   id: number;
@@ -48,7 +52,7 @@ class User extends Model {
   @Generated()
   points: number;
 
-  @OneToMany((type) => Photo)
+  @HasMany((type) => Photo, (photo) => photo.user)
   photos: Photo[];
 }
 
@@ -57,7 +61,7 @@ console.log("new User() output:");
 console.log(a);
 
 try {
-  console.log(Store.Schemas[1].relations);
+  console.log(Config.Schemas[1].relations);
   let user = await User.insert({ first_name: "Izel", last_name: "Nakri" });
   console.log("User insert:");
   console.log(user);
