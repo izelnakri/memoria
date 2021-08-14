@@ -1,8 +1,6 @@
 import kleur from "kleur";
 import inspect from "object-inspect";
 import { Connection, createConnection, EntitySchema } from "typeorm";
-import { PlatformTools } from "typeorm/platform/PlatformTools.js";
-import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage.js";
 import Decorators from "./decorators/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoryAdapter from "../memory/index.js";
@@ -49,8 +47,11 @@ export default class SQLAdapter extends MemoryAdapter {
     await connection.dropDatabase();
     await super.resetSchemas(Config, modelName);
 
-    let globalScope = PlatformTools.getGlobalVariable();
-    globalScope.typeormMetadataArgsStorage = new MetadataArgsStorage();
+    // NOTE: uncommenting this breaks test builds on static imports. Check if this is even needed, or there is another way:
+    // import { PlatformTools } from "typeorm/platform/PlatformTools.js";
+    // import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage.js";
+    // let globalScope = PlatformTools.getGlobalVariable();
+    // globalScope.typeormMetadataArgsStorage = new MetadataArgsStorage();
 
     await connection.close();
   }

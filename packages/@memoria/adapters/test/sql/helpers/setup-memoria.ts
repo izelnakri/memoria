@@ -18,8 +18,5 @@ export default function (hooks) {
     await Config.resetForTests();
     await Config.resetSchemas();
   });
-  hooks.afterEach(async function () {
-    await Config.resetForTests();
-    await Config.resetSchemas();
-  });
+  // hooks.afterEach(() => Store.reset());
 }

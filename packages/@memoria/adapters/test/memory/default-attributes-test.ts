@@ -1,8 +1,8 @@
 import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
+import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/model | Default Attributes", function (hooks) {
+module("@memoria/adapters | MemoryAdapter | Default Attributes", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [

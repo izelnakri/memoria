@@ -127,6 +127,7 @@ module("@memoria/model | Public API", function (hooks) {
         )
       );
     }
+    assert.ok(Photo._Store._DB === PhotoComment._Store._DB);
   });
 
   test("$Model.columnNames gets set correctly", async function (assert) {

@@ -1,8 +1,8 @@
 import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
+import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/model | $Model.insert()", function (hooks) {
+module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
