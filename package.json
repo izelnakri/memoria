@@ -19,6 +19,7 @@
   "scripts": {
     "bin": "src/cli.ts",
     "build": "node scripts/change-entrypoints.js ts && npm run libs:build",
+    "build:dev": "ENVIRONMENT=development npm run libs:build",
     "changelog:unreleased": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --stdout --commit-limit false --package --unreleased-only --hide-credit",
     "changelog:preview": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --stdout --commit-limit false -u --hide-credit",
     "changelog:update": "node scripts/change-entrypoints.js js && node_modules/.bin/auto-changelog --commit-limit false --package --hide-credit",

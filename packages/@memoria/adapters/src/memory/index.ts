@@ -15,8 +15,53 @@ type QueryObject = { [key: string]: any };
 
 // static push(changes existing model data)
 // TODO: always store id as string due to bigint!! Thats what SQLAdapter does
+// TODO: push
 export default class MemoryAdapter {
   static Decorators = Decorators;
+
+  static async resetSchemas(Config: Config, modelName?: string): Promise<Config> {
+    if (modelName) {
+      let targetSchemaIndex = Config.Schemas.findIndex(
+        (schema) => schema.target.name === modelName
+      );
+      if (targetSchemaIndex >= 0) {
+        Config.Schemas.splice(targetSchemaIndex, 1);
+        delete Config._DB[modelName];
+        delete Config._columnNames[modelName];
+        delete Config._primaryKeyNameCache[modelName];
+        delete Config._defaultValuesCache[modelName];
+        delete Config._embedReferences[modelName]; // TODO: this is problematic, doesnt clear other relationship embeds
+      }
+
+      return Config;
+    }
+
+    Config.Schemas.length = 0;
+    clearObject(Config._DB);
+    clearObject(Config._columnNames);
+    clearObject(Config._primaryKeyNameCache);
+    clearObject(Config._defaultValuesCache);
+
+    for (let cache in Config._embedReferences) {
+      // NOTE: this is complex because could hold cyclical references
+      // TODO: this only cleans registered data!!
+      clearObject(Config._embedReferences[cache]);
+
+      delete Config._embedReferences[cache];
+    }
+
+    return Config;
+  }
+
+  static async resetForTests(Config: Config, modelName?: string): Promise<Config> {
+    if (modelName) {
+      Config.Schemas[modelName].target.resetCache();
+    } else {
+      Config.Schemas.forEach((schema) => schema.target.resetCache());
+    }
+
+    return Config;
+  }
 
   static build(Model: typeof MemoriaModel, options: QueryObject): MemoriaModel {
     let model = new Model(options);
@@ -310,6 +355,10 @@ export default class MemoryAdapter {
   static async deleteAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<void> {
     return models.forEach((model) => this.unload(Model, model));
   }
+}
+
+function clearObject(object) {
+  for (let key in object) delete object[key];
 }
 
 // NOTE: if records were ordered by ID, then there could be performance benefit

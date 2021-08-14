@@ -1,6 +1,8 @@
 import kleur from "kleur";
 import inspect from "object-inspect";
 import { Connection, createConnection, EntitySchema } from "typeorm";
+import { PlatformTools } from "typeorm/platform/PlatformTools.js";
+import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage.js";
 import Decorators from "./decorators/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoryAdapter from "../memory/index.js";
@@ -14,14 +16,18 @@ interface FreeObject {
   [key: string]: any;
 }
 
-// TODO: save, saveAll, insertAll, updateAll, deleteAll, resetRecords, push, cache,
-
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
-export default class SQLAdapter {
+// TODO: also allow manual id insertion
+//     orderBy: {
+//     name: "ASC",
+//     id: "DESC"
+// }
+
 export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
+  static logging = true;
   static CONNECTION_OPTIONS = {
     type: "postgres",
     host: "localhost",
@@ -31,6 +37,33 @@ export default class SQLAdapter extends MemoryAdapter {
     password: "postgres",
     database: "postgres",
   };
+
+  static async resetSchemas(Config: Config, modelName?: string): Promise<Config> {
+    if (modelName) {
+      throw new Error(
+        "$Model.resetSchemas(modelName) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
+      );
+    }
+    let connection = await this.getConnection();
+
+    await connection.dropDatabase();
+    await super.resetSchemas(Config, modelName);
+
+    let globalScope = PlatformTools.getGlobalVariable();
+    globalScope.typeormMetadataArgsStorage = new MetadataArgsStorage();
+
+    await connection.close();
+  }
+
+  static async resetForTests(Config: Config, modelName?: string): Promise<Config> {
+    await super.resetForTests(Config, modelName);
+
+    let tableNames = Config.Schemas.map((schema) => schema.name);
+    let Manager = await this.getEntityManager();
+
+    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(",")} RESTART IDENTITY`); // NOTE: research CASCADE
+  }
+
   static _connection: null | FreeObject = null;
   static async getConnection() {
     if (this._connection && this._connection.isConnected) {
@@ -45,33 +78,10 @@ export default class SQLAdapter extends MemoryAdapter {
 
     return this._connection;
   }
+
   static async getEntityManager() {
     let connection = await this.getConnection();
     return connection.manager;
-  }
-
-  static build(Model: typeof MemoriaModel, options): MemoriaModel {
-    let model = new Model(options);
-
-    Object.keys(model).forEach((keyName: string) => {
-      model[keyName] = keyName in options ? options[keyName] : model[keyName] || null;
-    });
-
-    return Object.seal(model);
-  }
-
-  static push(_model: QueryObject): void | MemoriaModel {
-    // TODO: make this work, should check relationships and push to relationships if they exist
-  }
-
-  static resetCache(Model: typeof MemoriaModel, targetState?: ModelRef[]): MemoriaModel[] {
-    Model.Cache.length = 0;
-
-    if (targetState) {
-      targetState.map((targetFixture) => this.cache(Model, targetFixture));
-    }
-
-    return Model.Cache;
   }
 
   static async resetRecords(
@@ -132,8 +142,27 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 
   static async insert(Model: typeof MemoriaModel, model: QueryObject): Promise<MemoriaModel> {
+    let targetColumnNames = Object.keys(model).filter((key) => Model.columnNames.has(key));
     let Manager = await this.getEntityManager();
-    let result = await Manager.insert(Model, model);
+    let result = await Manager.createQueryBuilder()
+      .insert()
+      .into(Model, targetColumnNames)
+      .values(
+        targetColumnNames.reduce(
+          (columnName: string) => Object.assign(model, { [columnName]: model[columnName] }),
+          {}
+        )
+      )
+      .returning("*")
+      .execute();
+    if (Model.primaryKeyType === "id" && model[Model.primaryKeyName]) {
+      let tableName = Manager.connection.entityMetadatas.find(
+        (metadata) => metadata.targetName === Model.name
+      ).tableName;
+      await Manager.query(
+        `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+      );
+    }
 
     return this.build(Model, result.generatedMaps[0]);
   }

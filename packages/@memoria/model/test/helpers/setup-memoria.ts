@@ -14,6 +14,12 @@ export default function (hooks) {
       });
     };
   });
-  hooks.beforeEach(() => Store.reset());
-  hooks.afterEach(() => Store.reset());
+  hooks.beforeEach(async function () {
+    await Store.resetForTests();
+    await Store.resetSchemas();
+  });
+  hooks.afterEach(async function () {
+    await Store.resetForTests();
+    await Store.resetSchemas();
+  });
 }
