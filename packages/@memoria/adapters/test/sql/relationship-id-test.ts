@@ -1,8 +1,8 @@
 import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
+import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/model | Relationship API for ID(integer)", function (hooks) {
+module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [

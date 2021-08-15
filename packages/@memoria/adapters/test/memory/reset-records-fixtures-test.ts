@@ -54,23 +54,16 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
 
   function prepare() {
     class Photo extends Model {
-      static defaultAttributes = {
-        is_public: true,
-        name() {
-          return "Imported photo";
-        },
-      };
-
       @PrimaryGeneratedColumn()
       id: number;
 
-      @Column()
+      @Column("varchar", { default: "Imported photo" })
       name: string;
 
       @Column()
       href: string;
 
-      @Column()
+      @Column("boolean", { default: true })
       is_public: boolean;
     }
 
@@ -80,13 +73,6 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     }
 
     class PhotoComment extends Model {
-      static defaultAttributes = {
-        inserted_at() {
-          return new Date().toJSON();
-        },
-        is_important: true,
-      };
-
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 

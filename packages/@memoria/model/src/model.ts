@@ -19,6 +19,10 @@ export default class Model {
     return Config.getDB(this);
   }
 
+  static get tableName(): string {
+    return underscore(this.name); // TODO: add entity.tableName || underscore(this.name) when feature is available
+  }
+
   static get primaryKeyName(): string {
     return Config.getPrimaryKeyName(this);
   }

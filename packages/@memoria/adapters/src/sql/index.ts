@@ -59,10 +59,10 @@ export default class SQLAdapter extends MemoryAdapter {
   static async resetForTests(Config: Config, modelName?: string): Promise<Config> {
     await super.resetForTests(Config, modelName);
 
-    let tableNames = Config.Schemas.map((schema) => schema.name);
+    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
     let Manager = await this.getEntityManager();
 
-    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(",")} RESTART IDENTITY`); // NOTE: research CASCADE
+    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: research CASCADE
   }
 
   static _connection: null | FreeObject = null;
@@ -94,6 +94,35 @@ export default class SQLAdapter extends MemoryAdapter {
     await Manager.clear(Model);
 
     if (targetState) {
+      targetState.forEach((fixture) => {
+        if (!fixture.hasOwnProperty(Model.primaryKeyName)) {
+          throw new Error(
+            kleur.red(
+              `[Memoria] A ${Model.name} record is missing a primary key(${Model.primaryKeyName}) to add to DB. Please make sure all your ${Model.name} fixtures have ${Model.primaryKeyName} key`
+            )
+          );
+        }
+
+        primaryKeyTypeSafetyCheck(Model, fixture[Model.primaryKeyName]);
+      });
+
+      targetState.reduce((result, fixture) => {
+        if (!(Model.primaryKeyName in fixture)) {
+          return result;
+        }
+
+        let primaryKey = fixture[Model.primaryKeyName];
+        if (result.includes(primaryKey)) {
+          throw new Error(
+            `[Memoria] ${Model.name}.resetRecords(records) fails: ${Model.primaryKeyName} ${primaryKey} already exists in the database!`
+          );
+        }
+
+        result.push(primaryKey);
+
+        return result;
+      }, [] as any[]);
+
       return await this.insertAll(Model, targetState);
     }
   }
@@ -114,6 +143,10 @@ export default class SQLAdapter extends MemoryAdapter {
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     let Manager = await this.getEntityManager();
 
+    if (Array.isArray(primaryKey)) {
+      return await Manager.findByIds(Model, primaryKey);
+    }
+
     return await Manager.findOne(Model, primaryKey);
   }
 
@@ -121,6 +154,12 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: object
   ): Promise<MemoriaModel | void> {
+    if (!queryObject) {
+      throw new Error(
+        kleur.red(`[Memoria] ${Model.name}.findBy(id) cannot be called without a parameter`)
+      );
+    }
+
     let Manager = await this.getEntityManager();
 
     return await Manager.findOne(Model, queryObject);
@@ -150,8 +189,9 @@ export default class SQLAdapter extends MemoryAdapter {
       .into(Model, targetColumnNames)
       .values(
         targetColumnNames.reduce(
-          (columnName: string) => Object.assign(model, { [columnName]: model[columnName] }),
-          {}
+          (result, columnName: string) =>
+            Object.assign(result, { [columnName]: model[columnName] }),
+          Object.assign({}, model)
         )
       )
       .returning("*")
@@ -182,6 +222,14 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 
   static async delete(Model: typeof MemoriaModel, record: ModelRef): Promise<MemoriaModel> {
+    if (!record) {
+      throw new Error(
+        kleur.red(
+          `[Memoria] ${Model.name}.delete(model) model object parameter required to delete a model`
+        )
+      );
+    }
+
     let primaryKeyName = Model.primaryKeyName;
     let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
@@ -201,13 +249,21 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 
   static async insertAll(Model: typeof MemoriaModel, models: ModelRef[]): Promise<MemoriaModel[]> {
+    models.map((model) => {
+      return model[Model.primaryKeyName];
+    });
+
+    // TODO: problem, when duplicate ids provided sequence increments one of them!!
     let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
       .insert()
-      .into(Model)
+      .into(Model, Model.columnNames)
       .values(models)
       .returning("*")
       .execute();
+    // await Manager.query(
+    //   `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+    // );
 
     return result.raw.map((rawResult) => this.build(Model, rawResult));
   }

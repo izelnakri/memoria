@@ -1,10 +1,8 @@
 import "./default-attributes-test.js";
-// import "./delete-test.js";
-// import "./index-test.js";
-// import "./insert-test.js";
-// import "./query-test.js";
+import "./delete-test.js";
+import "./insert-test.js";
+import "./query-test.js";
 // import "./relationship-id-test.js";
 // import "./relationship-uuid-test.js";
-// import "./reset-records-fixtures-test.js";
-// import "./serialize-test.js";
-// import "./update-test.js";
+import "./reset-records-fixtures-test.js";
+import "./update-test.js";

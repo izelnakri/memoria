@@ -1,9 +1,9 @@
+import Model, { Config, Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { SQLAdapter } from "@memoria/adapters";
-import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
+import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/adapters/sql| $Model.insert()", function (hooks) {
+module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -53,7 +53,7 @@ module("@memoria/adapters/sql| $Model.insert()", function (hooks) {
     },
   ];
 
-  function prepare() {
+  async function prepare() {
     class User extends Model {
       static Adapter = SQLAdapter;
     }
@@ -69,7 +69,10 @@ module("@memoria/adapters/sql| $Model.insert()", function (hooks) {
       @Column("varchar", { default: "Some default name" })
       name: string;
     }
+
     class PhotoComment extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -78,13 +81,21 @@ module("@memoria/adapters/sql| $Model.insert()", function (hooks) {
 
       @Column("bool", { default: true })
       is_important: boolean;
+
+      @Column("int", { nullable: true })
+      photo_id: number;
+
+      @Column("int", { nullable: true })
+      user_id: number;
     }
+
+    await Config.resetForTests();
 
     return { Photo, PhotoComment, User };
   }
 
   test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
-    const { Photo, PhotoComment } = prepare();
+    const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -96,236 +107,255 @@ module("@memoria/adapters/sql| $Model.insert()", function (hooks) {
       [1, 2, 3]
     );
 
-    // await Photo.insert();
+    await Photo.insert();
 
-    // assert.deepEqual(
-    //   (await Photo.findAll()).map((photo) => photo.id),
-    //   [1, 2, 3, 4]
-    // );
+    assert.deepEqual(
+      (await Photo.findAll()).map((photo) => photo.id),
+      [1, 2, 3, 4]
+    );
 
-    // await Photo.insert();
+    await Photo.insert();
 
-    // assert.equal(await Photo.count(), 5);
-    // assert.propEqual(await Photo.findAll(), [
-    //   {
-    //     id: 1,
-    //     name: "Ski trip",
-    //     is_public: false,
-    //   },
-    //   {
-    //     id: 2,
-    //     name: "Family photo",
-    //     is_public: true,
-    //   },
-    //   {
-    //     id: 3,
-    //     name: "Selfie",
-    //     is_public: false,
-    //   },
-    //   {
-    //     id: 4,
-    //     is_public: true,
-    //     name: "Some default name",
-    //   },
-    //   {
-    //     id: 5,
-    //     is_public: true,
-    //     name: "Some default name",
-    //   },
-    // ]);
+    assert.equal(await Photo.count(), 5);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      {
+        id: 2,
+        name: "Family photo",
+        is_public: true,
+      },
+      {
+        id: 3,
+        name: "Selfie",
+        is_public: false,
+      },
+      {
+        id: 4,
+        is_public: true,
+        name: "Some default name",
+      },
+      {
+        id: 5,
+        is_public: true,
+        name: "Some default name",
+      },
+    ]);
 
-    // const initialCommentUUIDs = (await PhotoComment.findAll()).map(
-    //   (photoComment) => photoComment.uuid
-    // );
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map(
+      (photoComment) => photoComment.uuid
+    );
 
-    // assert.deepEqual(initialCommentUUIDs, [
-    //   "499ec646-493f-4eea-b92e-e383d94182f4",
-    //   "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-    //   "d351963d-e725-4092-a37c-1ca1823b57d3",
-    //   "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-    // ]);
+    assert.deepEqual(initialCommentUUIDs, [
+      "499ec646-493f-4eea-b92e-e383d94182f4",
+      "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
+      "d351963d-e725-4092-a37c-1ca1823b57d3",
+      "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+    ]);
 
-    // await PhotoComment.insert();
+    await PhotoComment.insert();
 
-    // const allPhotoComments = await PhotoComment.findAll();
-    // const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
+    const allPhotoComments = await PhotoComment.findAll();
+    const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
 
-    // assert.equal(await PhotoComment.count(), 5);
-    // assert.ok(!initialCommentUUIDs[lastPhotoComment.uuid], "inserted comment has a unique uuid");
+    assert.equal(await PhotoComment.count(), 5);
+    assert.ok(!initialCommentUUIDs[lastPhotoComment.uuid], "inserted comment has a unique uuid");
   });
 
-  // test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
-  //   const { Photo, PhotoComment } = prepare();
+  test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
+    const { Photo, PhotoComment } = await prepare();
 
-  //   await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-  //   await Promise.all(
-  //     PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-  //   );
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-  //   await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
-  //   await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
+    await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
+    await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
 
-  //   assert.equal(await Photo.count(), 5);
-  //   assert.propEqual(await Photo.findAll(), [
-  //     {
-  //       id: 1,
-  //       name: "Ski trip",
-  //       is_public: false,
-  //     },
-  //     {
-  //       id: 2,
-  //       name: "Family photo",
-  //       is_public: true,
-  //     },
-  //     {
-  //       id: 3,
-  //       name: "Selfie",
-  //       is_public: false,
-  //     },
-  //     {
-  //       id: 99,
-  //       is_public: false,
-  //       name: "Some default name",
-  //     },
-  //     {
-  //       id: 100,
-  //       is_public: true,
-  //       name: "Baby photo",
-  //     },
-  //   ]);
+    assert.equal(await Photo.count(), 5);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      {
+        id: 2,
+        name: "Family photo",
+        is_public: true,
+      },
+      {
+        id: 3,
+        name: "Selfie",
+        is_public: false,
+      },
+      {
+        id: 99,
+        is_public: false,
+        name: "Some default name",
+      },
+      {
+        id: 100,
+        is_public: true,
+        name: "Baby photo",
+      },
+    ]);
 
-  //   const initialCommentUUIDs = (await PhotoComment.findAll()).map((comment) => comment.uuid);
-  //   const commentOne = await PhotoComment.insert({
-  //     inserted_at: new Date("2015-10-25T20:54:04.447Z"),
-  //     photo_id: 1,
-  //   });
-  //   const commentTwo = await PhotoComment.insert({
-  //     uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
-  //     is_important: false,
-  //   });
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map((comment) => comment.uuid);
+    const commentOne = await PhotoComment.insert({
+      inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+      photo_id: 1,
+    });
+    const commentTwo = await PhotoComment.insert({
+      uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
+      is_important: false,
+    });
 
-  //   assert.equal(await PhotoComment.count(), 6);
+    assert.equal(await PhotoComment.count(), 6);
 
-  //   const allComments = await PhotoComment.findAll();
-  //   const lastInsertedComments = allComments.slice(4, allComments.length);
+    const allComments = await PhotoComment.findAll();
+    const lastInsertedComments = allComments.slice(4, allComments.length);
 
-  //   assert.ok(allComments.includes(commentOne), "first comment insert in the database");
-  //   assert.ok(allComments.includes(commentTwo), "second comment insert in the database");
+    assert.matchJson(
+      allComments.find((comment) => comment.uuid === commentOne.uuid),
+      JSON.parse(JSON.stringify(commentOne)),
+      "first comment insert in the database"
+    );
+    assert.matchJson(
+      allComments.find((comment) => comment.uuid === commentTwo.uuid),
+      JSON.parse(JSON.stringify(commentTwo)),
+      "first comment insert in the database"
+    );
 
-  //   assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
-  //   assert.equal(commentOne.photo_id, undefined);
-  //   assert.equal(commentOne.is_important, true);
-  //   assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
-  //   assert.ok(new Date() - commentTwo.inserted_at < 10000);
-  //   assert.equal(commentTwo.photo_id, null);
-  //   assert.equal(commentTwo.is_important, false);
+    assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
+    assert.equal(commentOne.photo_id, 1);
+    assert.equal(commentOne.is_important, true);
+    assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
+    assert.ok(new Date() - commentTwo.inserted_at < 10000);
+    assert.equal(commentTwo.photo_id, null);
+    assert.equal(commentTwo.is_important, false);
 
-  //   lastInsertedComments.forEach((comment) => {
-  //     assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
-  //   });
-  // });
+    lastInsertedComments.forEach((comment) => {
+      assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
+    });
+  });
 
-  // test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
-  //   const { Photo, PhotoComment } = prepare();
+  // TODO: Error handling:
+  test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
+    const { Photo, PhotoComment } = await prepare();
 
-  //   await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-  //   await Promise.all(
-  //     PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-  //   );
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-  //   try {
-  //     await Photo.insert({ id: 1 });
-  //   } catch (error) {
-  //     assert.ok(
-  //       /\[Memoria\] Photo\.insert\(record\) fails: id 1 already exists in the database!/.test(
-  //         error.message
-  //       )
-  //     );
-  //   }
-  //   try {
-  //     await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
-  //   } catch (error) {
-  //     assert.ok(
-  //       /\[Memoria\] PhotoComment\.insert\(record\) fails: uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database!/.test(
-  //         error.message
-  //       )
-  //     );
-  //   }
-  // });
+    try {
+      await Photo.insert({ id: 1 });
+    } catch (error) {
+      assert.ok(error);
+      // assert.ok(
+      //   /\[Memoria\] Photo\.insert\(record\) fails: id 1 already exists in the database!/.test(
+      //     error.message
+      //   )
+      // );
+    }
+    try {
+      await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
+    } catch (error) {
+      assert.ok(error);
+      // assert.ok(
+      //   /\[Memoria\] PhotoComment\.insert\(record\) fails: uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database!/.test(
+      //     error.message
+      //   )
+      // );
+    }
+  });
 
-  // test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type", async function (assert) {
-  //   const { Photo, PhotoComment } = prepare();
+  test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type", async function (assert) {
+    const { Photo, PhotoComment } = await prepare();
 
-  //   await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-  //   await Promise.all(
-  //     PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-  //   );
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-  //   try {
-  //     await Photo.insert({ id: "99" });
-  //   } catch (error) {
-  //     assert.ok(
-  //       /\[Memoria\] Photo.primaryKeyType is 'id'. Instead you've tried: 99 with string type/.test(
-  //         error.message
-  //       )
-  //     );
-  //   }
-  //   try {
-  //     await PhotoComment.insert({ uuid: 1 });
-  //   } catch (error) {
-  //     assert.ok(
-  //       /\[Memoria\] PhotoComment.primaryKeyType is 'uuid'. Instead you've tried: 1 with number type/.test(
-  //         error.message
-  //       )
-  //     );
-  //   }
-  // });
+    try {
+      await Photo.insert({ id: "99" });
+    } catch (error) {
+      assert.ok(error);
+      // assert.ok(
+      //   /\[Memoria\] Photo.primaryKeyType is 'id'. Instead you've tried: 99 with string type/.test(
+      //     error.message
+      //   )
+      // );
+    }
+    try {
+      await PhotoComment.insert({ uuid: 1 });
+    } catch (error) {
+      assert.ok(error);
+      // assert.ok(
+      //   /\[Memoria\] PhotoComment.primaryKeyType is 'uuid'. Instead you've tried: 1 with number type/.test(
+      //     error.message
+      //   )
+      // );
+    }
+  });
 
-  // test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
-  //   const { Photo, PhotoComment } = prepare();
+  test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
+    const { Photo, PhotoComment } = await prepare();
 
-  //   await Promise.all([Photo, PhotoComment].map((model) => model.resetCache()));
-  //   await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-  //   await Promise.all(
-  //     PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-  //   );
+    await Promise.all([Photo, PhotoComment].map((model) => model.resetCache()));
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
 
-  //   await Photo.insert({
-  //     published_at: new Date("2017-10-10").toJSON(),
-  //     description: "Some description",
-  //   });
-  //   await Photo.insert({ location: "Istanbul", is_public: false });
-  //   await PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-  //   await PhotoComment.insert({ reply_id: 1 });
+    await Photo.insert({
+      published_at: new Date("2017-10-10").toJSON(),
+      description: "Some description",
+    });
+    await Photo.insert({ location: "Istanbul", is_public: false });
+    await PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+    await PhotoComment.insert({ reply_id: 1 });
 
-  //   assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
-  //   assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important"]);
-  //   assert.propEqual(await Photo.findAll(), [
-  //     {
-  //       id: 1,
-  //       name: "Ski trip",
-  //       is_public: false,
-  //     },
-  //     {
-  //       id: 2,
-  //       name: "Family photo",
-  //       is_public: true,
-  //     },
-  //     {
-  //       id: 3,
-  //       name: "Selfie",
-  //       is_public: false,
-  //     },
-  //     {
-  //       id: 4,
-  //       is_public: true,
-  //       name: "Some default name",
-  //     },
-  //     {
-  //       id: 5,
-  //       is_public: false,
-  //       name: "Some default name",
-  //     },
-  //   ]);
-  // });
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
+      "uuid",
+      "inserted_at",
+      "is_important",
+      "photo_id",
+      "user_id",
+    ]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      {
+        id: 2,
+        name: "Family photo",
+        is_public: true,
+      },
+      {
+        id: 3,
+        name: "Selfie",
+        is_public: false,
+      },
+      {
+        id: 4,
+        is_public: true,
+        name: "Some default name",
+      },
+      {
+        id: 5,
+        is_public: false,
+        name: "Some default name",
+      },
+    ]);
+  });
 });
