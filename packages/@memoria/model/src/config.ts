@@ -14,6 +14,7 @@ interface DefaultValueReferences {
 type DB = { [className: string]: ModelRef[] };
 
 // Stores all the internal data Memoria needs
+// Maybe cache and store relationships(probably not)
 export default class MemoriaConfigurations {
   // typeof MemoryAdapter[]
   static get Adapters() {

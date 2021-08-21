@@ -3,13 +3,13 @@ import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
 import Config from "./config.js";
-import type { ModelRef } from "./index.js";
+import type { ModelRef, RelationshipSchemaDefinition } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
+type ModelRefOrInstance = ModelRef | Model;
 
 // TODO: remove embedReferences getter
-// TODO: implement push interface
 export default class Model {
   static Adapter = MemoryAdapter;
 
@@ -37,15 +37,19 @@ export default class Model {
     return Config.getColumnNames(this);
   }
 
-  static push(model: QueryObject): void | Model {
+  static get relationships(): RelationshipSchemaDefinition {
+    return Config.getSchema(this).relations;
+  }
+
+  static push(model: ModelRefOrInstance): void | Model {
     return this.Adapter.push(this, model);
   }
 
-  static resetCache(fixtures?: ModelRef[]): Model[] {
+  static resetCache(fixtures?: ModelRefOrInstance[]): Model[] {
     return this.Adapter.resetCache(this, fixtures);
   }
 
-  static async resetRecords(targetState?: ModelRef[]): Promise<Model[]> {
+  static async resetRecords(targetState?: ModelRefOrInstance[]): Promise<void | Model[]> {
     return await this.Adapter.resetRecords(this, targetState);
   }
 
@@ -81,52 +85,52 @@ export default class Model {
     return await this.Adapter.findAll(this, queryObject);
   }
 
-  static cache(fixture: ModelRef): Model {
+  static cache(fixture: ModelRefOrInstance): Model {
     return this.Adapter.cache(this, fixture);
   }
 
-  static async insert(record?: ModelRef): Promise<Model> {
+  static async insert(record?: QueryObject | ModelRefOrInstance): Promise<Model> {
     return await this.Adapter.insert(this, record || {});
   }
 
-  static async update(record: ModelRef): Promise<Model> {
+  static async update(record: ModelRefOrInstance): Promise<Model> {
     return await this.Adapter.update(this, record);
   }
 
-  static async save(record: ModelRef): Promise<Model> {
+  static async save(record: QueryObject | ModelRefOrInstance): Promise<Model> {
     return await this.Adapter.save(this, record);
   }
 
-  static unload(record: ModelRef): Model {
+  static unload(record: ModelRefOrInstance): Model {
     return this.Adapter.unload(this, record);
   }
 
-  static async delete(record: ModelRef): Promise<Model> {
+  static async delete(record: ModelRefOrInstance): Promise<Model> {
     return await this.Adapter.delete(this, record);
   }
 
-  static async saveAll(records: ModelRef[]): Promise<Model[]> {
+  static async saveAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
     return await this.Adapter.saveAll(this, records);
   }
 
-  static async insertAll(records: ModelRef[]): Promise<Model[]> {
+  static async insertAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
     return await this.Adapter.insertAll(this, records);
   }
 
-  static async updateAll(records: ModelRef[]): Promise<Model[]> {
+  static async updateAll(records: ModelRefOrInstance[]): Promise<Model[]> {
     return await this.Adapter.updateAll(this, records);
   }
 
-  static unloadAll(records?: ModelRef[]): void {
+  static unloadAll(records?: ModelRefOrInstance[]): Model[] {
     return this.Adapter.unloadAll(this, records);
   }
 
-  static async deleteAll(records: ModelRef[]): Promise<void> {
+  static async deleteAll(records: ModelRefOrInstance[]): Promise<Model[]> {
     return await this.Adapter.deleteAll(this, records);
   }
 
-  static async count(): Promise<number> {
-    return await this.Adapter.count(this);
+  static async count(options: QueryObject): Promise<number> {
+    return await this.Adapter.count(this, options);
   }
 
   static build(options: QueryObject = {}): Model {
@@ -170,7 +174,7 @@ export default class Model {
     return Object.assign(Config.getEmbedDataForSerialization(this), relationship);
   }
 
-  static serializer(objectOrArray: ModelRef | Array<ModelRef>) {
+  static serializer(objectOrArray: ModelRefOrInstance | ModelRefOrInstance[]) {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
@@ -180,7 +184,7 @@ export default class Model {
     return this.serialize(objectOrArray as ModelRef);
   }
 
-  static serialize(object: ModelRef) {
+  static serialize(object: ModelRefOrInstance) {
     // NOTE: add links object ?
     if (Array.isArray(object)) {
       throw new Error(
@@ -200,7 +204,7 @@ export default class Model {
     let embedReferences = Config.getEmbedDataForSerialization(this);
     return Object.keys(embedReferences).reduce((result, embedKey) => {
       let embedModel = embedReferences[embedKey];
-      let embeddedRecords = this.getRelationship(object, embedKey, embedModel);
+      let embeddedRecords = this.getRelationship(object as ModelRef, embedKey, embedModel);
 
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllColumns);

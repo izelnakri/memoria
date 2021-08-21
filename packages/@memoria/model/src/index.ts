@@ -1,6 +1,11 @@
 import Model from "./model.js";
 import Config from "./config.js";
-export type { ColumnDefinition } from "./types.js";
+export type {
+  DecoratorBucket,
+  ColumnDefinition,
+  RelationshipDefinition,
+  RelationshipSchemaDefinition,
+} from "./types.js";
 export { generateUUID } from "./utils.js";
 export {
   Column,

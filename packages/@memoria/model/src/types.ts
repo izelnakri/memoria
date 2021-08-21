@@ -1,6 +1,10 @@
 import type Model from "./index.js";
 import { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
+export interface DecoratorBucket {
+  [decoratorKey: string]: any;
+}
+
 export interface SchemaDefinition {
   name: string;
   target: typeof Model;

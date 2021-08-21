@@ -1,7 +1,11 @@
-- push interface
-- Serializer interface
 - SQL Adapter tests
+- Serializer interface
+- push interface
+- Consistent Error types and tests
 - relationships
+- Caching
+- Maybe cache timeouts/intervals
+- Check for instances(in all tests) and cache amounts in SQLAdapter
 
 - MemoryAdapter should be able to handle string id/bigint columns for increment
 - ORM should allow publickey and signatures as ids
