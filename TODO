@@ -1,3 +1,7 @@
+- TODO: I might want to make instances have .sortBy(), .mapBy() on array results
+along with firstItem, lastItem/ extensions
+
+
 - SQL Adapter tests
 - Serializer interface
 - push interface

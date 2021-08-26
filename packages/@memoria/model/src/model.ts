@@ -239,13 +239,17 @@ export default class Model {
           [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
-        return hasManyIDRecords.length > 0 ? hasManyIDRecords : [];
+        return hasManyIDRecords.length > 0
+          ? sortByIdOrUUID(hasManyIDRecords, hasManyIDRecords[0].constructor.primaryKeyName)
+          : [];
       } else if (parentObject.uuid) {
         const hasManyUUIDRecords = targetRelationshipModel.peekAll({
           [`${underscore(this.name)}_uuid`]: parentObject.uuid,
         });
 
-        return hasManyUUIDRecords.length > 0 ? hasManyUUIDRecords : [];
+        return hasManyUUIDRecords.length > 0
+          ? sortByIdOrUUID(hasManyUUIDRecords, hasManyUUIDRecords[0].constructor.primaryKeyName)
+          : [];
       }
     }
 
@@ -271,4 +275,10 @@ export default class Model {
       });
     }
   }
+}
+
+function sortByIdOrUUID(records: Model[], primaryColumnName: string) {
+  // TODO: Optimize, READ MDN Docs on default sorting algorithm, implement it for objects
+  let sortedIds = records.map((record) => record[primaryColumnName]).sort();
+  return sortedIds.map((id) => records.find((record) => record[primaryColumnName] === id));
 }

@@ -4,7 +4,6 @@
 // SQL updateAll is buggy because of relationship references
 
 // TODO: filter relationships on insert, update, delete, insertAll, updateAll, deleteAll
-
 import kleur from "kleur";
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
@@ -152,7 +151,10 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
 
     if (Array.isArray(primaryKey)) {
-      let foundModels = await Manager.findByIds(Model, primaryKey);
+      // TODO: this might also need adjustments/move to normal query
+      let foundModels = await Manager.findByIds(Model, primaryKey, {
+        order: { [Model.primaryKeyName]: "ASC" },
+      });
       return foundModels.map((model) => this.cache(Model, model));
     }
 
@@ -181,9 +183,18 @@ export default class SQLAdapter extends MemoryAdapter {
     queryObject: object = {}
   ): Promise<MemoriaModel[] | void> {
     let Manager = await this.getEntityManager();
-    let foundModels = await Manager.find(Model, queryObject);
+    let query = await Manager.createQueryBuilder(Model, Model.tableName).orderBy(
+      `${Model.tableName}.${Model.primaryKeyName}`,
+      "ASC"
+    );
 
-    return foundModels.map((model) => this.cache(Model, model));
+    if (queryObject) {
+      query.where(buildWhereSQLQueryFromObject(Model.tableName, queryObject), queryObject);
+    }
+
+    let result = await query.getMany();
+
+    return result.map((model) => this.cache(Model, model));
   }
 
   // TODO: check actions from here!! for relationship CRUD
@@ -206,18 +217,18 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    let targetColumnNames = Object.keys(record).filter((key) => Model.columnNames.has(key)); // sometimes model has only few keys!
+    let target = Object.keys(record).reduce((result, columnName) => {
+      if (Model.columnNames.has(columnName)) {
+        return Object.assign(result, { [columnName]: record[columnName] });
+      }
+
+      return result;
+    }, {});
     let Manager = await this.getEntityManager();
     let result = await Manager.createQueryBuilder()
       .insert()
-      .into(Model, targetColumnNames)
-      .values(
-        targetColumnNames.reduce(
-          (result, columnName: string) =>
-            Object.assign(result, { [columnName]: record[columnName] }),
-          {} // NOTE: this could be buggy, check
-        )
-      )
+      .into(Model, Object.keys(target))
+      .values(target)
       .returning("*")
       .execute();
 
@@ -289,6 +300,7 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    // TODO: this should do both insertAll or updateAll based on the scenario
     let Manager = await this.getEntityManager();
     let results = await Manager.save(
       records.map((record) => cleanRelationships(Model, this.build(Model, record)))
@@ -376,15 +388,6 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 }
 
-// function removeRelationshipsFromModel(
-//   Model: typeof MemoriaModel,
-//   model: ModelRefOrInstance
-// ): ModelRef {
-//   return Array.from(Model.columnNames).reduce((result, columnName: string) => {
-//     return Object.assign(result, { [columnName]: model[columnName] });
-//   }, {});
-// }
-
 function cleanRelationships(Model, instance) {
   Object.keys(Model.relationships).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
@@ -393,4 +396,14 @@ function cleanRelationships(Model, instance) {
   });
 
   return instance;
+}
+
+function buildWhereSQLQueryFromObject(aliasName: string, query: QueryObject) {
+  return Object.keys(query).reduce((result, keyName) => {
+    if (result === "") {
+      return `${aliasName}.${keyName} = :${keyName}`;
+    }
+
+    return `${result} AND ${aliasName}.${keyName} = :${keyName}`;
+  }, "");
 }

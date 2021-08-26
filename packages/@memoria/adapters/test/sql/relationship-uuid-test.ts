@@ -1,8 +1,9 @@
-import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, { Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
+import { SQLAdapter } from "@memoria/adapters";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
+import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
+module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -69,12 +70,12 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       authentication_token: "1RQFPDXxNBvhGwZAEOj8ztGFItejDusXJw_F1FAg5-GknxhqrcfH9h4p9NGCiCVG",
       password_digest:
         "tL4rJzy3GrjSQ7K0ZMNqKsgMthsikbWfIEPTi/HJXD3lme7q6HT57RpuCKJOcAC9DFb3lXtEONmkB3fO0q3zWA==",
-      primary_email_uuid: "951d3321-9e66-4099-a4a5-cc1e4795d4zz",
+      primary_email_uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
     },
   ];
   const EMAIL_FIXTURES = [
     {
-      uuid: "951d3321-9e66-4099-a4a5-cc1e4795d4zz",
+      uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
       address: "contact@izelnakri.com",
       is_public: false,
       confirmed_at: "2018-02-25T23:00:00.000Z",
@@ -84,8 +85,12 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
     },
   ];
 
-  function prepare() {
+  async function prepare() {
+    await Config.resetSchemas();
+
     class User extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -99,6 +104,8 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       primary_email_uuid: string;
     }
     class Email extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -121,16 +128,20 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       person_id: number;
     }
     class Activity extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
       @Column("int")
       user_id: number;
 
-      @Column()
+      @Column("varchar", { nullable: true })
       photo_uuid: string;
     }
     class Photo extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -140,10 +151,11 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       @Column()
       href: string;
 
-      @Column()
+      @Column("boolean")
       is_public: boolean;
     }
     class PhotoComment extends Model {
+      static Adapter = SQLAdapter;
       static embedReferences = {
         photo: Photo,
         author: User,
@@ -155,7 +167,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       @Column()
       content: string;
 
-      @Column()
+      @Column("varchar", { nullable: true })
       photo_uuid: string;
 
       @Column("int")
@@ -167,11 +179,13 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       comments: PhotoComment,
     };
 
+    await Config.resetForTests();
+
     return { Activity, Email, User, Photo, PhotoComment };
   }
 
   test("$Model.getRelationship() works for hasOne/belongsTo uuid relationships both sides on uuid relationship", async function (assert) {
-    const { Activity, Photo } = prepare();
+    const { Activity, Photo } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
@@ -207,7 +221,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   });
 
   test("$Model.getRelationship() works for hasMany/belongsTo uuid relationship both sides on uuid", async function (assert) {
-    const { Photo, PhotoComment } = prepare();
+    const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -283,7 +297,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   });
 
   test("$Model.getRelationship() works for custom named hasOne/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
-    const { Activity, Email, User, Photo, PhotoComment } = prepare();
+    const { Activity, Email, User, Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
@@ -304,7 +318,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
       photo_uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
     });
     assert.propEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
-      uuid: "951d3321-9e66-4099-a4a5-cc1e4795d4zz",
+      uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
       address: "contact@izelnakri.com",
       is_public: false,
       confirmed_at: "2018-02-25T23:00:00.000Z",
@@ -332,7 +346,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   });
 
   test("$Model.getRelationship() works for custom named hasMany/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
-    const { Photo, PhotoComment } = prepare();
+    const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -410,7 +424,7 @@ module("@memoria/model | Relationship UUID for UUID(string)", function (hooks) {
   });
 
   test("$Model.getRelationship() throws an error when uuid relationship reference is invalid", async function (assert) {
-    const { Photo } = prepare();
+    const { Photo } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 

@@ -150,10 +150,10 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
     );
 
     assert.deepEqual(initialCommentUUIDs, [
+      "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
       "d351963d-e725-4092-a37c-1ca1823b57d3",
-      "374c7f4a-85d6-429a-bf2a-0719525f5f29",
     ]);
 
     await PhotoComment.insert();
@@ -218,7 +218,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
     assert.equal(await PhotoComment.count(), 6);
 
     const allComments = await PhotoComment.findAll();
-    const lastInsertedComments = allComments.slice(4, allComments.length);
+    const lastInsertedComments = allComments.filter((comment) => !initialCommentUUIDs.includes(comment.uuid));
 
     assert.matchJson(
       allComments.find((comment) => comment.uuid === commentOne.uuid),
@@ -238,10 +238,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
     assert.ok(new Date() - commentTwo.inserted_at < 10000);
     assert.equal(commentTwo.photo_id, null);
     assert.equal(commentTwo.is_important, false);
-
-    lastInsertedComments.forEach((comment) => {
-      assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
-    });
+    assert.equal(lastInsertedComments.length, 2);
   });
 
   // TODO: Error handling:

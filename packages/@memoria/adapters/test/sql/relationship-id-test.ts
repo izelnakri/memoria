@@ -1,4 +1,5 @@
-import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, { Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
+import { SQLAdapter } from "@memoria/adapters";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
@@ -84,8 +85,10 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
     },
   ];
 
-  function prepare() {
+  async function prepare() {
     class User extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -99,6 +102,8 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       primary_email_id: number;
     }
     class Email extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -121,16 +126,20 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       person_id: number;
     }
     class Activity extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
       @Column("int")
       user_id: number;
 
-      @Column("int")
+      @Column("int", { nullable: true })
       photo_id: number;
     }
     class PhotoComment extends Model {
+      static Adapter = SQLAdapter;
+
       static embedReferences = {
         author: User,
       };
@@ -148,6 +157,8 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       user_id: number;
     }
     class Photo extends Model {
+      static Adapter = SQLAdapter;
+
       static embedReferences = {
         comments: PhotoComment,
         activity: Activity,
@@ -162,15 +173,17 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       @Column()
       href: string;
 
-      @Column()
+      @Column("bool")
       is_public: boolean;
     }
+
+    await Config.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }
 
   test("$Model.getRelationship() works for hasOne/belongsTo id relationships both sides on id relationships", async function (assert) {
-    const { Activity, Photo, PhotoComment } = prepare();
+    const { Activity, Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
@@ -192,7 +205,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.getRelationship() works for hasMany/belongsTo id relationships both sides on id relationships", async function (assert) {
-    const { Photo, PhotoComment } = prepare();
+    const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -262,7 +275,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.getRelationship() works for custom named hasOne/belongsTo id relationships both side on id relationships", async function (assert) {
-    const { Activity, Email, User, Photo, PhotoComment } = prepare();
+    const { Activity, Email, User, Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
@@ -288,7 +301,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.getRelationship() works for custom named hasMany/belongsTo id relationships both side on id relationships", async function (assert) {
-    const { Photo, PhotoComment } = prepare();
+    const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(
@@ -358,7 +371,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.getRelationship() throws an error when id relationship reference is invalid", async function (assert) {
-    const { Photo } = prepare();
+    const { Photo } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
@@ -384,14 +397,14 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.embedReferences can be set before runtime", async function (assert) {
-    const { Activity, Photo, PhotoComment, User } = prepare();
+    const { Activity, Photo, PhotoComment, User } = await prepare();
 
     assert.deepEqual(Photo.embedReferences, { comments: PhotoComment, activity: Activity });
     assert.deepEqual(PhotoComment.embedReferences, { author: User });
   });
 
   test("$Model.embed({ embedName: ModelName }) sets an embedReference during runtime", async function (assert) {
-    const { Activity, Photo, PhotoComment, User } = prepare();
+    const { Activity, Photo, PhotoComment, User } = await prepare();
 
     Photo.embed({ userActivity: Activity });
     User.embed({ activities: Activity });
@@ -405,7 +418,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.embed() throws error at runtime doesnt receive an object as parameter", async function (assert) {
-    const { Activity, User } = prepare();
+    const { Activity, User } = await prepare();
 
     try {
       User.embed();
@@ -429,7 +442,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
   });
 
   test("$Model.embed() throws error when runtime $Model.embed(relationship) called with a Model that doesnt exist", async function (assert) {
-    const { User } = prepare();
+    const { User } = await prepare();
 
     try {
       User.embed({ activities: undefined });
