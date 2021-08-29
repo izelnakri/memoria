@@ -6,3 +6,4 @@ export function generateUUID() {
     return v.toString(16);
   });
 }
+// typeorm uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(msg) false ise yeniden yap

@@ -10,6 +10,7 @@ import "./set-pretender-context.js";
 import Pretender from "pretender/dist/pretender.js";
 import hackPretender from "./pretender-hacks.js"; // NOTE: check this
 
+const HTTP_VERBS = ["get", "post", "put", "delete"];
 const DEFAULT_PASSTHROUGHS = [
   "http://localhost:0/chromecheckurl",
   "http://localhost:30820/socket.io",
@@ -56,7 +57,7 @@ function startPretender(routes, options) {
 
   let pretender = new Pretender(
     function () {
-      const Memserver = kleur.cyan("[Memoria]");
+      let Memserver = kleur.cyan("[Memoria]");
 
       if (options.logging) {
         this.handledRequest = function (verb, path, request) {
@@ -85,26 +86,28 @@ function startPretender(routes, options) {
   );
 
   // HACK: Pretender this.passthrough for better UX
-  // TODO: this doesnt passthrough full http:// https://
+  let passthroughRequest = pretender.passthrough;
   pretender.passthrough = function (url) {
-    const parent = Pretender.prototype;
-    const verbs = ["get", "post", "put", "delete"];
-
     if (!url) {
       ["/**", "/", "/*"].forEach((path) => {
-        verbs.forEach((verb) => pretender[verb](path, parent.passthrough));
+        HTTP_VERBS.forEach((verb) => pretender[verb](path, passthroughRequest));
       });
 
       return;
     }
 
-    const fullUrl = (this.urlPrefix || "") + (this.namespace ? "/" + this.namespace : "") + url;
+    let initialPart = (this.urlPrefix || "") + (this.namespace ? `/${this.namespace}` : "");
+    let fullUrl = url.startsWith("http") ? url : initialPart + url;
 
-    verbs.forEach((verb) => pretender[verb](fullUrl, parent.passthrough));
+    HTTP_VERBS.forEach((verb) => pretender[verb](url, passthroughRequest));
   };
 
   DEFAULT_PASSTHROUGHS.forEach((url) => pretender.passthrough(url));
   // END: Pretender this.passthrough for better UX
+
+  HTTP_VERBS.forEach((verb) => {
+    pretender[verb] = Pretender.prototype[verb];
+  });
 
   routes.apply(pretender, []);
 

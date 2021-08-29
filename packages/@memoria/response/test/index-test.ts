@@ -45,7 +45,7 @@ module("@memoria/response tests", function (hooks) {
       name: string;
 
       @Column()
-      href: string
+      href: string;
 
       @Column()
       is_public: boolean;

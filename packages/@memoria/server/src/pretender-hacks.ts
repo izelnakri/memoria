@@ -6,12 +6,11 @@ import Model from "@memoria/model";
 export default function hackPretender(Pretender) {
   // HACK START: Pretender Request Parameter Type Casting Hack: Because types are important.
   Pretender.prototype._handlerFor = function (verb, url, request) {
-    var registry = this.hosts.forURL(url)[verb];
-
-    // @ts-ignore
-    var matches = registry.recognize(Pretender.parseURL(url).fullpath);
-    var match = matches ? matches[0] : null;
-    var headers = request.requestHeaders || {};
+    let registry = this.hosts.forURL(url)[verb];
+    let fullRequestPath = Pretender.parseURL(url).fullpath;
+    let matches = registry.recognize(fullRequestPath);
+    let match = matches ? matches[0] : null;
+    let headers = request.requestHeaders || {};
 
     if (match) {
       request.headers = headers;
@@ -180,12 +179,11 @@ export default function hackPretender(Pretender) {
   // HACK: Pretender REST defaults hack: For better UX
   ["get", "put", "post", "delete"].forEach((verb) => {
     Pretender.prototype[verb] = function (path, handler, async) {
-      const fullPath = (this.urlPrefix || "") + (this.namespace ? "/" + this.namespace : "") + path;
-      const isModelDefinition = Model.isPrototypeOf(handler) ? handler : null;
-      const targetHandler = Model.isPrototypeOf(handler)
-        ? getDefaultRouteHandler(verb.toUpperCase(), fullPath, this, handler)
+      let initialPart = (this.urlPrefix || "") + (this.namespace ? `/${this.namespace}` : "");
+      let fullUrl = path.startsWith("http") ? path : initialPart + path;
+      let targetHandler = Model.isPrototypeOf(handler)
+        ? getDefaultRouteHandler(verb.toUpperCase(), fullUrl, this, handler)
         : handler;
-
       if (!targetHandler) {
         this.shutdown();
         throw new Error(
@@ -194,7 +192,7 @@ export default function hackPretender(Pretender) {
       }
       const timing = async ? async.timing || this.timing : this.timing;
 
-      return this.register(verb.toUpperCase(), fullPath, targetHandler, timing);
+      return this.register(verb.toUpperCase(), fullUrl, targetHandler, timing);
     };
   });
   // END: Pretender REST default hack: For better UX
@@ -241,6 +239,5 @@ export default function hackPretender(Pretender) {
     }
   }
 
-  // console.log("PRETENDER HACKS END");
-  // return Pretender;
+  return Pretender;
 }

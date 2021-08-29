@@ -35,7 +35,7 @@
     "test:watch": "npm run test:browser:watch",
     "test:browser": "ENVIRONMENT=development npm run test:browser:ci",
     "test:browser:ci": "npm run build && qunitx test/index.ts --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
-    "test:browser:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters/src/memory packages/@memoria/adapters/src/rest packages/@memoria/model test/index.ts --watch --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
+    "test:browser:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters/*/memory packages/@memoria/adapters/*/rest packages/@memoria/model packages/@memoria/response packages/@memoria/server/src/index.ts packages/@memoria/server/src/pretender-hacks.ts test/index.ts --watch --browser --debug --failFast --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:node": "ENVIRONMENT=development npm run test:node:ci",
     "test:node:ci": "npm run build && qunitx packages/@memoria/adapters/test/index.ts packages/@memoria/model/test/index.ts packages/@memoria/response/test/index.ts packages/@memoria/server/test/index.ts --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:node:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters/src/memory packages/@memoria/adapters/src/rest packages/@memoria/model test/index.ts --watch --debug --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
