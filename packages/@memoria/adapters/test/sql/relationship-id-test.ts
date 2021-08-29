@@ -1,7 +1,7 @@
 import Model, { Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
-import { SQLAdapter } from "@memoria/adapters";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
+import SQLAdapter from "../helpers/sql-adapter.js";
 
 module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", function (hooks) {
   setupMemoria(hooks);

@@ -1,7 +1,7 @@
 import Model, { Config, Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
-import { SQLAdapter } from "@memoria/adapters";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
+import SQLAdapter from "../helpers/sql-adapter.js";
 
 module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
@@ -218,7 +218,9 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
     assert.equal(await PhotoComment.count(), 6);
 
     const allComments = await PhotoComment.findAll();
-    const lastInsertedComments = allComments.filter((comment) => !initialCommentUUIDs.includes(comment.uuid));
+    const lastInsertedComments = allComments.filter(
+      (comment) => !initialCommentUUIDs.includes(comment.uuid)
+    );
 
     assert.matchJson(
       allComments.find((comment) => comment.uuid === commentOne.uuid),

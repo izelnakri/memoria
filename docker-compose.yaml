@@ -1,0 +1,36 @@
+version: '3.4'
+services:
+  db:
+    image: postgres:13.4-alpine
+    environment:
+      PGPASSWORD: $PGUSER
+      PGUSER: $PGPASSWORD
+      PGDATA: /var/lib/postgresql/data/pgdata
+    restart: always
+    networks:
+      - backend_network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  memoria:
+    image: $REGISTRY/$REPO_OWNER/$DOCKER_TAG
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - $REGISTRY/$REPO_OWNER/$DOCKER_TAG
+    environment:
+      PGUSER: $PGUSER
+      PGPASSWORD: $PGPASSWORD
+      PGPORT: 5432
+      PGHOST: db
+    tty: true
+    depends_on:
+      - db
+    networks:
+      - backend_network
+    command: ["/bin/sh", "./setup-database.sh"]
+volumes:
+  pgdata:
+networks:
+  backend_network:
+    driver: bridge

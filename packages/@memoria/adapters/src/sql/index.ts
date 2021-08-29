@@ -38,6 +38,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static CONNECTION_OPTIONS = {
     type: "postgres",
     host: "localhost",
+
     port: 5432,
     synchronize: true,
     username: "postgres",

@@ -1,6 +1,7 @@
 import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
+import SQLAdapter from "../helpers/sql-adapter.js";
 
 module("@memoria/model | Public API", function (hooks) {
   setupMemoria(hooks);
@@ -54,6 +55,8 @@ module("@memoria/model | Public API", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -68,6 +71,8 @@ module("@memoria/model | Public API", function (hooks) {
       }
     }
     class PhotoComment extends Model {
+      static Adapter = SQLAdapter;
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -84,7 +89,9 @@ module("@memoria/model | Public API", function (hooks) {
         return await super.findAll({ photo_id: photo.id });
       }
     }
-    class User extends Model {}
+    class User extends Model {
+      static Adapter = SQLAdapter;
+    }
 
     return { Photo, PhotoComment, User };
   }

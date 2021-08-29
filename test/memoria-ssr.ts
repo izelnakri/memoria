@@ -10,6 +10,7 @@ declare global {
       self: any;
       fastboot?: any;
       $?: any;
+      FormData?: any;
     }
   }
 }

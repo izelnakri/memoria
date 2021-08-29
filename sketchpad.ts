@@ -129,7 +129,7 @@ try {
 
   // Relationships
   // Errors
-  // Cache
+  // Cache(maybe add timeouts)
   // DirtyState(isNew, isPersisted, isDirty, isLoaded, hasAllRelationshipsLoaded) persistedAt, loadedAt, dirtyChangeset
 } catch (error) {
   console.log("error:");
