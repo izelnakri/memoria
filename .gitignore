@@ -6,3 +6,4 @@ dist/
 /tmp
 sketchpad.js
 docs
+.env
