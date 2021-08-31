@@ -2,7 +2,24 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.7](https://github.com/izelnakri/memoria/compare/0.0.6...0.0.7)
+#### [0.0.8](https://github.com/izelnakri/memoria/compare/0.0.8...0.0.8)
+
+- all initial crud sql tests done & passing [`07bcf25`](https://github.com/izelnakri/memoria/commit/07bcf25a9c015e8043bb3afa171c02599464e52b)
+- reorg MemoryAdapter tests for npm test commands [`78244a9`](https://github.com/izelnakri/memoria/commit/78244a9409ce4600e421c484cb1b59683b05a52a)
+- initial non-relationship SQLAdapter tests complete [`bd28d5f`](https://github.com/izelnakri/memoria/commit/bd28d5fe21f017dbd26b8c648d20d6372741b4b4)
+- move to types.js & Store rename to Config [`177dfa0`](https://github.com/izelnakri/memoria/commit/177dfa0ba5dd54658e4274d09e831d5816e39428)
+- instance and relationship aware db actions! [`a75def1`](https://github.com/izelnakri/memoria/commit/a75def1bda8e74d80d7c00bbba8f2c80537fced6)
+- fix $ npm test:node [`98ea176`](https://github.com/izelnakri/memoria/commit/98ea176c7a25f7c2c452c7f50670f549bbde1f0e)
+- Config.resetSchemas and .resetForTests() [`fec333c`](https://github.com/izelnakri/memoria/commit/fec333cbee2103e29bfa0baeed37184d12457547)
+- first passing sql adapter test [`efa68a5`](https://github.com/izelnakri/memoria/commit/efa68a5ca23a341040884865cd8bc6ff46b964fb)
+- fix pretender hacking for @memoria/server [`1c6ef61`](https://github.com/izelnakri/memoria/commit/1c6ef618ad8b47ce68ec338fb94ac1b53e77c04d)
+- HasMany and BelongsTo alias decorators [`5a2c719`](https://github.com/izelnakri/memoria/commit/5a2c719c0cc832618481dacbc5e06829e06b5ed4)
+- release a version with sql adapter [`85af9f6`](https://github.com/izelnakri/memoria/commit/85af9f6474d8ca160ff76090be895168422d43c0)
+- ignore .env file [`dfb4d5c`](https://github.com/izelnakri/memoria/commit/dfb4d5c8b3035412370ff307c63668661e78b08e)
+
+#### [0.0.8](https://github.com/izelnakri/memoria/compare/0.0.6...0.0.8)
+
+> 9 August 2021
 
 - adjust @memoria/server test before await allowance [`06756e9`](https://github.com/izelnakri/memoria/commit/06756e9cd132b7b946f71c1a136a574c2e9b4c39)
 - refactor npm run libs:build for tsc hack [`738817b`](https://github.com/izelnakri/memoria/commit/738817b05ffb352e469ac6d3fe810f7c5c93806d)
@@ -16,6 +33,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - readjust @memoria/response tests [`47a7f88`](https://github.com/izelnakri/memoria/commit/47a7f88f9293c3b4264a52e803740cdcf6832d09)
 - add sql adapter decorators [`e6a7bde`](https://github.com/izelnakri/memoria/commit/e6a7bdee7d4a01288d001931ca4c90a21a76736e)
 - make RESTAdapter extends from MemoryAdapter [`21915f0`](https://github.com/izelnakri/memoria/commit/21915f007079df3ef80de62972a4b6af5373e5e7)
+- Release 0.0.8 [`d4eb27e`](https://github.com/izelnakri/memoria/commit/d4eb27e87f94d40877e3f78287e7ca31e7ca8d10)
 - typefixes for new release [`bd8b4f2`](https://github.com/izelnakri/memoria/commit/bd8b4f2cf247c0ac4c006f833a3263591620db32)
 - throw exception when model has no primaryKey [`df58f48`](https://github.com/izelnakri/memoria/commit/df58f4890192ce584a80a722b1f093bd82d1d8f8)
 - make @PrimaryGeneratedColumn() int by default [`1fe46f1`](https://github.com/izelnakri/memoria/commit/1fe46f1807bfb8a6593c1a92a604de5ebaaff44c)

@@ -1,7 +1,7 @@
 {
   "name": "@memoria/model",
   "type": "module",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "",
   "author": "Izel Nakri <contact@izelnakri.com>",
   "license": "MIT",
@@ -10,9 +10,9 @@
     "dist/*"
   ],
   "dependencies": {
-    "@memoria/adapters": "0.0.8",
+    "@memoria/adapters": "0.0.9",
     "kleur": "4.1.4",
     "inflected": "^2.1.0",
-    "object-inspect": "^1.10.3"
+    "object-inspect": "^1.11.0"
   }
 }
