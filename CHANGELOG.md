@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.8](https://github.com/izelnakri/memoria/compare/0.0.9...0.0.8)
+#### [0.0.10](https://github.com/izelnakri/memoria/compare/0.0.10...0.0.10)
+
+- Bump docker/login-action from 1.9.0 to 1.10.0 [`#3`](https://github.com/izelnakri/memoria/pull/3)
+- Bump docker/setup-buildx-action from 1.3.0 to 1.5.1 [`#5`](https://github.com/izelnakri/memoria/pull/5)
+- Bump docker/build-push-action from 2.4.0 to 2.7.0 [`#6`](https://github.com/izelnakri/memoria/pull/6)
+- upgrade docker-compose to v3.8 [`c084258`](https://github.com/izelnakri/memoria/commit/c084258eefd6caf960026234602c50c2842d20f4)
+- fix stupid postgres docker container env defaults [`9863529`](https://github.com/izelnakri/memoria/commit/986352987cd184982e7c79e47a6a99a02979e99f)
+- check running containers in Github CI [`47eee3f`](https://github.com/izelnakri/memoria/commit/47eee3f209b2bf23bda862c802a2e2857c20fadc)
+- upgrade to Dockerfile node base image [`59be52f`](https://github.com/izelnakri/memoria/commit/59be52fb7cede985384706c12330cbd6642b0a69)
+
+#### [0.0.10](https://github.com/izelnakri/memoria/compare/0.0.9...0.0.10)
+
+> 31 August 2021
+
+- Release 0.0.10 [`6b894ab`](https://github.com/izelnakri/memoria/commit/6b894ab0296e8f594f0b66e76d50c22bb7eae569)
 
 #### [0.0.9](https://github.com/izelnakri/memoria/compare/0.0.8...0.0.9)
 
