@@ -29,6 +29,7 @@ export default async function () {
   global.window = dom.window;
   global.document = window.document;
   global.FormData = dom.window.FormData;
+  // @ts-ignore
   global.self = global; // NOTE: super important for pretender
   self.XMLHttpRequest = dom.window.XMLHttpRequest; // pretender reference
   global.location = global.window.location; // removes href of undefined on jquery
