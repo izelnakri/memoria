@@ -43,11 +43,9 @@ jobs:
         run: docker-compose pull
       - name: Docker-compose up
         run: |
-          docker-compose -f docker-compose.yaml up
+          docker-compose -f docker-compose.yaml up -d
       - name: Check running containers
         run: docker ps -a
-      - name: Check db logs
-        run: docker logs db
       - name: Execute tests
         run: |
           docker-compose exec -T memoria npm test
