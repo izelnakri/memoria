@@ -89,7 +89,9 @@ export default function hackPretender(Pretender) {
   Pretender.prototype.handleRequest = function (request) {
     var pretender = this;
     var verb = request.method.toUpperCase();
-    var path = request.url;
+    var path = request.url.startsWith("localhost")
+      ? `/${request.url.split("/").slice(1, request.url.length).join("/")}`
+      : request.url;
     var handler = pretender._handlerFor(verb, path, request);
 
     var _handleRequest = function (result) {

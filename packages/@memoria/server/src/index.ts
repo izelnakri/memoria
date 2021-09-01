@@ -61,9 +61,12 @@ function startPretender(routes, options) {
 
       if (options.logging) {
         this.handledRequest = function (verb, path, request) {
-          const method = verb.toUpperCase();
+          let method = verb.toUpperCase();
+          let requestURL = request.url.startsWith("localhost/")
+            ? request.url.replace("localhost/", "/")
+            : request.url;
 
-          console.log(Memserver, colorStatusCode(request.status), method, request.url);
+          console.log(Memserver, colorStatusCode(request.status), method, requestURL);
 
           if (["POST", "PUT"].includes(method)) {
             console.log(`${method} REQUEST BODY IS:`, request.params);
@@ -72,7 +75,7 @@ function startPretender(routes, options) {
           console.log(JSON.parse(request.responseText));
         };
         this.passthroughRequest = function (verb, path, request) {
-          console.log(Memserver, kleur.yellow("[PASSTHROUGH]"), verb, request.url);
+          console.log(Memserver, kleur.yellow("[PASSTHROUGH]"), verb, requestURL);
         };
       }
 

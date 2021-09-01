@@ -19,6 +19,10 @@ export default function (hooks) {
     await Config.resetSchemas();
   });
   hooks.afterEach(async function () {
+    if (this.Server) {
+      this.Server.shutdown();
+    }
+
     await Config.resetForTests();
     await Config.resetSchemas();
   });
