@@ -2,6 +2,7 @@ import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
+import ModelError from "./error.js";
 import Config from "./config.js";
 import type { ModelRef, RelationshipSchemaDefinition } from "./index.js";
 
@@ -12,6 +13,7 @@ type ModelRefOrInstance = ModelRef | Model;
 // TODO: remove embedReferences getter
 export default class Model {
   static Adapter = MemoryAdapter;
+  static Error = ModelError;
 
   static embedReferences = {}; // TODO: move to serializer
 
@@ -135,6 +137,14 @@ export default class Model {
 
   static build(options: QueryObject = {}): Model {
     return this.Adapter.build(this, options);
+  }
+
+  #_errors = [];
+  get errors(): ModelError[] {
+    return this.#_errors;
+  }
+  set errors(newError: ModelError[]) {
+    this.#_errors = newError;
   }
 
   constructor(options?: QueryObject) {

@@ -75,6 +75,10 @@ function startPretender(routes, options) {
           console.log(JSON.parse(request.responseText));
         };
         this.passthroughRequest = function (verb, path, request) {
+          let requestURL = request.url.startsWith("localhost/")
+            ? request.url.replace("localhost/", "/")
+            : request.url;
+
           console.log(Memserver, kleur.yellow("[PASSTHROUGH]"), verb, requestURL);
         };
       }

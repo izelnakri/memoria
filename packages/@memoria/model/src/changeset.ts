@@ -1,7 +1,7 @@
 import MemoriaModel from "./model.js";
 import type MemoriaError from "./error.js";
 
-type ChangesetAction = null | "insert" | "update" | "delete" | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
+type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
 type JSObject = { [key: string]: any };
 
 export default class Changeset {
@@ -37,17 +37,17 @@ export default class Changeset {
     return Object.freeze(this);
   }
 
+  static assign(changeset: Changeset, changes: JSObject) {
+    return Object.assign(Object.create(Object.getPrototypeOf(changeset)), changeset, changes);
+  }
+
   // validations
   // constraints = [];
   // prepare: [(t() -> t())],
   // required: string[] // Required fields
 }
 
-// #Ecto.Changeset<action: 'insert', changes: %{},
-//  errors: [first_name: "can't be blank", last_name: "can't be blank"],
-//  data: #Friends.Person<>, valid?: false>}
-
-// errors can be individual, changeset scope them to per action, instead of Model
+// errors can be individual, changeset scoped to an action, instead of Model
 
 // %Post{}
 // |> change()
@@ -58,3 +58,20 @@ export default class Changeset {
 //   title: {:length, [ max: 100 ]},
 //   title: {:format, ~r/^\w+:\s/}
 // ]
+
+// Old Decision: only cache on ModelError.Cache[modelName:id] = Set($ModelError)
+
+// MemoriaError
+
+// ModelError
+
+// ----
+// Changeset static cache(why? could allow timetravel on valid ones(maybe too much events)), no
+// ---
+
+// Changeset
+//  |
+//   ---> [
+//    ModelError,
+//    ModelError
+//  ]

@@ -1,5 +1,5 @@
 import match from "match-json";
-import Qunit from "qunitx";
+import QUnit from "qunitx";
 import Model, { Config } from "@memoria/model";
 
 export default function (hooks) {

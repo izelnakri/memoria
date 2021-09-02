@@ -1,5 +1,9 @@
 import MemoriaModel from "./model.js";
 
+// TODO: how can we lookup, an unsaved(without id) errors?
+// basically it is the changeset
+// TODO: do we even need to cache the errors? instead push them to $instance.errors and remove them
+
 type primaryKey = number | string;
 
 interface ErrorInterface {
@@ -9,85 +13,107 @@ interface ErrorInterface {
   message: string;
 }
 
-type ErrorCacheItem = {
-  [id: string]: ModelError[];
-};
+// type ErrorClassCache = { [key: string]: typeof ModelError };
+// type ErrorCacheItem = {
+//   [modelName: string]: ModelError[];
+// };
 
-type ErrorCache = {
-  [modelName: string]: ErrorCacheItem[];
-};
+// type ErrorCache = {
+//   [modelName: string]: ErrorCacheItem[];
+// };
 
-// errors can be individual, changeset scope them to per action, instead of Model
-
-// NOTE: when to evict this cache on the server side? probably a timeout on each based on config,
-export class ModelError {
-  id?: primaryKey;
-  reference?: MemoriaModel;
-  // TODO: there has to be a reference to records with no id
+export default class ModelError extends Error {
+  id?: primaryKey | null;
   modelName: string;
   attribute: string;
   message: string;
+  // reference?: MemoriaModel;
+  // TODO: there has to be a reference to records with no id
 
-  static cache: ErrorCache = {}; // { id: []
-
-  // static has(attribute: string) {}
-
-  // static remove(attribute: string) {}
-
-  // static errorsFor(attribute: string) {}
-
-  // static add(attibute: string, messages: string[]) {}
-}
-
-// TODO: should this extend from JS Error?
-// TODO: should I create Model.Error interface or one error interface?(probably both)
-export default class MemoriaError {
-  constructor(
-    model: typeof MemoriaModel | MemoriaModel | typeof ModelError,
-    options: ErrorInterface
-  ) {
-    if (!options.id) {
-      throw new Error("MemoriaError: id missing during MemoriaError instance initialization");
-    } else if (!options.modelName) {
-      throw new Error(
-        "MemoriaError: modelName missing during MemoriaError instance initialization"
-      );
-    } else if (!options.attribute) {
-      throw new Error(
-        "MemoriaError: attribute missing during MemoriaError instance initialization"
-      );
-    } else if (!options.message) {
-      throw new Error("MemoriaError: message missing during MemoriaError instance initialization");
-    }
-
-    // this.id = options.id;
-    // this.modelName = options.modelName; // TODO: instead this could be Model.Error class
-    // this.attribute = options.attribute;
-    // this.message = options.message;
-
-    this.add(this.attribute, [this.message]);
-    // TODO: add this to
-
-    return Object.freeze(this);
+  static has(model: MemoriaModel, attribute: string) {
+    return model.errors.some((error) => error.attribute === attribute);
   }
 
-  static cache: ErrorCache = {}; // { id: []
+  static remove(model: MemoriaModel, attribute: string) {
+    model.errors = model.errors.filter((error) => error.attribute !== attribute);
 
-  // static has(Model: typeof MemoriaModel, attribute: string) {}
+    return model.errors;
+  }
 
-  // static remove(Model: typeof MemoriaModel, attribute: string) {}
+  static errorsFor(model: MemoriaModel, attribute?: string) {
+    return attribute ? model.errors.filter((error) => error.attribute === attribute) : model.errors;
+  }
 
-  // static errorsFor(Model: typeof MemoriaModel, attribute: string) {}
+  static add(model: MemoriaModel, attribute: string, messages: string[]) {
+    let Model = model.constructor as typeof MemoriaModel;
 
-  // static add(Model: typeof MemoriaModel, attibute: string, messages: string[]) {}
+    return messages.map((message) => {
+      return new ModelError(model, {
+        id: model[Model.primaryKeyName],
+        modelName: Model.name,
+        attribute,
+        message,
+      });
+    });
+  }
+
+  constructor(model: MemoriaModel, options: ErrorInterface) {
+    if (!model) {
+      throw new Error(
+        "ModelError should pass an memoria model instance when creating new MemoriaError($model, options)"
+      );
+    } else if (!options.attribute) {
+      throw new Error("ModelError: attribute missing during MemoriaError instance initialization");
+    } else if (!options.message) {
+      throw new Error("ModelError: message missing during MemoriaError instance initialization");
+    }
+
+    super(options.message);
+
+    this.id = options.id || null;
+    this.modelName = model.constructor.name; // TODO: instead this could be Model.Error class
+    this.attribute = options.attribute;
+    this.message = options.message;
+
+    let error = Object.freeze(this);
+
+    model.errors.push(error);
+
+    return error;
+  }
 }
 
-// new User.Error({ id: '', attribute: '', message: '' });
-// new Memoria.Error(User | User.Error, { id: 4, attribute: 'password', message: 'too short' });
+// problem is with every null object, do they get the same errors[]?
 
-// User.Error.cache
-// User.Error.errorsFor('firstname')
-// Memoria.Error.errorsFor(User, 'firstName');
+// export function createModelErrorClass(Model: typeof MemoriaModel): typeof ModelError {
+//   let errorClass = class extends ModelError {
+//     static Model = Model;
+
+//     static has(model: MemoriaModel, attribute: string) {
+//       // return super.has(this.Model, attribute);
+//     }
+
+//     static remove(model: MemoriaModel, attribute: string) {
+//       // return super.remove(this.Model, attribute);
+//     }
+
+//     static errorsFor(model: MemoriaModel, attribute: string) {
+//       // return super.errorsFor(this.Model, attribute);
+//     }
+
+//     static add(model: MemoriaModel, attribute: string, messages: string[]) {
+//       // return super.add(this.Model, attribute, messages);
+//     }
+//   };
+
+//   return Object.defineProperty(errorClass, "name", { value: `${Model.name}Error` });
+// }
+
+// new User.Error(modelInstance, { id: '', attribute: '', message: '' }); Note; without instance
+// new Memoria.ModelError(modelInstance, { id: 4, attribute: 'password', message: 'too short' });
+
+// User.Error.errorsFor(userInstance, 'firstName')
+// Memoria.ModelError.errorsFor(userInstance, 'firstName');
 
 // Memoria.Model
 // Memoria.Server

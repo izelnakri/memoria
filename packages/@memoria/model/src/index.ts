@@ -1,6 +1,6 @@
 import Changeset from "./changeset.js";
 import Config from "./config.js";
-import Error from "./error.js";
+import ModelError from "./error.js";
 import Model from "./model.js";
 export type {
   DecoratorBucket,
@@ -47,7 +47,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Changeset, Config, Error };
+export { Changeset, Config, ModelError };
 
 // Serialization
 // relationship setting and fetching

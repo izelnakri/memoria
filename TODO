@@ -1,3 +1,29 @@
+try {
+  let photo = PhotoComment.insert({ name: 'something' });
+} catch (errors) {
+  // let errors = [{ attribute: '', message: 'Doesn't look like a valid email.' }]
+  // maybe add has interface later
+  // PhotoComment.errorsFor(primaryKey);
+  // - this should give the errors array
+  // - it should be registered for errorTracker
+  // - from the error one should be able to get the instance
+  // - check also hbs templates
+}
+
+.. maybe add errors.has(attr) and errors.remove(attr), errors.errorsFor(attr) AND
+errors.add(attr, ['', '', '']);
+
+
+
+
+
+
+
+
+
+
+
+
 - TODO: I might want to make instances have .sortBy(), .mapBy() on array results
 along with firstItem, lastItem/ extensions
 

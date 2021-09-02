@@ -132,8 +132,12 @@ export default class MemoryAdapter {
     // TODO: make this work, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
     let relationshipKeys = Object.keys(Model.relationships);
+    // TODO: maybe remove this exception by filtering it directly
     let recordsUnknownAttribute = Object.keys(record).find(
-      (attribute) => !Model.columnNames.has(attribute) && !relationshipKeys.includes(attribute)
+      (attribute) =>
+        attribute !== "errors" &&
+        !Model.columnNames.has(attribute) &&
+        !relationshipKeys.includes(attribute)
     );
     if (recordsUnknownAttribute) {
       throw new Error(
@@ -347,11 +351,14 @@ export default class MemoryAdapter {
       );
     }
 
+    // TODO: maybe remove this exception by filtering it directly
     let relationshipKeys = Object.keys(Model.relationships);
     let recordsUnknownAttribute = Object.keys(record).find(
-      (attribute) => !Model.columnNames.has(attribute) && !relationshipKeys.includes(attribute)
+      (attribute) =>
+        attribute !== "errors" &&
+        !Model.columnNames.has(attribute) &&
+        !relationshipKeys.includes(attribute)
     );
-
     if (recordsUnknownAttribute) {
       throw new Error(
         kleur.red(
