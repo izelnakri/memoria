@@ -78,7 +78,7 @@ export default class MemoryAdapter {
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
-  ): Promise<void | MemoriaModel[]> {
+  ): Promise<MemoriaModel[]> {
     return this.resetCache(Model, targetState);
   }
 
@@ -128,7 +128,10 @@ export default class MemoryAdapter {
 
   // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache
   // it provided record must have the primaryKey
-  static push(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
+  static push(
+    Model: typeof MemoriaModel,
+    record: ModelRefOrInstance
+  ): MemoriaModel | MemoriaModel[] {
     // TODO: make this work, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
     let relationshipKeys = Object.keys(Model.relationships);
@@ -198,17 +201,17 @@ export default class MemoryAdapter {
     primaryKey: primaryKey | primaryKey[]
   ): MemoriaModel[] | MemoriaModel | void {
     if (Array.isArray(primaryKey as primaryKey[])) {
-      return Array.from(Model.Cache).reduce((result: ModelRef[], model: ModelRef) => {
+      return Array.from(Model.Cache).reduce((result: MemoriaModel[], model: MemoriaModel) => {
         const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
           ? model
           : null;
 
         return foundModel ? result.concat([foundModel]) : result;
-      }, []) as ModelRef[];
+      }, []) as MemoriaModel[];
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
       return Array.from(Model.Cache).find(
-        (model: ModelRef) => model[Model.primaryKeyName] === primaryKey
-      ) as ModelRef | undefined;
+        (model: MemoriaModel) => model[Model.primaryKeyName] === primaryKey
+      ) as MemoriaModel | undefined;
     }
 
     throw new Error(
@@ -225,7 +228,7 @@ export default class MemoryAdapter {
 
     let keys = Object.keys(queryObject);
 
-    return Model.Cache.find((model: ModelRef) => comparison(model, queryObject, keys, 0));
+    return Model.Cache.find((model: MemoriaModel) => comparison(model, queryObject, keys, 0));
   }
 
   static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): MemoriaModel[] {
@@ -235,7 +238,7 @@ export default class MemoryAdapter {
     }
 
     return Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
-      comparison(model as ModelRef, queryObject, keys, 0)
+      comparison(model, queryObject, keys, 0)
     );
   }
 
@@ -331,7 +334,7 @@ export default class MemoryAdapter {
 
   static async update(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance
   ): Promise<MemoriaModel> {
     let primaryKey = record[Model.primaryKeyName];
     if (!primaryKey) {
@@ -399,7 +402,7 @@ export default class MemoryAdapter {
       );
     }
 
-    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as ModelRef;
+    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
       throw new Error(
         kleur.red(
@@ -426,7 +429,7 @@ export default class MemoryAdapter {
 
   static async saveAll(
     Model: typeof MemoriaModel,
-    models: ModelRefOrInstance[]
+    models: QueryObject[] | ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.save(Model, model)));
   }
@@ -468,7 +471,7 @@ function clearObject(object) {
 }
 
 // NOTE: if records were ordered by ID, then there could be performance benefit
-function comparison(model: ModelRef, options: QueryObject, keys: string[], index = 0): boolean {
+function comparison(model: MemoriaModel, options: QueryObject, keys: string[], index = 0): boolean {
   const key = keys[index];
 
   if (keys.length === index) {

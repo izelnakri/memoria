@@ -102,7 +102,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
-  ): Promise<void | MemoriaModel[]> {
+  ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
     await Manager.clear(Model);
@@ -111,6 +111,8 @@ export default class SQLAdapter extends MemoryAdapter {
     if (targetState) {
       return await this.insertAll(Model, targetState);
     }
+
+    return [];
   }
 
   static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
@@ -124,7 +126,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     primaryKeyTypeSafetyCheck(Model, record[Model.primaryKeyName]);
 
-    let foundInCache = this.peek(Model, record[Model.primaryKeyName]);
+    let foundInCache = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (foundInCache) {
       return foundInCache;
     }
@@ -205,13 +207,13 @@ export default class SQLAdapter extends MemoryAdapter {
   ): Promise<MemoriaModel> {
     let Manager = await this.getEntityManager();
     let resultRaw = await Manager.save(Model, cleanRelationships(Model, record));
-    let result = this.build(Model, resultRaw.generatedMaps[0]) as ModelRef;
+    let result = this.build(Model, resultRaw.generatedMaps[0]) as MemoriaModel;
 
     if (this.peek(Model, result[Model.primaryKeyName])) {
       return await super.update(Model, result); // NOTE: this could be problematic
     }
 
-    return this.push(Model, result); // TODO: save the cache olmaz cunku bulursa onu return ediyor
+    return this.push(Model, result) as MemoriaModel;
   }
 
   static async insert(
@@ -258,7 +260,7 @@ export default class SQLAdapter extends MemoryAdapter {
       .where(`${primaryKeyName} = :${primaryKeyName}`, { [primaryKeyName]: record[primaryKeyName] })
       .returning("*")
       .execute();
-    let result = this.build(Model, resultRaw.raw[0]) as ModelRef;
+    let result = this.build(Model, resultRaw.raw[0]) as MemoriaModel;
 
     if (this.peek(Model, result[Model.primaryKeyName])) {
       return await super.update(Model, result); // NOTE: this could be problematic

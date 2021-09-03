@@ -2,7 +2,6 @@
 // TRUNCATE TABLE my_table RESTART IDENTITY;
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
 import Model from "./index.js";
-import { ModelRef } from "./index.js";
 import { generateUUID } from "./utils.js";
 import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "./types";
 import type { MemoryAdapter } from "@memoria/adapters";
@@ -11,7 +10,7 @@ interface DefaultValueReferences {
   [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
 }
 
-type DB = { [className: string]: ModelRef[] };
+type DB = { [className: string]: Model[] };
 
 // Stores all the internal data Memoria needs
 // Maybe cache and store relationships(probably not)
@@ -136,7 +135,7 @@ export default class MemoriaConfigurations {
             [columnName]:
               column.generated === "uuid"
                 ? generateUUID
-                : (Class: typeof Model) => incrementId(Class.Cache as ModelRef[], columnName),
+                : (Class: typeof Model) => incrementId(Class.Cache as Model[], columnName),
           });
         }
 
@@ -149,7 +148,7 @@ export default class MemoriaConfigurations {
   }
 
   static _DB: DB = {};
-  static getDB(Class: typeof Model): ModelRef[] {
+  static getDB(Class: typeof Model): Model[] {
     if (!this._DB[Class.name]) {
       this._DB[Class.name] = [];
     }
@@ -183,7 +182,7 @@ export default class MemoriaConfigurations {
 }
 
 // TODO: turn this into a sequence so no need for sorting, faster inserts
-function incrementId(DB: ModelRef[], keyName: string) {
+function incrementId(DB: Model[], keyName: string) {
   if (!DB || DB.length === 0) {
     return 1;
   }

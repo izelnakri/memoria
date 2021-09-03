@@ -43,7 +43,7 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static push(model: ModelRefOrInstance): void | Model {
+  static push(model: ModelRefOrInstance): Model | Model[] {
     return this.Adapter.push(this, model);
   }
 
@@ -51,7 +51,7 @@ export default class Model {
     return this.Adapter.resetCache(this, fixtures);
   }
 
-  static async resetRecords(targetState?: ModelRefOrInstance[]): Promise<void | Model[]> {
+  static async resetRecords(targetState?: ModelRefOrInstance[]): Promise<Model[]> {
     return await this.Adapter.resetRecords(this, targetState);
   }
 
@@ -139,7 +139,7 @@ export default class Model {
     return this.Adapter.build(this, options);
   }
 
-  #_errors = [];
+  #_errors: ModelError[] = [];
   get errors(): ModelError[] {
     return this.#_errors;
   }

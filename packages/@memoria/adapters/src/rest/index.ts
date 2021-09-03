@@ -110,7 +110,7 @@ export default class RESTAdapter extends MemoryAdapter {
       return this.push(
         Model,
         json[this.payloadKeyFromModelName(Model)].map((model) => model)
-      );
+      ) as MemoriaModel[];
     } catch (error) {
       throw new Error(`TODO: RESTAdapter case`);
     }
@@ -212,7 +212,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
       let json = await response.json();
 
-      return this.push(Model, json[this.payloadKeyFromModelName(Model)]);
+      return this.push(Model, json[this.payloadKeyFromModelName(Model)]) as MemoriaModel;
     } catch (error) {
       throw new Error(`TODO: RESTAdapter case`);
     }
