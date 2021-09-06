@@ -2,11 +2,23 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.10](https://github.com/izelnakri/memoria/compare/0.0.10...0.0.10)
+#### [0.0.11](https://github.com/izelnakri/memoria/compare/0.0.11...0.0.11)
+
+- major refactor for better custom Error handling [`42391e8`](https://github.com/izelnakri/memoria/commit/42391e8b0829f820ed709ff4d027e7ca89edc533)
+- first passing RESTAdapter test [`f79e5b2`](https://github.com/izelnakri/memoria/commit/f79e5b21ef35af7ddf15932ce466958e14fb4d8c)
+- Error abstraction improved to be ModelError [`093a7f8`](https://github.com/izelnakri/memoria/commit/093a7f8bc9c8a18e7e7f84e4f77c20f097733a26)
+- initial Error and Changeset abstraction sketch [`d236a6f`](https://github.com/izelnakri/memoria/commit/d236a6f917e794283f272419450a62cb9bd76c05)
+- fix type annotations [`4e272ed`](https://github.com/izelnakri/memoria/commit/4e272ede2e3912b74b2918a6ed24d294545fbe9d)
+- gha github action cache trial [`845c19c`](https://github.com/izelnakri/memoria/commit/845c19cf8013156db2fdb3b009616c61415e1ba9)
+
+#### [0.0.11](https://github.com/izelnakri/memoria/compare/0.0.10...0.0.11)
+
+> 31 August 2021
 
 - Bump docker/login-action from 1.9.0 to 1.10.0 [`#3`](https://github.com/izelnakri/memoria/pull/3)
 - Bump docker/setup-buildx-action from 1.3.0 to 1.5.1 [`#5`](https://github.com/izelnakri/memoria/pull/5)
 - Bump docker/build-push-action from 2.4.0 to 2.7.0 [`#6`](https://github.com/izelnakri/memoria/pull/6)
+- Release 0.0.11 [`6d5ed2d`](https://github.com/izelnakri/memoria/commit/6d5ed2de34a2b5c8e2837e094c535fdce68f4d0f)
 - upgrade docker-compose to v3.8 [`c084258`](https://github.com/izelnakri/memoria/commit/c084258eefd6caf960026234602c50c2842d20f4)
 - fix stupid postgres docker container env defaults [`9863529`](https://github.com/izelnakri/memoria/commit/986352987cd184982e7c79e47a6a99a02979e99f)
 - check running containers in Github CI [`47eee3f`](https://github.com/izelnakri/memoria/commit/47eee3f209b2bf23bda862c802a2e2857c20fadc)
