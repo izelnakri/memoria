@@ -6,8 +6,8 @@ import MemoriaModel from "./model.js";
 
 type primaryKey = number | string;
 
-interface ErrorInterface {
-  id?: primaryKey;
+export interface ErrorMetadata {
+  id?: null | primaryKey;
   modelName: string;
   attribute: string;
   message: string;
@@ -57,23 +57,24 @@ export default class ModelError extends Error {
     });
   }
 
-  constructor(model: MemoriaModel, options: ErrorInterface) {
+  constructor(model: MemoriaModel, errorMetadata: ErrorMetadata) {
     if (!model) {
       throw new Error(
-        "ModelError should pass an memoria model instance when creating new MemoriaError($model, options)"
+        "ModelError should pass an memoria model instance when creating new MemoriaError($model, errorMetadata)"
       );
-    } else if (!options.attribute) {
+    } else if (!errorMetadata.attribute) {
       throw new Error("ModelError: attribute missing during MemoriaError instance initialization");
-    } else if (!options.message) {
+    } else if (!errorMetadata.message) {
       throw new Error("ModelError: message missing during MemoriaError instance initialization");
     }
 
-    super(options.message);
+    super(errorMetadata.message);
 
-    this.id = options.id || null;
+    this.name = "ModelError";
+    this.id = errorMetadata.id || null;
     this.modelName = model.constructor.name; // TODO: instead this could be Model.Error class
-    this.attribute = options.attribute;
-    this.message = options.message;
+    this.attribute = errorMetadata.attribute;
+    this.message = errorMetadata.message;
 
     let error = Object.freeze(this);
 

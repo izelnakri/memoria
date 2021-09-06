@@ -1,15 +1,18 @@
-// TODO: memory adapter also needs to handle instances + instances w relationships correctly
-// TODO: insert( has a major bug, maybe fixed maybe need init object on reduce
-// Model.columnNames doesnt need to be array?!? on queryBuilder
+// TODO: memory adapter also needs to handle relationships correctly
 // SQL updateAll is buggy because of relationship references
-
-// TODO: filter relationships on insert, update, delete, insertAll, updateAll, deleteAll
-import kleur from "kleur";
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoryAdapter from "../memory/index.js";
-import MemoriaModel, { Config } from "@memoria/model";
+import MemoriaModel, {
+  Changeset,
+  Config,
+  CacheError,
+  DeleteError,
+  InsertError,
+  UpdateError,
+  RuntimeError,
+} from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 
 type primaryKey = number | string;
@@ -23,14 +26,6 @@ interface FreeObject {
 
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
-// TODO: also allow manual id insertion
-//     orderBy: {
-//     name: "ASC",
-//     id: "DESC"
-// }
-
-// NOTE: if record exists in this.cache returns the existing record
-// cache and push the same thing?
 export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
@@ -69,7 +64,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async resetSchemas(Config, modelName?: string): Promise<Config> {
     if (modelName) {
-      throw new Error(
+      throw new RuntimeError(
         "$Model.resetSchemas(modelName) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
       );
     }
@@ -96,7 +91,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
     let Manager = await this.getEntityManager();
 
-    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: research CASCADE
+    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
   }
 
   static async resetRecords(
@@ -109,6 +104,16 @@ export default class SQLAdapter extends MemoryAdapter {
     await super.resetRecords(Model, targetState);
 
     if (targetState) {
+      targetState.forEach((record) => {
+        if (!record.hasOwnProperty(Model.primaryKeyName)) {
+          throw new CacheError(new Changeset(Model.build(record)), {
+            id: null,
+            modelName: Model.name,
+            attribute: Model.primaryKeyName,
+            message: "is missing",
+          });
+        }
+      });
       return await this.insertAll(Model, targetState);
     }
 
@@ -116,25 +121,25 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 
   static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
+    let model = record instanceof Model ? record : Model.build(record);
+
     if (!record.hasOwnProperty(Model.primaryKeyName)) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] CacheError: A ${Model.name} Record is missing a primary key(${Model.primaryKeyName}) to add to cache. Please make sure all your ${Model.name} fixtures have ${Model.primaryKeyName} key`
-        )
-      );
+      throw new CacheError(new Changeset(model), {
+        id: null,
+        modelName: Model.name,
+        attribute: Model.primaryKeyName,
+        message: "is missing",
+      });
     }
 
-    primaryKeyTypeSafetyCheck(Model, record[Model.primaryKeyName]);
+    primaryKeyTypeSafetyCheck(model);
 
     let foundInCache = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (foundInCache) {
       return foundInCache;
     }
 
-    let target = cleanRelationships(
-      Model,
-      record instanceof Model ? record : this.build(Model, record)
-    );
+    let target = cleanRelationships(Model, record instanceof Model ? record : Model.build(record));
 
     Model.Cache.push(target);
 
@@ -153,28 +158,34 @@ export default class SQLAdapter extends MemoryAdapter {
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     let Manager = await this.getEntityManager();
 
-    if (Array.isArray(primaryKey)) {
-      // TODO: this might also need adjustments/move to normal query
-      let foundModels = await Manager.findByIds(Model, primaryKey, {
-        order: { [Model.primaryKeyName]: "ASC" },
-      });
-      return foundModels.map((model) => this.cache(Model, model));
+    try {
+      if (Array.isArray(primaryKey)) {
+        // TODO: this might also need adjustments/move to normal query
+        let foundModels = await Manager.findByIds(Model, primaryKey, {
+          order: { [Model.primaryKeyName]: "ASC" },
+        });
+        return foundModels.map((model) => this.cache(Model, model));
+      } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
+        let foundModel = await Manager.findOne(Model, primaryKey);
+        return this.cache(Model, foundModel);
+      }
+    } catch (error) {
+      if (!error.code) {
+        throw error;
+      } else if (error.code === "22P02") {
+        throw new RuntimeError(`${Model.name}.peek() called without a valid primaryKey`);
+      }
+
+      throw error;
     }
 
-    let foundModel = await Manager.findOne(Model, primaryKey);
-    return this.cache(Model, foundModel);
+    throw new RuntimeError(`${Model.name}.find() called without a valid primaryKey`);
   }
 
   static async findBy(
     Model: typeof MemoriaModel,
     queryObject: object
   ): Promise<MemoriaModel | void> {
-    if (!queryObject) {
-      throw new Error(
-        kleur.red(`[Memoria] ${Model.name}.findBy(id) cannot be called without a parameter`)
-      );
-    }
-
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, queryObject);
 
@@ -207,7 +218,7 @@ export default class SQLAdapter extends MemoryAdapter {
   ): Promise<MemoriaModel> {
     let Manager = await this.getEntityManager();
     let resultRaw = await Manager.save(Model, cleanRelationships(Model, record));
-    let result = this.build(Model, resultRaw.generatedMaps[0]) as MemoriaModel;
+    let result = Model.build(resultRaw.generatedMaps[0]) as MemoriaModel;
 
     if (this.peek(Model, result[Model.primaryKeyName])) {
       return await super.update(Model, result); // NOTE: this could be problematic
@@ -227,25 +238,50 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return result;
     }, {});
-    let Manager = await this.getEntityManager();
-    let result = await Manager.createQueryBuilder()
-      .insert()
-      .into(Model, Object.keys(target))
-      .values(target)
-      .returning("*")
-      .execute();
 
-    // NOTE: this updates postgres sequence by max id, important when id provided
-    if (Model.primaryKeyType === "id" && record[Model.primaryKeyName]) {
-      let tableName = Manager.connection.entityMetadatas.find(
-        (metadata) => metadata.targetName === Model.name
-      ).tableName;
-      await Manager.query(
-        `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-      );
+    try {
+      let Manager = await this.getEntityManager();
+      let result = await Manager.createQueryBuilder()
+        .insert()
+        .into(Model, Object.keys(target))
+        .values(target)
+        .returning("*")
+        .execute();
+
+      // NOTE: this updates postgres sequence by max id, important when id provided
+      if (Model.primaryKeyType === "id" && record[Model.primaryKeyName]) {
+        let tableName = Manager.connection.entityMetadatas.find(
+          (metadata) => metadata.targetName === Model.name
+        ).tableName;
+        await Manager.query(
+          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+        );
+      }
+
+      return this.cache(Model, result.generatedMaps[0]);
+    } catch (error) {
+      if (!error.code) {
+        throw error;
+      }
+
+      if (error.code === "23505") {
+        throw new InsertError(new Changeset(Model.build(target)), {
+          id: target[Model.primaryKeyName],
+          modelName: Model.name,
+          attribute: Model.primaryKeyName,
+          message: "already exists",
+        });
+      } else if (error.code === "22P02") {
+        throw new RuntimeError(
+          new Changeset(Model.build(target)),
+          `${Model.name}.primaryKeyType is '${Model.primaryKeyType}'. Instead you've tried: ${
+            target[Model.primaryKeyName]
+          } with ${typeof target[Model.primaryKeyName]} type`
+        );
+      }
+
+      throw error;
     }
-
-    return this.cache(Model, result.generatedMaps[0]);
   }
 
   static async update(
@@ -253,20 +289,43 @@ export default class SQLAdapter extends MemoryAdapter {
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
-    let Manager = await this.getEntityManager();
-    let resultRaw = await Manager.createQueryBuilder()
-      .update(Model)
-      .set(record)
-      .where(`${primaryKeyName} = :${primaryKeyName}`, { [primaryKeyName]: record[primaryKeyName] })
-      .returning("*")
-      .execute();
-    let result = this.build(Model, resultRaw.raw[0]) as MemoriaModel;
+    try {
+      let Manager = await this.getEntityManager();
+      let resultRaw = await Manager.createQueryBuilder()
+        .update(Model)
+        .set(
+          Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+            if (record.hasOwnProperty(attribute)) {
+              result[attribute] = record[attribute];
+            }
 
-    if (this.peek(Model, result[Model.primaryKeyName])) {
-      return await super.update(Model, result); // NOTE: this could be problematic
+            return result;
+          }, {})
+        )
+        .where(`${primaryKeyName} = :${primaryKeyName}`, {
+          [primaryKeyName]: record[primaryKeyName],
+        })
+        .returning("*")
+        .execute();
+      let result = Model.build(resultRaw.raw[0]) as MemoriaModel;
+      if (!result || !result[Model.primaryKeyName]) {
+        throw new UpdateError(new Changeset(Model.build(record)), {
+          id: record[Model.primaryKeyName],
+          modelName: Model.name,
+          attribute: Model.primaryKeyName,
+          message: "doesn't exist in database to update",
+        });
+      }
+
+      if (this.peek(Model, result[Model.primaryKeyName])) {
+        return await super.update(Model, result); // NOTE: this could be problematic
+      }
+
+      return this.push(Model, result) as MemoriaModel;
+    } catch (error) {
+      console.log(error);
+      throw error;
     }
-
-    return this.push(Model, result) as MemoriaModel;
   }
 
   // NOTE: test this delete function when id isnt provided or invalid
@@ -275,28 +334,41 @@ export default class SQLAdapter extends MemoryAdapter {
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
     if (!record) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] ${Model.name}.delete(model) model object parameter required to delete a model`
-        )
+      throw new RuntimeError(
+        new Changeset(Model.build(record)),
+        "$Model.delete() called without a valid record"
       );
     }
 
     let primaryKeyName = Model.primaryKeyName;
-    let Manager = await this.getEntityManager();
-    let resultRaw = await Manager.createQueryBuilder()
-      .delete()
-      .from(Model)
-      .where(`${primaryKeyName} = :${primaryKeyName}`, { [primaryKeyName]: record[primaryKeyName] })
-      .returning("*")
-      .execute();
-    let result = resultRaw.raw[0];
+    try {
+      let Manager = await this.getEntityManager();
+      let resultRaw = await Manager.createQueryBuilder()
+        .delete()
+        .from(Model)
+        .where(`${primaryKeyName} = :${primaryKeyName}`, {
+          [primaryKeyName]: record[primaryKeyName],
+        })
+        .returning("*")
+        .execute();
+      let result = resultRaw.raw[0];
+      if (!result || !result[Model.primaryKeyName]) {
+        throw new DeleteError(new Changeset(Model.build(record)), {
+          id: record[Model.primaryKeyName],
+          modelName: Model.name,
+          attribute: Model.primaryKeyName,
+          message: "doesn't exist in database to delete",
+        });
+      }
 
-    if (this.peek(Model, result[Model.primaryKeyName])) {
-      return await super.delete(Model, result); // NOTE: this could be problematic
+      if (this.peek(Model, result[Model.primaryKeyName])) {
+        return await super.delete(Model, result); // NOTE: this could be problematic
+      }
+
+      return Model.build(result);
+    } catch (error) {
+      throw error;
     }
-
-    return this.build(Model, result);
   }
 
   static async saveAll(
@@ -306,7 +378,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // TODO: this should do both insertAll or updateAll based on the scenario
     let Manager = await this.getEntityManager();
     let results = await Manager.save(
-      records.map((record) => cleanRelationships(Model, this.build(Model, record)))
+      records.map((record) => cleanRelationships(Model, Model.build(record)))
     );
 
     return results.map((result) => this.push(Model, result));
@@ -321,8 +393,8 @@ export default class SQLAdapter extends MemoryAdapter {
       if (Model.primaryKeyName in record) {
         let primaryKey = record[Model.primaryKeyName] as primaryKey;
         if (result.includes(primaryKey)) {
-          throw new Error(
-            `[Memoria] ${Model.name}.insertAll(records) fails: ${Model.primaryKeyName} ${primaryKey} is duplicate in records array!`
+          throw new RuntimeError(
+            `${Model.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
           );
         }
 
@@ -332,24 +404,50 @@ export default class SQLAdapter extends MemoryAdapter {
       return result;
     }, []);
 
-    let Manager = await this.getEntityManager();
-    let result = await Manager.createQueryBuilder()
-      .insert()
-      .into(Model, Model.columnNames)
-      .values(records) // NOTE: probably doent need relationships filter as it is
-      .returning("*")
-      .execute();
+    try {
+      let Manager = await this.getEntityManager();
+      let result = await Manager.createQueryBuilder()
+        .insert()
+        .into(Model, Model.columnNames)
+        .values(records) // NOTE: probably doent need relationships filter as it is
+        .returning("*")
+        .execute();
 
-    if (providedIds[0] && typeof providedIds[0] === "number") {
-      let tableName = Manager.connection.entityMetadatas.find(
-        (metadata) => metadata.targetName === Model.name
-      ).tableName;
-      await Manager.query(
-        `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-      );
+      if (providedIds[0] && typeof providedIds[0] === "number") {
+        let tableName = Manager.connection.entityMetadatas.find(
+          (metadata) => metadata.targetName === Model.name
+        ).tableName;
+        await Manager.query(
+          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+        );
+      }
+
+      return result.raw.map((rawResult) => this.cache(Model, rawResult));
+    } catch (error) {
+      console.log(error);
+      // TODO: implement custom error handling
+      // if (!error.code) {
+      //   throw error;
+      // }
+
+      // if (error.code === "23505") {
+      //   throw new InsertError(new Changeset(Model.build(target)), {
+      //     id: target[Model.primaryKeyName],
+      //     modelName: Model.name,
+      //     attribute: Model.primaryKeyName,
+      //     message: "already exists",
+      //   });
+      // } else if (error.code === "22P02") {
+      //   throw new RuntimeError(
+      //     new Changeset(Model.build(target)),
+      //     `${Model.name}.primaryKeyType is '${Model.primaryKeyType}'. Instead you've tried: ${
+      //       target[Model.primaryKeyName]
+      //     } with ${typeof target[Model.primaryKeyName]} type`
+      //   );
+      // }
+
+      throw error;
     }
-
-    return result.raw.map((rawResult) => this.cache(Model, rawResult));
   }
 
   // In future, optimize query: https://stackoverflow.com/questions/18797608/update-multiple-rows-in-same-query-using-postgresql
@@ -360,7 +458,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // TODO: model always expects them to be instance!! Do not use save function!
     let Manager = await this.getEntityManager();
     let results = await Manager.save(
-      records.map((model) => cleanRelationships(Model, this.build(Model, model)))
+      records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
     return results.map((result) => this.push(Model, result));
@@ -370,12 +468,6 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
-    if (!records) {
-      throw new Error(
-        kleur.red(`[Memoria] ${Model.name}.deleteAll(records) need an array of models!`)
-      );
-    }
-
     let Manager = await this.getEntityManager();
     let targetPrimaryKeys = records.map((model) => model[Model.primaryKeyName]);
     let result = await Manager.createQueryBuilder()
@@ -387,7 +479,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await this.unloadAll(Model, this.peekAll(Model, targetPrimaryKeys) as MemoriaModel[]);
 
-    return result.raw.map((rawResult) => this.build(Model, rawResult));
+    return result.raw.map((rawResult) => Model.build(rawResult));
   }
 }
 

@@ -10,31 +10,49 @@ export default class Changeset {
   data: MemoriaModel;
   date: Date;
   errors: MemoriaError[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
-  isValid: boolean;
   // emptyValues: string[] = []; // NOTE: might be useful for default casting
 
-  constructor(model: typeof MemoriaModel | Changeset, params: JSObject) {
+  constructor(model: MemoriaModel | Changeset, params?: JSObject) {
     if (model instanceof MemoriaModel) {
       this.action = null;
       this.data = model;
       this.errors = [];
+      this.changes = params
+        ? Object.keys(this.data).reduce((result, keyName) => {
+            if (keyName in params && this.data[keyName] !== params[keyName]) {
+              result[keyName] = params[keyName];
+            }
+
+            return result;
+          }, {})
+        : {};
     } else {
+      console.log("THIS GETS CALLED AND SHOULDNT!");
       this.action = (model as Changeset).action;
       this.data = (model as Changeset).data;
       this.errors = (model as Changeset).errors;
+      this.changes = params
+        ? Object.keys(this.data).reduce((result, keyName) => {
+            if (keyName in params && this.data[keyName] !== params[keyName]) {
+              result[keyName] = params[keyName];
+            }
+
+            if (keyName in model.changes) {
+              result[keyName] = model.changes[keyName];
+            }
+
+            return result;
+          }, {})
+        : model.changes;
     }
 
-    this.changes = Object.keys(this.data).reduce((result, keyName) => {
-      if (keyName in params && this.data[keyName] !== params[keyName]) {
-        result[keyName] = params[keyName];
-      }
-
-      return result;
-    }, {});
-    this.isValid = this.errors.length === 0;
     this.date = new Date();
 
     return Object.freeze(this);
+  }
+
+  get isValid() {
+    return this.errors.length === 0;
   }
 
   static assign(changeset: Changeset, changes: JSObject) {

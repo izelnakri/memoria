@@ -1,4 +1,4 @@
-import Model, { Config, Column, PrimaryGeneratedColumn } from "@memoria/model";
+import Model, { Config, Column, PrimaryGeneratedColumn, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -110,20 +110,12 @@ module("@memoria/adapters | SQLAdapter | Query API", function (hooks) {
         try {
           await Photo.find(param);
         } catch (error) {
-          assert.ok(error);
-          // assert.ok(
-          //   /\[Memoria\] Photo.find\(id\) cannot be called without a valid id/.test(error.message)
-          // );
+          assert.ok(error instanceof RuntimeError);
         }
         try {
           await PhotoComment.find(param);
         } catch (error) {
-          assert.ok(error);
-          // assert.ok(
-          //   /\[Memoria\] PhotoComment.find\(id\) cannot be called without a valid id/.test(
-          //     error.message
-          //   )
-          // );
+          assert.ok(error instanceof RuntimeError);
         }
       })
     );
@@ -161,20 +153,6 @@ module("@memoria/adapters | SQLAdapter | Query API", function (hooks) {
       { id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true },
       { id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false },
     ]);
-  });
-
-  test("$Model.findBy() throws without params", async function (assert) {
-    const { Photo } = await prepare();
-
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-
-    try {
-      await Photo.findBy();
-    } catch (error) {
-      assert.ok(
-        /\[Memoria\] Photo.findBy\(id\) cannot be called without a parameter/.test(error.message)
-      );
-    }
   });
 
   test("$Model.findBy(attributes) returns a single model for the options", async function (assert) {

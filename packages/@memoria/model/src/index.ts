@@ -1,6 +1,5 @@
 import Changeset from "./changeset.js";
 import Config from "./config.js";
-import ModelError from "./error.js";
 import Model from "./model.js";
 export type {
   DecoratorBucket,
@@ -8,6 +7,9 @@ export type {
   RelationshipDefinition,
   RelationshipSchemaDefinition,
 } from "./types.js";
+import ModelError from "./error.js";
+export { CacheError, DeleteError, InsertError, RuntimeError, UpdateError } from "./errors/index.js";
+export { transformValue } from "./serializer.js";
 export { generateUUID } from "./utils.js";
 export {
   Column,

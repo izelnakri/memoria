@@ -4,6 +4,8 @@ import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
 import ModelError from "./error.js";
 import Config from "./config.js";
+import { transformValue } from "./serializer.js";
+// import type { SchemaDefinition } from "./types";
 import type { ModelRef, RelationshipSchemaDefinition } from "./index.js";
 
 type primaryKey = number | string;
@@ -135,8 +137,25 @@ export default class Model {
     return await this.Adapter.count(this, options);
   }
 
-  static build(options: QueryObject = {}): Model {
-    return this.Adapter.build(this, options);
+  // NOTE: this doesnt assign default values from the instance!!
+  // transforms strings to datestrings if it is a date column
+  static build(options?: QueryObject | Model): Model {
+    if (!options) {
+      return Object.seal(new this());
+    }
+
+    let transformedOptions = Array.from(this.columnNames).reduce((result, keyName) => {
+      result[keyName] = transformValue(this, keyName, options[keyName]);
+
+      return result;
+    }, {});
+    let model = new this(transformedOptions);
+
+    Object.keys(model).forEach((keyName: string) => {
+      model[keyName] = model[keyName] || keyName in options ? transformedOptions[keyName] : null;
+    });
+
+    return Object.seal(model);
   }
 
   #_errors: ModelError[] = [];

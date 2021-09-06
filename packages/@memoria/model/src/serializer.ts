@@ -1,3 +1,30 @@
+import MemoriaModel, { Config } from "./index.js";
+
+let DATE_COLUMN_DEFINITIONS = new Set([
+  "date",
+  "datetime", // mssql, mysql, sqlite
+  "time", // mysql, postgres, mssql, cockroachdb
+  "time with time zone", // postgres, cockroachdb
+  "time without time zone", // postgres
+  "timestamp", // mysql, postgres, mssql, oracle, cockroachdb
+  "timestamp without time zone", // postgres, cockroachdb
+  "timestamp with time zone", // postgres, oracle, cockroachdb
+  "timestamp with local time zone", // oracle
+  "timetz", // postgres
+  "timestamptz", // postgres, cockroachdb
+]);
+
+export function transformValue(Model: typeof MemoriaModel, keyName: string, value: any) {
+  if (
+    typeof value === "string" &&
+    DATE_COLUMN_DEFINITIONS.has(Config.getSchema(Model).columns[keyName].type as string)
+  ) {
+    return new Date(value);
+  }
+
+  return value;
+}
+
 // keyForAttribute() {}
 //
 // serialize(snapshot, options) {

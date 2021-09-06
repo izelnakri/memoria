@@ -1,7 +1,7 @@
 import { camelize, dasherize } from "@emberx/string"; // NOTE: make ember-inflector included in @emberx/string
 import MemoryAdapter from "../memory/index.js";
 import type { ModelRef } from "@memoria/model";
-import MemoriaModel from "@memoria/model";
+import MemoriaModel, { RuntimeError } from "@memoria/model";
 
 // NOTE: temporary
 function pluralize(string) {
@@ -25,7 +25,7 @@ type ModelRefOrInstance = ModelRef | MemoriaModel;
 // NOTE: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
   static CONNECTION_OPTIONS: ConnectionOptions = {
-    host: "localhost",
+    host: window.location.origin,
     headers: {
       Accept: "application/json",
     },
@@ -33,7 +33,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
   static get host(): string {
     if (!this.CONNECTION_OPTIONS || !this.CONNECTION_OPTIONS.host) {
-      throw new Error(
+      throw new RuntimeError(
         "[Memoria RESTAdapter] host reference is missing![RESTAdapter.CONNECTION_OPTIONS.host]"
       );
     }
@@ -205,7 +205,7 @@ export default class RESTAdapter extends MemoryAdapter {
         method: "POST",
         body: JSON.stringify({ [this.payloadKeyFromModelName(Model)]: record }),
       }); // TODO: maybe add options in future
-      debugger;
+
       if (!response.ok) {
         throw new Error("TODO: RESTAdapter case");
       }

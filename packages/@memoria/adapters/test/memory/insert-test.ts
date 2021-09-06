@@ -1,4 +1,4 @@
-import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn } from "@memoria/model";
+import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn, InsertError, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
@@ -231,20 +231,12 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     try {
       await Photo.insert({ id: 1 });
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] Photo\.insert\(record\) fails: id 1 already exists in the database!/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof InsertError);
     }
     try {
       await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment\.insert\(record\) fails: uuid d351963d-e725-4092-a37c-1ca1823b57d3 already exists in the database!/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof InsertError);
     }
   });
 
@@ -259,20 +251,12 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     try {
       await Photo.insert({ id: "99" });
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] Photo.primaryKeyType is 'id'. Instead you've tried: 99 with string type/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
     try {
       await PhotoComment.insert({ uuid: 1 });
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment.primaryKeyType is 'uuid'. Instead you've tried: 1 with number type/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 

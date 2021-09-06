@@ -1,4 +1,11 @@
-import Model, { Config, PrimaryGeneratedColumn, Column, CreateDateColumn } from "@memoria/model";
+import Model, {
+  Config,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  CacheError,
+  RuntimeError,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -201,7 +208,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(/A PhotoComment Record is missing a primary key/.test(error.message));
+      assert.ok(error instanceof CacheError);
     }
   });
 
@@ -232,11 +239,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] Photo.primaryKeyType is 'id'\. Instead you've tried: 2 with string type/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
@@ -273,11 +276,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment\.primaryKeyType is 'uuid'\. Instead you've tried: 12 with number type/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
@@ -308,12 +307,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] CacheError: Photo.cache\(\) fails: id 2 already exists in the cache!/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
@@ -350,12 +344,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] CacheError: PhotoComment.cache\(\) fails: uuid 499ec646-493f-4eea-b92e-e383d94182f4 already exists in the cache!/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 });

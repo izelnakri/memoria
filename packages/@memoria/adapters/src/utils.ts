@@ -1,18 +1,19 @@
+import { Changeset, RuntimeError } from "@memoria/model";
 import type Model from "@memoria/model";
-import kleur from "kleur";
 
-export function primaryKeyTypeSafetyCheck(Class: typeof Model, modelPrimaryKey: any) {
+export function primaryKeyTypeSafetyCheck(model: Model) {
+  let Klass = model.constructor as typeof Model;
   let primaryKeyIsValid =
-    Class.primaryKeyType === "id"
-      ? typeof modelPrimaryKey === "number"
-      : typeof modelPrimaryKey === "string";
+    Klass.primaryKeyType === "id"
+      ? typeof model[Klass.primaryKeyName] === "number"
+      : typeof model[Klass.primaryKeyName] === "string";
+
   if (!primaryKeyIsValid) {
-    throw new Error(
-      kleur.red(
-        `[Memoria] ${Class.name}.primaryKeyType is '${
-          Class.primaryKeyType
-        }'. Instead you've tried: ${modelPrimaryKey} with ${typeof modelPrimaryKey} type`
-      )
+    throw new RuntimeError(
+      new Changeset(model),
+      `${Klass.name}.primaryKeyType is '${Klass.primaryKeyType}'. Instead you've tried: ${
+        model[Klass.primaryKeyName]
+      } with ${typeof model[Klass.primaryKeyName]} type`
     );
   }
 }

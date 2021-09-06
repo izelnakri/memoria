@@ -1,4 +1,10 @@
-import Model, { Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, {
+  Config,
+  PrimaryGeneratedColumn,
+  Column,
+  DeleteError,
+  RuntimeError,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -158,22 +164,12 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
     try {
       await Photo.delete({ id: 1 });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] Photo has no records in the database to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof DeleteError);
     }
     try {
       await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] PhotoComment has no records in the database to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof DeleteError);
     }
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
@@ -186,22 +182,12 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
     try {
       await Photo.delete({ id: 1 });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] Could not find Photo with id: 1 to delete\. Photo\.delete\(\{ id: 1 \}\) failed/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof DeleteError);
     }
     try {
       await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] Could not find PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5111 to delete\. PhotoComment\.delete\(\{ uuid: '374c7f4a-85d6-429a-bf2a-0719525f5111' \}\) failed/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof DeleteError);
     }
   });
 
@@ -216,20 +202,12 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
     try {
       await Photo.delete();
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] Photo\.delete\(model\) model object parameter required to delete a model/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
     try {
       await PhotoComment.delete();
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment\.delete\(model\) model object parameter required to delete a model/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 });

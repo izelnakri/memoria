@@ -4,6 +4,7 @@ import Model, {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  UpdateError,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
@@ -165,27 +166,17 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
     try {
       await Photo.update({ id: 99, href: "family-photo-2.jpeg" });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] Photo\.update\(record\) failed because Photo with id: 99 does not exist/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof UpdateError);
     }
 
     try {
       await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
     } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] PhotoComment\.update\(record\) failed because PhotoComment with uuid: 374c7f4a-85d6-429a-bf2a-0719525f5666 does not exist/.test(
-      //     error.message
-      //   )
-      // );
+      assert.ok(error instanceof UpdateError);
     }
   });
 
-  test("$Model.update(attributes) throws an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
+  test("$Model.update(attributes) does not throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
     const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
@@ -193,29 +184,26 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    try {
-      await Photo.update({ id: 1, name: "ME", is_verified: false });
-    } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] Photo\.update id: 1 fails, Photo model does not have is_verified attribute to update/.test(
-      //     error.message
-      //   )
-      // );
-    }
+    let photo = await Photo.update({ id: 1, name: "ME", is_verified: false });
 
-    try {
-      await PhotoComment.update({
-        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-        location: "Amsterdam",
-      });
-    } catch (error) {
-      assert.ok(error);
-      // assert.ok(
-      //   /\[Memoria\] PhotoComment\.update uuid: 374c7f4a-85d6-429a-bf2a-0719525f5f29 fails, PhotoComment model does not have location attribute to update/.test(
-      //     error.message
-      //   )
-      // );
-    }
+    assert.matchJson(photo, {
+      id: 1,
+      name: "ME",
+      href: "ski-trip.jpeg",
+      is_public: false,
+    });
+
+    let photoComment = await PhotoComment.update({
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      location: "Amsterdam",
+    });
+
+    assert.matchJson(photoComment, {
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      inserted_at: String,
+      updated_at: String,
+      is_important: true,
+      content: "Interesting indeed",
+    });
   });
 });
