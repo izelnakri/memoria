@@ -1,18 +1,12 @@
-import ModelError, { ErrorMetadata } from "../error.js";
-import Changeset from "../changeset.js";
+import ChangesetError from "./changeset-error.js";
+import type Model from "../model.js";
+import type { ErrorMetadata } from "../error.js";
+import type Changeset from "../changeset.js";
 
-export default class InsertError extends Error {
-  changeset: Changeset;
+export default class InsertError extends ChangesetError {
+  constructor(modelOrChangeset: Model | Changeset, errorMetadata: ErrorMetadata) {
+    super(modelOrChangeset, errorMetadata, "Memoria.InsertError");
 
-  constructor(changeset: Changeset, errorMetadata: ErrorMetadata) {
-    changeset.errors.push(new ModelError(changeset.data, errorMetadata));
-
-    let message = `${errorMetadata.modelName} ${errorMetadata.attribute} ${errorMetadata.message}`;
-
-    super(message);
-
-    this.message = message;
-    this.name = "Memoria.InsertError";
-    this.changeset = changeset;
+    return this;
   }
 }

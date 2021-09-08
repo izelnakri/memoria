@@ -1,20 +1,12 @@
-import ModelError, { ErrorMetadata } from "../error.js";
-import Changeset from "../changeset.js";
+import ChangesetError from "./changeset-error.js";
+import type Model from "../model.js";
+import type { ErrorMetadata } from "../error.js";
+import type Changeset from "../changeset.js";
 
-// already-exists,
-// check-constraint, foreign-key-constaint, not-null-constraint, unique-constraint
-export default class CacheError extends Error {
-  changeset: Changeset;
+export default class CacheError extends ChangesetError {
+  constructor(modelOrChangeset: Model | Changeset, errorMetadata: ErrorMetadata) {
+    super(modelOrChangeset, errorMetadata, "Memoria.CacheError");
 
-  constructor(changeset: Changeset, errorMetadata: ErrorMetadata) {
-    changeset.errors.push(new ModelError(changeset.data, errorMetadata));
-
-    let message = `${errorMetadata.modelName} ${errorMetadata.attribute} ${errorMetadata.message}`;
-
-    super(message);
-
-    this.message = message;
-    this.name = "Memoria.CacheError";
-    this.changeset = changeset;
+    return this;
   }
 }

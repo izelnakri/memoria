@@ -1,8 +1,8 @@
 import MemoriaModel from "./model.js";
 import type MemoriaError from "./error.js";
 
-type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
-type JSObject = { [key: string]: any };
+export type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
+export type JSObject = { [key: string]: any };
 
 export default class Changeset {
   action: ChangesetAction;
@@ -27,7 +27,6 @@ export default class Changeset {
           }, {})
         : {};
     } else {
-      console.log("THIS GETS CALLED AND SHOULDNT!");
       this.action = (model as Changeset).action;
       this.data = (model as Changeset).data;
       this.errors = (model as Changeset).errors;
@@ -35,9 +34,7 @@ export default class Changeset {
         ? Object.keys(this.data).reduce((result, keyName) => {
             if (keyName in params && this.data[keyName] !== params[keyName]) {
               result[keyName] = params[keyName];
-            }
-
-            if (keyName in model.changes) {
+            } else if (keyName in model.changes) {
               result[keyName] = model.changes[keyName];
             }
 
@@ -58,14 +55,12 @@ export default class Changeset {
   static assign(changeset: Changeset, changes: JSObject) {
     return Object.assign(Object.create(Object.getPrototypeOf(changeset)), changeset, changes);
   }
-
-  // validations
-  // constraints = [];
-  // prepare: [(t() -> t())],
-  // required: string[] // Required fields
 }
 
-// errors can be individual, changeset scoped to an action, instead of Model
+// validations
+// constraints = [];
+// prepare: [(t() -> t())],
+// required: string[] // Required fields
 
 // %Post{}
 // |> change()
