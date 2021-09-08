@@ -2,13 +2,22 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.11](https://github.com/izelnakri/memoria/compare/0.0.11...0.0.11)
+#### [0.0.12](https://github.com/izelnakri/memoria/compare/0.0.12...0.0.12)
+
+- Bump docker/setup-buildx-action from 1.5.1 to 1.6.0 [`#7`](https://github.com/izelnakri/memoria/pull/7)
+- Make CustomErrors share Changeset interface for DX [`26262ac`](https://github.com/izelnakri/memoria/commit/26262ac5ac9f1f21a4cfd4018a9dea0e1338d11a)
+- fix window ref for RESTAdapter in node.js [`c5e9178`](https://github.com/izelnakri/memoria/commit/c5e91785b838a09687223dcdda5a5a99ae4d83e2)
+
+#### [0.0.12](https://github.com/izelnakri/memoria/compare/0.0.11...0.0.12)
+
+> 6 September 2021
 
 - major refactor for better custom Error handling [`42391e8`](https://github.com/izelnakri/memoria/commit/42391e8b0829f820ed709ff4d027e7ca89edc533)
 - first passing RESTAdapter test [`f79e5b2`](https://github.com/izelnakri/memoria/commit/f79e5b21ef35af7ddf15932ce466958e14fb4d8c)
 - Error abstraction improved to be ModelError [`093a7f8`](https://github.com/izelnakri/memoria/commit/093a7f8bc9c8a18e7e7f84e4f77c20f097733a26)
 - initial Error and Changeset abstraction sketch [`d236a6f`](https://github.com/izelnakri/memoria/commit/d236a6f917e794283f272419450a62cb9bd76c05)
 - fix type annotations [`4e272ed`](https://github.com/izelnakri/memoria/commit/4e272ede2e3912b74b2918a6ed24d294545fbe9d)
+- Release 0.0.12 [`d777b14`](https://github.com/izelnakri/memoria/commit/d777b14d6a970f0feb68d5862db25739d4e35754)
 - gha github action cache trial [`845c19c`](https://github.com/izelnakri/memoria/commit/845c19cf8013156db2fdb3b009616c61415e1ba9)
 
 #### [0.0.11](https://github.com/izelnakri/memoria/compare/0.0.10...0.0.11)
