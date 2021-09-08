@@ -25,7 +25,7 @@ type ModelRefOrInstance = ModelRef | MemoriaModel;
 // NOTE: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
   static CONNECTION_OPTIONS: ConnectionOptions = {
-    host: window.location.origin,
+    host: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
     headers: {
       Accept: "application/json",
     },
