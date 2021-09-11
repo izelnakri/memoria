@@ -86,7 +86,7 @@ export default function hackPretender(Pretender) {
   // END: Pretender Request Parameter Type Casting Hack
 
   // HACK START: Pretender Response Defaults UX Hack: Because Pretender Response types suck UX-wise.
-  Pretender.prototype.handleRequest = function (request) {
+  Pretender.prototype.handleRequest = async function (request) {
     var pretender = this;
     var verb = request.method.toUpperCase();
     var path = request.url.startsWith("localhost")
@@ -147,15 +147,18 @@ export default function hackPretender(Pretender) {
       handler.handler.numberOfCalls++;
       this.handledRequests.push(request);
 
-      var result = handler.handler(request);
-
-      if (result && typeof result.then === "function") {
-        // `result` is a promise, resolve it
-        result.then(function (resolvedResult) {
-          _handleRequest(resolvedResult);
-        });
-      } else {
-        _handleRequest(result);
+      try {
+        var result = await handler.handler(request);
+        if (result && typeof result.then === "function") {
+          // `result` is a promise, resolve it
+          let resolvedResult = await result;
+          await _handleRequest(resolvedResult);
+        } else {
+          await _handleRequest(result);
+        }
+      } catch (error) {
+        request.respond(500, {}, "");
+        throw error;
       }
     } else {
       if (!this.disableUnhandled) {
