@@ -235,12 +235,13 @@ module("@memoria/server| init configurations", function (hooks) {
   test("timing configuration option could be passed in during Memoria.start()", async function (assert) {
     assert.expect(3);
 
+    const TIMING = 300;
     const { Photo } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     this.Server = new Memoria({
-      timing: 3000,
+      timing: TIMING,
       routes() {
         this.get("/photos", () => {
           const photos = Photo.peekAll();
@@ -254,18 +255,18 @@ module("@memoria/server| init configurations", function (hooks) {
       },
     });
 
-    let ThreeSecondsPassed = false;
+    let twoSecondsPassed = false;
 
     setTimeout(() => {
-      ThreeSecondsPassed = true;
-    }, 2200);
+      twoSecondsPassed = true;
+    }, TIMING);
 
     await $.ajax({
       type: "GET",
       url: "/photos",
       headers: { "Content-Type": "application/json" },
     }).then((data, textStatus, jqXHR) => {
-      assert.ok(ThreeSecondsPassed);
+      assert.ok(twoSecondsPassed);
       assert.equal(jqXHR.status, 200);
       assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
     });
