@@ -15,14 +15,10 @@ export default function hackPretender(Pretender) {
     if (match) {
       request.headers = headers;
       request.params = Object.keys(match.params).reduce((result, key) => {
-        var value = castCorrectType(match.params[key]);
-
-        return Object.assign(result, { [key]: value });
+        return Object.assign(result, { [key]: castCorrectType(match.params[key]) });
       }, {});
       request.queryParams = Object.keys(matches.queryParams).reduce((result, key) => {
-        var targetValue = castCorrectType(matches.queryParams[key]);
-
-        return Object.assign(result, { [key]: targetValue });
+        return Object.assign(result, { [key]: castCorrectType(matches.queryParams[key]) });
       }, {});
 
       let newParamsFromBody =
@@ -62,7 +58,6 @@ export default function hackPretender(Pretender) {
 
   function tryConvertingQueryStringToObject(queryString) {
     let entries = Array.from(new URLSearchParams(queryString));
-
     if (entries.length > 0) {
       return entries.reduce((result, entry) => {
         result[entry[0]] = entry[1];
@@ -87,75 +82,18 @@ export default function hackPretender(Pretender) {
 
   // HACK START: Pretender Response Defaults UX Hack: Because Pretender Response types suck UX-wise.
   Pretender.prototype.handleRequest = async function (request) {
-    var pretender = this;
-    var verb = request.method.toUpperCase();
-    var path = request.url.startsWith("localhost")
+    let pretender = this;
+    let verb = request.method.toUpperCase();
+    let path = request.url.startsWith("localhost")
       ? `/${request.url.split("/").slice(1, request.url.length).join("/")}`
       : request.url;
-    var handler = pretender._handlerFor(verb, path, request);
-
-    var _handleRequest = function (result) {
-      var statusCode, headers, body;
-
-      if (Array.isArray(result) && result.length === 3) {
-        statusCode = result[0];
-        headers = pretender.prepareHeaders(result[1]);
-        body = pretender.prepareBody(result[2], headers);
-
-        return pretender.handleResponse(request, async, function () {
-          request.respond(statusCode, headers, body);
-          pretender.handledRequest(verb, path, request);
-        });
-      } else if (!result) {
-        headers = pretender.prepareHeaders({ "Content-Type": "application/json" });
-
-        if (verb === "DELETE") {
-          return pretender.handleResponse(request, async, function () {
-            request.respond(204, headers, pretender.prepareBody("{}", headers));
-            pretender.handledRequest(verb, path, request);
-          });
-        }
-
-        return pretender.handleResponse(request, async, function () {
-          request.respond(
-            500,
-            headers,
-            pretender.prepareBody(
-              JSON.stringify({
-                error: `[Memoria] ${verb} ${path} route handler did not return anything to respond to the request!`,
-              }),
-              headers
-            )
-          );
-          pretender.handledRequest(verb, path, request);
-        });
-      }
-
-      statusCode = getDefaultStatusCode(verb);
-      headers = pretender.prepareHeaders({ "Content-Type": "application/json" });
-      var targetResult = typeof result === "string" ? result : JSON.stringify(result);
-      body = pretender.prepareBody(targetResult, headers);
-
-      return pretender.handleResponse(request, async, function () {
-        request.respond(statusCode, headers, body);
-        pretender.handledRequest(verb, path, request);
-      });
-    };
-
+    let handler = pretender._handlerFor(verb, path, request);
     if (handler) {
-      var async = handler.handler.async;
       handler.handler.numberOfCalls++;
       this.handledRequests.push(request);
 
       try {
-        var result = await handler.handler(request);
-        if (result && typeof result.then === "function") {
-          // `result` is a promise, resolve it
-          let resolvedResult = await result;
-          await _handleRequest(resolvedResult);
-        } else {
-          await _handleRequest(result);
-        }
+        await _handleRequest(pretender, verb, path, request, handler);
       } catch (error) {
         request.respond(500, {}, "");
         throw error;
@@ -166,6 +104,57 @@ export default function hackPretender(Pretender) {
         this.unhandledRequest(verb, path, request);
       }
     }
+  };
+
+  async function _handleRequest(pretender, verb, path, request, handler) {
+    let isAsync = handler.handler.async;
+    let result = await handler.handler(request);
+    let statusCode, headers, body;
+
+    if (Array.isArray(result) && result.length === 3) {
+      statusCode = result[0];
+      headers = pretender.prepareHeaders(result[1]);
+      body = pretender.prepareBody(result[2], headers);
+
+      return pretender.handleResponse(request, isAsync, function () {
+        request.respond(statusCode, headers, body);
+        pretender.handledRequest(verb, path, request);
+      });
+    } else if (!result) {
+      headers = pretender.prepareHeaders({ "Content-Type": "application/json" });
+
+      if (verb === "DELETE") {
+        return pretender.handleResponse(request, isAsync, function () {
+          request.respond(204, headers, pretender.prepareBody("{}", headers));
+          pretender.handledRequest(verb, path, request);
+        });
+      }
+
+      return pretender.handleResponse(request, isAsync, function () {
+        request.respond(
+          500,
+          headers,
+          pretender.prepareBody(
+            JSON.stringify({
+              error: `[Memoria] ${verb} ${path} route handler did not return anything to respond to the request!`,
+            }),
+            headers
+          )
+        );
+        pretender.handledRequest(verb, path, request);
+      });
+    }
+
+    statusCode = getDefaultStatusCode(verb);
+    headers = pretender.prepareHeaders({ "Content-Type": "application/json" });
+
+    let targetResult = typeof result === "string" ? result : JSON.stringify(result);
+    body = pretender.prepareBody(targetResult, headers);
+
+    return pretender.handleResponse(request, isAsync, function () {
+      request.respond(statusCode, headers, body);
+      pretender.handledRequest(verb, path, request);
+    });
   };
 
   function getDefaultStatusCode(verb) {
