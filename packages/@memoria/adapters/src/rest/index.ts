@@ -1,9 +1,10 @@
 import { camelize, dasherize } from "@emberx/string"; // NOTE: make ember-inflector included in @emberx/string
 import MemoryAdapter from "../memory/index.js";
 import type { ModelRef } from "@memoria/model";
-import MemoriaModel, { RuntimeError } from "@memoria/model";
+import { primaryKeyTypeSafetyCheck } from "../utils.js";
+import MemoriaModel, { Changeset, RuntimeError, InsertError } from "@memoria/model";
 
-// NOTE: temporary
+// TODO: temporary
 function pluralize(string) {
   return string + "s";
 }
@@ -22,10 +23,10 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelRef | MemoriaModel;
 
-// NOTE: also provide APIActions
+// TODO: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
   static CONNECTION_OPTIONS: ConnectionOptions = {
-    host: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
+    host: typeof window === "undefined" ? "http://localhost:3000" : window.location.origin,
     headers: {
       Accept: "application/json",
     },
@@ -49,13 +50,13 @@ export default class RESTAdapter extends MemoryAdapter {
     return pluralize(dasherize(Model.name));
   }
 
-  // payload to instance source key
+  // NOTE: payload(http request body) to instance source key
   static modelNameFromPayloadKey(Model: typeof MemoriaModel): string {
     return Model.name;
     // return singularize(Model.name);
   }
 
-  // instance to post payload target key
+  // NOTE: instance to CRUD payload(http request body) target key
   static payloadKeyFromModelName(Model: typeof MemoriaModel): string {
     return camelize(Model.name);
     // return camelize(Model.name);
@@ -85,12 +86,6 @@ export default class RESTAdapter extends MemoryAdapter {
     return this.CONNECTION_OPTIONS.headers;
   }
 
-  // static async query() {
-  //   Model: typeof MemoriaModel,
-  //   query: QueryObject
-  // ): Promise<MemoriaModel | void> {
-  // }
-
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
@@ -116,9 +111,10 @@ export default class RESTAdapter extends MemoryAdapter {
     }
   }
 
+  // GET /people/count, or GET /people/count?keyName=value
   static async count(Model: typeof MemoriaModel, query?: QueryObject): Promise<number> {
     try {
-      let response = await fetch(`${this.host}/${this.pathForType(Model)}/count`); // TODO: maybe add options in future
+      let response = await fetch(`${this.host}/${this.pathForType(Model)}/count${buildQueryPath(Model, query)}`); // TODO: maybe add options in future
       if (!response.ok) {
         throw new Error("TODO: RESTAdapter case");
       }
@@ -131,14 +127,16 @@ export default class RESTAdapter extends MemoryAdapter {
     }
   }
 
+  // GET /people?ids=[], or GET /people/:id
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[]
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     try {
-      // GET /people?ids=[], or GET /people/:id
       if (Array.isArray(primaryKey)) {
-        let response = await fetch(`${this.host}/${this.pathForType(Model)}`); // TODO: make this /people?ids
+        let response = await fetch(
+          `${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, { ids: primaryKey })}`
+        );
         if (!response.ok) {
           throw new Error("TODO: RESTAdapter case");
         }
@@ -164,25 +162,47 @@ export default class RESTAdapter extends MemoryAdapter {
     }
   }
 
-  // static async findBy(
-  //   Model: typeof MemoriaModel,
-  //   queryObject: object
-  // ): Promise<MemoriaModel | void> {
-  //   // GET /people?keyName=value
-  // }
-
-  static async findAll(
+  // GET /people?keyName=value, or GET /people/:id (if only primaryKeyName provided)
+  static async findBy(
     Model: typeof MemoriaModel,
-    queryObject: object = {}
-  ): Promise<MemoriaModel[] | void> {
-    // GET /people?keyName=value
-    let response = await fetch(`${this.host}/${this.pathForType(Model)}`);
+    query: QueryObject
+  ): Promise<MemoriaModel | void> {
+    let queryKeys = Object.keys(query);
+    let response =
+      queryKeys.length === 1 && queryKeys[0] === Model.primaryKeyName
+      ? await fetch(`${this.host}/${this.pathForType(Model)}/${queryKeys[0]}`)
+      : await fetch(`${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, query)}`);
     if (!response.ok) {
       throw new Error("TODO: RESTAdapter case");
     }
 
     let json = await response.json();
 
+    // TODO: handle when its plural
+    return this.push(Model, json[pluralize(this.payloadKeyFromModelName(Model))][0]);
+  }
+
+  // GET /people, or GET /people?keyName=value
+  static async findAll(
+    Model: typeof MemoriaModel,
+    query: QueryObject
+  ): Promise<MemoriaModel[] | void> {
+    return this.query(Model, query);
+  }
+
+  // GET /people, or GET /people?keyName=value
+  static async query() {
+    Model: typeof MemoriaModel,
+    query: QueryObject
+  ): Promise<MemoriaModel | void> {
+    let response = await fetch(`${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, query)}`);
+    if (!response.ok) {
+      throw new Error("TODO: RESTAdapter case");
+    }
+
+    let json = await response.json();
+
+    // TODO: handle when its plural
     return json[pluralize(this.payloadKeyFromModelName(Model))].map((model) =>
       this.push(Model, model)
     );
@@ -199,7 +219,11 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    // POST /people/:id
+    if (record[Model.primaryKeyName]) {
+      primaryKeyTypeSafetyCheck(Model.build(record));
+    }
+
+    // POST /people
     try {
       let response = await fetch(`${this.host}/${this.pathForType(Model)}`, {
         method: "POST",
@@ -211,10 +235,16 @@ export default class RESTAdapter extends MemoryAdapter {
       }
 
       let json = await response.json();
+      let payloadKey = this.payloadKeyFromModelName(Model);
+      // NOTE: or maybe make a generic handleResponse function
 
-      return this.push(Model, json[this.payloadKeyFromModelName(Model)]) as MemoriaModel;
+      if (!(payloadKey in json)) {
+        throw handleNegativeServerResponse(json, Model, record, InsertError);
+      }
+
+      return this.push(Model, json[payloadKey]) as MemoriaModel;
     } catch (error) {
-      throw new Error(`TODO: RESTAdapter case`);
+      throw error;
     }
   }
 
@@ -259,4 +289,34 @@ export default class RESTAdapter extends MemoryAdapter {
   // ): Promise<MemoriaModel[]> {
   //   // DELETE /people/bulk
   // }
+}
+
+// extractErrors in ember apparently
+function handleNegativeServerResponse(json, Model, record, errorClass) {
+  if ("errors" in json) {
+    let changeset = new Changeset(Model.build(record));
+
+    json.errors.forEach((error) => changeset.errors.push(error));
+
+    return new errorClass(changeset);
+  }
+}
+
+function buildQueryPath(Model, queryObject) {
+  let findByKeys = Object.keys(queryObject);
+  if (findByKeys.length > 0) {
+    return '?' + new URLSearchParams(
+      findByKeys.reduce((result, key) => {
+        // TODO: here we can do a runtime typecheck!
+        // typecheck(Model, modelName, value);
+        if (queryObject[key] instanceof Date) {
+          return Object.assign(result, { [key]: queryObject[key].toJSON() }); // NOTE: URLSearchParams date casting has gotcha
+        }
+
+        return Object.assign(result, { [key]: queryObject[key] });
+      }, {})
+    ).toString();
+  }
+
+  return '';
 }

@@ -272,11 +272,13 @@ export default class SQLAdapter extends MemoryAdapter {
           message: "already exists",
         });
       } else if (error.code === "22P02") {
+        // NOTE: Wrong input type, entered string instead of number
+
         throw new RuntimeError(
           new Changeset(Model.build(target)),
-          `${Model.name}.primaryKeyType is '${Model.primaryKeyType}'. Instead you've tried: ${
-            target[Model.primaryKeyName]
-          } with ${typeof target[Model.primaryKeyName]} type`
+          `Wrong ${Model.primaryKeyName} input type: entered ${typeof target[
+            Model.primaryKeyName
+          ]} instead of ${Model.primaryKeyType}`
         );
       }
 

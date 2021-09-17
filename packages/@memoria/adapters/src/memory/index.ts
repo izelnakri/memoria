@@ -270,9 +270,9 @@ export default class MemoryAdapter {
 
     if (this.peek(Model, primaryKey)) {
       throw new InsertError(new Changeset(target), {
-        id: target[primaryKey],
+        id: primaryKey,
         modelName: Model.name,
-        attribute: primaryKey,
+        attribute: Model.primaryKeyName,
         message: "already exists",
       });
     }
