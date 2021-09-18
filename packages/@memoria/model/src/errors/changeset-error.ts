@@ -15,25 +15,36 @@ export default class ChangesetError extends Error {
 
   constructor(
     modelOrChangeset: Model | Changeset,
-    errorMetadata: ErrorMetadata,
-    errorName: string
+    errorMetadata?: ErrorMetadata | ErrorMetadata[],
+    errorName?: string
   ) {
     let changeset =
       modelOrChangeset instanceof Changeset ? modelOrChangeset : new Changeset(modelOrChangeset);
 
-    let error = errorMetadata ? new ModelError(changeset.data, errorMetadata) : changeset.errors[0];
-    if (errorMetadata) {
-      changeset.errors.push(error);
+    let targetErrorReference;
+    if (!errorMetadata) {
+      targetErrorReference = changeset.errors[0];
+    } else if (Array.isArray(errorMetadata)) {
+      let modelErrors = errorMetadata.map((errorMetadata) => {
+        let modelError = new ModelError(changeset.data, errorMetadata);
+        changeset.errors.push(modelError);
+
+        return modelError;
+      });
+      targetErrorReference = modelErrors[0];
+    } else {
+      targetErrorReference = new ModelError(changeset.data, errorMetadata);
+      changeset.errors.push(targetErrorReference);
     }
 
-    let message = `${error.modelName}:${error.id} ${error.attribute} ${error.message}`;
+    let message = `${targetErrorReference.modelName}:${targetErrorReference.id} ${targetErrorReference.attribute} ${targetErrorReference.message}`;
 
     super(message);
 
     Object.assign(this, changeset);
 
     this.message = message;
-    this.name = errorName;
+    this.name = errorName || "Memoria.ChangesetError";
 
     return Object.freeze(this);
   }

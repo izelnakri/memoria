@@ -1,8 +1,9 @@
 import { camelize, dasherize } from "@emberx/string"; // NOTE: make ember-inflector included in @emberx/string
-import MemoryAdapter from "../memory/index.js";
+import MemoriaModel from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
+import HTTP from "../http.js";
+import MemoryAdapter from "../memory/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
-import MemoriaModel, { Changeset, RuntimeError, InsertError } from "@memoria/model";
 
 // TODO: temporary
 function pluralize(string) {
@@ -14,117 +15,80 @@ export interface HTTPHeaders {
   [headerKey: string]: any;
 }
 
-export interface ConnectionOptions {
-  host: any;
-  headers: HTTPHeaders;
-}
-
 type primaryKey = number | string;
+type JSObject = { [key: string]: any };
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelRef | MemoriaModel;
 
 // TODO: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
-  static CONNECTION_OPTIONS: ConnectionOptions = {
-    host: typeof window === "undefined" ? "http://localhost:3000" : window.location.origin,
-    headers: {
-      Accept: "application/json",
-    },
+  static host: string =
+    typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+  static headers: HTTPHeaders = {
+    Accept: "application/json",
   };
 
-  static get host(): string {
-    if (!this.CONNECTION_OPTIONS || !this.CONNECTION_OPTIONS.host) {
-      throw new RuntimeError(
-        "[Memoria RESTAdapter] host reference is missing![RESTAdapter.CONNECTION_OPTIONS.host]"
-      );
-    }
+  static #_http: void | typeof HTTP;
+  static get http() {
+    this.#_http = this.#_http || HTTP;
+    this.#_http.host = this.host;
+    this.#_http.headers = this.headers;
 
-    return this.CONNECTION_OPTIONS.host;
+    return this.#_http as typeof HTTP;
   }
 
-  static get headers(): HTTPHeaders {
-    return this.CONNECTION_OPTIONS.headers;
+  static removeHTTPHeader(headers: any = {}) {
+    if (Array.isArray(headers)) {
+      headers.forEach((headerName) => delete this.headers[headerName]);
+    } else if (typeof headers === "object") {
+      Object.keys(headers).forEach((headerName) => delete this.headers[headerName]);
+    } else {
+      delete this.headers[headers];
+    }
+
+    return this.headers;
   }
 
   static pathForType(Model: typeof MemoriaModel): string {
     return pluralize(dasherize(Model.name));
   }
 
-  // NOTE: payload(http request body) to instance source key
-  static modelNameFromPayloadKey(Model: typeof MemoriaModel): string {
-    return Model.name;
-    // return singularize(Model.name);
+  static keyNameForPayload(Model: typeof MemoriaModel): string {
+    return camelize(Model.name); // return singularize(Model.name);
   }
 
-  // NOTE: instance to CRUD payload(http request body) target key
-  static payloadKeyFromModelName(Model: typeof MemoriaModel): string {
+  static keyNameFromPayload(Model: typeof MemoriaModel): string {
     return camelize(Model.name);
-    // return camelize(Model.name);
-  }
-
-  static addHTTPHeader(key, value): HTTPHeaders {
-    this.CONNECTION_OPTIONS.headers[key] = value;
-
-    return this.CONNECTION_OPTIONS.headers;
-  }
-
-  static assignHTTPHeader(headers = {}): HTTPHeaders {
-    return Object.assign(this.CONNECTION_OPTIONS.headers, headers);
-  }
-
-  static removeHTTPHeader(headers: any = {}) {
-    if (Array.isArray(headers)) {
-      headers.forEach((headerName) => delete this.CONNECTION_OPTIONS.headers[headerName]);
-    } else if (typeof headers === "object") {
-      Object.keys(headers).forEach(
-        (headerName) => delete this.CONNECTION_OPTIONS.headers[headerName]
-      );
-    } else {
-      delete this.CONNECTION_OPTIONS.headers[headers];
-    }
-
-    return this.CONNECTION_OPTIONS.headers;
   }
 
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    let allRecords = Model.peekAll();
+
     try {
-      let response = await fetch(`${this.host}/${this.pathForType(Model)}/reset`, {
-        method: "POST",
-        body: JSON.stringify({ [this.modelNameFromPayloadKey(Model)]: targetState }),
-      });
-      if (!response.ok) {
-        throw new Error("TODO: RESTAdapter case");
-      }
-
-      this.unloadAll(Model);
-      let json = await response.json();
-
-      return this.push(
-        Model,
-        json[this.payloadKeyFromModelName(Model)].map((model) => model)
-      ) as MemoriaModel[];
+      Model.unloadAll();
+      return (await this.http.post(
+        `${this.host}/${this.pathForType(Model)}/reset`,
+        { [pluralize(this.keyNameForPayload(Model))]: targetState },
+        this.headers,
+        Model
+      )) as MemoriaModel[];
     } catch (error) {
-      throw new Error(`TODO: RESTAdapter case`);
+      allRecords.forEach((record) => this.push(Model, record));
+      throw error;
     }
   }
 
   // GET /people/count, or GET /people/count?keyName=value
   static async count(Model: typeof MemoriaModel, query?: QueryObject): Promise<number> {
-    try {
-      let response = await fetch(`${this.host}/${this.pathForType(Model)}/count${buildQueryPath(Model, query)}`); // TODO: maybe add options in future
-      if (!response.ok) {
-        throw new Error("TODO: RESTAdapter case");
-      }
+    let result = (await this.http.get(
+      `${this.host}/${this.pathForType(Model)}/count${buildQueryPath(query)}`,
+      this.headers
+    )) as JSObject;
 
-      let json = await response.json();
-
-      return json.count;
-    } catch (error) {
-      throw new Error(`TODO: RESTAdapter case`);
-    }
+    return result.count as number;
   }
 
   // GET /people?ids=[], or GET /people/:id
@@ -132,34 +96,19 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[]
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
-    try {
-      if (Array.isArray(primaryKey)) {
-        let response = await fetch(
-          `${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, { ids: primaryKey })}`
-        );
-        if (!response.ok) {
-          throw new Error("TODO: RESTAdapter case");
-        }
-
-        let json = await response.json();
-
-        return this.push(
-          Model,
-          json[this.payloadKeyFromModelName(Model)].map((model) => model)
-        );
-      }
-
-      let response = await fetch(`${this.host}/${this.pathForType(Model)}/${primaryKey}`);
-      if (!response.ok) {
-        throw new Error("TODO: RESTAdapter case");
-      }
-
-      let json = await response.json();
-
-      return this.push(Model, json[this.payloadKeyFromModelName(Model)]);
-    } catch (error) {
-      throw new Error(`TODO: RESTAdapter case`);
+    if (Array.isArray(primaryKey)) {
+      return (await this.http.get(
+        `${this.host}/${this.pathForType(Model)}${buildQueryPath({ ids: primaryKey })}`,
+        this.headers,
+        Model
+      )) as MemoriaModel[];
     }
+
+    return (await this.http.get(
+      `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
+      this.headers,
+      Model
+    )) as MemoriaModel;
   }
 
   // GET /people?keyName=value, or GET /people/:id (if only primaryKeyName provided)
@@ -168,18 +117,19 @@ export default class RESTAdapter extends MemoryAdapter {
     query: QueryObject
   ): Promise<MemoriaModel | void> {
     let queryKeys = Object.keys(query);
-    let response =
-      queryKeys.length === 1 && queryKeys[0] === Model.primaryKeyName
-      ? await fetch(`${this.host}/${this.pathForType(Model)}/${queryKeys[0]}`)
-      : await fetch(`${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, query)}`);
-    if (!response.ok) {
-      throw new Error("TODO: RESTAdapter case");
+    if (queryKeys.length === 1 && queryKeys[0] === Model.primaryKeyName) {
+      return (await this.http.get(
+        `${this.host}/${this.pathForType(Model)}/${queryKeys[0]}`,
+        this.headers,
+        Model
+      )) as MemoriaModel | void;
     }
 
-    let json = await response.json();
-
-    // TODO: handle when its plural
-    return this.push(Model, json[pluralize(this.payloadKeyFromModelName(Model))][0]);
+    return (await this.http.get(
+      `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
+      this.headers,
+      Model
+    )) as MemoriaModel | void;
   }
 
   // GET /people, or GET /people?keyName=value
@@ -187,25 +137,19 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     query: QueryObject
   ): Promise<MemoriaModel[] | void> {
-    return this.query(Model, query);
+    return (await this.query(Model, query)) as MemoriaModel[] | void;
   }
 
   // GET /people, or GET /people?keyName=value
-  static async query() {
+  static async query(
     Model: typeof MemoriaModel,
     query: QueryObject
-  ): Promise<MemoriaModel | void> {
-    let response = await fetch(`${this.host}/${this.pathForType(Model)}${buildQueryPath(Model, query)}`);
-    if (!response.ok) {
-      throw new Error("TODO: RESTAdapter case");
-    }
-
-    let json = await response.json();
-
-    // TODO: handle when its plural
-    return json[pluralize(this.payloadKeyFromModelName(Model))].map((model) =>
-      this.push(Model, model)
-    );
+  ): Promise<MemoriaModel[] | MemoriaModel | void> {
+    return (await this.http.get(
+      `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
+      this.headers,
+      Model
+    )) as MemoriaModel[] | MemoriaModel | void;
   }
 
   // static async save(
@@ -223,29 +167,12 @@ export default class RESTAdapter extends MemoryAdapter {
       primaryKeyTypeSafetyCheck(Model.build(record));
     }
 
-    // POST /people
-    try {
-      let response = await fetch(`${this.host}/${this.pathForType(Model)}`, {
-        method: "POST",
-        body: JSON.stringify({ [this.payloadKeyFromModelName(Model)]: record }),
-      }); // TODO: maybe add options in future
-
-      if (!response.ok) {
-        throw new Error("TODO: RESTAdapter case");
-      }
-
-      let json = await response.json();
-      let payloadKey = this.payloadKeyFromModelName(Model);
-      // NOTE: or maybe make a generic handleResponse function
-
-      if (!(payloadKey in json)) {
-        throw handleNegativeServerResponse(json, Model, record, InsertError);
-      }
-
-      return this.push(Model, json[payloadKey]) as MemoriaModel;
-    } catch (error) {
-      throw error;
-    }
+    return (await this.http.post(
+      `${this.host}/${this.pathForType(Model)}`,
+      { [this.keyNameForPayload(Model)]: record },
+      this.headers,
+      Model
+    )) as MemoriaModel;
   }
 
   // static async update(
@@ -291,32 +218,28 @@ export default class RESTAdapter extends MemoryAdapter {
   // }
 }
 
-// extractErrors in ember apparently
-function handleNegativeServerResponse(json, Model, record, errorClass) {
-  if ("errors" in json) {
-    let changeset = new Changeset(Model.build(record));
-
-    json.errors.forEach((error) => changeset.errors.push(error));
-
-    return new errorClass(changeset);
+function buildQueryPath(queryObject?: JSObject) {
+  if (!queryObject) {
+    return "";
   }
-}
 
-function buildQueryPath(Model, queryObject) {
   let findByKeys = Object.keys(queryObject);
   if (findByKeys.length > 0) {
-    return '?' + new URLSearchParams(
-      findByKeys.reduce((result, key) => {
-        // TODO: here we can do a runtime typecheck!
-        // typecheck(Model, modelName, value);
-        if (queryObject[key] instanceof Date) {
-          return Object.assign(result, { [key]: queryObject[key].toJSON() }); // NOTE: URLSearchParams date casting has gotcha
-        }
+    return (
+      "?" +
+      new URLSearchParams(
+        findByKeys.reduce((result, key) => {
+          // TODO: here we can do a runtime typecheck!
+          // typecheck(Model, modelName, value);
+          if (queryObject[key] instanceof Date) {
+            return Object.assign(result, { [key]: queryObject[key].toJSON() }); // NOTE: URLSearchParams date casting has gotcha
+          }
 
-        return Object.assign(result, { [key]: queryObject[key] });
-      }, {})
-    ).toString();
+          return Object.assign(result, { [key]: queryObject[key] });
+        }, {})
+      ).toString()
+    );
   }
 
-  return '';
+  return "";
 }

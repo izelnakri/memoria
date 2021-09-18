@@ -1,5 +1,6 @@
 import MemoriaModel from "./model.js";
 import type MemoriaError from "./error.js";
+import ChangesetError from "./errors/changeset-error.js";
 
 export type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
 export type JSObject = { [key: string]: any };
@@ -54,6 +55,18 @@ export default class Changeset {
 
   static assign(changeset: Changeset, changes: JSObject) {
     return Object.assign(Object.create(Object.getPrototypeOf(changeset)), changeset, changes);
+  }
+
+  static serialize(changeset: Changeset | ChangesetError) {
+    if (changeset instanceof Changeset || changeset instanceof ChangesetError) {
+      return changeset.errors.map((error) => {
+        const { id, modelName, attribute, message } = error;
+
+        return { id, modelName, attribute, message };
+      });
+    }
+
+    // throw new SerializationError(
   }
 }
 

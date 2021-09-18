@@ -14,7 +14,7 @@ type ModelRefOrInstance = ModelRef | Model;
 
 // TODO: remove embedReferences getter
 export default class Model {
-  static Adapter = MemoryAdapter;
+  static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error = ModelError;
 
   static embedReferences = {}; // TODO: move to serializer
@@ -73,7 +73,7 @@ export default class Model {
     return this.Adapter.peekBy(this, queryObject);
   }
 
-  static peekAll(queryObject: QueryObject = {}): Model[] | void {
+  static peekAll(queryObject: QueryObject = {}): Model[] {
     return this.Adapter.peekAll(this, queryObject);
   }
 
