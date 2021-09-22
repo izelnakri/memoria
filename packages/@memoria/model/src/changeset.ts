@@ -1,6 +1,7 @@
 import MemoriaModel from "./model.js";
 import type MemoriaError from "./error.js";
 import ChangesetError from "./errors/changeset-error.js";
+import RuntimeError from "./errors/runtime-error.js";
 
 export type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
 export type JSObject = { [key: string]: any };
@@ -66,7 +67,7 @@ export default class Changeset {
       });
     }
 
-    // throw new SerializationError(
+    throw new RuntimeError("Changeset.serialize(param) called but param is not a changeset!");
   }
 }
 

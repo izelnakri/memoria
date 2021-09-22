@@ -30,11 +30,11 @@ export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
   static logging = true;
+  static host = "localhost";
+  static port = 5432;
+
   static CONNECTION_OPTIONS = {
     type: "postgres",
-    host: "localhost",
-
-    port: 5432,
     synchronize: true,
     username: "postgres",
     password: "postgres",
@@ -51,7 +51,7 @@ export default class SQLAdapter extends MemoryAdapter {
     this._connection = (await createConnection({
       // @ts-ignore
       entities: Config.Schemas.map((schema) => new EntitySchema(schema)),
-      ...{ logging: this.logging, ...this.CONNECTION_OPTIONS },
+      ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
     })) as Connection;
 
     return this._connection;
@@ -173,7 +173,7 @@ export default class SQLAdapter extends MemoryAdapter {
       if (!error.code) {
         throw error;
       } else if (error.code === "22P02") {
-        throw new RuntimeError(`${Model.name}.peek() called without a valid primaryKey`);
+        throw new RuntimeError(`${Model.name}.find() called without a valid primaryKey`);
       }
 
       throw error;
@@ -291,6 +291,7 @@ export default class SQLAdapter extends MemoryAdapter {
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
+
     try {
       let Manager = await this.getEntityManager();
       let resultRaw = await Manager.createQueryBuilder()
@@ -325,7 +326,6 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return this.push(Model, result) as MemoriaModel;
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }
