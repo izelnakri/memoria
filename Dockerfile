@@ -1,4 +1,4 @@
-FROM node:16.8.0-slim
+FROM node:16.10.0-slim
 
 RUN apt-get update \
     && apt-get install -y wget gnupg \
@@ -10,9 +10,7 @@ RUN apt-get update \
 
 WORKDIR /code/
 
-ADD tsconfig.json /code/tsconfig.json
-ADD package-lock.json /code/package-lock.json
-ADD package.json /code/package.json
+ADD tsconfig.json package.json package-lock.json /code
 
 RUN npm install
 
