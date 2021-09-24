@@ -1,6 +1,16 @@
 import MemoryAdapter from "./memory/index.js";
 import RESTAdapter from "./rest/index.js";
 import SQLAdapter from "./sql/index.js";
+import {
+  NetworkError,
+  AbortError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  TimeoutError,
+  UnauthorizedError,
+  ServerError,
+} from "./errors/index.js";
 
 export type primaryKey = number | string;
 
@@ -47,5 +57,29 @@ export interface QueryObject {
 //   // hasDirtyAttributes, dirtyType, fields, errors
 // }
 
-export { MemoryAdapter, RESTAdapter, SQLAdapter };
-export default { MemoryAdapter, RESTAdapter, SQLAdapter };
+export {
+  MemoryAdapter,
+  RESTAdapter,
+  SQLAdapter,
+  AbortError,
+  ConflictError,
+  NetworkError,
+  ForbiddenError,
+  NotFoundError,
+  TimeoutError,
+  UnauthorizedError,
+  ServerError,
+};
+export default {
+  MemoryAdapter,
+  RESTAdapter,
+  SQLAdapter,
+  AbortError,
+  ConflictError,
+  NetworkError,
+  ForbiddenError,
+  NotFoundError,
+  TimeoutError,
+  UnauthorizedError,
+  ServerError,
+};
