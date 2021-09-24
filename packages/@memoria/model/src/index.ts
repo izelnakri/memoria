@@ -1,4 +1,5 @@
 import Changeset from "./changeset.js";
+export type { ChangesetErrorItem } from "./changeset.js";
 import Config from "./config.js";
 import Model from "./model.js";
 export type {
@@ -8,7 +9,15 @@ export type {
   RelationshipSchemaDefinition,
 } from "./types.js";
 import ModelError from "./error.js";
-export { CacheError, DeleteError, InsertError, RuntimeError, UpdateError } from "./errors/index.js";
+export type { ErrorMetadata } from "./error.js";
+export {
+  ChangesetError,
+  CacheError,
+  DeleteError,
+  InsertError,
+  RuntimeError,
+  UpdateError,
+} from "./errors/index.js";
 export { transformValue } from "./serializer.js";
 export { generateUUID } from "./utils.js";
 export {
