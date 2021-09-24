@@ -1,21 +1,32 @@
 import MemoriaModel from "./model.js";
-import type MemoriaError from "./error.js";
 import ChangesetError from "./errors/changeset-error.js";
 import RuntimeError from "./errors/runtime-error.js";
 
 export type ChangesetAction = null | "insert" | "update" | "delete"; // | "replace" | "ignore"; // NOTE: taken from Ecto https://hexdocs.pm/ecto/Ecto.Changeset.html#module-the-ecto-changeset-struct
 export type JSObject = { [key: string]: any };
+export type primaryKey = number | string;
+export interface ChangesetErrorItem {
+  id?: primaryKey | null;
+  modelName?: string; // optional
+  attribute?: string; // optional
+  message: string;
+}
 
 export default class Changeset {
   action: ChangesetAction;
+  data: JSObject;
   changes: JSObject;
-  data: MemoriaModel;
   date: Date;
-  errors: MemoriaError[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
+  errors: ChangesetErrorItem[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
   // emptyValues: string[] = []; // NOTE: might be useful for default casting
 
-  constructor(model: MemoriaModel | Changeset, params?: JSObject) {
-    if (model instanceof MemoriaModel) {
+  constructor(model?: MemoriaModel | Changeset, params?: JSObject) {
+    if (!model) {
+      this.action = null;
+      this.data = {};
+      this.changes = {};
+      this.errors = [];
+    } else if (model instanceof MemoriaModel) {
       this.action = null;
       this.data = model;
       this.errors = [];
