@@ -1,6 +1,6 @@
 import Model from "../model.js";
 import ModelError, { ErrorMetadata } from "../error.js";
-import Changeset, { ChangesetAction, JSObject } from "../changeset.js";
+import Changeset, { ChangesetErrorItem, ChangesetAction, JSObject } from "../changeset.js";
 
 // already-exists,
 // check-constraint, foreign-key-constaint, not-null-constraint, unique-constraint
@@ -11,33 +11,20 @@ export default class ChangesetError extends Error {
   changes: JSObject;
   data: Model;
   date: Date;
-  errors: ModelError[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
+  errors: ChangesetErrorItem[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
 
   constructor(
-    modelOrChangeset: Model | Changeset,
-    errorMetadata?: ErrorMetadata | ErrorMetadata[],
-    errorName?: string
+    changeset: Changeset,
+    errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string,
+    errorName?: string,
+    errorMessage?: string
   ) {
-    let changeset =
-      modelOrChangeset instanceof Changeset ? modelOrChangeset : new Changeset(modelOrChangeset);
+    appendErrorToChangesetIfNeeded(changeset, errorMetadata);
 
-    let targetErrorReference;
-    if (!errorMetadata) {
-      targetErrorReference = changeset.errors[0];
-    } else if (Array.isArray(errorMetadata)) {
-      let modelErrors = errorMetadata.map((errorMetadata) => {
-        let modelError = new ModelError(changeset.data, errorMetadata);
-        changeset.errors.push(modelError);
-
-        return modelError;
-      });
-      targetErrorReference = modelErrors[0];
-    } else {
-      targetErrorReference = new ModelError(changeset.data, errorMetadata);
-      changeset.errors.push(targetErrorReference);
-    }
-
-    let message = `${targetErrorReference.modelName}:${targetErrorReference.id} ${targetErrorReference.attribute} ${targetErrorReference.message}`;
+    let targetErrorReference = changeset.errors[0];
+    let message =
+      errorMessage ||
+      `${targetErrorReference.modelName}:${targetErrorReference.id} ${targetErrorReference.attribute} ${targetErrorReference.message}`;
 
     super(message);
 
@@ -48,4 +35,35 @@ export default class ChangesetError extends Error {
 
     return Object.freeze(this);
   }
+}
+
+function appendErrorToChangesetIfNeeded(
+  changeset: Changeset,
+  errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string
+) {
+  let ChangesetModel = changeset.data instanceof Model ? changeset.data.constructor : null;
+
+  if (!errorMetadata || typeof errorMetadata === "string") {
+    return;
+  }
+
+  let targetErrors = Array.isArray(errorMetadata) ? errorMetadata : [errorMetadata];
+  targetErrors.forEach((targetError) => {
+    let errorFound = changeset.errors.find((errorItem) => {
+      return (
+        errorItem.id === targetError.id &&
+        errorItem.modelName === targetError.modelName &&
+        errorItem.attribute === targetError.attribute &&
+        errorItem.message === targetError.message
+      );
+    });
+
+    if (!errorFound) {
+      changeset.errors.push(
+        ChangesetModel
+          ? new ModelError(changeset.data as Model, targetError as ErrorMetadata)
+          : targetError
+      );
+    }
+  });
 }
