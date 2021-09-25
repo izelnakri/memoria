@@ -134,7 +134,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
             return { photo: ServerPhoto.serializer(photo) };
           } catch (changeset) {
-            return { errors: Changeset.serialize(changeset) };
+            return { errors: Changeset.serializer(changeset) };
           }
         });
 
@@ -162,7 +162,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
             return { photoComment: ServerPhotoComment.serializer(photoComment) };
           } catch (changeset) {
-            return { errors: Changeset.serialize(changeset) };
+            return { errors: Changeset.serializer(changeset) };
           }
         });
 
