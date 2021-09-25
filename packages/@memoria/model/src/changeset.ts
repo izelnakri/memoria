@@ -69,7 +69,7 @@ export default class Changeset {
     return Object.assign(Object.create(Object.getPrototypeOf(changeset)), changeset, changes);
   }
 
-  static serialize(changeset: Changeset | ChangesetError) {
+  static serializer(changeset: Changeset | ChangesetError) {
     if (changeset instanceof Changeset || changeset instanceof ChangesetError) {
       return changeset.errors.map((error) => {
         const { id, modelName, attribute, message } = error;
@@ -78,7 +78,7 @@ export default class Changeset {
       });
     }
 
-    throw new RuntimeError("Changeset.serialize(param) called but param is not a changeset!");
+    throw new RuntimeError("Changeset.serializer(param) called but param is not a changeset!");
   }
 }
 
