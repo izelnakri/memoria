@@ -1,5 +1,6 @@
-import { ChangesetError } from "@memoria/model";
-import type { Changeset, ChangesetErrorItem } from "@memoria/model";
+import ChangesetError from "../changeset-error.js";
+import type Changeset from "../../changeset.js";
+import type { ChangesetErrorItem } from "../../changeset.js";
 
 export default class ConflictError extends ChangesetError {
   constructor(

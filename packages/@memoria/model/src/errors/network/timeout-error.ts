@@ -1,5 +1,5 @@
-import NetworkError from "./network-error.js";
-import type { HTTPOptions } from "../../http.js";
+import NetworkError from "./index.js";
+import type { HTTPOptions } from "@memoria/adapters";
 
 export default class TimeoutError extends NetworkError {
   constructor(httpOptions: HTTPOptions) {

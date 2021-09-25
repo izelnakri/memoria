@@ -2,7 +2,7 @@ import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "@emberx/string";
 import { pluralize } from "inflected";
-import ModelError from "./error.js";
+import ModelError from "./errors/model/index.js";
 import Config from "./config.js";
 import { transformValue } from "./serializer.js";
 // import type { SchemaDefinition } from "./types";
