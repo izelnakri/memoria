@@ -255,15 +255,18 @@ function getModelFromPayload(
 ): undefined | MemoriaModel {
   if (!jsonBody) {
     return;
-  } else if (Model.Adapter instanceof RESTAdapter) {
-    let keyName = (Model.Adapter as typeof RESTAdapter).keyNameForPayload(Model);
-
-    return Model.build(jsonBody[keyName]);
   }
 
-  throw new RuntimeError(
-    "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
-  );
+  let Adapter = Model.Adapter as typeof RESTAdapter;
+  if (!Adapter.keyNameForPayload) {
+    throw new RuntimeError(
+      "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
+    );
+  }
+
+  let keyName = Adapter.keyNameForPayload(Model);
+
+  return Model.build(jsonBody[keyName]);
 }
 
 function getErrorInterface(httpOptions, response, Model) {
