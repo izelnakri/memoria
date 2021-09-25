@@ -2,6 +2,8 @@ import MemoryAdapter from "./memory/index.js";
 import RESTAdapter from "./rest/index.js";
 import SQLAdapter from "./sql/index.js";
 
+export type { HTTPOptions } from "./http.js";
+
 export type primaryKey = number | string;
 
 export interface QueryObject {
@@ -48,4 +50,3 @@ export interface QueryObject {
 // }
 
 export { MemoryAdapter, RESTAdapter, SQLAdapter };
-export default { MemoryAdapter, RESTAdapter, SQLAdapter };
