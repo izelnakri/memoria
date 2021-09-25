@@ -2,10 +2,32 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.12](https://github.com/izelnakri/memoria/compare/0.0.12...0.0.12)
+#### [0.0.13](https://github.com/izelnakri/memoria/compare/0.0.13...0.0.13)
+
+- initial sketch of Adapter Errors & http service [`#9`](https://github.com/izelnakri/memoria/pull/9)
+- update deps [`f15662f`](https://github.com/izelnakri/memoria/commit/f15662f317695924ed80df65716e268086f0b201)
+- initial HTTP module/service for RESTAdapter [`29bc2e4`](https://github.com/izelnakri/memoria/commit/29bc2e4ae5d15bcc09352f1aba63ffcfc4be9392)
+- refactor and implement adapter errors correctly [`68588f1`](https://github.com/izelnakri/memoria/commit/68588f12e98e920de9747522987b9259de82c2ce)
+- initial queryParam casting for RESTAdapter [`90f07f2`](https://github.com/izelnakri/memoria/commit/90f07f2b6d0bcdae3eddf418265bc92fc831f25c)
+- optimize pretender hacks [`337090e`](https://github.com/izelnakri/memoria/commit/337090e24e20cb9833ef2cafea0c1b92a044973d)
+- improve ChangesetError init [`29fe3f8`](https://github.com/izelnakri/memoria/commit/29fe3f83ba0728245e6bf3a071b0259c2d2d9647)
+- simplify @memoria/model Error inits [`75d007b`](https://github.com/izelnakri/memoria/commit/75d007be077649273d7b036139b852b255b86e89)
+- bugfix: memory relationship decorators [`395e6f6`](https://github.com/izelnakri/memoria/commit/395e6f621dd0e527cf88e06d6ef9adeeef92b063)
+- update Dockerfile, combine file adds [`31ac404`](https://github.com/izelnakri/memoria/commit/31ac404c461846ea6c64541097dff68244c0ae00)
+- Improve Changeset & ChangesetError [`1404dce`](https://github.com/izelnakri/memoria/commit/1404dce6c206959ca2280ed5956d9dc2a6251154)
+- bugfix: propagate exceptions in pretender [`60cfaa5`](https://github.com/izelnakri/memoria/commit/60cfaa54aa42c5d50a1b7b35229d991518571153)
+- make Changeset init without param [`582cc37`](https://github.com/izelnakri/memoria/commit/582cc37fa8af3ddae302428fd9ef244fdb257b0c)
+- model: export ChangesetError, ErrorMetadata types [`3d0c256`](https://github.com/izelnakri/memoria/commit/3d0c25676207af77e321401d0ba1d6690c53347a)
+- add host and port static props to SQLAdapter [`f09ceb6`](https://github.com/izelnakri/memoria/commit/f09ceb61a58006c6ef6b110cc94a672df2deb8b1)
+- optimize the slow timing server test [`bc9ca5f`](https://github.com/izelnakri/memoria/commit/bc9ca5f41edc9eccbcff64dadee2e68885f69bb3)
+
+#### [0.0.13](https://github.com/izelnakri/memoria/compare/0.0.12...0.0.13)
+
+> 8 September 2021
 
 - Bump docker/setup-buildx-action from 1.5.1 to 1.6.0 [`#7`](https://github.com/izelnakri/memoria/pull/7)
 - Make CustomErrors share Changeset interface for DX [`26262ac`](https://github.com/izelnakri/memoria/commit/26262ac5ac9f1f21a4cfd4018a9dea0e1338d11a)
+- Release 0.0.13 [`fe69a53`](https://github.com/izelnakri/memoria/commit/fe69a531717eb677c3191adc7a3816e9ee78d9fc)
 - fix window ref for RESTAdapter in node.js [`c5e9178`](https://github.com/izelnakri/memoria/commit/c5e91785b838a09687223dcdda5a5a99ae4d83e2)
 
 #### [0.0.12](https://github.com/izelnakri/memoria/compare/0.0.11...0.0.12)
