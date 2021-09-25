@@ -1,5 +1,5 @@
 import Model from "../model.js";
-import ModelError, { ErrorMetadata } from "../error.js";
+import ModelError, { ErrorMetadata } from "./model/index.js";
 import Changeset, { ChangesetErrorItem, ChangesetAction, JSObject } from "../changeset.js";
 
 // already-exists,

@@ -1,4 +1,4 @@
-import MemoriaModel from "./model.js";
+import MemoriaModel from "../../model.js";
 
 // TODO: how can we lookup, an unsaved(without id) errors?
 // basically it is the changeset

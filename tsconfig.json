@@ -34,6 +34,7 @@
     "newLine": "LF",
 
     "paths": {
+      "@memoria/adapters": ["packages/@memoria/adapters/src"],
       "@memoria/model": ["packages/@memoria/model/src"]
     },
 

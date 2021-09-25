@@ -1,19 +1,19 @@
 import RESTAdapter from "./rest/index.js";
-import MemoriaModel from // ErrorMetadata, // Changeset,
-// InsertError,
-// UpdateError,
-// DeleteError,
-// RuntimeError,
-"@memoria/model";
-import {
+import MemoriaModel, {
+  ErrorMetadata,
+  Changeset,
   AbortError,
-  // ConflictError,
-  // ForbiddenError,
-  // NotFoundError,
-  // ServerError,
-  // TimeoutError,
-  // UnauthorizedError,
-} from "./errors/index.js";
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ServerError,
+  TimeoutError,
+  UnauthorizedError,
+  InsertError,
+  UpdateError,
+  DeleteError,
+  RuntimeError,
+} from "@memoria/model";
 
 interface JSObject {
   [keyName: string]: any;
@@ -161,32 +161,32 @@ async function makeFetchRequest(
 
   try {
     if (timedOut) {
-      // throw new TimeoutError(httpOptions);
+      throw new TimeoutError(httpOptions);
     } else if (response.status === 0 || response.type === "error") {
       throw new AbortError(`Web request aborted for ${httpOptions.method} ${httpOptions.url}`);
     }
 
     json = await parseJSON(response);
 
-    // if (response.status === 401) {
-    //   throw new UnauthorizedError(httpOptions);
-    // } else if (response.status === 403) {
-    //   throw new ForbiddenError(httpOptions);
-    // } else if (response.status === 404) {
-    //   throw new NotFoundError(httpOptions);
-    // }
+    if (response.status === 401) {
+      throw new UnauthorizedError(httpOptions);
+    } else if (response.status === 403) {
+      throw new ForbiddenError(httpOptions);
+    } else if (response.status === 404) {
+      throw new NotFoundError(httpOptions);
+    }
 
-    // let errors = getErrorsIfExists(json, httpOptions);
-    // if (errors || response.status >= 223) {
-    //   let ErrorInterface = getErrorInterface(httpOptions, response, Model);
-    //   let errorMessage = getErrorMessage(ErrorInterface, httpOptions);
+    let errors = getErrorsIfExists(json, httpOptions);
+    if (errors || response.status >= 223) {
+      let ErrorInterface = getErrorInterface(httpOptions, response, Model);
+      let errorMessage = getErrorMessage(ErrorInterface, httpOptions);
 
-    //   throw new ErrorInterface(
-    //     new Changeset(Model ? getModelFromPayload(httpOptions.body as JSObject, Model) : undefined),
-    //     errors as ErrorMetadata[],
-    //     errorMessage
-    //   );
-    // }
+      throw new ErrorInterface(
+        new Changeset(Model ? getModelFromPayload(httpOptions.body as JSObject, Model) : undefined),
+        errors as ErrorMetadata[],
+        errorMessage
+      );
+    }
 
     if (Model) {
       let keyName = (Model.Adapter as typeof RESTAdapter).keyNameFromPayload(Model);
@@ -225,67 +225,67 @@ function buildHeaders(headerObject: HTTPHeaders): Headers {
 }
 
 // extractErrors in ember apparently
-// function getErrorsIfExists(json: JSObject, httpOptions): void | ErrorMetadata[] {
-//   if (json && "errors" in json) {
-//     if (Array.isArray(json.errors) && json.errors.every((error) => "message" in error)) {
-//       return json.errors as ErrorMetadata[]; // TODO: maybe typecheck here that 4 keys are present
-//     }
+function getErrorsIfExists(json: JSObject, httpOptions): void | ErrorMetadata[] {
+  if (json && "errors" in json) {
+    if (Array.isArray(json.errors) && json.errors.every((error) => "message" in error)) {
+      return json.errors as ErrorMetadata[]; // TODO: maybe typecheck here that 4 keys are present
+    }
 
-//     throw new RuntimeError(
-//       `${httpOptions.method} ${httpOptions.url} Response jsonBody.errors[] missing "message" for each error!`
-//     );
-//   } else if (json && "error" in json) {
-//     if (isObject(json.error) && "message" in json.error) {
-//       return [json.error] as ErrorMetadata[];
-//     }
+    throw new RuntimeError(
+      `${httpOptions.method} ${httpOptions.url} Response jsonBody.errors[] missing "message" for each error!`
+    );
+  } else if (json && "error" in json) {
+    if (isObject(json.error) && "message" in json.error) {
+      return [json.error] as ErrorMetadata[];
+    }
 
-//     throw new RuntimeError(
-//       `${httpOptions.method} ${httpOptions.url} Response jsonBody.error missing "message" property!`
-//     );
-//   }
-// }
+    throw new RuntimeError(
+      `${httpOptions.method} ${httpOptions.url} Response jsonBody.error missing "message" property!`
+    );
+  }
+}
 
-// function isObject(value) {
-//   return typeof value === "object" && !Array.isArray(value) && value !== null;
-// }
+function isObject(value) {
+  return typeof value === "object" && !Array.isArray(value) && value !== null;
+}
 
-// function getModelFromPayload(
-//   jsonBody: JSObject,
-//   Model: typeof MemoriaModel
-// ): undefined | MemoriaModel {
-//   if (!jsonBody) {
-//     return;
-//   } else if (Model.Adapter instanceof RESTAdapter) {
-//     let keyName = (Model.Adapter as typeof RESTAdapter).keyNameForPayload(Model);
+function getModelFromPayload(
+  jsonBody: JSObject,
+  Model: typeof MemoriaModel
+): undefined | MemoriaModel {
+  if (!jsonBody) {
+    return;
+  } else if (Model.Adapter instanceof RESTAdapter) {
+    let keyName = (Model.Adapter as typeof RESTAdapter).keyNameForPayload(Model);
 
-//     return Model.build(jsonBody[keyName]);
-//   }
+    return Model.build(jsonBody[keyName]);
+  }
 
-//   throw new RuntimeError(
-//     "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
-//   );
-// }
+  throw new RuntimeError(
+    "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
+  );
+}
 
-// function getErrorInterface(httpOptions, response, Model) {
-//   if (response.status === 409) {
-//     return ConflictError;
-//   } else if (!Model) {
-//     return ServerError;
-//   } else if (httpOptions.method === "POST") {
-//     return InsertError;
-//   } else if (httpOptions.method === "DELETE") {
-//     return DeleteError;
-//   } else if (httpOptions.method === "PUT" || httpOptions.method === "PATCH") {
-//     return UpdateError;
-//   }
+function getErrorInterface(httpOptions, response, Model) {
+  if (response.status === 409) {
+    return ConflictError;
+  } else if (!Model) {
+    return ServerError;
+  } else if (httpOptions.method === "POST") {
+    return InsertError;
+  } else if (httpOptions.method === "DELETE") {
+    return DeleteError;
+  } else if (httpOptions.method === "PUT" || httpOptions.method === "PATCH") {
+    return UpdateError;
+  }
 
-//   return ServerError;
-// }
+  return ServerError;
+}
 
-// function getErrorMessage(ErrorInterface, httpOptions) {
-//   if (ErrorInterface === ConflictError) {
-//     return `Web server responds with a conflict error for ${httpOptions.method} ${httpOptions.url}`;
-//   } else if (ErrorInterface === ServerError) {
-//     return `Web server responds with an error for ${httpOptions.method} ${httpOptions.url}`;
-//   }
-// }
+function getErrorMessage(ErrorInterface, httpOptions) {
+  if (ErrorInterface === ConflictError) {
+    return `Web server responds with a conflict error for ${httpOptions.method} ${httpOptions.url}`;
+  } else if (ErrorInterface === ServerError) {
+    return `Web server responds with an error for ${httpOptions.method} ${httpOptions.url}`;
+  }
+}

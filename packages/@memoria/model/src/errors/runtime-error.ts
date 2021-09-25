@@ -1,5 +1,5 @@
 import Model from "../model.js";
-import ModelError, { ErrorMetadata } from "../error.js";
+import ModelError, { ErrorMetadata } from "./model/index.js";
 import Changeset from "../changeset.js";
 
 // NOTE: should I make RuntimeError accept *any* object?

@@ -1,5 +1,5 @@
-import { RuntimeError } from "@memoria/model";
-import type { HTTPOptions } from "../../http.js";
+import RuntimeError from "../runtime-error.js";
+import type { HTTPOptions } from "@memoria/adapters";
 
 export default class NetworkError extends RuntimeError {
   constructor(httpOptions: HTTPOptions, message?: string) {

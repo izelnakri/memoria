@@ -8,15 +8,23 @@ export type {
   RelationshipDefinition,
   RelationshipSchemaDefinition,
 } from "./types.js";
-import ModelError from "./error.js";
-export type { ErrorMetadata } from "./error.js";
+export type { ErrorMetadata } from "./errors/index.js";
 export {
-  ChangesetError,
+  AbortError,
+  ModelError,
   CacheError,
+  ChangesetError,
   DeleteError,
   InsertError,
   RuntimeError,
   UpdateError,
+  NetworkError,
+  ForbiddenError,
+  NotFoundError,
+  TimeoutError,
+  UnauthorizedError,
+  ConflictError,
+  ServerError,
 } from "./errors/index.js";
 export { transformValue } from "./serializer.js";
 export { generateUUID } from "./utils.js";
@@ -58,7 +66,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Changeset, Config, ModelError };
+export { Changeset, Config };
 
 // Serialization
 // relationship setting and fetching
