@@ -263,7 +263,7 @@ export default class Model {
       );
     } else if (hasManyRelationship) {
       if (parentObject.id) {
-        const hasManyIDRecords = targetRelationshipModel.peekAll({
+        const hasManyIDRecords = targetRelationshipModel.Adapter.peekAll(targetRelationshipModel, {
           [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
@@ -271,9 +271,12 @@ export default class Model {
           ? sortByIdOrUUID(hasManyIDRecords, hasManyIDRecords[0].constructor.primaryKeyName)
           : [];
       } else if (parentObject.uuid) {
-        const hasManyUUIDRecords = targetRelationshipModel.peekAll({
-          [`${underscore(this.name)}_uuid`]: parentObject.uuid,
-        });
+        const hasManyUUIDRecords = targetRelationshipModel.Adapter.peekAll(
+          targetRelationshipModel,
+          {
+            [`${underscore(this.name)}_uuid`]: parentObject.uuid,
+          }
+        );
 
         return hasManyUUIDRecords.length > 0
           ? sortByIdOrUUID(hasManyUUIDRecords, hasManyUUIDRecords[0].constructor.primaryKeyName)
@@ -288,17 +291,17 @@ export default class Model {
       parentObject[`${underscore(targetRelationshipModel.name)}_uuid`];
 
     if (objectRef && typeof objectRef === "number") {
-      return targetRelationshipModel.peek(objectRef);
+      return targetRelationshipModel.Adapter.peek(targetRelationshipModel, objectRef);
     } else if (objectRef) {
-      return targetRelationshipModel.peekBy({ uuid: objectRef });
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, { uuid: objectRef });
     }
 
     if (parentObject.id) {
-      return targetRelationshipModel.peekBy({
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
         [`${underscore(this.name)}_id`]: parentObject.id,
       });
     } else if (parentObject.uuid) {
-      return targetRelationshipModel.peekBy({
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
         [`${underscore(this.name)}_uuid`]: parentObject.uuid,
       });
     }

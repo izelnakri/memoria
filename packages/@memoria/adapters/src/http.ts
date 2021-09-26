@@ -185,14 +185,15 @@ async function makeFetchRequest(
     }
 
     if (httpOptions.method !== "DELETE" && Model) {
-      let keyName = (Model.Adapter as typeof RESTAdapter).keyNameFromPayload(Model);
+      let Adapter = Model.Adapter as typeof RESTAdapter;
+      let keyName = Adapter.keyNameFromPayload(Model);
       let results = json[keyName] || json[pluralize(keyName)];
 
       if (Array.isArray(results)) {
-        return results.map((result) => Model.push(result)) as MemoriaModel[];
+        return results.map((result) => Adapter.push(Model, result)) as MemoriaModel[];
       }
 
-      return Model.push(results) as MemoriaModel;
+      return Adapter.push(Model, results) as MemoriaModel;
     }
 
     return json;
