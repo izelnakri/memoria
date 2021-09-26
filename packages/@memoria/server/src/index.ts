@@ -86,7 +86,7 @@ function startPretender(routes, options) {
       this.unhandledRequest = function (verb, path, request) {
         console.log(Memserver, kleur.red("[UNHANDLED REQUEST]"), verb, path);
         request.respond(404, {}, "Not found");
-        throw new Error(`Memoria.UnhandledRequest: ${request.url}`);
+        throw new Error(`Memoria.UnhandledRequest: ${request.method} ${request.url}`);
       };
     },
     { trackRequests: false }
