@@ -1,7 +1,6 @@
 import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
-import { underscore } from "@emberx/string";
-import { pluralize } from "inflected";
+import { pluralize, underscore } from "inflected";
 import ModelError from "./errors/model/index.js";
 import Config from "./config.js";
 import { transformValue } from "./serializer.js";

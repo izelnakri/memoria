@@ -51,8 +51,8 @@ async function generateModel(modelName, memserverDirectory) {
 
   await createFixtureAndModelFoldersIfNeeded(memserverDirectory);
 
-  let modelFileName = dasherize(singularize(modelName));
-  let fixtureFileName = dasherize(pluralize(modelName));
+  let modelFileName = dasherize(underscore(singularize(modelName)));
+  let fixtureFileName = dasherize(underscore(pluralize(modelName)));
 
   try {
     await fs.access(`${memserverDirectory}/models/${modelFileName}.ts`);

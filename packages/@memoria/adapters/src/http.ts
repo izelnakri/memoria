@@ -14,6 +14,7 @@ import MemoriaModel, {
   DeleteError,
   RuntimeError,
 } from "@memoria/model";
+import { pluralize } from "inflected";
 
 interface JSObject {
   [keyName: string]: any;
@@ -34,11 +35,6 @@ export interface HTTPOptions {
 }
 
 const DEFAULT_TIMEOUT_IN_MS = 30000;
-
-// TODO: temporary
-function pluralize(string) {
-  return string + "s";
-}
 
 export default class HTTP {
   static host: string =
