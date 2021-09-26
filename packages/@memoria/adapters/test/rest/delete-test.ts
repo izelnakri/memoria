@@ -4,15 +4,16 @@ import Model, {
   Changeset,
   Config,
   PrimaryGeneratedColumn,
-  Column,
   CreateDateColumn,
   UpdateDateColumn,
-  UpdateError,
+  Column,
+  DeleteError,
+  RuntimeError,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
+module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -63,19 +64,25 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
   ];
 
   async function prepare() {
+    class User extends Model {
+      static Adapter = RESTAdapter;
+
+      @PrimaryGeneratedColumn("increment")
+      id: number;
+    }
     class Photo extends Model {
       static Adapter = RESTAdapter;
 
       @PrimaryGeneratedColumn()
       id: number;
 
-      @Column("varchar", { default: "Some default name" })
+      @Column("varchar")
       name: string;
 
-      @Column("varchar")
+      @Column()
       href: string;
 
-      @Column("boolean", { default: true })
+      @Column("boolean")
       is_public: boolean;
     }
     class PhotoComment extends Model {
@@ -84,29 +91,22 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
-      @CreateDateColumn()
-      inserted_at: Date;
-
-      @UpdateDateColumn()
-      updated_at: Date;
-
-      @Column("boolean", { default: true })
-      is_important: boolean;
-
       @Column()
       content: string;
-    }
-    class User extends Model {
-      static Adapter = RESTAdapter;
 
-      @PrimaryGeneratedColumn()
-      id: number;
-    }
+      @Column("int")
+      photo_id: number;
 
-    return { Photo, PhotoComment, User };
+      @Column("int")
+      user_id: number;
+    }
+    await Config.resetForTests();
+
+    return { User, Photo, PhotoComment };
   }
 
   async function prepareServer() {
+    // TODO: test if this passes always
     class ServerPhoto extends Model {
       @PrimaryGeneratedColumn()
       id: number;
@@ -135,6 +135,12 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
       @Column()
       content: string;
+
+      @Column("int")
+      photo_id: number;
+
+      @Column("int")
+      user_id: number;
     }
     class ServerUser extends Model {
       @PrimaryGeneratedColumn()
@@ -161,19 +167,11 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
           return { photos: ServerPhoto.serializer(photos) };
         });
 
-        this.get("/photos/:id", async (request) => {
-          let photo = await ServerPhoto.find(request.params.id);
-
-          return { photo: ServerPhoto.serializer(photo) };
-        });
-
-        this.put("/photos/:id", async (request) => {
+        this.delete("/photos/:id", async ({ params }) => {
           try {
-            let photo = await ServerPhoto.update(request.params.photo);
-
-            return { photo: ServerPhoto.serializer(photo) };
+            await ServerPhoto.delete(params.photo);
           } catch (changeset) {
-            return changeset;
+            return { errors: Changeset.serializer(changeset) };
           }
         });
 
@@ -205,19 +203,9 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
           return { photoComments: ServerPhotoComment.serializer(photoComment) };
         });
 
-        this.get("/photo-comments/:uuid", async (request) => {
-          let photoComment = (await ServerPhotoComment.find(
-            request.params.uuid
-          )) as ServerPhotoComment;
-
-          return { photoComment: ServerPhotoComment.serializer(photoComment) };
-        });
-
-        this.put("/photo-comments/:uuid", async (request) => {
+        this.delete("/photo-comments/:uuid", async ({ params }) => {
           try {
-            let photoComment = await ServerPhotoComment.update(request.params.photoComment);
-
-            return { photoComment: ServerPhotoComment.serializer(photoComment) };
+            await ServerPhotoComment.delete(params.photoComment);
           } catch (changeset) {
             return { errors: Changeset.serializer(changeset) };
           }
@@ -232,7 +220,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
     });
   }
 
-  test("$Model.update(attributes) can update models", async function (assert) {
+  test("$Model.delete() can delete existing items", async function (assert) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
@@ -241,49 +229,90 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    let firstComment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
-    assert.matchJson(firstComment, {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: String,
-      updated_at: String,
-      is_important: true,
-      content: "Interesting indeed",
+    const deletedPhoto = await Photo.delete({ id: 2 });
+    const deletedComment = await PhotoComment.delete({
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
     });
-    assert.ok(firstComment.inserted_at instanceof Date);
-    assert.ok(firstComment.updated_at instanceof Date);
 
-    await Photo.update({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
-    await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-    await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
+    await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
 
-    assert.propEqual(await Photo.find(1), {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(await Photo.find(2), {
+    assert.propEqual(deletedPhoto, {
       id: 2,
       name: "Family photo",
-      href: "family-photo-2.jpeg",
-      is_public: false,
+      href: "family-photo.jpeg",
+      is_public: true,
     });
-    let comment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
-    assert.matchJson(comment, {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: String,
-      updated_at: String,
-      is_important: true,
-      content: "Cool",
+    assert.propEqual(deletedComment, {
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+      content: "What a nice photo!",
+      photo_id: 1,
+      user_id: 1,
     });
-    assert.ok(comment.inserted_at instanceof Date);
-    assert.ok(comment.updated_at instanceof Date);
-
-    assert.propEqual(firstComment.inserted_at, comment.inserted_at);
-    assert.propEqual(firstComment.updated_at, comment.updated_at);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+      {
+        id: 3,
+        name: "Selfie",
+        href: "selfie.jpeg",
+        is_public: false,
+      },
+    ]);
+    assert.propEqual(await PhotoComment.findAll(), [
+      {
+        uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
+        content: "I agree",
+        photo_id: 1,
+        user_id: 2,
+      },
+      {
+        uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+        content: "I was kidding",
+        photo_id: 1,
+        user_id: 1,
+      },
+    ]);
   });
 
-  test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
+  test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
+    const { Photo, PhotoComment } = await prepare();
+    this.Server = await prepareServer();
+
+    try {
+      await Photo.delete({ id: 1 });
+    } catch (error) {
+      assert.ok(error instanceof DeleteError);
+    }
+    try {
+      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+    } catch (error) {
+      assert.ok(error instanceof DeleteError);
+    }
+
+    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(
+      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
+
+    await Photo.delete({ id: 1 });
+
+    try {
+      await Photo.delete({ id: 1 });
+    } catch (error) {
+      assert.ok(error instanceof DeleteError);
+    }
+    try {
+      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+    } catch (error) {
+      assert.ok(error instanceof DeleteError);
+    }
+  });
+
+  test("$Model.delete() throws when called without a parameter", async function (assert) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
@@ -293,47 +322,16 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
     );
 
     try {
-      await Photo.update({ id: 99, href: "family-photo-2.jpeg" });
+      await Photo.delete();
     } catch (error) {
-      assert.ok(error instanceof UpdateError);
+      assert.ok(error instanceof RuntimeError);
     }
-
     try {
-      await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
+      await PhotoComment.delete();
     } catch (error) {
-      assert.ok(error instanceof UpdateError);
+      assert.ok(error instanceof RuntimeError);
     }
-  });
-
-  test("$Model.update(attributes) does not throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
-
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
-
-    let photo = await Photo.update({ id: 1, name: "ME", is_verified: false });
-
-    assert.matchJson(photo, {
-      id: 1,
-      name: "ME",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-
-    let photoComment = await PhotoComment.update({
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      location: "Amsterdam",
-    });
-
-    assert.matchJson(photoComment, {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: String,
-      updated_at: String,
-      is_important: true,
-      content: "Interesting indeed",
-    });
   });
 });
+
+// NOTE: $Model.delete(primaryKey) feature ?

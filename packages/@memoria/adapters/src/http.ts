@@ -188,7 +188,7 @@ async function makeFetchRequest(
       );
     }
 
-    if (Model) {
+    if (httpOptions.method !== "DELETE" && Model) {
       let keyName = (Model.Adapter as typeof RESTAdapter).keyNameFromPayload(Model);
       let results = json[keyName] || json[pluralize(keyName)];
 

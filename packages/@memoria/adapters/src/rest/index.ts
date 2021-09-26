@@ -108,11 +108,19 @@ export default class RESTAdapter extends MemoryAdapter {
       )) as MemoriaModel[];
     }
 
-    return (await this.http.get(
-      `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
-      this.headers,
-      Model
-    )) as MemoriaModel;
+    let keyType = Model.primaryKeyType;
+    if (
+      (keyType === "id" && typeof primaryKey === "number") ||
+      (keyType === "uuid" && typeof primaryKey === "string" && primaryKey.length > 25)
+    ) {
+      return (await this.http.get(
+        `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
+        this.headers,
+        Model
+      )) as MemoriaModel;
+    }
+
+    throw new RuntimeError(`${Model.name}.find() called without a valid primaryKey`);
   }
 
   // GET /people?keyName=value, or GET /people/:id (if only primaryKeyName provided)
@@ -176,8 +184,7 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    let primaryKey = record[Model.primaryKeyName];
-    if (!primaryKey) {
+    if (!record || !record[Model.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(Model.build(record)),
         "$Model.update() called without a record with primaryKey"
@@ -187,7 +194,7 @@ export default class RESTAdapter extends MemoryAdapter {
     primaryKeyTypeSafetyCheck(Model.build(record));
 
     return (await this.http.put(
-      `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
+      `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [this.keyNameForPayload(Model)]: record },
       this.headers,
       Model
@@ -198,8 +205,7 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    let primaryKey = record[Model.primaryKeyName];
-    if (!primaryKey) {
+    if (!record || !record[Model.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(Model.build(record)),
         "$Model.delete() called without a record with primaryKey"
@@ -209,7 +215,7 @@ export default class RESTAdapter extends MemoryAdapter {
     primaryKeyTypeSafetyCheck(Model.build(record));
 
     await this.http.delete(
-      `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
+      `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [this.keyNameForPayload(Model)]: record },
       this.headers,
       Model
@@ -230,6 +236,10 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.insertAll(records) called without records");
+    }
+
     records.forEach((record) => {
       if (record[Model.primaryKeyName]) {
         primaryKeyTypeSafetyCheck(Model.build(record));
@@ -249,6 +259,10 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.updateAll(records) called without records");
+    }
+
     records.forEach((record) => {
       if (!record[Model.primaryKeyName]) {
         throw new RuntimeError(
@@ -273,6 +287,10 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.deleteAll(records) called without records");
+    }
+
     records.forEach((record) => {
       if (!record[Model.primaryKeyName]) {
         throw new RuntimeError(
@@ -302,17 +320,27 @@ function buildQueryPath(queryObject?: JSObject) {
 
   let findByKeys = Object.keys(queryObject);
   if (findByKeys.length > 0) {
+    let arrayParams = {};
     let queryParams = new URLSearchParams(
       findByKeys.reduce((result, key) => {
         // TODO: here we can do a runtime typecheck!
         // typecheck(Model, modelName, value);
         if (queryObject[key] instanceof Date) {
           return Object.assign(result, { [key]: queryObject[key].toJSON() }); // NOTE: URLSearchParams date casting has gotcha
+        } else if (queryObject[key] instanceof Array) {
+          arrayParams[key] = queryObject[key];
+
+          return result;
         }
 
         return Object.assign(result, { [key]: queryObject[key] });
       }, {})
     );
+    Object.keys(arrayParams).forEach((keyName) => {
+      arrayParams[keyName].forEach((value) => {
+        queryParams.append(`${keyName}[]`, value);
+      });
+    });
     queryParams.sort();
 
     return "?" + queryParams.toString();
