@@ -1,14 +1,9 @@
-import { camelize, dasherize } from "@emberx/string"; // NOTE: make ember-inflector included in @emberx/string
+import { camelize, dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
 import MemoriaModel, { Changeset, RuntimeError } from "@memoria/model";
 import type { ModelRef } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
-
-// TODO: temporary
-function pluralize(string) {
-  return string + "s";
-}
 
 export interface HTTPHeaders {
   Accept: "application/json";
@@ -54,15 +49,15 @@ export default class RESTAdapter extends MemoryAdapter {
   }
 
   static pathForType(Model: typeof MemoriaModel): string {
-    return pluralize(dasherize(Model.name));
+    return pluralize(dasherize(underscore(Model.name))).toLowerCase();
   }
 
   static keyNameForPayload(Model: typeof MemoriaModel): string {
-    return camelize(Model.name); // return singularize(Model.name);
+    return camelize(Model.name, false); // return singularize(Model.name);
   }
 
   static keyNameFromPayload(Model: typeof MemoriaModel): string {
-    return camelize(Model.name);
+    return camelize(Model.name, false);
   }
 
   static async resetRecords(

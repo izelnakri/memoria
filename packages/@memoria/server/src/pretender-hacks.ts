@@ -1,6 +1,5 @@
 import kleur from "kleur";
-import { singularize } from "inflected";
-import { classify } from "@emberx/string";
+import { classify, singularize } from "inflected";
 import Model from "@memoria/model";
 
 export default function hackPretender(Pretender) {

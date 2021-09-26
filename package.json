@@ -44,8 +44,8 @@
     "sketchpad": "ENVIRONMENT=development npm run libs:build && node scripts/change-entrypoints.js js && esbuild sketchpad.ts --outfile=sketchpad.js && node sketchpad.js"
   },
   "dependencies": {
-    "@emberx/string": "^0.0.14",
     "@types/node": "^16.9.6",
+    "inflected": "2.1.0",
     "fake-xml-http-request": "^2.1.2",
     "inflected": "^2.1.0",
     "kleur": "4.1.4",
