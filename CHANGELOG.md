@@ -2,7 +2,26 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.13](https://github.com/izelnakri/memoria/compare/0.0.13...0.0.13)
+#### [0.0.14](https://github.com/izelnakri/memoria/compare/0.0.14...0.0.14)
+
+- RESTAdapter [`#10`](https://github.com/izelnakri/memoria/pull/10)
+- RESTAdapter relationship reference tests [`da2229d`](https://github.com/izelnakri/memoria/commit/da2229d0f3d9b2a51ad6316a50c514d949c3b45f)
+- RESTAdapter: delete and query tests [`dab2416`](https://github.com/izelnakri/memoria/commit/dab24167b312775cbef6e37a4c2f8a0aca64a9de)
+- RESTAdapter resetRecords tests & adjustments [`9d86e74`](https://github.com/izelnakri/memoria/commit/9d86e748f45b0a48a2af9e56445851601ef87e4b)
+- RESTAdapter update-test [`32cabe9`](https://github.com/izelnakri/memoria/commit/32cabe977c0c020a1c7961065350c09ab1c5210a)
+- RESTAdapter insert-test improvements [`3838f78`](https://github.com/izelnakri/memoria/commit/3838f7853fe1e660f300671b605b1c8e4c60e6f6)
+- moved @emberx/string to inflected for inflector [`233910e`](https://github.com/izelnakri/memoria/commit/233910e771d1fd81c95cae808c3d45a9070a438c)
+- RESTAdapter all methods initial implementation [`509bc72`](https://github.com/izelnakri/memoria/commit/509bc7235c45baa9a83b144aa3e3357adad8cd04)
+- Release 0.0.14 [`c125a88`](https://github.com/izelnakri/memoria/commit/c125a888c255416ba567f2f3468c7696c1d1bad7)
+- simpler/easier error stack traces [`b9ad049`](https://github.com/izelnakri/memoria/commit/b9ad049acd60399737081fa08255f8007c5ab86a)
+- @memoria/server parse object params better [`d608c3f`](https://github.com/izelnakri/memoria/commit/d608c3f21e9e1de387ecd044f925c919c410b521)
+- improve Changeset/ChangesetError serializer [`4123f93`](https://github.com/izelnakri/memoria/commit/4123f93db178039532d0389fe9fbdfa08d306318)
+- rename sketchpad CustomAdapter reference [`e990e48`](https://github.com/izelnakri/memoria/commit/e990e4886b388e89dd1ebec6242984efac64d4f9)
+- RESTAdapter add resetRecords to node tests [`0aaed46`](https://github.com/izelnakri/memoria/commit/0aaed466966a440732608129183983236da5b43d)
+
+#### [0.0.14](https://github.com/izelnakri/memoria/compare/0.0.13...0.0.14)
+
+> 25 September 2021
 
 - initial sketch of Adapter Errors & http service [`#9`](https://github.com/izelnakri/memoria/pull/9)
 - update deps [`f15662f`](https://github.com/izelnakri/memoria/commit/f15662f317695924ed80df65716e268086f0b201)
@@ -11,14 +30,15 @@ All notable changes to this project will be documented in this file. Dates are d
 - initial queryParam casting for RESTAdapter [`90f07f2`](https://github.com/izelnakri/memoria/commit/90f07f2b6d0bcdae3eddf418265bc92fc831f25c)
 - optimize pretender hacks [`337090e`](https://github.com/izelnakri/memoria/commit/337090e24e20cb9833ef2cafea0c1b92a044973d)
 - improve ChangesetError init [`29fe3f8`](https://github.com/izelnakri/memoria/commit/29fe3f83ba0728245e6bf3a071b0259c2d2d9647)
+- Release 0.0.14 [`f3dd8ff`](https://github.com/izelnakri/memoria/commit/f3dd8fff636757e8762a8173e19391153496966b)
 - simplify @memoria/model Error inits [`75d007b`](https://github.com/izelnakri/memoria/commit/75d007be077649273d7b036139b852b255b86e89)
 - bugfix: memory relationship decorators [`395e6f6`](https://github.com/izelnakri/memoria/commit/395e6f621dd0e527cf88e06d6ef9adeeef92b063)
-- update Dockerfile, combine file adds [`31ac404`](https://github.com/izelnakri/memoria/commit/31ac404c461846ea6c64541097dff68244c0ae00)
-- Improve Changeset & ChangesetError [`1404dce`](https://github.com/izelnakri/memoria/commit/1404dce6c206959ca2280ed5956d9dc2a6251154)
 - bugfix: propagate exceptions in pretender [`60cfaa5`](https://github.com/izelnakri/memoria/commit/60cfaa54aa42c5d50a1b7b35229d991518571153)
 - make Changeset init without param [`582cc37`](https://github.com/izelnakri/memoria/commit/582cc37fa8af3ddae302428fd9ef244fdb257b0c)
 - model: export ChangesetError, ErrorMetadata types [`3d0c256`](https://github.com/izelnakri/memoria/commit/3d0c25676207af77e321401d0ba1d6690c53347a)
 - add host and port static props to SQLAdapter [`f09ceb6`](https://github.com/izelnakri/memoria/commit/f09ceb61a58006c6ef6b110cc94a672df2deb8b1)
+- update Dockerfile, combine file adds [`31ac404`](https://github.com/izelnakri/memoria/commit/31ac404c461846ea6c64541097dff68244c0ae00)
+- Improve Changeset & ChangesetError [`1404dce`](https://github.com/izelnakri/memoria/commit/1404dce6c206959ca2280ed5956d9dc2a6251154)
 - optimize the slow timing server test [`bc9ca5f`](https://github.com/izelnakri/memoria/commit/bc9ca5f41edc9eccbcff64dadee2e68885f69bb3)
 
 #### [0.0.13](https://github.com/izelnakri/memoria/compare/0.0.12...0.0.13)
