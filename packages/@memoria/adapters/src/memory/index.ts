@@ -18,7 +18,7 @@ type ModelRefOrInstance = ModelRef | MemoriaModel;
 
 // NewBucket, InFlightBucket, DirtyBucket, PersistedBucket, HistoryBucket, ErrorBucket, RollbackBucket
 
-// What is the different between push and insert?
+// Explain what is the different between push and insert?
 // Push replaces existing record!, doesnt have defaultValues
 
 // TODO: always store id as string due to bigint!! Thats what SQLAdapter does

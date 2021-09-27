@@ -1,7 +1,6 @@
-import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
 import { pluralize, underscore } from "inflected";
-import ModelError from "./errors/model/index.js";
+import { ModelError, RuntimeError } from "./errors/index.js";
 import Config from "./config.js";
 import { transformValue } from "./serializer.js";
 // import type { SchemaDefinition } from "./types";
@@ -58,10 +57,8 @@ export default class Model {
 
   static peek(primaryKey: primaryKey | primaryKey[]): Model[] | Model | void {
     if (!primaryKey) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] ${Model.name}.find(id) or ${Model.name}.peek(id) cannot be called without a valid id`
-        )
+      throw new RuntimeError(
+        `${Model.name}.find(id) or ${Model.name}.peek(id) cannot be called without a valid id`
       );
     }
 
@@ -184,9 +181,7 @@ export default class Model {
     // EXAMPLE: { comments: Comment }
     if (typeof relationship !== "object" || relationship.name) {
       throw new Error(
-        kleur.red(
-          `[Memoria] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
-        )
+        `[Memoria] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
       );
     }
 
@@ -194,9 +189,7 @@ export default class Model {
 
     if (!relationship[key]) {
       throw new Error(
-        kleur.red(
-          `[Memoria] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
-        )
+        `[Memoria] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
       );
     }
 
@@ -216,10 +209,8 @@ export default class Model {
   static serialize(object: ModelRefOrInstance) {
     // NOTE: add links object ?
     if (Array.isArray(object)) {
-      throw new Error(
-        kleur.red(
-          `[Memoria] ${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
-        )
+      throw new RuntimeError(
+        `${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
       );
     }
 
@@ -246,9 +237,7 @@ export default class Model {
   ) {
     if (Array.isArray(parentObject)) {
       throw new Error(
-        kleur.red(
-          `[Memoria] ${this.name}.getRelationship expects model input to be an object not an array`
-        )
+        `[Memoria] ${this.name}.getRelationship expects model input to be an object not an array`
       );
     }
 
@@ -258,9 +247,7 @@ export default class Model {
 
     if (!targetRelationshipModel) {
       throw new Error(
-        kleur.red(
-          `[Memoria] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
-        )
+        `[Memoria] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
       );
     } else if (hasManyRelationship) {
       if (parentObject.id) {
