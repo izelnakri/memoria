@@ -144,6 +144,7 @@ export default class Model {
     }
 
     let transformedOptions = Array.from(this.columnNames).reduce((result, keyName) => {
+      // TODO: here we could do a typecheck as well
       result[keyName] = transformValue(this, keyName, options[keyName]);
 
       return result;

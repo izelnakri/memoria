@@ -64,6 +64,21 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    if (Array.isArray(targetState)) {
+      let ids = targetState.reduce((result, record) => {
+        result.add(record[Model.primaryKeyName]);
+        primaryKeyTypeSafetyCheck(Model.build(record));
+
+        return result;
+      }, new Set());
+
+      if (Array.from(ids).length < targetState.length) {
+        throw new RuntimeError(
+          `${Model.name}.resetRecords(models) one of the models missing primary key`
+        );
+      }
+    }
+
     let allRecords = Model.peekAll();
 
     try {
