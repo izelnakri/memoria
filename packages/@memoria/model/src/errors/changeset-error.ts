@@ -1,6 +1,7 @@
 import Model from "../model.js";
 import ModelError, { ErrorMetadata } from "./model/index.js";
 import Changeset, { ChangesetErrorItem, ChangesetAction, JSObject } from "../changeset.js";
+import RuntimeError from "./runtime-error.js";
 
 // already-exists,
 // check-constraint, foreign-key-constaint, not-null-constraint, unique-constraint
@@ -21,10 +22,7 @@ export default class ChangesetError extends Error {
   ) {
     appendErrorToChangesetIfNeeded(changeset, errorMetadata);
 
-    let targetErrorReference = changeset.errors[0];
-    let message =
-      errorMessage ||
-      `${targetErrorReference.modelName}:${targetErrorReference.id} ${targetErrorReference.attribute} ${targetErrorReference.message}`;
+    let message = errorMessage || generateErrorMessage(changeset);
 
     super(message);
 
@@ -42,7 +40,6 @@ function appendErrorToChangesetIfNeeded(
   errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string
 ) {
   let ChangesetModel = changeset.data instanceof Model ? changeset.data.constructor : null;
-
   if (!errorMetadata || typeof errorMetadata === "string") {
     return;
   }
@@ -66,4 +63,13 @@ function appendErrorToChangesetIfNeeded(
       );
     }
   });
+}
+
+function generateErrorMessage(changeset: Changeset) {
+  let referenceError = changeset.errors[0];
+  if (referenceError) {
+    return `${referenceError.modelName}:${referenceError.id} ${referenceError.attribute} ${referenceError.message}`;
+  } else {
+    throw new RuntimeError(`Changeset has no errors to generate a ChangesetError(changeset)`);
+  }
 }

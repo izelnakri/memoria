@@ -1,7 +1,6 @@
 import kleur from "kleur";
 import { MemoryAdapter } from "@memoria/adapters";
-import { underscore } from "@emberx/string";
-import { pluralize } from "inflected";
+import { pluralize, underscore } from "inflected";
 import ModelError from "./errors/model/index.js";
 import Config from "./config.js";
 import { transformValue } from "./serializer.js";
@@ -145,6 +144,7 @@ export default class Model {
     }
 
     let transformedOptions = Array.from(this.columnNames).reduce((result, keyName) => {
+      // TODO: here we could do a typecheck as well
       result[keyName] = transformValue(this, keyName, options[keyName]);
 
       return result;
@@ -264,7 +264,7 @@ export default class Model {
       );
     } else if (hasManyRelationship) {
       if (parentObject.id) {
-        const hasManyIDRecords = targetRelationshipModel.peekAll({
+        const hasManyIDRecords = targetRelationshipModel.Adapter.peekAll(targetRelationshipModel, {
           [`${underscore(this.name)}_id`]: parentObject.id,
         });
 
@@ -272,9 +272,12 @@ export default class Model {
           ? sortByIdOrUUID(hasManyIDRecords, hasManyIDRecords[0].constructor.primaryKeyName)
           : [];
       } else if (parentObject.uuid) {
-        const hasManyUUIDRecords = targetRelationshipModel.peekAll({
-          [`${underscore(this.name)}_uuid`]: parentObject.uuid,
-        });
+        const hasManyUUIDRecords = targetRelationshipModel.Adapter.peekAll(
+          targetRelationshipModel,
+          {
+            [`${underscore(this.name)}_uuid`]: parentObject.uuid,
+          }
+        );
 
         return hasManyUUIDRecords.length > 0
           ? sortByIdOrUUID(hasManyUUIDRecords, hasManyUUIDRecords[0].constructor.primaryKeyName)
@@ -289,17 +292,17 @@ export default class Model {
       parentObject[`${underscore(targetRelationshipModel.name)}_uuid`];
 
     if (objectRef && typeof objectRef === "number") {
-      return targetRelationshipModel.peek(objectRef);
+      return targetRelationshipModel.Adapter.peek(targetRelationshipModel, objectRef);
     } else if (objectRef) {
-      return targetRelationshipModel.peekBy({ uuid: objectRef });
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, { uuid: objectRef });
     }
 
     if (parentObject.id) {
-      return targetRelationshipModel.peekBy({
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
         [`${underscore(this.name)}_id`]: parentObject.id,
       });
     } else if (parentObject.uuid) {
-      return targetRelationshipModel.peekBy({
+      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
         [`${underscore(this.name)}_uuid`]: parentObject.uuid,
       });
     }

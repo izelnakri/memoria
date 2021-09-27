@@ -9,5 +9,7 @@
   "files": [
     "dist/*"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "inflected": "2.1.0"
+  }
 }

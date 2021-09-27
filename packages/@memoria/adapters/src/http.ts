@@ -14,6 +14,7 @@ import MemoriaModel, {
   DeleteError,
   RuntimeError,
 } from "@memoria/model";
+import { pluralize } from "inflected";
 
 interface JSObject {
   [keyName: string]: any;
@@ -34,11 +35,6 @@ export interface HTTPOptions {
 }
 
 const DEFAULT_TIMEOUT_IN_MS = 30000;
-
-// TODO: temporary
-function pluralize(string) {
-  return string + "s";
-}
 
 export default class HTTP {
   static host: string =
@@ -188,15 +184,16 @@ async function makeFetchRequest(
       );
     }
 
-    if (Model) {
-      let keyName = (Model.Adapter as typeof RESTAdapter).keyNameFromPayload(Model);
+    if (httpOptions.method !== "DELETE" && Model) {
+      let Adapter = Model.Adapter as typeof RESTAdapter;
+      let keyName = Adapter.keyNameFromPayload(Model);
       let results = json[keyName] || json[pluralize(keyName)];
 
       if (Array.isArray(results)) {
-        return results.map((result) => Model.push(result)) as MemoriaModel[];
+        return results.map((result) => Adapter.push(Model, result)) as MemoriaModel[];
       }
 
-      return Model.push(results) as MemoriaModel;
+      return Adapter.push(Model, results) as MemoriaModel;
     }
 
     return json;
@@ -255,15 +252,18 @@ function getModelFromPayload(
 ): undefined | MemoriaModel {
   if (!jsonBody) {
     return;
-  } else if (Model.Adapter instanceof RESTAdapter) {
-    let keyName = (Model.Adapter as typeof RESTAdapter).keyNameForPayload(Model);
-
-    return Model.build(jsonBody[keyName]);
   }
 
-  throw new RuntimeError(
-    "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
-  );
+  let Adapter = Model.Adapter as typeof RESTAdapter;
+  if (!Adapter.keyNameForPayload) {
+    throw new RuntimeError(
+      "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
+    );
+  }
+
+  let keyName = Adapter.keyNameForPayload(Model);
+
+  return Model.build(jsonBody[keyName]);
 }
 
 function getErrorInterface(httpOptions, response, Model) {
