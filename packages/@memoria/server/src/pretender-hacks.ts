@@ -24,7 +24,7 @@ export default function hackPretender(Pretender) {
         tryConvertingJSONStringToObject(request.requestBody) ||
         tryConvertingQueryStringToObject(request.requestBody);
       if (newParamsFromBody) {
-        request.params = nilifyStrings(Object.assign(request.params, newParamsFromBody));
+        request.params = Object.assign(request.params, castCorrectType(newParamsFromBody));
       }
     }
 
@@ -40,6 +40,10 @@ export default function hackPretender(Pretender) {
       return false;
     } else if (value === "true") {
       return true;
+    } else if (value && typeof value === "object") {
+      return Object.keys(value).reduce((result, keyName) => {
+        return Object.assign(result, { [keyName]: castCorrectType(value[keyName]) });
+      }, {});
     }
 
     return nilifyStrings(value);
@@ -56,13 +60,15 @@ export default function hackPretender(Pretender) {
   }
 
   function tryConvertingQueryStringToObject(queryString) {
-    let entries = Array.from(new URLSearchParams(queryString));
-    if (entries.length > 0) {
-      return entries.reduce((result, entry) => {
-        result[entry[0]] = entry[1];
+    if (queryString) {
+      let entries = Array.from(new URLSearchParams(queryString));
+      if (entries.length > 0) {
+        return entries.reduce((result, entry) => {
+          result[entry[0]] = entry[1];
 
-        return result;
-      }, {});
+          return result;
+        }, {});
+      }
     }
   }
 
@@ -154,7 +160,7 @@ export default function hackPretender(Pretender) {
       request.respond(statusCode, headers, body);
       pretender.handledRequest(verb, path, request);
     });
-  };
+  }
 
   function getDefaultStatusCode(verb) {
     if (["GET", "PUT", "PATCH"].includes(verb)) {
