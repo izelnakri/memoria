@@ -11,8 +11,7 @@
   ],
   "dependencies": {
     "@memoria/adapters": "0.0.15",
-    "kleur": "4.1.4",
     "inflected": "^2.1.0",
-    "object-inspect": "^1.11.0"
+    "typeorm": "^0.2.37"
   }
 }
