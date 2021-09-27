@@ -10,12 +10,12 @@ import Model, {
 } from "@memoria/model";
 import { SQLAdapter } from "@memoria/adapters"; // NOTE: this has to come AFTER @memoria/model import
 
-class MySQLAdapter extends SQLAdapter {
+class CustomSQLAdapter extends SQLAdapter {
   static logging = false;
 }
 
 class Photo extends Model {
-  static Adapter = MySQLAdapter;
+  static Adapter = CustomSQLAdapter;
 
   @PrimaryGeneratedColumn()
   id: number;
