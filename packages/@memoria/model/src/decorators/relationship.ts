@@ -43,6 +43,7 @@ export function OneToOne<T>(
       {
         target: typeFunctionOrTarget,
         type: "one-to-one",
+        // @ts-ignore
         inverseSide: inverseSideProperty,
         lazy: isLazy,
         eager: options.eager,
@@ -108,6 +109,7 @@ export function ManyToOne<T>(
       {
         target: typeFunctionOrTarget,
         type: "many-to-one",
+        // @ts-ignore
         inverseSide: inverseSideProperty,
         lazy: isLazy,
         eager: options.eager,
@@ -234,6 +236,7 @@ export function ManyToMany<T>(
       {
         target: typeFunctionOrTarget,
         type: "many-to-many",
+        // @ts-ignore
         inverseSide: inverseSideProperty,
         lazy: isLazy,
         eager: options.eager,
