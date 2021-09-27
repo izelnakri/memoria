@@ -2,7 +2,7 @@
   "name": "memoria",
   "private": true,
   "type": "module",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "in-memory database/ORM and http mock server you can run in-browser and node environments. Built for large frontend teams, fast tests and rapid prototyping",
   "author": "Izel Nakri",
   "repository": {
@@ -45,9 +45,8 @@
   },
   "dependencies": {
     "@types/node": "^16.9.6",
-    "inflected": "2.1.0",
-    "fake-xml-http-request": "^2.1.2",
     "inflected": "^2.1.0",
+    "fake-xml-http-request": "^2.1.2",
     "kleur": "4.1.4",
     "object-inspect": "^1.11.0",
     "pretender": "^3.4.7",
