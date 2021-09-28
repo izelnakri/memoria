@@ -1,6 +1,6 @@
-import { camelize, dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
+import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
 import MemoriaModel, { Changeset, RuntimeError } from "@memoria/model";
-import type { ModelRef } from "@memoria/model";
+import type { ModelReference } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 import { primaryKeyTypeSafetyCheck } from "../utils.js";
@@ -13,7 +13,7 @@ export interface HTTPHeaders {
 type primaryKey = number | string;
 type JSObject = { [key: string]: any };
 type QueryObject = { [key: string]: any };
-type ModelRefOrInstance = ModelRef | MemoriaModel;
+type ModelRefOrInstance = ModelReference | MemoriaModel;
 
 // TODO: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
@@ -52,14 +52,6 @@ export default class RESTAdapter extends MemoryAdapter {
     return pluralize(dasherize(underscore(Model.name))).toLowerCase();
   }
 
-  static keyNameForPayload(Model: typeof MemoriaModel): string {
-    return camelize(Model.name, false); // return singularize(Model.name);
-  }
-
-  static keyNameFromPayload(Model: typeof MemoriaModel): string {
-    return camelize(Model.name, false);
-  }
-
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[]
@@ -85,7 +77,7 @@ export default class RESTAdapter extends MemoryAdapter {
       Model.unloadAll();
       return (await this.http.post(
         `${this.host}/${this.pathForType(Model)}/reset`,
-        { [pluralize(this.keyNameForPayload(Model))]: targetState },
+        { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: targetState },
         this.headers,
         Model
       )) as MemoriaModel[];
@@ -184,7 +176,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
-      { [this.keyNameForPayload(Model)]: record },
+      { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Model
     )) as MemoriaModel;
@@ -205,7 +197,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
-      { [this.keyNameForPayload(Model)]: record },
+      { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Model
     )) as MemoriaModel;
@@ -226,7 +218,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
-      { [this.keyNameForPayload(Model)]: record },
+      { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Model
     );
@@ -258,7 +250,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}/bulk`,
-      { [pluralize(this.keyNameForPayload(Model))]: records },
+      { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
       Model
     )) as MemoriaModel[];
@@ -286,7 +278,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/bulk`,
-      { [pluralize(this.keyNameForPayload(Model))]: records },
+      { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
       Model
     )) as MemoriaModel[];
@@ -314,7 +306,7 @@ export default class RESTAdapter extends MemoryAdapter {
 
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/bulk`,
-      { [pluralize(this.keyNameForPayload(Model))]: records },
+      { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
       Model
     );

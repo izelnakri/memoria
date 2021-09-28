@@ -186,8 +186,8 @@ async function makeFetchRequest(
 
     if (httpOptions.method !== "DELETE" && Model) {
       let Adapter = Model.Adapter as typeof RESTAdapter;
-      let keyName = Adapter.keyNameFromPayload(Model);
-      let results = json[keyName] || json[pluralize(keyName)];
+      let modelKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
+      let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
       if (Array.isArray(results)) {
         return results.map((result) => Adapter.push(Model, result)) as MemoriaModel[];
@@ -252,18 +252,13 @@ function getModelFromPayload(
 ): undefined | MemoriaModel {
   if (!jsonBody) {
     return;
-  }
-
-  let Adapter = Model.Adapter as typeof RESTAdapter;
-  if (!Adapter.keyNameForPayload) {
+  } else if (!Model.Serializer.modelKeyNameForPayload) {
     throw new RuntimeError(
-      "You provided a Model to your http operation but Model misses an Adapter with keyNameForPayload()"
+      "You provided a Model to your http operation but Model.Serializer misses keyNameForPayload()"
     );
   }
 
-  let keyName = Adapter.keyNameForPayload(Model);
-
-  return Model.build(jsonBody[keyName]);
+  return Model.build(jsonBody[Model.Serializer.modelKeyNameForPayload(Model)]);
 }
 
 function getErrorInterface(httpOptions, response, Model) {
