@@ -26,6 +26,7 @@ export {
   ConflictError,
   ServerError,
 } from "./errors/index.js";
+import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
 export { generateUUID } from "./utils.js";
 export {
@@ -55,18 +56,18 @@ type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T
     [K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>;
   }[Keys];
 
-export interface ModelRefShape {
+export interface ModelReferenceShape {
   id?: number;
   uuid?: string;
   [propName: string]: any;
 }
-export type ModelRef = RequireOnlyOne<ModelRefShape, "id" | "uuid">;
+export type ModelReference = RequireOnlyOne<ModelReferenceShape, "id" | "uuid">;
 export interface QueryObject {
   [propName: string]: any;
 }
 export default Model;
 
-export { Changeset, Config };
+export { Changeset, Config, Serializer };
 
 // Serialization
 // relationship setting and fetching

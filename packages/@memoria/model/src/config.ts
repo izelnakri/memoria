@@ -160,7 +160,7 @@ export default class MemoriaConfigurations {
   static _embedReferences: { [className: string]: { [columnName: string]: any } } = {};
   static getEmbedDataForSerialization(Class: typeof Model) {
     if (!this._embedReferences[Class.name]) {
-      this._embedReferences[Class.name] = Class.embedReferences;
+      this._embedReferences[Class.name] = Class.Serializer.embeds;
 
       return this._embedReferences[Class.name];
     }
