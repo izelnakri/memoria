@@ -14,9 +14,9 @@ if (!version) {
 const TARGET_LIBRARIES = [
   '@memoria/adapters',
   '@memoria/model',
-  // '@memoria/response',
-  // '@memoria/server',
-  // '@memoria/cli',
+  '@memoria/response',
+  '@memoria/server',
+  '@memoria/cli',
 ]
 let PROJECT_JSON = JSON.parse((await fs.readFile(`package.json`)).toString());
 
