@@ -2,12 +2,19 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.15](https://github.com/izelnakri/memoria/compare/0.0.15...0.0.15)
+#### [0.0.16](https://github.com/izelnakri/memoria/compare/0.0.16...0.0.16)
+
+- fix wrong ModelRef typing on sql adapter [`780ed5b`](https://github.com/izelnakri/memoria/commit/780ed5bbf1cbca6e9c03de26b1f2a6f66edce3bd)
+
+#### [0.0.16](https://github.com/izelnakri/memoria/compare/0.0.15...0.0.16)
+
+> 29 September 2021
 
 - Serializer [`#11`](https://github.com/izelnakri/memoria/pull/11)
 - test adjustments for Serializer refactor [`ee8d423`](https://github.com/izelnakri/memoria/commit/ee8d423cc4c64d4639a2d8faa30e903aa050df53)
 - initial MemoriaSerializer implementation [`bef6019`](https://github.com/izelnakri/memoria/commit/bef6019447264fc796ea720cb09a8e607e0967ce)
 - fix @memoria adapter and model dependencies [`4d48a55`](https://github.com/izelnakri/memoria/commit/4d48a55b6cd350426db3e18a19e49f46763d61e4)
+- Release 0.0.16 [`00d37f7`](https://github.com/izelnakri/memoria/commit/00d37f7aa23aa5cf35fa36930a5496fd3e646083)
 - Remove kleur from @memoria/model [`1a2e72e`](https://github.com/izelnakri/memoria/commit/1a2e72ef9a3c85505ebfe303f65d23543270a94f)
 - add @memoria/server to release script [`dfb04f1`](https://github.com/izelnakri/memoria/commit/dfb04f140a07ef826eced6586ac887fffeddb483)
 - Typedoc gen script added to package.json [`f1a1901`](https://github.com/izelnakri/memoria/commit/f1a190101c91b6648fe0ec454de18f1bcea1b029)
