@@ -1,7 +1,7 @@
 {
   "name": "@memoria/server",
   "type": "module",
-  "version": "2.5.3",
+  "version": "0.0.16",
   "description": "",
   "author": "Izel Nakri",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "inflected": "^2.1.0",
     "kleur": "4.1.4",
     "fake-xml-http-request": "^2.1.2",
-    "pretender": "^3.4.3",
+    "pretender": "^3.4.7",
     "route-recognizer": "^0.3.4",
     "jsdom": "17.0.0"
   }

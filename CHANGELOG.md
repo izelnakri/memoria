@@ -2,7 +2,19 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.14](https://github.com/izelnakri/memoria/compare/0.0.14...0.0.14)
+#### [0.0.15](https://github.com/izelnakri/memoria/compare/0.0.15...0.0.15)
+
+- Serializer [`#11`](https://github.com/izelnakri/memoria/pull/11)
+- test adjustments for Serializer refactor [`ee8d423`](https://github.com/izelnakri/memoria/commit/ee8d423cc4c64d4639a2d8faa30e903aa050df53)
+- initial MemoriaSerializer implementation [`bef6019`](https://github.com/izelnakri/memoria/commit/bef6019447264fc796ea720cb09a8e607e0967ce)
+- fix @memoria adapter and model dependencies [`4d48a55`](https://github.com/izelnakri/memoria/commit/4d48a55b6cd350426db3e18a19e49f46763d61e4)
+- Remove kleur from @memoria/model [`1a2e72e`](https://github.com/izelnakri/memoria/commit/1a2e72ef9a3c85505ebfe303f65d23543270a94f)
+- add @memoria/server to release script [`dfb04f1`](https://github.com/izelnakri/memoria/commit/dfb04f140a07ef826eced6586ac887fffeddb483)
+- Typedoc gen script added to package.json [`f1a1901`](https://github.com/izelnakri/memoria/commit/f1a190101c91b6648fe0ec454de18f1bcea1b029)
+
+#### [0.0.15](https://github.com/izelnakri/memoria/compare/0.0.14...0.0.15)
+
+> 27 September 2021
 
 - RESTAdapter [`#10`](https://github.com/izelnakri/memoria/pull/10)
 - RESTAdapter relationship reference tests [`da2229d`](https://github.com/izelnakri/memoria/commit/da2229d0f3d9b2a51ad6316a50c514d949c3b45f)
@@ -12,6 +24,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - RESTAdapter insert-test improvements [`3838f78`](https://github.com/izelnakri/memoria/commit/3838f7853fe1e660f300671b605b1c8e4c60e6f6)
 - moved @emberx/string to inflected for inflector [`233910e`](https://github.com/izelnakri/memoria/commit/233910e771d1fd81c95cae808c3d45a9070a438c)
 - RESTAdapter all methods initial implementation [`509bc72`](https://github.com/izelnakri/memoria/commit/509bc7235c45baa9a83b144aa3e3357adad8cd04)
+- Release 0.0.15 [`7ef4005`](https://github.com/izelnakri/memoria/commit/7ef400564d90b871f420245967de7ee8f68a2481)
 - Release 0.0.14 [`c125a88`](https://github.com/izelnakri/memoria/commit/c125a888c255416ba567f2f3468c7696c1d1bad7)
 - simpler/easier error stack traces [`b9ad049`](https://github.com/izelnakri/memoria/commit/b9ad049acd60399737081fa08255f8007c5ab86a)
 - @memoria/server parse object params better [`d608c3f`](https://github.com/izelnakri/memoria/commit/d608c3f21e9e1de387ecd044f925c919c410b521)

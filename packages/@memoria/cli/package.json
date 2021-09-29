@@ -1,20 +1,20 @@
 {
   "name": "@memoria/cli",
   "type": "module",
-  "version": "2.5.3",
+  "version": "0.0.16",
   "description": "",
   "author": "Izel Nakri",
   "license": "MIT",
   "bin": {
     "memoria": "src/cli.js"
   },
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "files": [
     "src/*",
     "memoria-boilerplate/*"
   ],
   "dependencies": {
-    "@memoria/server": "2.5.3",
+    "@memoria/server": "0.0.16",
     "kleur": "4.1.4",
     "inflected": "^2.1.0",
     "recursive-lookup": "1.0.0",
