@@ -10,11 +10,11 @@ import MemoriaModel, {
   UpdateError,
   transformValue,
 } from "@memoria/model";
-import type { ModelRef, DecoratorBucket } from "@memoria/model";
+import type { ModelReference, DecoratorBucket } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
-type ModelRefOrInstance = ModelRef | MemoriaModel;
+type ModelRefOrInstance = ModelReference | MemoriaModel;
 
 // NewBucket, InFlightBucket, DirtyBucket, PersistedBucket, HistoryBucket, ErrorBucket, RollbackBucket
 

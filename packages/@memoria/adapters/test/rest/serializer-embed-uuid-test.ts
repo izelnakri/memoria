@@ -1,10 +1,16 @@
 import Memoria from "@memoria/server";
 import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
-import Model, { Changeset, Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, {
+  Changeset,
+  Config,
+  PrimaryGeneratedColumn,
+  Column,
+  Serializer,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", function (hooks) {
+module("@memoria/adapters | RESTAdapter | Serializer UUID for UUID(string)", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -89,6 +95,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
   async function prepare() {
     class User extends Model {
       static Adapter = RESTAdapter;
+      static Serializer = class UserSerializer extends Serializer {};
 
       @PrimaryGeneratedColumn()
       id: number;
@@ -104,6 +111,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     }
     class Email extends Model {
       static Adapter = RESTAdapter;
+      static Serializer = class EmailSerializer extends Serializer {};
 
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
@@ -128,6 +136,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     }
     class Activity extends Model {
       static Adapter = RESTAdapter;
+      static Serializer = class ActivitySerializer extends Serializer {};
 
       @PrimaryGeneratedColumn()
       id: number;
@@ -140,6 +149,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     }
     class Photo extends Model {
       static Adapter = RESTAdapter;
+      static Serializer = class PhotoSerializer extends Serializer {};
 
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
@@ -155,9 +165,11 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     }
     class PhotoComment extends Model {
       static Adapter = RESTAdapter;
-      static embedReferences = {
-        photo: Photo,
-        author: User,
+      static Serializer = class PhotoComment extends Serializer {
+        static embeds = {
+          photo: Photo,
+          author: User,
+        };
       };
 
       @PrimaryGeneratedColumn("uuid")
@@ -173,7 +185,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       user_id: number;
     }
 
-    Photo.embedReferences = {
+    Photo.Serializer.embeds = {
       activity: Activity,
       comments: PhotoComment,
     };
@@ -187,6 +199,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     await Config.resetForTests();
 
     class ServerUser extends Model {
+      static Serializer = class ServerUserSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -200,6 +214,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       primary_email_uuid: string;
     }
     class ServerEmail extends Model {
+      static Serializer = class ServerEmailSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -222,6 +238,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       person_id: number;
     }
     class ServerActivity extends Model {
+      static Serializer = class ServerActivitySerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -232,6 +250,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       photo_uuid: string;
     }
     class ServerPhoto extends Model {
+      static Serializer = class ServerPhotoSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -245,9 +265,11 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       is_public: boolean;
     }
     class ServerPhotoComment extends Model {
-      static embedReferences = {
-        photo: ServerPhoto,
-        author: ServerUser,
+      static Serializer = class ServerPhotoCommentSerializer extends Serializer {
+        static embeds = {
+          photo: ServerPhoto,
+          author: ServerUser,
+        };
       };
 
       @PrimaryGeneratedColumn("uuid")
@@ -263,7 +285,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       user_id: number;
     }
 
-    ServerPhoto.embedReferences = {
+    ServerPhoto.Serializer.embeds = {
       activity: ServerActivity,
       comments: ServerPhotoComment,
     };
@@ -363,14 +385,15 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     });
   }
 
-  test("$Model.getRelationship() works for hasOne/belongsTo uuid relationships both sides on uuid relationship", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for hasOne/belongsTo uuid relationships both sides on uuid relationship", async function (assert) {
     const { Activity, Photo } = await prepare();
     this.Server = await prepareServer();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
 
-    const activity = Photo.getRelationship(
+    const activity = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
@@ -383,7 +406,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       photo_uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
     });
     assert.equal(
-      Photo.getRelationship(
+      Photo.Serializer.getEmbeddedRelationship(
+        Photo,
         await Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
@@ -392,15 +416,18 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       undefined
     );
     assert.deepEqual(
-      Activity.getRelationship(activity, "photo", Photo),
+      Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       })
     );
-    assert.equal(Activity.getRelationship(await Activity.find(2), "photo", Photo), undefined);
+    assert.equal(
+      Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "photo", Photo),
+      undefined
+    );
   });
 
-  test("$Model.getRelationship() works for hasMany/belongsTo uuid relationship both sides on uuid", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for hasMany/belongsTo uuid relationship both sides on uuid", async function (assert) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
@@ -409,19 +436,22 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    const firstPhotoComments = Photo.getRelationship(
+    const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "comments"
     );
-    const secondPhotoComments = Photo.getRelationship(
+    const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
       "comments"
     );
-    const thirdPhotoComments = Photo.getRelationship(
+    const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
@@ -458,26 +488,47 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     ]);
     assert.deepEqual(thirdPhotoComments, []);
 
-    assert.throws(
-      () => PhotoComment.getRelationship(firstPhotoComments, "photo"),
-      /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/
-    );
+    try {
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments, "photo");
+    } catch (error) {
+      assert.ok(
+        /PhotoComment\.Serializer\.getEmbeddedRelationship\(Model, parentObject\) expects parentObject input to be an object not an array/.test(
+          error.message
+        )
+      );
+    }
 
-    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
-      uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
-      uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    });
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        firstPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }
+    );
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        secondPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      }
+    );
   });
 
-  test("$Model.getRelationship() works for custom named hasOne/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for custom named hasOne/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
     const { Activity, Email, User, Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
@@ -486,7 +537,8 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
     await Promise.all(EMAIL_FIXTURES.map((email) => Email.insert(email)));
 
-    const activity = Photo.getRelationship(
+    const activity = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
@@ -499,17 +551,21 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       user_id: 1,
       photo_uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
     });
-    assert.propEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
-      uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
-      address: "contact@izelnakri.com",
-      is_public: false,
-      confirmed_at: "2018-02-25T23:00:00.000Z",
-      confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
-      confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
-      person_id: 1,
-    });
+    assert.propEqual(
+      User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email),
+      {
+        uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
+        address: "contact@izelnakri.com",
+        is_public: false,
+        confirmed_at: "2018-02-25T23:00:00.000Z",
+        confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
+        confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
+        person_id: 1,
+      }
+    );
     assert.equal(
-      Photo.getRelationship(
+      Photo.Serializer.getEmbeddedRelationship(
+        Photo,
         await Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
@@ -519,15 +575,18 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       undefined
     );
     assert.deepEqual(
-      Activity.getRelationship(activity, "photo", Photo),
+      Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       })
     );
-    assert.equal(Activity.getRelationship(await Activity.find(2), "photo", Photo), undefined);
+    assert.equal(
+      Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "photo", Photo),
+      undefined
+    );
   });
 
-  test("$Model.getRelationship() works for custom named hasMany/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for custom named hasMany/belongsTo uuid relationships both side on uuid relationship", async function (assert) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
@@ -536,21 +595,24 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    const firstPhotoComments = Photo.getRelationship(
+    const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "comments",
       PhotoComment
     );
-    const secondPhotoComments = Photo.getRelationship(
+    const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
       "comments",
       PhotoComment
     );
-    const thirdPhotoComments = Photo.getRelationship(
+    const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.findBy({
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
@@ -588,32 +650,53 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
     ]);
     assert.deepEqual(thirdPhotoComments, []);
 
-    assert.throws(
-      () => PhotoComment.getRelationship(firstPhotoComments, "photo"),
-      /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/
+    try {
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments, "photo");
+    } catch (error) {
+      /PhotoComment\.Serializer\.getEmbeddedRelationship expects model input to be an object not an array/.test(
+        error.message
+      );
+    }
+
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        firstPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }
     );
-    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
-      uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
-      uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    });
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        secondPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      }
+    );
   });
 
-  test("$Model.getRelationship() throws an error when uuid relationship reference is invalid", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() throws an error when uuid relationship reference is invalid", async function (assert) {
     let { Photo } = await prepare();
     this.Server = await prepareServer();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     try {
-      Photo.getRelationship(
+      Photo.Serializer.getEmbeddedRelationship(
+        Photo,
         Photo.peekBy({
           uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
         }),
@@ -621,14 +704,15 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       );
     } catch (changeset) {
       assert.ok(
-        /\[Memoria\] userComments relationship could not be found on Photo model\. Please put the userComments Model object as the third parameter to Photo\.getRelationship function/.test(
+        /userComments relationship could not be found on Photo model\. Please put the userComments Model object as the fourth parameter to Photo\.Serializer\.getEmbeddedRelationship function/.test(
           changeset.message
         )
       );
     }
 
     try {
-      Photo.getRelationship(
+      Photo.Serializer.getEmbeddedRelationship(
+        Photo,
         Photo.peekBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
@@ -636,7 +720,7 @@ module("@memoria/adapters | RESTAdapter | Relationship UUID for UUID(string)", f
       );
     } catch (changeset) {
       assert.ok(
-        /\[Memoria\] userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the third parameter to Photo\.getRelationship function/.test(
+        /userActivity relationship could not be found on Photo model\. Please put the userActivity Model object as the fourth parameter to Photo\.Serializer\.getEmbeddedRelationship function/.test(
           changeset.message
         )
       );

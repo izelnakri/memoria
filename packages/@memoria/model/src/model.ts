@@ -1,21 +1,18 @@
 import { MemoryAdapter } from "@memoria/adapters";
-import { pluralize, underscore } from "inflected";
+import { underscore } from "inflected";
 import { ModelError, RuntimeError } from "./errors/index.js";
 import Config from "./config.js";
-import { transformValue } from "./serializer.js";
-// import type { SchemaDefinition } from "./types";
-import type { ModelRef, RelationshipSchemaDefinition } from "./index.js";
+import Serializer, { transformValue } from "./serializer.js";
+import type { ModelReference, RelationshipSchemaDefinition } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
-type ModelRefOrInstance = ModelRef | Model;
+type ModelRefOrInstance = ModelReference | Model;
 
-// TODO: remove embedReferences getter
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
-  static Error = ModelError;
-
-  static embedReferences = {}; // TODO: move to serializer
+  static Error: typeof ModelError = ModelError;
+  static Serializer: typeof Serializer = Serializer;
 
   static get Cache(): Model[] {
     return Config.getDB(this);
@@ -155,6 +152,22 @@ export default class Model {
     return Object.seal(model);
   }
 
+  static serializer(objectOrArray: Model | Model[]) {
+    if (!objectOrArray) {
+      return;
+    } else if (Array.isArray(objectOrArray)) {
+      return (objectOrArray as Array<Model>).map((object) =>
+        this.Serializer.serialize(this, object)
+      );
+    }
+
+    return this.Serializer.serialize(this, objectOrArray as Model);
+  }
+
+  static serialize(object: Model) {
+    return this.Serializer.serialize(this, object as Model);
+  }
+
   #_errors: ModelError[] = [];
   get errors(): ModelError[] {
     return this.#_errors;
@@ -175,129 +188,4 @@ export default class Model {
 
     return this;
   }
-
-  // NOTE: serializer functions
-  static embed(relationship: { [key: string]: any }): object {
-    // EXAMPLE: { comments: Comment }
-    if (typeof relationship !== "object" || relationship.name) {
-      throw new Error(
-        `[Memoria] ${this.name}.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
-      );
-    }
-
-    const key = Object.keys(relationship)[0];
-
-    if (!relationship[key]) {
-      throw new Error(
-        `[Memoria] ${this.name}.embed() fails: ${key} Model reference is not a valid. Please put a valid $ModelName to ${this.name}.embed()`
-      );
-    }
-
-    return Object.assign(Config.getEmbedDataForSerialization(this), relationship);
-  }
-
-  static serializer(objectOrArray: ModelRefOrInstance | ModelRefOrInstance[]) {
-    if (!objectOrArray) {
-      return;
-    } else if (Array.isArray(objectOrArray)) {
-      return (objectOrArray as Array<ModelRef>).map((object) => this.serialize(object));
-    }
-
-    return this.serialize(objectOrArray as ModelRef);
-  }
-
-  static serialize(object: ModelRefOrInstance) {
-    // NOTE: add links object ?
-    if (Array.isArray(object)) {
-      throw new RuntimeError(
-        `${this.name}.serialize(object) expects an object not an array. Use ${this.name}.serializer(data) for serializing array of records`
-      );
-    }
-
-    let objectWithAllColumns = Array.from(this.columnNames).reduce((result, columnName) => {
-      if (result[columnName] === undefined) {
-        result[columnName] = null;
-      }
-
-      return result;
-    }, Object.assign({}, object));
-    let embedReferences = Config.getEmbedDataForSerialization(this);
-    return Object.keys(embedReferences).reduce((result, embedKey) => {
-      let embedModel = embedReferences[embedKey];
-      let embeddedRecords = this.getRelationship(object as ModelRef, embedKey, embedModel);
-
-      return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
-    }, objectWithAllColumns);
-  }
-
-  static getRelationship(
-    parentObject: ModelRef,
-    relationshipName: string,
-    relationshipModel?: ModelRef
-  ) {
-    if (Array.isArray(parentObject)) {
-      throw new Error(
-        `[Memoria] ${this.name}.getRelationship expects model input to be an object not an array`
-      );
-    }
-
-    const targetRelationshipModel =
-      relationshipModel || Config.getEmbedDataForSerialization(this)[relationshipName];
-    const hasManyRelationship = pluralize(relationshipName) === relationshipName;
-
-    if (!targetRelationshipModel) {
-      throw new Error(
-        `[Memoria] ${relationshipName} relationship could not be found on ${this.name} model. Please put the ${relationshipName} Model object as the third parameter to ${this.name}.getRelationship function`
-      );
-    } else if (hasManyRelationship) {
-      if (parentObject.id) {
-        const hasManyIDRecords = targetRelationshipModel.Adapter.peekAll(targetRelationshipModel, {
-          [`${underscore(this.name)}_id`]: parentObject.id,
-        });
-
-        return hasManyIDRecords.length > 0
-          ? sortByIdOrUUID(hasManyIDRecords, hasManyIDRecords[0].constructor.primaryKeyName)
-          : [];
-      } else if (parentObject.uuid) {
-        const hasManyUUIDRecords = targetRelationshipModel.Adapter.peekAll(
-          targetRelationshipModel,
-          {
-            [`${underscore(this.name)}_uuid`]: parentObject.uuid,
-          }
-        );
-
-        return hasManyUUIDRecords.length > 0
-          ? sortByIdOrUUID(hasManyUUIDRecords, hasManyUUIDRecords[0].constructor.primaryKeyName)
-          : [];
-      }
-    }
-
-    const objectRef =
-      parentObject[`${underscore(relationshipName)}_id`] ||
-      parentObject[`${underscore(relationshipName)}_uuid`] ||
-      parentObject[`${underscore(targetRelationshipModel.name)}_id`] ||
-      parentObject[`${underscore(targetRelationshipModel.name)}_uuid`];
-
-    if (objectRef && typeof objectRef === "number") {
-      return targetRelationshipModel.Adapter.peek(targetRelationshipModel, objectRef);
-    } else if (objectRef) {
-      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, { uuid: objectRef });
-    }
-
-    if (parentObject.id) {
-      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
-        [`${underscore(this.name)}_id`]: parentObject.id,
-      });
-    } else if (parentObject.uuid) {
-      return targetRelationshipModel.Adapter.peekBy(targetRelationshipModel, {
-        [`${underscore(this.name)}_uuid`]: parentObject.uuid,
-      });
-    }
-  }
-}
-
-function sortByIdOrUUID(records: Model[], primaryColumnName: string) {
-  // TODO: Optimize, READ MDN Docs on default sorting algorithm, implement it for objects
-  let sortedIds = records.map((record) => record[primaryColumnName]).sort();
-  return sortedIds.map((id) => records.find((record) => record[primaryColumnName] === id));
 }
