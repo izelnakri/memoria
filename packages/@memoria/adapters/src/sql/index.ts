@@ -13,11 +13,11 @@ import MemoriaModel, {
   UpdateError,
   RuntimeError,
 } from "@memoria/model";
-import type { ModelRef } from "@memoria/model";
+import type { ModelReference } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
-type ModelRefOrInstance = ModelRef | MemoriaModel;
+type ModelRefOrInstance = ModelReference | MemoriaModel;
 
 interface FreeObject {
   [key: string]: any;
