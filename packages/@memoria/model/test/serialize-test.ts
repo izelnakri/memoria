@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 
@@ -55,6 +55,8 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
 
   function prepare() {
     class Photo extends Model {
+      static Serializer = class PhotoSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -68,6 +70,8 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
       is_public: boolean;
     }
     class PhotoComment extends Model {
+      static Serializer = class PhotoCommentSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
@@ -81,6 +85,8 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
       user_id: number;
     }
     class User extends Model {
+      static Serializer = class UserSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -90,7 +96,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
       @Column()
       last_name: string;
     }
-    [Photo, PhotoComment, User].forEach((Model) => (Model.embedReferences = {})); // TODO: REMOVE THIS REGISTRATION BY IMPLEMENTING SERIALIZER
+    [Photo, PhotoComment, User].forEach((Model) => (Model.Serializer.embeds = {})); // TODO: REMOVE THIS REGISTRATION BY IMPLEMENTING SERIALIZER
 
     return { User, Photo, PhotoComment };
   }
@@ -213,8 +219,8 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     await User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
     await User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });
 
-    Photo.embed({ comments: PhotoComment });
-    PhotoComment.embed({ author: User });
+    Photo.Serializer.embed(Photo, { comments: PhotoComment });
+    PhotoComment.Serializer.embed(PhotoComment, { author: User });
 
     const firstComment = await PhotoComment.findBy({
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
