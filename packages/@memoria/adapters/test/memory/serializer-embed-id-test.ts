@@ -1,8 +1,8 @@
-import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
-module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", function (hooks) {
+module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -86,6 +86,8 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
 
   function prepare() {
     class User extends Model {
+      static Serializer = class UserSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -99,6 +101,8 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       primary_email_id: number;
     }
     class Email extends Model {
+      static Serializer = class EmailSerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -121,6 +125,8 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       person_id: number;
     }
     class Activity extends Model {
+      static Serializer = class ActivitySerializer extends Serializer {};
+
       @PrimaryGeneratedColumn()
       id: number;
 
@@ -131,8 +137,10 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       photo_id: number;
     }
     class PhotoComment extends Model {
-      static embedReferences = {
-        author: User,
+      static Serializer = class PhotoCommentSerializer extends Serializer {
+        static embeds = {
+          author: User,
+        };
       };
 
       @PrimaryGeneratedColumn("uuid")
@@ -148,9 +156,11 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       user_id: number;
     }
     class Photo extends Model {
-      static embedReferences = {
-        comments: PhotoComment,
-        activity: Activity,
+      static Serializer = class PhotoSerializer extends Serializer {
+        static embeds = {
+          comments: PhotoComment,
+          activity: Activity,
+        };
       };
 
       @PrimaryGeneratedColumn()
@@ -169,15 +179,25 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
     return { Activity, Email, User, Photo, PhotoComment };
   }
 
-  test("$Model.getRelationship() works for hasOne/belongsTo id relationships both sides on id relationships", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for hasOne/belongsTo id relationships both sides on id relationships", async function (assert) {
     const { Activity, Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
 
-    const activity = Photo.getRelationship(Photo.peek(1), "activity", Activity);
-    const activityLookupWithoutModel = Photo.getRelationship(Photo.peek(1), "activity");
-    const activityLookupWithDifferentReferenceName = Photo.getRelationship(
+    const activity = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      Photo.peek(1),
+      "activity",
+      Activity
+    );
+    const activityLookupWithoutModel = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      Photo.peek(1),
+      "activity"
+    );
+    const activityLookupWithDifferentReferenceName = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       Photo.peek(1),
       "somethingElse",
       Activity
@@ -186,12 +206,21 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
     assert.deepEqual(activity, activityLookupWithoutModel);
     assert.deepEqual(activity, activityLookupWithDifferentReferenceName);
     assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
-    assert.equal(Photo.getRelationship(Photo.peek(2), "activity", Activity), undefined);
-    assert.deepEqual(Activity.getRelationship(activity, "photo", Photo), await Photo.find(1));
-    assert.equal(Activity.getRelationship(Activity.peek(2), "photo", Photo), undefined);
+    assert.equal(
+      Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(2), "activity", Activity),
+      undefined
+    );
+    assert.deepEqual(
+      Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
+      await Photo.find(1)
+    );
+    assert.equal(
+      Activity.Serializer.getEmbeddedRelationship(Activity, Activity.peek(2), "photo", Photo),
+      undefined
+    );
   });
 
-  test("$Model.getRelationship() works for hasMany/belongsTo id relationships both sides on id relationships", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for hasMany/belongsTo id relationships both sides on id relationships", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
@@ -199,13 +228,24 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    const firstPhotoComments = Photo.getRelationship(await Photo.find(1), "comments", PhotoComment);
-    const secondPhotoComments = Photo.getRelationship(
+    const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      await Photo.find(1),
+      "comments",
+      PhotoComment
+    );
+    const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.find(2),
       "comments",
       PhotoComment
     );
-    const thirdPhotoComments = Photo.getRelationship(await Photo.find(3), "comments", PhotoComment);
+    const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      await Photo.find(3),
+      "comments",
+      PhotoComment
+    );
 
     assert.propEqual(firstPhotoComments, [
       {
@@ -238,30 +278,42 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
     assert.deepEqual(thirdPhotoComments, []);
 
     try {
-      PhotoComment.getRelationship(firstPhotoComments, "photo");
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments, "photo");
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
 
-    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    });
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        firstPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }
+    );
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        secondPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        id: 2,
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      }
+    );
   });
 
-  test("$Model.getRelationship() works for custom named hasOne/belongsTo id relationships both side on id relationships", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for custom named hasOne/belongsTo id relationships both side on id relationships", async function (assert) {
     const { Activity, Email, User, Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
@@ -269,25 +321,55 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
     await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
     await Promise.all(EMAIL_FIXTURES.map((email) => Email.insert(email)));
 
-    const activity = Photo.getRelationship(await Photo.find(1), "userActivity", Activity);
+    const activity = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      await Photo.find(1),
+      "userActivity",
+      Activity
+    );
 
     assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
-    assert.propEqual(User.getRelationship(await User.find(1), "primaryEmail", Email), {
-      id: 1,
-      address: "contact@izelnakri.com",
-      is_public: false,
-      confirmed_at: "2018-02-25T23:00:00.000Z",
-      confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
-      confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
-      person_id: 1,
-    });
-    assert.equal(Photo.getRelationship(await Photo.find(2), "userActivity", Activity), undefined);
-    assert.deepEqual(Activity.getRelationship(activity, "photo", Photo), await Photo.find(1));
-    assert.equal(Activity.getRelationship(await Activity.find(2), "userPhoto", Photo), undefined);
-    assert.deepEqual(Activity.getRelationship(activity, "photo", Photo), await Photo.find(1));
+    assert.propEqual(
+      User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email),
+      {
+        id: 1,
+        address: "contact@izelnakri.com",
+        is_public: false,
+        confirmed_at: "2018-02-25T23:00:00.000Z",
+        confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
+        confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
+        person_id: 1,
+      }
+    );
+    assert.equal(
+      Photo.Serializer.getEmbeddedRelationship(
+        Photo,
+        await Photo.find(2),
+        "userActivity",
+        Activity
+      ),
+      undefined
+    );
+    assert.deepEqual(
+      Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
+      await Photo.find(1)
+    );
+    assert.equal(
+      Activity.Serializer.getEmbeddedRelationship(
+        Activity,
+        await Activity.find(2),
+        "userPhoto",
+        Photo
+      ),
+      undefined
+    );
+    assert.deepEqual(
+      Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
+      await Photo.find(1)
+    );
   });
 
-  test("$Model.getRelationship() works for custom named hasMany/belongsTo id relationships both side on id relationships", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() works for custom named hasMany/belongsTo id relationships both side on id relationships", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
@@ -295,13 +377,24 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    const firstPhotoComments = Photo.getRelationship(await Photo.find(1), "comments", PhotoComment);
-    const secondPhotoComments = Photo.getRelationship(
+    const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      await Photo.find(1),
+      "comments",
+      PhotoComment
+    );
+    const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
       await Photo.find(2),
       "comments",
       PhotoComment
     );
-    const thirdPhotoComments = Photo.getRelationship(await Photo.find(3), "comments", PhotoComment);
+    const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
+      Photo,
+      await Photo.find(3),
+      "comments",
+      PhotoComment
+    );
 
     assert.propEqual(firstPhotoComments, [
       {
@@ -334,111 +427,108 @@ module("@memoria/adapters | MemoryAdapter | Relationship API for ID(integer)", f
     assert.deepEqual(thirdPhotoComments, []);
 
     try {
-      PhotoComment.getRelationship(firstPhotoComments, "photo", Photo);
-    } catch (error) {
-      assert.ok(
-        /\[Memoria\] PhotoComment\.getRelationship expects model input to be an object not an array/.test(
-          error.message
-        )
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        firstPhotoComments,
+        "photo",
+        Photo
       );
+    } catch (error) {
+      assert.ok(error instanceof RuntimeError);
     }
 
-    assert.propEqual(PhotoComment.getRelationship(firstPhotoComments[0], "photo", Photo), {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(PhotoComment.getRelationship(secondPhotoComments[0], "photo", Photo), {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    });
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        firstPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }
+    );
+    assert.propEqual(
+      PhotoComment.Serializer.getEmbeddedRelationship(
+        PhotoComment,
+        secondPhotoComments[0],
+        "photo",
+        Photo
+      ),
+      {
+        id: 2,
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      }
+    );
   });
 
-  test("$Model.getRelationship() throws an error when id relationship reference is invalid", async function (assert) {
+  test("$Model.Serializer.getEmbeddedRelationship() throws an error when id relationship reference is invalid", async function (assert) {
     const { Photo } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
 
     try {
-      Photo.getRelationship(await Photo.find(1), "device");
+      Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(1), "device");
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] device relationship could not be found on Photo model\. Please put the device Model object as the third parameter to Photo\.getRelationship function/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
 
     try {
-      Photo.getRelationship(await Photo.find(2), "senderActivity");
+      Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(2), "senderActivity");
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] senderActivity relationship could not be found on Photo model\. Please put the senderActivity Model object as the third parameter to Photo\.getRelationship function/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
   test("$Model.embedReferences can be set before runtime", async function (assert) {
     const { Activity, Photo, PhotoComment, User } = prepare();
 
-    assert.deepEqual(Photo.embedReferences, { comments: PhotoComment, activity: Activity });
-    assert.deepEqual(PhotoComment.embedReferences, { author: User });
+    assert.deepEqual(Photo.Serializer.embeds, { comments: PhotoComment, activity: Activity });
+    assert.deepEqual(PhotoComment.Serializer.embeds, { author: User });
   });
 
   test("$Model.embed({ embedName: ModelName }) sets an embedReference during runtime", async function (assert) {
     const { Activity, Photo, PhotoComment, User } = prepare();
 
-    Photo.embed({ userActivity: Activity });
-    User.embed({ activities: Activity });
+    Photo.Serializer.embed(Photo, { userActivity: Activity });
+    User.Serializer.embed(User, { activities: Activity });
 
-    assert.deepEqual(Photo.embedReferences, {
+    assert.deepEqual(Photo.Serializer.embeds, {
       comments: PhotoComment,
       activity: Activity,
       userActivity: Activity,
     });
-    assert.deepEqual(User.embedReferences, { activities: Activity });
+    assert.deepEqual(User.Serializer.embeds, { activities: Activity });
   });
 
-  test("$Model.embed() throws error at runtime doesnt receive an object as parameter", async function (assert) {
+  test("$Model.Serializer.embed() throws error at runtime doesnt receive an object as parameter", async function (assert) {
     const { Activity, User } = prepare();
 
     try {
-      User.embed();
+      User.Serializer.embed(User);
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
 
     try {
-      User.embed(Activity);
+      User.Serializer.embed(User, Activity);
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] User\.embed\(relationshipObject\) requires an object as a parameter: { relationshipKey: \$RelationshipModel }/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
-  test("$Model.embed() throws error when runtime $Model.embed(relationship) called with a Model that doesnt exist", async function (assert) {
+  test("$Model.Serializer.embed() throws error when runtime $Model.embed(relationship) called with a Model that doesnt exist", async function (assert) {
     const { User } = prepare();
 
     try {
-      User.embed({ activities: undefined });
+      User.Serializer.embed(User, { activities: undefined });
     } catch (error) {
-      assert.ok(
-        /\[Memoria\] User\.embed\(\) fails: activities Model reference is not a valid\. Please put a valid \$ModelName to User\.embed\(\)/.test(
-          error.message
-        )
-      );
+      assert.ok(error instanceof RuntimeError);
     }
   });
 });
