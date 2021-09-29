@@ -43,3 +43,6 @@ jobs:
       - name: Execute tests
         run: |
           docker-compose exec -T memoria npm test
+      - name: Upload code coverage to codecov
+        run: |
+          docker-compose exec -T memoria codecov -f coverage/lcov.info -t ${{secrets.CODECOV_TOKEN}}
