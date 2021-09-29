@@ -1,4 +1,6 @@
 ![docker-based-ci](https://github.com/izelnakri/memoria/workflows/docker-based-ci/badge.svg)
+[![codecov](https://codecov.io/gh/izelnakri/memoria/branch/main/graph/badge.svg?token=I416U3QJL7)](https://codecov.io/gh/izelnakri/memoria)
+[![npm version](https://badge.fury.io/js/@memoria%2Fmodel.svg)](https://badge.fury.io/js/@memoria%2Fmodel)
 
 # What is Memoria?
 Memoria is an in-memory database/ORM and http mock server you can run in-browser and node environments.
