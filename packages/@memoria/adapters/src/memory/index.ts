@@ -16,8 +16,6 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
 
-// NewBucket, InFlightBucket, DirtyBucket, PersistedBucket, HistoryBucket, ErrorBucket, RollbackBucket
-
 // Explain what is the different between push and insert?
 // Push replaces existing record!, doesnt have defaultValues
 

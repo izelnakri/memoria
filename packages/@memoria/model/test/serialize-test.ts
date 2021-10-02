@@ -2,7 +2,6 @@ import Model, { PrimaryGeneratedColumn, Column, Serializer } from "@memoria/mode
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 
-// TODO: half of the time fails even with commented out tests
 module("@memoria/model | $Model.serialize()", function (hooks) {
   setupMemoria(hooks);
 

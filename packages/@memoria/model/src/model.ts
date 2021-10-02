@@ -9,6 +9,12 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
+interface ModelBuildOptions {
+  isNew?: boolean;
+  isDeleted?: boolean;
+  freeze?: boolean;
+}
+
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -130,26 +136,31 @@ export default class Model {
     return await this.Adapter.count(this, options);
   }
 
-  // NOTE: this doesnt assign default values from the instance!!
-  // transforms strings to datestrings if it is a date column
-  static build(options?: QueryObject | Model): Model {
-    if (!options) {
-      return Object.seal(new this());
+  // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
+  static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
+    let model = new this(options);
+
+    if (!buildObject) {
+      Object.keys(model).forEach((keyName: string) => {
+        model[keyName] = model[keyName] || null;
+      });
+
+      return options && options.freeze ? Object.freeze(model) : Object.seal(model);
     }
 
-    let transformedOptions = Array.from(this.columnNames).reduce((result, keyName) => {
+    let transformedObject = Array.from(this.columnNames).reduce((result, keyName) => {
       // TODO: here we could do a typecheck as well
-      result[keyName] = transformValue(this, keyName, options[keyName]);
+      result[keyName] = transformValue(this, keyName, buildObject[keyName]);
 
       return result;
     }, {});
-    let model = new this(transformedOptions);
 
+    // NOTE: this is NOT ok when there is a default setting
     Object.keys(model).forEach((keyName: string) => {
-      model[keyName] = model[keyName] || keyName in options ? transformedOptions[keyName] : null;
+      model[keyName] = keyName in buildObject ? transformedObject[keyName] : model[keyName] || null;
     });
 
-    return Object.seal(model);
+    return options && options.freeze ? Object.freeze(model) : Object.seal(model);
   }
 
   static serializer(objectOrArray: Model | Model[]) {
@@ -168,6 +179,19 @@ export default class Model {
     return this.Serializer.serialize(this, object as Model);
   }
 
+  constructor(options?: ModelBuildOptions) {
+    if (options) {
+      if ("isNew" in options) {
+        this.#_isNew = options.isNew as boolean;
+      }
+      if ("isDeleted" in options) {
+        this.#_isDeleted = options.isDeleted as boolean;
+      }
+    }
+
+    return this;
+  }
+
   #_errors: ModelError[] = [];
   get errors(): ModelError[] {
     return this.#_errors;
@@ -176,16 +200,29 @@ export default class Model {
     this.#_errors = newError;
   }
 
-  constructor(options?: QueryObject) {
-    Array.from((this.constructor as typeof Model).columnNames).forEach((keyName) => {
-      Object.defineProperty(this, keyName, {
-        enumerable: true,
-        writable: true,
-        configurable: true,
-        value: options && keyName in options ? options[keyName] : null,
-      });
-    });
-
-    return this;
+  #_isNew = true;
+  get isNew() {
+    return this.#_isNew;
   }
+
+  get isPersisted() {
+    return !this.isNew;
+  }
+
+  #_isDeleted = false;
+  get isDeleted() {
+    return this.#_isDeleted;
+  }
+
+  #_isDirty = false;
+  get isDirty() {
+    return this.#_isDirty;
+  }
+
+  #_inFlight = false;
+  get inFlight() {
+    return this.#_inFlight;
+  }
+
+  // NOTE: maybe also do reload()
 }
