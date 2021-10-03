@@ -2,8 +2,18 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.16](https://github.com/izelnakri/memoria/compare/0.0.16...0.0.16)
+#### [0.0.17](https://github.com/izelnakri/memoria/compare/0.0.17...0.0.17)
 
+- initial model intermediary states with tests [`5367258`](https://github.com/izelnakri/memoria/commit/536725872ce6602d34ea90ac7ec6acf8afe677c7)
+- finalize model instantiation methods with tests [`7635e6d`](https://github.com/izelnakri/memoria/commit/7635e6de8bd49837bdb12c62f3ed49dfe7bac3f8)
+- add codecoverage [`2783a9a`](https://github.com/izelnakri/memoria/commit/2783a9a2d553e1d2fb5edd7452bf6d4aea07d899)
+- add CODECOV_TOKEN and adjust docker-compose [`2fe3897`](https://github.com/izelnakri/memoria/commit/2fe3897697fc21b41931d7b817235d6175c8d56e)
+
+#### [0.0.17](https://github.com/izelnakri/memoria/compare/0.0.16...0.0.17)
+
+> 29 September 2021
+
+- Release 0.0.17 [`e02e77c`](https://github.com/izelnakri/memoria/commit/e02e77ca603b235e35ab5a64956f2e34ad88c43d)
 - fix wrong ModelRef typing on sql adapter [`780ed5b`](https://github.com/izelnakri/memoria/commit/780ed5bbf1cbca6e9c03de26b1f2a6f66edce3bd)
 
 #### [0.0.16](https://github.com/izelnakri/memoria/compare/0.0.15...0.0.16)
