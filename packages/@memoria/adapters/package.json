@@ -12,6 +12,6 @@
   "dependencies": {
     "@memoria/model": "0.0.18",
     "inflected": "^2.1.0",
-    "typeorm": "^0.2.37"
+    "typeorm": "^0.2.38"
   }
 }
