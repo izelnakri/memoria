@@ -5,8 +5,8 @@ services:
     environment:
       POSTGRES_USER: $PGUSER
       POSTGRES_PASSWORD: $PGPASSWORD
-      PGPASSWORD: $PGUSER
       PGUSER: $PGPASSWORD
+      PGPASSWORD: $PGUSER
       PGDATA: /var/lib/postgresql/data/pgdata
     restart: always
     networks:
@@ -15,11 +15,6 @@ services:
       - pgdata:/var/lib/postgresql/data
   memoria:
     image: $REGISTRY/$REPO_OWNER/$DOCKER_TAG
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - $REGISTRY/$REPO_OWNER/$DOCKER_TAG
     environment:
       POSTGRES_USER: $PGUSER
       POSTGRES_PASSWORD: $PGPASSWORD
@@ -27,6 +22,12 @@ services:
       PGPASSWORD: $PGPASSWORD
       PGPORT: 5432
       PGHOST: db
+      CODECOV_TOKEN: $CODECOV_TOKEN
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - $REGISTRY/$REPO_OWNER/$DOCKER_TAG
     tty: true
     depends_on:
       - db
