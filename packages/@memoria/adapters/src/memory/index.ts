@@ -19,7 +19,7 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 // Explain what is the different between push and insert?
 // Push replaces existing record!, doesnt have defaultValues
 
-// TODO: always store id as string due to bigint!! Thats what SQLAdapter does
+// TODO: allow storeing bigint as string due to bigint!! Thats what SQLAdapter does
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
@@ -129,7 +129,7 @@ export default class MemoryAdapter {
     let primaryKey = record[Model.primaryKeyName];
     let existingModelInCache = this.peek(Model, primaryKey);
     if (!existingModelInCache) {
-      let target = cleanRelationships(Model, Model.build(record));
+      let target = cleanRelationships(Model, Model.build(record, { isNew: false }));
       if (!primaryKey) {
         throw new RuntimeError(new Changeset(target), {
           id: null,
@@ -259,7 +259,8 @@ export default class MemoryAdapter {
           }
 
           return result;
-        }, {})
+        }, {}),
+        { isNew: false }
       )
     );
     let primaryKey = target[Model.primaryKeyName];
@@ -340,6 +341,8 @@ export default class MemoryAdapter {
     let targetIndex = Model.Cache.indexOf(targetRecord);
 
     Model.Cache.splice(targetIndex, 1);
+
+    targetRecord.isDeleted = true;
 
     return targetRecord;
   }

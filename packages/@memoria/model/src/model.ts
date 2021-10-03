@@ -93,15 +93,36 @@ export default class Model {
   }
 
   static async insert(record?: QueryObject | ModelRefOrInstance): Promise<Model> {
-    return await this.Adapter.insert(this, record || {});
+    this.setRecordInTransit(record);
+
+    let result = await this.Adapter.insert(this, record || {});
+
+    if (record instanceof this) {
+      record.#_inTransit = false;
+      record.#_isNew = false;
+    }
+
+    return result;
   }
 
   static async update(record: ModelRefOrInstance): Promise<Model> {
-    return await this.Adapter.update(this, record);
+    this.setRecordInTransit(record);
+
+    let result = await this.Adapter.update(this, record);
+
+    this.unsetRecordInTransit(record);
+
+    return result;
   }
 
   static async save(record: QueryObject | ModelRefOrInstance): Promise<Model> {
-    return await this.Adapter.save(this, record);
+    this.setRecordInTransit(record);
+
+    let result = await this.Adapter.save(this, record);
+
+    this.unsetRecordInTransit(record);
+
+    return result;
   }
 
   static unload(record: ModelRefOrInstance): Model {
@@ -109,19 +130,46 @@ export default class Model {
   }
 
   static async delete(record: ModelRefOrInstance): Promise<Model> {
-    return await this.Adapter.delete(this, record);
+    this.setRecordInTransit(record);
+
+    let result = await this.Adapter.delete(this, record);
+
+    if (record instanceof this) {
+      record.#_inTransit = false;
+      record.#_isDeleted = true;
+    }
+
+    return result;
   }
 
   static async saveAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
-    return await this.Adapter.saveAll(this, records);
+    records.forEach((record) => this.setRecordInTransit(record));
+
+    let result = await this.Adapter.saveAll(this, records);
+
+    records.forEach((record) => this.unsetRecordInTransit(record));
+
+    return result;
   }
 
   static async insertAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
-    return await this.Adapter.insertAll(this, records);
+    records.forEach((record) => this.setRecordInTransit(record));
+
+    let result = await this.Adapter.insertAll(this, records);
+
+    records.forEach((record) => this.unsetRecordInTransit(record));
+
+    return result;
   }
 
   static async updateAll(records: ModelRefOrInstance[]): Promise<Model[]> {
-    return await this.Adapter.updateAll(this, records);
+    records.forEach((record) => this.setRecordInTransit(record));
+
+    let result = await this.Adapter.updateAll(this, records);
+
+    records.forEach((record) => this.unsetRecordInTransit(record));
+
+    return result;
   }
 
   static unloadAll(records?: ModelRefOrInstance[]): Model[] {
@@ -129,7 +177,13 @@ export default class Model {
   }
 
   static async deleteAll(records: ModelRefOrInstance[]): Promise<Model[]> {
-    return await this.Adapter.deleteAll(this, records);
+    records.forEach((record) => this.setRecordInTransit(record));
+
+    let result = await this.Adapter.deleteAll(this, records);
+
+    records.forEach((record) => this.unsetRecordInTransit(record));
+
+    return result;
   }
 
   static async count(options: QueryObject): Promise<number> {
@@ -145,7 +199,7 @@ export default class Model {
         model[keyName] = model[keyName] || null;
       });
 
-      return options && options.freeze ? Object.freeze(model) : Object.seal(model);
+      return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
     }
 
     let transformedObject = Array.from(this.columnNames).reduce((result, keyName) => {
@@ -160,7 +214,7 @@ export default class Model {
       model[keyName] = keyName in buildObject ? transformedObject[keyName] : model[keyName] || null;
     });
 
-    return options && options.freeze ? Object.freeze(model) : Object.seal(model);
+    return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
   }
 
   static serializer(objectOrArray: Model | Model[]) {
@@ -179,6 +233,18 @@ export default class Model {
     return this.Serializer.serialize(this, object as Model);
   }
 
+  private static setRecordInTransit(record) {
+    if (record instanceof this) {
+      record.#_inTransit = true;
+    }
+  }
+
+  private static unsetRecordInTransit(record) {
+    if (record instanceof this) {
+      record.#_inTransit = false;
+    }
+  }
+
   constructor(options?: ModelBuildOptions) {
     if (options) {
       if ("isNew" in options) {
@@ -188,8 +254,6 @@ export default class Model {
         this.#_isDeleted = options.isDeleted as boolean;
       }
     }
-
-    return this;
   }
 
   #_errors: ModelError[] = [];
@@ -213,16 +277,23 @@ export default class Model {
   get isDeleted() {
     return this.#_isDeleted;
   }
+  set isDeleted(value) {
+    this.#_isDeleted = !!value;
+  }
 
   #_isDirty = false;
   get isDirty() {
     return this.#_isDirty;
   }
 
-  #_inFlight = false;
-  get inFlight() {
-    return this.#_inFlight;
+  #_inTransit = false;
+  get inTransit() {
+    return this.#_inTransit;
   }
 
-  // NOTE: maybe also do reload()
+  async reload() {
+    let Klass = this.constructor as typeof Model;
+
+    return await Klass.Adapter.find(Klass, this[Klass.primaryKeyName]);
+  }
 }

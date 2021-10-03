@@ -121,7 +121,7 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 
   static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
-    let model = record instanceof Model ? record : Model.build(record);
+    let model = record instanceof Model ? record : Model.build(record, { isNew: false });
 
     if (!record.hasOwnProperty(Model.primaryKeyName)) {
       throw new CacheError(new Changeset(model), {
@@ -139,7 +139,7 @@ export default class SQLAdapter extends MemoryAdapter {
       return foundInCache;
     }
 
-    let target = cleanRelationships(Model, record instanceof Model ? record : Model.build(record));
+    let target = cleanRelationships(Model, model);
 
     Model.Cache.push(target);
 
@@ -310,7 +310,7 @@ export default class SQLAdapter extends MemoryAdapter {
         })
         .returning("*")
         .execute();
-      let result = Model.build(resultRaw.raw[0]) as MemoriaModel;
+      let result = Model.build(resultRaw.raw[0], { isNew: false }) as MemoriaModel;
       if (!result || !result[Model.primaryKeyName]) {
         throw new UpdateError(new Changeset(Model.build(record)), {
           id: record[Model.primaryKeyName],
@@ -367,7 +367,7 @@ export default class SQLAdapter extends MemoryAdapter {
         return await super.delete(Model, result); // NOTE: this could be problematic
       }
 
-      return Model.build(result);
+      return Model.build(result, { isNew: false, isDeleted: true });
     } catch (error) {
       throw error;
     }

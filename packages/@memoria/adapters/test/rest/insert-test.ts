@@ -77,6 +77,9 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
       @Column("varchar", { default: "Some default name" })
       name: string;
+
+      @Column()
+      href: string;
     }
     class PhotoComment extends Model {
       static Adapter = RESTAdapter;
@@ -109,6 +112,9 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
       @Column("varchar", { default: "Some default name" })
       name: string;
+
+      @Column()
+      href: string;
     }
     class ServerPhotoComment extends Model {
       // NOTE: extending from another model doesnt work yet!
@@ -185,9 +191,23 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
+    let initialPhotos = await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+
+    assert.propEqual(initialPhotos, PHOTO_FIXTURES);
+    assert.ok(
+      initialPhotos.every(
+        (photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted
+      )
+    );
+
+    let initialPhotoComments = await Promise.all(
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+    );
+
+    assert.ok(
+      initialPhotoComments.every(
+        (comment) => !comment.isNew && !comment.isDirty && comment.isPersisted && !comment.isDeleted
+      )
     );
 
     assert.deepEqual(
@@ -206,30 +226,18 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
     assert.equal(await Photo.count(), 5);
     assert.propEqual(await Photo.findAll(), [
-      {
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      },
-      {
-        id: 2,
-        name: "Family photo",
-        is_public: true,
-      },
-      {
-        id: 3,
-        name: "Selfie",
-        is_public: false,
-      },
+      ...PHOTO_FIXTURES,
       {
         id: 4,
         is_public: true,
         name: "Some default name",
+        href: null,
       },
       {
         id: 5,
         is_public: true,
         name: "Some default name",
+        href: null,
       },
     ]);
 
@@ -267,30 +275,18 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
     assert.equal(await Photo.count(), 5);
     assert.propEqual(await Photo.findAll(), [
-      {
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      },
-      {
-        id: 2,
-        name: "Family photo",
-        is_public: true,
-      },
-      {
-        id: 3,
-        name: "Selfie",
-        is_public: false,
-      },
+      ...PHOTO_FIXTURES,
       {
         id: 99,
         is_public: false,
         name: "Some default name",
+        href: "/izel.html",
       },
       {
         id: 100,
         is_public: true,
         name: "Baby photo",
+        href: "/baby.jpg",
       },
     ]);
 
@@ -405,33 +401,21 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     await PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
     await PhotoComment.insert({ reply_id: 1 });
 
-    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
     assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important"]);
     assert.propEqual(await Photo.findAll(), [
-      {
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      },
-      {
-        id: 2,
-        name: "Family photo",
-        is_public: true,
-      },
-      {
-        id: 3,
-        name: "Selfie",
-        is_public: false,
-      },
+      ...PHOTO_FIXTURES,
       {
         id: 4,
         is_public: true,
         name: "Some default name",
+        href: null,
       },
       {
         id: 5,
         is_public: false,
         name: "Some default name",
+        href: null,
       },
     ]);
   });
