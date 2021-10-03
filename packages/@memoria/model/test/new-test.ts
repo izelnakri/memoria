@@ -31,7 +31,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.equal(emptyModel.isPersisted, false);
     assert.equal(emptyModel.isDeleted, false);
     assert.equal(emptyModel.isDirty, false);
-    assert.equal(emptyModel.inFlight, false);
+    assert.equal(emptyModel.inTransit, false);
 
     let model = new Post({ isNew: false });
 
@@ -42,7 +42,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.equal(model.isPersisted, true);
     assert.equal(model.isDeleted, false);
     assert.equal(model.isDirty, false);
-    assert.equal(model.inFlight, false);
+    assert.equal(model.inTransit, false);
 
     let anotherModel = new Post({ isNew: false, isDeleted: true });
 
@@ -53,6 +53,6 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.equal(anotherModel.isPersisted, true);
     assert.equal(anotherModel.isDeleted, true);
     assert.equal(anotherModel.isDirty, false);
-    assert.equal(anotherModel.inFlight, false);
+    assert.equal(anotherModel.inTransit, false);
   });
 });

@@ -95,12 +95,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
-    const deletedPhoto = await Photo.delete({ id: 2 });
-    const deletedComment = await PhotoComment.delete({
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-    });
-
-    await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    let deletedPhoto = await Photo.delete({ id: 2 });
 
     assert.propEqual(deletedPhoto, {
       id: 2,
@@ -108,12 +103,22 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       href: "family-photo.jpeg",
       is_public: true,
     });
+    assert.ok(!deletedPhoto.isNew && !deletedPhoto.isDirty && deletedPhoto.isDeleted);
+
+    const deletedComment = await PhotoComment.delete({
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+    });
+
     assert.propEqual(deletedComment, {
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       content: "What a nice photo!",
       photo_id: 1,
       user_id: 1,
     });
+    assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
+
+    await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+
     assert.propEqual(await Photo.findAll(), [
       {
         id: 1,

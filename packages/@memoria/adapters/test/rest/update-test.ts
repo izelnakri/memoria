@@ -252,23 +252,43 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
     assert.ok(firstComment.inserted_at instanceof Date);
     assert.ok(firstComment.updated_at instanceof Date);
 
-    await Photo.update({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
-    await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-    await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
-
-    assert.propEqual(await Photo.find(1), {
+    let firstPhoto = await Photo.update({
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.propEqual(await Photo.find(2), {
+    assert.ok(
+      !firstPhoto.isNew && !firstPhoto.isDirty && firstPhoto.isPersisted && !firstPhoto.isDeleted
+    );
+    assert.propEqual(firstPhoto, {
+      id: 1,
+      name: "Ski trip",
+      href: "ski-trip.jpeg",
+      is_public: false,
+    });
+    assert.propEqual(firstPhoto, await Photo.find(1));
+
+    let secondPhoto = await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
+    assert.ok(
+      !secondPhoto.isNew &&
+        !secondPhoto.isDirty &&
+        secondPhoto.isPersisted &&
+        !secondPhoto.isDeleted
+    );
+    assert.propEqual(secondPhoto, {
       id: 2,
       name: "Family photo",
       href: "family-photo-2.jpeg",
       is_public: false,
     });
-    let comment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    assert.propEqual(secondPhoto, await Photo.find(2));
+
+    let comment = await PhotoComment.update({
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      content: "Cool",
+    });
+    assert.ok(!comment.isNew && !comment.isDirty && comment.isPersisted && !comment.isDeleted);
     assert.matchJson(comment, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       inserted_at: String,
@@ -278,9 +298,12 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
     });
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
-
     assert.propEqual(firstComment.inserted_at, comment.inserted_at);
     assert.propEqual(firstComment.updated_at, comment.updated_at);
+    assert.propEqual(
+      comment,
+      await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
+    );
   });
 
   test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {

@@ -30,7 +30,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     assert.equal(emptyModel.isPersisted, false);
     assert.equal(emptyModel.isDeleted, false);
     assert.equal(emptyModel.isDirty, false);
-    assert.equal(emptyModel.inFlight, false);
+    assert.equal(emptyModel.inTransit, false);
 
     let model = Post.build({ isPublic: false }, { isNew: false });
 
@@ -41,7 +41,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     assert.equal(model.isPersisted, true);
     assert.equal(model.isDeleted, false);
     assert.equal(model.isDirty, false);
-    assert.equal(model.inFlight, false);
+    assert.equal(model.inTransit, false);
 
     let anotherModel = Post.build(
       { isPublic: false, name: "something else" },
@@ -55,6 +55,20 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     assert.equal(anotherModel.isPersisted, true);
     assert.equal(anotherModel.isDeleted, true);
     assert.equal(anotherModel.isDirty, false);
-    assert.equal(anotherModel.inFlight, false);
+    assert.equal(anotherModel.inTransit, false);
+  });
+
+  test("can freeze the model", function (assert) {
+    let { Post } = prepare();
+
+    let newModel = Post.build({ isPublic: false, name: "something else" }, { freeze: true });
+
+    assert.propEqual(newModel, { id: null, isPublic: false, name: "something else" });
+    assert.ok(Object.isFrozen(newModel));
+
+    let persistentModel = Post.build({ isPublic: null }, { isNew: false, freeze: true });
+
+    assert.propEqual(persistentModel, { id: null, isPublic: null, name: "Imported photo" });
+    assert.ok(Object.isFrozen(persistentModel));
   });
 });

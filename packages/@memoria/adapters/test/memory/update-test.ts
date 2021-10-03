@@ -115,24 +115,49 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
     });
     assert.ok(firstComment.inserted_at instanceof Date);
     assert.ok(firstComment.updated_at instanceof Date);
+    assert.ok(
+      !firstComment.isNew &&
+        firstComment.isPersisted &&
+        !firstComment.isDirty &&
+        !firstComment.isDeleted
+    );
 
-    await Photo.update({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
-    await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-    await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29", content: "Cool" });
-
-    assert.propEqual(await Photo.find(1), {
+    let firstPhoto = await Photo.update({
       id: 1,
       name: "Ski trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.propEqual(await Photo.find(2), {
+    assert.propEqual(firstPhoto, {
+      id: 1,
+      name: "Ski trip",
+      href: "ski-trip.jpeg",
+      is_public: false,
+    });
+    assert.propEqual(firstPhoto, await Photo.find(1));
+    assert.ok(
+      !firstPhoto.isNew && firstPhoto.isPersisted && !firstPhoto.isDirty && !firstPhoto.isDeleted
+    );
+
+    let secondPhoto = await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
+    assert.propEqual(secondPhoto, {
       id: 2,
       name: "Family photo",
       href: "family-photo-2.jpeg",
       is_public: false,
     });
-    let comment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    assert.propEqual(secondPhoto, await Photo.find(2));
+    assert.ok(
+      !secondPhoto.isNew &&
+        secondPhoto.isPersisted &&
+        !secondPhoto.isDirty &&
+        !secondPhoto.isDeleted
+    );
+
+    let comment = await PhotoComment.update({
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      content: "Cool",
+    });
     assert.matchJson(comment, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       inserted_at: String,
@@ -140,6 +165,11 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       is_important: true,
       content: "Cool",
     });
+    assert.propEqual(
+      comment,
+      await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
+    );
+    assert.ok(!comment.isNew && comment.isPersisted && !comment.isDirty && !comment.isDeleted);
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
     assert.equal(firstComment.inserted_at, comment.inserted_at);
