@@ -27,10 +27,11 @@ export default class Changeset {
       this.changes = {};
       this.errors = [];
     } else if (model instanceof MemoriaModel) {
-      this.action = null;
+      this.action = model.isNew ? "insert" : "update";
       this.data = model;
-      this.errors = [];
-      this.changes = params
+      this.errors = model.errors;
+
+      let castedChanges = params
         ? Object.keys(this.data).reduce((result, keyName) => {
             if (keyName in params && this.data[keyName] !== params[keyName]) {
               result[keyName] = params[keyName];
@@ -39,6 +40,7 @@ export default class Changeset {
             return result;
           }, {})
         : {};
+      this.changes = Object.assign({}, model.changes, castedChanges);
     } else {
       this.action = (model as Changeset).action;
       this.data = (model as Changeset).data;

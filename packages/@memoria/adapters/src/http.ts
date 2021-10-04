@@ -152,7 +152,7 @@ async function makeFetchRequest(
       body: JSON.stringify(httpOptions.body),
     });
   } finally {
-    clearTimeout(timeoutFunction); // NOTE: move to try?
+    clearTimeout(timeoutFunction);
   }
 
   try {
