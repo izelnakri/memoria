@@ -1,5 +1,6 @@
 # Intermediary states(isDirty tracking)
 # Relationships
+# cache: ms option for save, and maybe make tracking optional for ember
 # reasons for artifacts: doc gen, code cov report, .apk builds
 
 

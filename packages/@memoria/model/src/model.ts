@@ -1,6 +1,7 @@
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { ModelError, RuntimeError } from "./errors/index.js";
+import Changeset from "./changeset.js";
 import Config from "./config.js";
 import Serializer, { transformValue } from "./serializer.js";
 import type { ModelReference, RelationshipSchemaDefinition } from "./index.js";
@@ -9,12 +10,23 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
-interface ModelBuildOptions {
+interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
-  freeze?: boolean;
 }
 
+interface ModelBuildOptions extends ModelInstantiateOptions {
+  freeze?: boolean;
+  trackAttributes?: boolean;
+}
+
+const LOCK_PROPERTY = {
+  configurable: false,
+  enumerable: false,
+  writable: false,
+};
+
+// NOTE: CRUD params with instances change + error is not reset on each CRUD operation currently on purpose.
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -96,6 +108,7 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.insert(this, record || {});
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -109,6 +122,7 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.update(this, record);
+    record.revisionHistory.push(result.revision);
 
     this.unsetRecordInTransit(record);
 
@@ -119,6 +133,7 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.save(this, record);
+    record.revisionHistory.push(result.revision);
 
     this.unsetRecordInTransit(record);
 
@@ -191,28 +206,56 @@ export default class Model {
   }
 
   // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
+  // could do attribute tracking
+  // TODO: test also passing new Model() instance
   static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
     let model = new this(options);
 
-    if (!buildObject) {
-      Object.keys(model).forEach((keyName: string) => {
-        model[keyName] = model[keyName] || null;
+    if (!options || options.trackAttributes !== false) {
+      model.revisionHistory.push(
+        Array.from(this.columnNames).reduce((result, keyName) => {
+          transformModelForBuild(model, keyName, buildObject);
+
+          return Object.assign(result, { [keyName]: model[keyName] });
+        }, {} as ModelReference)
+      );
+
+      Array.from(this.columnNames).forEach((columnName) => {
+        let cache = model[columnName];
+
+        Object.defineProperty(model, columnName, {
+          configurable: false,
+          enumerable: true,
+          get() {
+            return cache;
+          },
+          set(value) {
+            if (this[columnName] === value) {
+              return;
+            }
+
+            value = value === undefined ? null : value;
+            if (this.revision[columnName] === value) {
+              delete this.changes[columnName];
+            } else {
+              Object.assign(this.changes, { [columnName]: value });
+            }
+
+            this.errors.forEach((error, errorIndex) => {
+              if (error.attribute === columnName) {
+                this.errors.splice(errorIndex, 1);
+              }
+            });
+
+            cache = value;
+          },
+        });
       });
-
-      return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
+    } else {
+      Array.from(this.columnNames).forEach((keyName) =>
+        transformModelForBuild(model, keyName, buildObject)
+      );
     }
-
-    let transformedObject = Array.from(this.columnNames).reduce((result, keyName) => {
-      // TODO: here we could do a typecheck as well
-      result[keyName] = transformValue(this, keyName, buildObject[keyName]);
-
-      return result;
-    }, {});
-
-    // NOTE: this is NOT ok when there is a default setting
-    Object.keys(model).forEach((keyName: string) => {
-      model[keyName] = keyName in buildObject ? transformedObject[keyName] : model[keyName] || null;
-    });
 
     return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
   }
@@ -245,7 +288,11 @@ export default class Model {
     }
   }
 
-  constructor(options?: ModelBuildOptions) {
+  // tracking only includes in Model.build(), same goes for model assignments
+  constructor(options?: ModelInstantiateOptions) {
+    Object.defineProperty(this, "changes", LOCK_PROPERTY);
+    Object.defineProperty(this, "revisionHistory", LOCK_PROPERTY);
+
     if (options) {
       if ("isNew" in options) {
         this.#_isNew = options.isNew as boolean;
@@ -254,6 +301,13 @@ export default class Model {
         this.#_isDeleted = options.isDeleted as boolean;
       }
     }
+  }
+
+  changes = Object.create(null);
+  revisionHistory: ModelReference[] = [];
+
+  get revision() {
+    return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);
   }
 
   #_errors: ModelError[] = [];
@@ -270,7 +324,7 @@ export default class Model {
   }
 
   get isPersisted() {
-    return !this.isNew;
+    return !this.isNew; // NOTE: change this to !this.isDirty && !this.isNew;
   }
 
   #_isDeleted = false;
@@ -281,14 +335,47 @@ export default class Model {
     this.#_isDeleted = !!value;
   }
 
-  #_isDirty = false;
-  get isDirty() {
-    return this.#_isDirty;
-  }
-
   #_inTransit = false;
   get inTransit() {
     return this.#_inTransit;
+  }
+
+  get isDirty() {
+    return Object.keys(this.changes).length > 0;
+  }
+
+  get changeset() {
+    return new Changeset(this, this.changes);
+  }
+
+  changedAttributes() {
+    return Object.keys(this.changes).reduce((result, keyName) => {
+      return Object.assign(result, { [keyName]: [this.revision[keyName], this.changes[keyName]] });
+    }, {});
+  }
+
+  rollbackAttributes() {
+    return Object.keys(this.changes).reduce((result, columnName) => {
+      result[columnName] = this.revision[columnName];
+      return result;
+    }, this);
+  }
+
+  toObject() {
+    return Array.from((this.constructor as typeof Model).columnNames).reduce(
+      (result, columnName) => {
+        result[columnName] = this.revision[columnName];
+        return result;
+      },
+      Object.create(null)
+    );
+  }
+
+  toJSON() {
+    return (this.constructor as typeof Model).Serializer.serialize(
+      this.constructor as typeof Model,
+      this
+    );
   }
 
   async reload() {
@@ -296,4 +383,11 @@ export default class Model {
 
     return await Klass.Adapter.find(Klass, this[Klass.primaryKeyName]);
   }
+}
+
+function transformModelForBuild(model, keyName, buildObject) {
+  model[keyName] =
+    buildObject && keyName in buildObject
+      ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
+      : model[keyName] || null;
 }

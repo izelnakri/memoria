@@ -168,7 +168,9 @@ function sortByIdOrUUID(records: MemoriaModel[], primaryColumnName: string) {
 }
 
 export function transformValue(Model: typeof MemoriaModel, keyName: string, value: any) {
-  if (
+  if (value === undefined) {
+    return null;
+  } else if (
     typeof value === "string" &&
     DATE_COLUMN_DEFINITIONS.has(Config.getSchema(Model).columns[keyName].type as string)
   ) {

@@ -121,13 +121,10 @@ export default class MemoryAdapter {
 
   // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache
   // it provided record must have the primaryKey
-  static push(
-    Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
-  ): MemoriaModel | MemoriaModel[] {
+  static push(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
-    let existingModelInCache = this.peek(Model, primaryKey);
+    let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
     if (!existingModelInCache) {
       let target = cleanRelationships(Model, Model.build(record, { isNew: false }));
       if (!primaryKey) {
