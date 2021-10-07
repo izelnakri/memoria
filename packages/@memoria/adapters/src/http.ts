@@ -175,12 +175,11 @@ async function makeFetchRequest(
     let errors = getErrorsIfExists(json, httpOptions);
     if (errors || response.status >= 223) {
       let ErrorInterface = getErrorInterface(httpOptions, response, Model);
-      let errorMessage = getErrorMessage(ErrorInterface, httpOptions);
 
       throw new ErrorInterface(
         new Changeset(Model ? getModelFromPayload(httpOptions.body as JSObject, Model) : undefined),
         errors as ErrorMetadata[],
-        errorMessage
+        getErrorMessage(ErrorInterface, httpOptions)
       );
     }
 
