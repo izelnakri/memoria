@@ -1,4 +1,10 @@
-import Model, { Changeset, PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
+import Model, {
+  Changeset,
+  PrimaryGeneratedColumn,
+  Column,
+  RuntimeError,
+  Serializer,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 
@@ -58,7 +64,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.equal(anotherModel.inTransit, false);
   });
 
-  test("it doesnt have .isDirty, .changeset and .changedAttributes(), .rollbackAttributes()", function (assert) {
+  test("model instantiated with new Model() handles attr tracking related methods correctly", function (assert) {
     let trackingProperties = ["isDirty", "changeset", "changedAttributes", "rollbackAttributes"];
     let { Post } = prepare();
 
@@ -69,7 +75,16 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
     assert.deepEqual(emptyModel.revisionHistory, []);
     assert.deepEqual(emptyModel.revision, {});
-    assert.deepEqual(emptyModel.changedAttributes(), {});
+    try {
+      emptyModel.changedAttributes();
+    } catch (error) {
+      assert.ok(error instanceof RuntimeError);
+    }
+    try {
+      emptyModel.rollbackAttributes();
+    } catch (error) {
+      assert.ok(error instanceof RuntimeError);
+    }
 
     emptyModel.name = "some new name";
 
@@ -78,6 +93,16 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
     assert.deepEqual(emptyModel.revisionHistory, []);
     assert.deepEqual(emptyModel.revision, {});
-    assert.deepEqual(emptyModel.changedAttributes(), {});
+
+    try {
+      emptyModel.changedAttributes();
+    } catch (error) {
+      assert.ok(error instanceof RuntimeError);
+    }
+    try {
+      emptyModel.rollbackAttributes();
+    } catch (error) {
+      assert.ok(error instanceof RuntimeError);
+    }
   });
 });
