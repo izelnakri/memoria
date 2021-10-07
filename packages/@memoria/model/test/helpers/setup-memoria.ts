@@ -13,6 +13,17 @@ export default function (hooks) {
         message,
       });
     };
+    QUnit.assert.matchChangeset = function (value, expected, message) {
+      let actual = JSON.parse(JSON.stringify(filterObject(value, ["date"]), null, 2));
+      let filteredExpected = filterObject(expected, ["date"]);
+
+      this.pushResult({
+        result: match(actual, filteredExpected),
+        actual,
+        expected: filteredExpected,
+        message,
+      });
+    };
   });
   hooks.beforeEach(async function () {
     await Config.resetForTests();
@@ -21,5 +32,15 @@ export default function (hooks) {
   hooks.afterEach(async function () {
     await Config.resetForTests();
     await Config.resetSchemas();
+  });
+}
+
+function filterObject(object, arrayOfKeysToFilter = []) {
+  return Object.keys(object).reduce((result, keyName) => {
+    if (!arrayOfKeysToFilter.includes(keyName)) {
+      result[keyName] = object[keyName];
+    }
+
+    return result;
   });
 }

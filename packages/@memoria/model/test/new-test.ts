@@ -1,9 +1,10 @@
-import Model, { PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
+import Model, { Changeset, PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 
-// check isExtensible, Object.isFrozen
 module("@memoria/model | new $Model() tests", function (hooks) {
+  setupMemoria(hooks);
+
   function prepare() {
     class Post extends Model {
       @PrimaryGeneratedColumn()
@@ -38,6 +39,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.propEqual(model, { id: undefined, isPublic: undefined, name: undefined });
     assert.notOk(Object.isSealed(model));
     assert.notOk(Object.isFrozen(model));
+
     assert.equal(model.isNew, false);
     assert.equal(model.isPersisted, true);
     assert.equal(model.isDeleted, false);
@@ -54,5 +56,28 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.equal(anotherModel.isDeleted, true);
     assert.equal(anotherModel.isDirty, false);
     assert.equal(anotherModel.inTransit, false);
+  });
+
+  test("it doesnt have .isDirty, .changeset and .changedAttributes(), .rollbackAttributes()", function (assert) {
+    let trackingProperties = ["isDirty", "changeset", "changedAttributes", "rollbackAttributes"];
+    let { Post } = prepare();
+
+    let emptyModel = new Post();
+
+    assert.equal(emptyModel.isDirty, false);
+    assert.deepEqual(emptyModel.changes, {});
+    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
+    assert.deepEqual(emptyModel.revisionHistory, []);
+    assert.deepEqual(emptyModel.revision, {});
+    assert.deepEqual(emptyModel.changedAttributes(), {});
+
+    emptyModel.name = "some new name";
+
+    assert.equal(emptyModel.isDirty, false);
+    assert.deepEqual(emptyModel.changes, {});
+    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
+    assert.deepEqual(emptyModel.revisionHistory, []);
+    assert.deepEqual(emptyModel.revision, {});
+    assert.deepEqual(emptyModel.changedAttributes(), {});
   });
 });
