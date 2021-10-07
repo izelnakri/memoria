@@ -1,8 +1,10 @@
-# Intermediary states(isDirty tracking)
+# Tracking tests:
+# NOTE: do the same to a saved model(?) - do it in the insert test
+# NOTE: do the same to a fetched and updated model - do it in the update test
+
 # Relationships
 # cache: ms option for save, and maybe make tracking optional for ember
 # reasons for artifacts: doc gen, code cov report, .apk builds
-
 
 try {
   let photo = PhotoComment.insert({ name: 'something' });
@@ -22,6 +24,11 @@ c8 -r html npm run test:node then upload to github pages(?)
 errors.add(attr, ['', '', '']);
 
 
+to create dynamic className:
+let Memoria = {};
+Memoria['Ana'] = class { name = 'Izel' };
+var me = new Memoria'Ana']() // classes.Ana {name: "Izel"}
+console.log(me);
 
 
 
