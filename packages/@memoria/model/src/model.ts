@@ -349,12 +349,20 @@ export default class Model {
   }
 
   changedAttributes() {
+    if (this.revisionHistory.length === 0) {
+      throw new RuntimeError('Tried to call model.changedAttributes() on untracked model, use $Model.build()');
+    }
+
     return Object.keys(this.changes).reduce((result, keyName) => {
       return Object.assign(result, { [keyName]: [this.revision[keyName], this.changes[keyName]] });
     }, {});
   }
 
   rollbackAttributes() {
+    if (this.revisionHistory.length === 0) {
+      throw new RuntimeError('Tried to call model.rollbackAttributes() on untracked model, use $Model.build()');
+    }
+
     return Object.keys(this.changes).reduce((result, columnName) => {
       result[columnName] = this.revision[columnName];
       return result;
