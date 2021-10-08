@@ -56,11 +56,9 @@ function appendErrorToChangesetIfNeeded(
     });
 
     if (!errorFound) {
-      changeset.errors.push(
-        ChangesetModel
-          ? new ModelError(changeset.data as Model, targetError as ErrorMetadata)
-          : targetError
-      );
+      ChangesetModel
+        ? new ModelError(changeset.data as Model, targetError as ErrorMetadata)
+        : changeset.errors.push(targetError);
     }
   });
 }
