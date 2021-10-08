@@ -70,7 +70,7 @@ export default class Model {
     return await this.Adapter.resetRecords(this, targetState);
   }
 
-  static peek(primaryKey: primaryKey | primaryKey[]): Model[] | Model | void {
+  static peek(primaryKey: primaryKey | primaryKey[]): Model | Model[] | void {
     if (!primaryKey) {
       throw new RuntimeError(
         `${Model.name}.find(id) or ${Model.name}.peek(id) cannot be called without a valid id`
@@ -88,7 +88,7 @@ export default class Model {
     return this.Adapter.peekAll(this, queryObject);
   }
 
-  static async find(primaryKey: primaryKey | primaryKey[]): Promise<Model[] | Model | void> {
+  static async find(primaryKey: primaryKey | primaryKey[]): Promise<Model | Model[] | void> {
     return await this.Adapter.find(this, primaryKey);
   }
 
@@ -122,7 +122,8 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.update(this, record);
-    record.revisionHistory.push(result.revision);
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
+    // record.revisionHistory.push(result.revision);
 
     this.unsetRecordInTransit(record);
 
@@ -133,7 +134,8 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.save(this, record);
-    record.revisionHistory.push(result.revision);
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
+    // record.revisionHistory.push(result.revision);
 
     this.unsetRecordInTransit(record);
 
@@ -161,6 +163,7 @@ export default class Model {
     records.forEach((record) => this.setRecordInTransit(record));
 
     let result = await this.Adapter.saveAll(this, records);
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
 
     records.forEach((record) => this.unsetRecordInTransit(record));
 
@@ -171,6 +174,7 @@ export default class Model {
     records.forEach((record) => this.setRecordInTransit(record));
 
     let result = await this.Adapter.insertAll(this, records);
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
 
     records.forEach((record) => this.unsetRecordInTransit(record));
 
@@ -181,6 +185,7 @@ export default class Model {
     records.forEach((record) => this.setRecordInTransit(record));
 
     let result = await this.Adapter.updateAll(this, records);
+    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
 
     records.forEach((record) => this.unsetRecordInTransit(record));
 
@@ -303,7 +308,7 @@ export default class Model {
     }
   }
 
-  changes = Object.create(null);
+  changes = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
   revisionHistory: ModelReference[] = [];
 
   get revision() {
@@ -350,7 +355,9 @@ export default class Model {
 
   changedAttributes() {
     if (this.revisionHistory.length === 0) {
-      throw new RuntimeError('Tried to call model.changedAttributes() on untracked model, use $Model.build()');
+      throw new RuntimeError(
+        "Tried to call model.changedAttributes() on untracked model, use $Model.build()"
+      );
     }
 
     return Object.keys(this.changes).reduce((result, keyName) => {
@@ -360,7 +367,9 @@ export default class Model {
 
   rollbackAttributes() {
     if (this.revisionHistory.length === 0) {
-      throw new RuntimeError('Tried to call model.rollbackAttributes() on untracked model, use $Model.build()');
+      throw new RuntimeError(
+        "Tried to call model.rollbackAttributes() on untracked model, use $Model.build()"
+      );
     }
 
     return Object.keys(this.changes).reduce((result, columnName) => {
