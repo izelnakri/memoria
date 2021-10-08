@@ -134,6 +134,7 @@ async function makeFetchRequest(
   Model?: typeof MemoriaModel
 ): Promise<JSObject | MemoriaModel | MemoriaModel[]> {
   // TODO: could have the requestTime metadata
+  // TODO: could implement logging
   let response, json, timedOut;
   let timeoutController = new AbortController();
   let timeoutFunction = setTimeout(

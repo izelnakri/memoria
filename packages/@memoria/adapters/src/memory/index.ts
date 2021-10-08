@@ -1,5 +1,5 @@
 import Decorators from "./decorators/index.js";
-import { primaryKeyTypeSafetyCheck } from "../utils.js";
+import { clearObject, primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoriaModel, {
   Config,
   Changeset,
@@ -34,7 +34,8 @@ export default class MemoryAdapter {
         delete Config._columnNames[modelName];
         delete Config._primaryKeyNameCache[modelName];
         delete Config._defaultValuesCache[modelName];
-        delete Config._embedReferences[modelName]; // TODO: this is problematic, doesnt clear other relationship embeds
+        delete Config._embedReferences[modelName];
+        // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
       return Config;
@@ -143,7 +144,7 @@ export default class MemoryAdapter {
       return target as MemoriaModel;
     }
 
-    return Object.assign(
+    let model = Object.assign(
       existingModelInCache,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
@@ -152,7 +153,12 @@ export default class MemoryAdapter {
 
         return result;
       }, {})
-    ) as MemoriaModel;
+    );
+
+    clearObject(model.changes);
+    model.revisionHistory.push(Object.assign({}, model));
+
+    return model;
   }
 
   static peek(
@@ -301,8 +307,7 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
-
-    return Object.assign(
+    let model = Object.assign(
       targetRecord,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
@@ -314,6 +319,11 @@ export default class MemoryAdapter {
         return result;
       }, {})
     );
+
+    clearObject(model.changes);
+    model.revisionHistory.push(Object.assign({}, model));
+
+    return model;
   }
 
   // NOTE: HANDLE deleteDate generation in future maybe

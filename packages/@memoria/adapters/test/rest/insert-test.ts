@@ -333,7 +333,6 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     try {
       await Photo.insert({ id: 1 });
     } catch (changeset) {
-      debugger;
       assert.ok(changeset instanceof InsertError);
       assert.propEqual(changeset.errors, [
         {
@@ -348,7 +347,6 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     try {
       await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
     } catch (changeset) {
-      debugger;
       assert.ok(changeset instanceof InsertError);
       assert.propEqual(changeset.errors, [
         {

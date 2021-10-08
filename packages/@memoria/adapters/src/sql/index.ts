@@ -22,7 +22,6 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 interface FreeObject {
   [key: string]: any;
 }
-// TODO: this.cache() adds to Cache, needs relationships handling
 
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
