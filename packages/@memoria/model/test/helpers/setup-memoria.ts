@@ -15,7 +15,7 @@ export default function (hooks) {
     };
     QUnit.assert.matchChangeset = function (value, expected, message) {
       let actual = JSON.parse(JSON.stringify(filterObject(value, ["date"]), null, 2));
-      let filteredExpected = filterObject(expected, ["date"]);
+      let filteredExpected = JSON.parse(JSON.stringify(filterObject(expected, ["date"]), null, 2));
 
       this.pushResult({
         result: match(actual, filteredExpected),
@@ -42,5 +42,5 @@ function filterObject(object, arrayOfKeysToFilter = []) {
     }
 
     return result;
-  });
+  }, {});
 }
