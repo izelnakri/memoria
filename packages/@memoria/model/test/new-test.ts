@@ -72,7 +72,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
 
     assert.equal(emptyModel.isDirty, false);
     assert.deepEqual(emptyModel.changes, {});
-    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
+    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel));
     assert.deepEqual(emptyModel.revisionHistory, []);
     assert.deepEqual(emptyModel.revision, {});
     try {

@@ -176,7 +176,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
     assert.notOk(emptyModel.isDirty);
     assert.deepEqual(emptyModel.changes, {});
-    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
+    assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel));
     assert.deepEqual(emptyModel.revisionHistory, [
       { id: null, isPublic: null, name: "Imported photo" },
     ]);
