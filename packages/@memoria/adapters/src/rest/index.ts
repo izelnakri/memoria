@@ -1,9 +1,8 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { Changeset, RuntimeError } from "@memoria/model";
+import MemoriaModel, { Changeset, RuntimeError, primaryKeyTypeSafetyCheck } from "@memoria/model";
 import type { ModelReference } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
-import { primaryKeyTypeSafetyCheck } from "../utils.js";
 
 export interface HTTPHeaders {
   Accept: "application/json";

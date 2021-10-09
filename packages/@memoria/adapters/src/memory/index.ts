@@ -1,5 +1,4 @@
 import Decorators from "./decorators/index.js";
-import { clearObject, primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoriaModel, {
   Config,
   Changeset,
@@ -9,6 +8,7 @@ import MemoriaModel, {
   RuntimeError,
   UpdateError,
   transformValue,
+  primaryKeyTypeSafetyCheck,
 } from "@memoria/model";
 import type { ModelReference, DecoratorBucket } from "@memoria/model";
 
@@ -120,45 +120,52 @@ export default class MemoryAdapter {
     return target;
   }
 
-  // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache
+  // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache (small perf optimization that we can remove)
   // it provided record must have the primaryKey
   static push(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
-    let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
-    if (!existingModelInCache) {
-      let target = cleanRelationships(Model, Model.build(record, { isNew: false }));
-      if (!primaryKey) {
-        throw new RuntimeError(new Changeset(target), {
-          id: null,
-          modelName: Model.name,
-          attribute: Model.primaryKeyName,
-          message: "doesn't exist",
-        });
-      }
-
-      primaryKeyTypeSafetyCheck(target);
-
-      Model.Cache.push(target as MemoriaModel);
-
-      return target as MemoriaModel;
+    if (!primaryKey) {
+      throw new RuntimeError(new Changeset(Model.build(record, { isNew: false })), {
+        id: null,
+        modelName: Model.name,
+        attribute: Model.primaryKeyName,
+        message: "doesn't exist",
+      });
     }
 
-    let model = Object.assign(
-      existingModelInCache,
-      Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
-        if (record.hasOwnProperty(attribute)) {
-          result[attribute] = transformValue(Model, attribute, record[attribute]);
-        }
+    let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
+    if (existingModelInCache) {
+      let model = Object.assign(
+        existingModelInCache,
+        Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+          if (record.hasOwnProperty(attribute)) {
+            result[attribute] = transformValue(Model, attribute, record[attribute]);
+          }
 
-        return result;
-      }, {})
-    );
+          return result;
+        }, {})
+      );
 
-    clearObject(model.changes);
-    model.revisionHistory.push(Object.assign({}, model));
+      clearObject(model.changes);
+      model.revisionHistory.push(Object.assign({}, model));
 
-    return model;
+      return model;
+    } else if (record instanceof Model) {
+      primaryKeyTypeSafetyCheck(record);
+
+      Model.Cache.push(record as MemoriaModel);
+
+      return record as MemoriaModel;
+    }
+
+    let target = cleanRelationships(Model, Model.build(record, { isNew: false }));
+
+    primaryKeyTypeSafetyCheck(target); // NOTE: redundant remove it in future by doing it in build()
+
+    Model.Cache.push(target as MemoriaModel);
+
+    return target as MemoriaModel;
   }
 
   static peek(

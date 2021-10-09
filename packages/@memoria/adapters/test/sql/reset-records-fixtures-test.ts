@@ -149,7 +149,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         content: "Interesting indeed",
         photo_id: 2,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[3].inserted_at,
       },
       {
@@ -157,7 +157,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         content: "What a nice photo!",
         photo_id: 1,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[0].inserted_at,
       },
       {
@@ -165,7 +165,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         content: "I agree",
         photo_id: 1,
         user_id: 2,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[1].inserted_at,
       },
       {
@@ -173,7 +173,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         content: "I was kidding",
         photo_id: 1,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[2].inserted_at,
       },
     ]);
