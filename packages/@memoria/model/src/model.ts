@@ -4,7 +4,7 @@ import { ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
 import Config from "./config.js";
 import Serializer, { transformValue } from "./serializer.js";
-import type { ModelReference, RelationshipSchemaDefinition } from "./index.js";
+import type { ModelReference, ModelReferenceShape, RelationshipSchemaDefinition } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -309,7 +309,7 @@ export default class Model {
   }
 
   changes = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
-  revisionHistory: ModelReference[] = [];
+  revisionHistory: ModelReferenceShape[] = [];
 
   get revision() {
     return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);

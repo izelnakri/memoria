@@ -2,7 +2,6 @@
 // SQL updateAll is buggy because of relationship references
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
-import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
@@ -12,6 +11,7 @@ import MemoriaModel, {
   InsertError,
   UpdateError,
   RuntimeError,
+  primaryKeyTypeSafetyCheck,
 } from "@memoria/model";
 import type { ModelReference } from "@memoria/model";
 
@@ -100,7 +100,6 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
 
     await Manager.clear(Model);
-    await super.resetRecords(Model, targetState);
 
     if (targetState) {
       targetState.forEach((record) => {
@@ -112,37 +111,15 @@ export default class SQLAdapter extends MemoryAdapter {
             message: "is missing",
           });
         }
+
+        // also do primaryKeyTypeSafetyCheck here
       });
-      return await this.insertAll(Model, targetState);
+      let records = await this.insertAll(Model, targetState);
+
+      return await super.resetRecords(Model, records);
     }
 
-    return [];
-  }
-
-  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
-    let model = record instanceof Model ? record : Model.build(record, { isNew: false });
-
-    if (!record.hasOwnProperty(Model.primaryKeyName)) {
-      throw new CacheError(new Changeset(model), {
-        id: null,
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "is missing",
-      });
-    }
-
-    primaryKeyTypeSafetyCheck(model);
-
-    let foundInCache = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
-    if (foundInCache) {
-      return foundInCache;
-    }
-
-    let target = cleanRelationships(Model, model);
-
-    Model.Cache.push(target);
-
-    return target;
+    return await super.resetRecords(Model, []);
   }
 
   static async count(Model: typeof MemoriaModel, options?: object): Promise<number> {
@@ -163,10 +140,10 @@ export default class SQLAdapter extends MemoryAdapter {
         let foundModels = await Manager.findByIds(Model, primaryKey, {
           order: { [Model.primaryKeyName]: "ASC" },
         });
-        return foundModels.map((model) => this.cache(Model, model));
+        return foundModels.map((model) => this.push(Model, model));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return this.cache(Model, foundModel);
+        return this.push(Model, foundModel);
       }
     } catch (error) {
       if (!error.code) {
@@ -188,7 +165,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, queryObject);
 
-    return this.cache(Model, foundModel);
+    return this.push(Model, foundModel);
   }
 
   static async findAll(
@@ -207,7 +184,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.cache(Model, model));
+    return result.map((model) => this.push(Model, model));
   }
 
   // TODO: check actions from here!! for relationship CRUD
@@ -257,7 +234,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.cache(Model, result.generatedMaps[0]);
+      return this.push(Model, result.generatedMaps[0]);
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -399,6 +376,8 @@ export default class SQLAdapter extends MemoryAdapter {
           );
         }
 
+        primaryKeyTypeSafetyCheck(record, Model);
+
         result.push(primaryKey);
       }
 
@@ -423,7 +402,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.cache(Model, rawResult));
+      return result.raw.map((rawResult) => this.push(Model, rawResult));
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling

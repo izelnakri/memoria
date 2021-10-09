@@ -28,7 +28,7 @@ export {
 } from "./errors/index.js";
 import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
-export { clearObject, generateUUID } from "./utils.js";
+export { clearObject, generateUUID, primaryKeyTypeSafetyCheck } from "./utils.js";
 export {
   Column,
   CreateDateColumn,
