@@ -193,7 +193,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(error instanceof CacheError);
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
@@ -292,7 +292,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     try {
       await Photo.resetRecords(PHOTO_FIXTURES);
     } catch (error) {
-      assert.ok(error instanceof CacheError);
+      assert.ok(error instanceof RuntimeError);
     }
   });
 
@@ -329,7 +329,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(error instanceof CacheError);
+      assert.ok(error instanceof RuntimeError);
     }
   });
 });

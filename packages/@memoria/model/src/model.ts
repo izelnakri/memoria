@@ -4,6 +4,7 @@ import { ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
 import Config from "./config.js";
 import Serializer, { transformValue } from "./serializer.js";
+import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
 import type { ModelReference, ModelReferenceShape, RelationshipSchemaDefinition } from "./index.js";
 
 type primaryKey = number | string;
@@ -27,6 +28,8 @@ const LOCK_PROPERTY = {
 };
 
 // NOTE: CRUD params with instances change + error is not reset on each CRUD operation currently on purpose.
+// Explain what is the different between push and insert?
+// Push replaces existing record!, doesnt have defaultValues
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -101,41 +104,51 @@ export default class Model {
   }
 
   static async insert(record?: QueryObject | ModelRefOrInstance): Promise<Model> {
+    if (record && record[this.primaryKeyName]) {
+      primaryKeyTypeSafetyCheck(this.build(record));
+    }
+
     this.setRecordInTransit(record);
 
-    let result = await this.Adapter.insert(this, record || {});
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
+    let model = await this.Adapter.insert(this, record || {});
 
     if (record instanceof this) {
       record.#_inTransit = false;
       record.#_isNew = false;
+      clearObject(record.changes);
+      model.revisionHistory.push(Object.assign({}, record));
     }
 
-    return result;
+    return model;
   }
 
   static async update(record: ModelRefOrInstance): Promise<Model> {
+    if (!record || !record[this.primaryKeyName]) {
+      throw new RuntimeError(
+        new Changeset(this.build(record)),
+        "$Model.update() called without a record with primaryKey"
+      );
+    }
+
+    primaryKeyTypeSafetyCheck(this.build(record));
+
     this.setRecordInTransit(record);
 
-    let result = await this.Adapter.update(this, record);
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
-    // record.revisionHistory.push(result.revision);
+    let model = await this.Adapter.update(this, record);
 
-    this.unsetRecordInTransit(record);
+    if (record instanceof this) {
+      this.unsetRecordInTransit(record);
+      clearObject(record.changes);
+      record.revisionHistory.push(Object.assign({}, record));
+    }
 
-    return result;
+    return model;
   }
 
   static async save(record: QueryObject | ModelRefOrInstance): Promise<Model> {
-    this.setRecordInTransit(record);
-
-    let result = await this.Adapter.save(this, record);
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
-    // record.revisionHistory.push(result.revision);
-
-    this.unsetRecordInTransit(record);
-
-    return result;
+    return shouldInsertOrUpdateARecord(this, record) === "insert"
+      ? await this.Adapter.insert(this, record)
+      : await this.Adapter.update(this, record);
   }
 
   static unload(record: ModelRefOrInstance): Model {
@@ -143,6 +156,15 @@ export default class Model {
   }
 
   static async delete(record: ModelRefOrInstance): Promise<Model> {
+    if (!record || !record[this.primaryKeyName]) {
+      throw new RuntimeError(
+        new Changeset(this.build(record)),
+        "$Model.delete() called without a record with primaryKey"
+      );
+    }
+
+    primaryKeyTypeSafetyCheck(this.build(record));
+
     this.setRecordInTransit(record);
 
     let result = await this.Adapter.delete(this, record);
@@ -156,36 +178,65 @@ export default class Model {
   }
 
   static async saveAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
-    records.forEach((record) => this.setRecordInTransit(record));
-
-    let result = await this.Adapter.saveAll(this, records);
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
-
-    records.forEach((record) => this.unsetRecordInTransit(record));
-
-    return result;
+    return records.every((record) => shouldInsertOrUpdateARecord(this, record) === "update")
+      ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[])
+      : await this.Adapter.insertAll(this, records);
   }
 
   static async insertAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
-    records.forEach((record) => this.setRecordInTransit(record));
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.insertAll(records) called without records");
+    }
 
-    let result = await this.Adapter.insertAll(this, records);
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
+    records.forEach((record) => {
+      if (record[Model.primaryKeyName]) {
+        primaryKeyTypeSafetyCheck(this.build(record));
+      }
 
-    records.forEach((record) => this.unsetRecordInTransit(record));
+      this.setRecordInTransit(record);
+    });
 
-    return result;
+    let models = await this.Adapter.insertAll(this, records);
+
+    records.forEach((record) => {
+      if (record instanceof this) {
+        this.unsetRecordInTransit(record);
+        clearObject(record.changes);
+        record.revisionHistory.push(Object.assign({}, record));
+      }
+    });
+
+    return models;
   }
 
   static async updateAll(records: ModelRefOrInstance[]): Promise<Model[]> {
-    records.forEach((record) => this.setRecordInTransit(record));
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.updateAll(records) called without records");
+    }
 
-    let result = await this.Adapter.updateAll(this, records);
-    // TODO: revision and changes reset for input instance(?) AND result: yes absolutely(because it gets it from cache on update)
+    records.forEach((record) => {
+      if (!record[this.primaryKeyName]) {
+        throw new RuntimeError(
+          new Changeset(this.build(record)),
+          "$Model.updateAll() called without records having primaryKey"
+        );
+      }
 
-    records.forEach((record) => this.unsetRecordInTransit(record));
+      primaryKeyTypeSafetyCheck(this.build(record));
+      this.setRecordInTransit(record);
+    });
 
-    return result;
+    let models = await this.Adapter.updateAll(this, records);
+
+    records.forEach((record) => {
+      if (record instanceof this) {
+        this.unsetRecordInTransit(record);
+        clearObject(record.changes);
+        record.revisionHistory.push(Object.assign({}, record));
+      }
+    });
+
+    return models;
   }
 
   static unloadAll(records?: ModelRefOrInstance[]): Model[] {
@@ -193,13 +244,32 @@ export default class Model {
   }
 
   static async deleteAll(records: ModelRefOrInstance[]): Promise<Model[]> {
-    records.forEach((record) => this.setRecordInTransit(record));
+    if (!records || records.length === 0) {
+      throw new RuntimeError("$Model.deleteAll(records) called without records");
+    }
 
-    let result = await this.Adapter.deleteAll(this, records);
+    records.forEach((record) => {
+      if (!record[this.primaryKeyName]) {
+        throw new RuntimeError(
+          new Changeset(this.build(record)),
+          "$Model.deleteAll() called without records having primaryKey"
+        );
+      }
 
-    records.forEach((record) => this.unsetRecordInTransit(record));
+      primaryKeyTypeSafetyCheck(this.build(record));
+      this.setRecordInTransit(record);
+    });
 
-    return result;
+    let models = await this.Adapter.deleteAll(this, records);
+
+    records.forEach((record) => {
+      if (record instanceof Model) {
+        this.unsetRecordInTransit(record);
+        record.isDeleted = true;
+      }
+    });
+
+    return models;
   }
 
   static async count(options: QueryObject): Promise<number> {
@@ -289,7 +359,7 @@ export default class Model {
     }
   }
 
-  // tracking only includes in Model.build(), same goes for model assignments
+  // tracking only is in Model.build(), same goes for model assignments
   constructor(options?: ModelInstantiateOptions) {
     Object.defineProperty(this, "changes", LOCK_PROPERTY);
     Object.defineProperty(this, "revisionHistory", LOCK_PROPERTY);
@@ -403,4 +473,19 @@ function transformModelForBuild(model, keyName, buildObject) {
     buildObject && keyName in buildObject
       ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
       : model[keyName] || null;
+}
+
+function shouldInsertOrUpdateARecord(
+  Klass: typeof Model,
+  record: QueryObject | ModelRefOrInstance
+): "insert" | "update" {
+  if (!record[Klass.primaryKeyName]) {
+    return "insert";
+  } else if (record instanceof Klass) {
+    return record.isNew ? "insert" : "update";
+  } else if (Klass.peek(record[Klass.primaryKeyName])) {
+    return "update";
+  }
+
+  return "insert";
 }

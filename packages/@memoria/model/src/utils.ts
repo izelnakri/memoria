@@ -6,9 +6,7 @@ interface AnyObject {
 }
 
 export function clearObject(object: AnyObject) {
-  Object.keys(object).forEach((keyName) => {
-    delete object[keyName];
-  });
+  for (let key in object) delete object[key];
 
   return object;
 }

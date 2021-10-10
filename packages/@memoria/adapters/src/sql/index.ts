@@ -112,7 +112,7 @@ export default class SQLAdapter extends MemoryAdapter {
           });
         }
 
-        // also do primaryKeyTypeSafetyCheck here
+        primaryKeyTypeSafetyCheck(record, Model);
       });
       let records = await this.insertAll(Model, targetState);
 
@@ -185,22 +185,6 @@ export default class SQLAdapter extends MemoryAdapter {
     let result = await query.getMany();
 
     return result.map((model) => this.cache(Model, model));
-  }
-
-  // TODO: check actions from here!! for relationship CRUD
-  static async save(
-    Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
-  ): Promise<MemoriaModel> {
-    let Manager = await this.getEntityManager();
-    let resultRaw = await Manager.save(Model, cleanRelationships(Model, record));
-    let result = Model.build(resultRaw.generatedMaps[0]) as MemoriaModel;
-
-    if (this.peek(Model, result[Model.primaryKeyName])) {
-      return await super.update(Model, result); // NOTE: this could be problematic
-    }
-
-    return this.cache(Model, result) as MemoriaModel;
   }
 
   static async insert(
@@ -311,13 +295,6 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    if (!record) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "$Model.delete() called without a valid record"
-      );
-    }
-
     let primaryKeyName = Model.primaryKeyName;
     try {
       let Manager = await this.getEntityManager();
@@ -349,24 +326,12 @@ export default class SQLAdapter extends MemoryAdapter {
     }
   }
 
-  static async saveAll(
-    Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
-  ): Promise<MemoriaModel[]> {
-    // TODO: this should do both insertAll or updateAll based on the scenario
-    let Manager = await this.getEntityManager();
-    let results = await Manager.save(
-      records.map((record) => cleanRelationships(Model, Model.build(record)))
-    );
-
-    return results.map((result) => this.cache(Model, result));
-  }
-
   // TODO: check this:
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
+    // TODO: maybe move this to model.ts
     let providedIds = records.reduce((result: primaryKey[], record) => {
       if (Model.primaryKeyName in record) {
         let primaryKey = record[Model.primaryKeyName] as primaryKey;
