@@ -8,15 +8,13 @@ import MemoriaModel, {
   UpdateError,
   transformValue,
   primaryKeyTypeSafetyCheck,
+  clearObject,
 } from "@memoria/model";
 import type { ModelReference, DecoratorBucket } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
-
-// Explain what is the different between push and insert?
-// Push replaces existing record!, doesnt have defaultValues
 
 // TODO: allow storeing bigint as string due to bigint!! Thats what SQLAdapter does
 export default class MemoryAdapter {
@@ -74,7 +72,18 @@ export default class MemoryAdapter {
     Model.Cache.length = 0;
 
     if (targetState) {
-      targetState.map((targetFixture) => this.cache(Model, targetFixture));
+      targetState.reduce((primaryKeys: Set<primaryKey>, targetFixture) => {
+        let primaryKey = targetFixture[Model.primaryKeyName];
+        if (primaryKey && primaryKeys.has(primaryKey)) {
+          throw new RuntimeError(
+            `${Model.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
+          );
+        }
+
+        this.cache(Model, targetFixture);
+
+        return primaryKeys.add(primaryKey);
+      }, new Set([]));
     }
 
     return Model.Cache;
@@ -87,7 +96,6 @@ export default class MemoryAdapter {
     return this.resetCache(Model, targetState);
   }
 
-  // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache (small perf optimization that we can remove)
   // it provided record must have the primaryKey
   static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
@@ -122,6 +130,9 @@ export default class MemoryAdapter {
       primaryKeyTypeSafetyCheck(record);
 
       Model.Cache.push(record as MemoriaModel);
+
+      clearObject(record.changes);
+      record.revisionHistory.push(Object.assign({}, record));
 
       return record as MemoriaModel;
     }
@@ -200,20 +211,6 @@ export default class MemoryAdapter {
     queryObject: object = {}
   ): Promise<MemoriaModel[] | void> {
     return this.peekAll(Model, queryObject);
-  }
-
-  static async save(
-    Model: typeof MemoriaModel,
-    model: QueryObject | ModelRefOrInstance
-  ): Promise<MemoriaModel> {
-    let modelId = model[Model.primaryKeyName];
-    if (modelId) {
-      let foundModel = await this.find(Model, modelId);
-
-      return foundModel ? await this.update(Model, model) : await this.insert(Model, model);
-    }
-
-    return await this.insert(Model, model);
   }
 
   static async insert(
@@ -300,7 +297,6 @@ export default class MemoryAdapter {
     return model;
   }
 
-  // NOTE: HANDLE deleteDate generation in future maybe
   static unload(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
     if (!record) {
       throw new RuntimeError(
@@ -335,14 +331,6 @@ export default class MemoryAdapter {
     return this.unload(Model, record);
   }
 
-  // NOTE: test what happens when single function error propogates to bulk functions
-  static async saveAll(
-    Model: typeof MemoriaModel,
-    models: QueryObject[] | ModelRefOrInstance[]
-  ): Promise<MemoriaModel[]> {
-    return await Promise.all(models.map((model) => this.save(Model, model)));
-  }
-
   static async insertAll(
     Model: typeof MemoriaModel,
     models: QueryObject[] | ModelRefOrInstance[]
@@ -373,10 +361,6 @@ export default class MemoryAdapter {
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.unload(Model, model)));
   }
-}
-
-function clearObject(object) {
-  for (let key in object) delete object[key];
 }
 
 // NOTE: if records were ordered by ID after insert, then there could be performance benefit
