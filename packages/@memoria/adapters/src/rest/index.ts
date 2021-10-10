@@ -81,7 +81,7 @@ export default class RESTAdapter extends MemoryAdapter {
         Model
       )) as MemoriaModel[];
     } catch (error) {
-      allRecords.forEach((record) => this.push(Model, record));
+      allRecords.forEach((record) => this.cache(Model, record));
       throw error;
     }
   }

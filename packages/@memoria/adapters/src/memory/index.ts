@@ -2,7 +2,6 @@ import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Config,
   Changeset,
-  CacheError,
   DeleteError,
   InsertError,
   RuntimeError,
@@ -88,41 +87,9 @@ export default class MemoryAdapter {
     return this.resetCache(Model, targetState);
   }
 
-  // NOTE: requires primaryKey
-  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
-    let model = record instanceof Model ? record : Model.build(record);
-
-    if (!record.hasOwnProperty(Model.primaryKeyName)) {
-      throw new CacheError(new Changeset(model), {
-        id: null,
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "is missing",
-      });
-    }
-
-    primaryKeyTypeSafetyCheck(model);
-
-    if (this.peek(Model, record[Model.primaryKeyName])) {
-      throw new CacheError(new Changeset(model), {
-        id: record[Model.primaryKeyName],
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "already exists",
-      });
-    }
-
-    let target = cleanRelationships(Model, model);
-
-    // TODO: this should always be relationship filtered pure object?
-    Model.Cache.push(target);
-
-    return target;
-  }
-
   // NOTE: like .cache but does change the cached records provided attributes if it already exists in cache (small perf optimization that we can remove)
   // it provided record must have the primaryKey
-  static push(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
+  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
     if (!primaryKey) {
