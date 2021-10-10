@@ -190,10 +190,10 @@ async function makeFetchRequest(
       let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
       if (Array.isArray(results)) {
-        return results.map((result) => Adapter.push(Model, result)) as MemoriaModel[];
+        return results.map((result) => Adapter.cache(Model, result)) as MemoriaModel[];
       }
 
-      return Adapter.push(Model, results) as MemoriaModel;
+      return Adapter.cache(Model, results) as MemoriaModel;
     }
 
     return json;

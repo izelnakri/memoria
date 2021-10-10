@@ -140,10 +140,10 @@ export default class SQLAdapter extends MemoryAdapter {
         let foundModels = await Manager.findByIds(Model, primaryKey, {
           order: { [Model.primaryKeyName]: "ASC" },
         });
-        return foundModels.map((model) => this.push(Model, model));
+        return foundModels.map((model) => this.cache(Model, model));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return this.push(Model, foundModel);
+        return this.cache(Model, foundModel);
       }
     } catch (error) {
       if (!error.code) {
@@ -165,7 +165,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, queryObject);
 
-    return this.push(Model, foundModel);
+    return this.cache(Model, foundModel);
   }
 
   static async findAll(
@@ -184,7 +184,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.push(Model, model));
+    return result.map((model) => this.cache(Model, model));
   }
 
   // TODO: check actions from here!! for relationship CRUD
@@ -200,7 +200,7 @@ export default class SQLAdapter extends MemoryAdapter {
       return await super.update(Model, result); // NOTE: this could be problematic
     }
 
-    return this.push(Model, result) as MemoriaModel;
+    return this.cache(Model, result) as MemoriaModel;
   }
 
   static async insert(
@@ -234,7 +234,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.push(Model, result.generatedMaps[0]);
+      return this.cache(Model, result.generatedMaps[0]);
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -300,7 +300,7 @@ export default class SQLAdapter extends MemoryAdapter {
         return await super.update(Model, result); // NOTE: this could be problematic
       }
 
-      return this.push(Model, result) as MemoriaModel;
+      return this.cache(Model, result) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -359,7 +359,7 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((record) => cleanRelationships(Model, Model.build(record)))
     );
 
-    return results.map((result) => this.push(Model, result));
+    return results.map((result) => this.cache(Model, result));
   }
 
   // TODO: check this:
@@ -402,7 +402,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.push(Model, rawResult));
+      return result.raw.map((rawResult) => this.cache(Model, rawResult));
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling
@@ -441,7 +441,7 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
-    return results.map((result) => this.push(Model, result));
+    return results.map((result) => this.cache(Model, result));
   }
 
   static async deleteAll(

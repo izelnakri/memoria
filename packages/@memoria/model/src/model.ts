@@ -58,8 +58,8 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static push(model: ModelRefOrInstance): Model | Model[] {
-    return this.Adapter.push(this, model);
+  static cache(model: ModelRefOrInstance): Model | Model[] {
+    return this.Adapter.cache(this, model);
   }
 
   static resetCache(fixtures?: ModelRefOrInstance[]): Model[] {
@@ -98,10 +98,6 @@ export default class Model {
 
   static async findAll(queryObject: QueryObject = {}): Promise<Model[] | void> {
     return await this.Adapter.findAll(this, queryObject);
-  }
-
-  static cache(fixture: ModelRefOrInstance): Model {
-    return this.Adapter.cache(this, fixture);
   }
 
   static async insert(record?: QueryObject | ModelRefOrInstance): Promise<Model> {
