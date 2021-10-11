@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.18](https://github.com/izelnakri/memoria/compare/0.0.18...0.0.18)
+#### [0.0.19](https://github.com/izelnakri/memoria/compare/0.0.19...0.0.19)
+
+- bugfix: fix model.ts Model references [`84e180e`](https://github.com/izelnakri/memoria/commit/84e180e3d69a035c6c81b51d73a324c8ea4f219c)
+- small typefix and TODO comment [`05b4a91`](https://github.com/izelnakri/memoria/commit/05b4a911bd2c3087cbbbc9c67d187a823887dd14)
+
+#### [0.0.19](https://github.com/izelnakri/memoria/compare/0.0.18...0.0.19)
+
+> 11 October 2021
 
 - model.isDirty, model attribute tracking and model.revisionHistory [`#12`](https://github.com/izelnakri/memoria/pull/12)
 - update dependencies [`e843ac9`](https://github.com/izelnakri/memoria/commit/e843ac93c821aa5727bd8acc9efb53437fb31091)
@@ -15,6 +22,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - Initial attribute tracking implementation [`1248102`](https://github.com/izelnakri/memoria/commit/12481025e7b0e1ed404b8050ac944c80862e6e68)
 - remove Model.push() interface [`8ead959`](https://github.com/izelnakri/memoria/commit/8ead959ed840e1cb4b58c87cb53c9d2953278273)
 - fix revision and model.changes clearing for CRUD [`36e15e9`](https://github.com/izelnakri/memoria/commit/36e15e9a8e55f5a9bca21b5ec9bd6df2e3442e9b)
+- Release 0.0.19 [`3ae6b25`](https://github.com/izelnakri/memoria/commit/3ae6b2586d88d70b6d01c5cbee0424b2a3018b2f)
 - Better handling of new Model() error tracking [`4b9344a`](https://github.com/izelnakri/memoria/commit/4b9344a61be23be05205466d8bf4e14f4bfddaf6)
 - misc notes & node.js test fixes [`4d6a3ff`](https://github.com/izelnakri/memoria/commit/4d6a3ff376b84e43c46cbf710d808335f094f89e)
 - remove errorMessage variable from http service [`37ebb07`](https://github.com/izelnakri/memoria/commit/37ebb072f1c21cca3bc752e734c07a1b5106c6ac)
