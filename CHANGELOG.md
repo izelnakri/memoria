@@ -2,10 +2,32 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.17](https://github.com/izelnakri/memoria/compare/0.0.17...0.0.17)
+#### [0.0.18](https://github.com/izelnakri/memoria/compare/0.0.18...0.0.18)
+
+- model.isDirty, model attribute tracking and model.revisionHistory [`#12`](https://github.com/izelnakri/memoria/pull/12)
+- update dependencies [`e843ac9`](https://github.com/izelnakri/memoria/commit/e843ac93c821aa5727bd8acc9efb53437fb31091)
+- add initial test for $Model.cache() [`64b698f`](https://github.com/izelnakri/memoria/commit/64b698f5f125f633535bad62ca8db17d8aaa3bd0)
+- init test types coverage with attribute tracking [`7628c62`](https://github.com/izelnakri/memoria/commit/7628c62b7e6675866aff4d2924504d0a4ae6396d)
+- $Model.cache() removal and adapters/util removal [`53fdf36`](https://github.com/izelnakri/memoria/commit/53fdf36f038924e7be5765870d2021733410c2ce)
+- adjust & improve core MemoryAdapter tests [`3c922d4`](https://github.com/izelnakri/memoria/commit/3c922d4007a2eb387de4b1e9959312c2d9948926)
+- major refactor/cleanup on adapters [`f3c15e2`](https://github.com/izelnakri/memoria/commit/f3c15e2d7ed56c535ae0eddf876b563965ef4287)
+- Improve rest & sql adapter tests [`0dbabf8`](https://github.com/izelnakri/memoria/commit/0dbabf807f751b4952faea0731e63e55a80d16a4)
+- Initial attribute tracking implementation [`1248102`](https://github.com/izelnakri/memoria/commit/12481025e7b0e1ed404b8050ac944c80862e6e68)
+- remove Model.push() interface [`8ead959`](https://github.com/izelnakri/memoria/commit/8ead959ed840e1cb4b58c87cb53c9d2953278273)
+- fix revision and model.changes clearing for CRUD [`36e15e9`](https://github.com/izelnakri/memoria/commit/36e15e9a8e55f5a9bca21b5ec9bd6df2e3442e9b)
+- Better handling of new Model() error tracking [`4b9344a`](https://github.com/izelnakri/memoria/commit/4b9344a61be23be05205466d8bf4e14f4bfddaf6)
+- misc notes & node.js test fixes [`4d6a3ff`](https://github.com/izelnakri/memoria/commit/4d6a3ff376b84e43c46cbf710d808335f094f89e)
+- remove errorMessage variable from http service [`37ebb07`](https://github.com/izelnakri/memoria/commit/37ebb072f1c21cca3bc752e734c07a1b5106c6ac)
+- bugfix ChangesetError duplicate errors creation [`3fc0f4c`](https://github.com/izelnakri/memoria/commit/3fc0f4cd4e9f79d00d490cdb2935423841e5837d)
+- remove typeorm from @memoria/model deps [`7618d54`](https://github.com/izelnakri/memoria/commit/7618d54db3dfa1807fabbfcaf89d9d5061384bc5)
+
+#### [0.0.18](https://github.com/izelnakri/memoria/compare/0.0.17...0.0.18)
+
+> 3 October 2021
 
 - initial model intermediary states with tests [`5367258`](https://github.com/izelnakri/memoria/commit/536725872ce6602d34ea90ac7ec6acf8afe677c7)
 - finalize model instantiation methods with tests [`7635e6d`](https://github.com/izelnakri/memoria/commit/7635e6de8bd49837bdb12c62f3ed49dfe7bac3f8)
+- Release 0.0.18 [`62885ad`](https://github.com/izelnakri/memoria/commit/62885adb9179f10e2d3e3e7a5c2406fd5139877e)
 - add codecoverage [`2783a9a`](https://github.com/izelnakri/memoria/commit/2783a9a2d553e1d2fb5edd7452bf6d4aea07d899)
 - add CODECOV_TOKEN and adjust docker-compose [`2fe3897`](https://github.com/izelnakri/memoria/commit/2fe3897697fc21b41931d7b817235d6175c8d56e)
 
