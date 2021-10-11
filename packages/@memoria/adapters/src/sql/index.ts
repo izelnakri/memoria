@@ -13,7 +13,7 @@ import MemoriaModel, {
   RuntimeError,
   primaryKeyTypeSafetyCheck,
 } from "@memoria/model";
-import type { ModelReference } from "@memoria/model";
+import type { ModelReference, CRUDOptions } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -95,7 +95,8 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async resetRecords(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
@@ -104,7 +105,7 @@ export default class SQLAdapter extends MemoryAdapter {
     if (targetState) {
       targetState.forEach((record) => {
         if (!record.hasOwnProperty(Model.primaryKeyName)) {
-          throw new CacheError(new Changeset(Model.build(record)), {
+          throw new CacheError(new Changeset(Model.build(record, options)), {
             id: null,
             modelName: Model.name,
             attribute: Model.primaryKeyName,
@@ -114,9 +115,13 @@ export default class SQLAdapter extends MemoryAdapter {
 
         primaryKeyTypeSafetyCheck(record, Model);
       });
-      let records = await this.insertAll(Model, targetState);
+      let records = await this.insertAll(Model, targetState, options);
 
-      return await super.resetRecords(Model, records);
+      return await super.resetRecords(
+        Model,
+        records,
+        Object.assign({}, options, { revision: false })
+      );
     }
 
     return await super.resetRecords(Model, []);
@@ -189,7 +194,8 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async insert(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
       if (Model.columnNames.has(columnName)) {
@@ -218,7 +224,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.cache(Model, result.generatedMaps[0]);
+      return this.cache(Model, result.generatedMaps[0], options);
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -329,7 +335,8 @@ export default class SQLAdapter extends MemoryAdapter {
   // TODO: check this:
   static async insertAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
     // TODO: maybe move this to model.ts
     let providedIds = records.reduce((result: primaryKey[], record) => {
@@ -367,7 +374,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.cache(Model, rawResult));
+      return result.raw.map((rawResult) => this.cache(Model, rawResult, options));
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling

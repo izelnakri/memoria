@@ -115,29 +115,50 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
     });
     assert.ok(firstComment.inserted_at instanceof Date);
     assert.ok(firstComment.updated_at instanceof Date);
-    assert.ok(
-      !firstComment.isNew &&
-        firstComment.isPersisted &&
-        !firstComment.isDirty &&
-        !firstComment.isDeleted
-    );
+    assert.notOk(firstComment.isNew);
+    assert.ok(firstComment.isPersisted);
+    assert.notOk(firstComment.isDeleted);
+    assert.notOk(firstComment.isDirty);
+    assert.deepEqual(firstComment.changes, {});
 
     let firstPhoto = await Photo.update({
       id: 1,
-      name: "Ski trip",
+      name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
     assert.propEqual(firstPhoto, {
       id: 1,
-      name: "Ski trip",
+      name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.propEqual(firstPhoto, await Photo.find(1));
-    assert.ok(
-      !firstPhoto.isNew && firstPhoto.isPersisted && !firstPhoto.isDirty && !firstPhoto.isDeleted
-    );
+    assert.propEqual(firstPhoto, Object.assign(await Photo.find(1), { name: "S trip" }));
+    assert.notOk(firstPhoto.isNew);
+    assert.ok(firstPhoto.isPersisted);
+    assert.notOk(firstPhoto.isDeleted);
+    assert.notOk(firstPhoto.isDirty);
+    assert.deepEqual(firstPhoto.changes, {});
+    assert.deepEqual(firstPhoto.revision, {
+      id: 1,
+      name: "S trip",
+      href: "ski-trip.jpeg",
+      is_public: false,
+    });
+    assert.deepEqual(firstPhoto.revisionHistory, [
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+      {
+        id: 1,
+        name: "S trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+    ]);
 
     let secondPhoto = await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
     assert.propEqual(secondPhoto, {
@@ -156,20 +177,49 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
 
     let comment = await PhotoComment.update({
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Cool",
+      content: "Coolie",
     });
     assert.matchJson(comment, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       inserted_at: String,
       updated_at: String,
       is_important: true,
-      content: "Cool",
+      content: "Coolie",
     });
     assert.propEqual(
       comment,
-      await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
+      Object.assign(await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }), {
+        content: "Coolie",
+      })
     );
-    assert.ok(!comment.isNew && comment.isPersisted && !comment.isDirty && !comment.isDeleted);
+    assert.notOk(comment.isNew);
+    assert.ok(comment.isPersisted);
+    assert.notOk(comment.isDeleted);
+    assert.notOk(comment.isDirty);
+    assert.deepEqual(comment.changes, {});
+    assert.deepEqual(comment.revision, {
+      content: "Coolie",
+      inserted_at: comment.inserted_at,
+      is_important: true,
+      updated_at: comment.updated_at,
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+    });
+    assert.deepEqual(comment.revisionHistory, [
+      {
+        content: "Interesting indeed",
+        inserted_at: comment.inserted_at,
+        is_important: true,
+        updated_at: comment.inserted_at,
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      },
+      {
+        content: "Coolie",
+        inserted_at: comment.inserted_at,
+        is_important: true,
+        updated_at: comment.updated_at,
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      },
+    ]);
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
     assert.equal(firstComment.inserted_at, comment.inserted_at);

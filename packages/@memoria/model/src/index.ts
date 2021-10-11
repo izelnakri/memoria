@@ -2,6 +2,7 @@ import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
 import Config from "./config.js";
 import Model from "./model.js";
+export type { CRUDOptions } from "./model.js";
 export type {
   DecoratorBucket,
   ColumnDefinition,

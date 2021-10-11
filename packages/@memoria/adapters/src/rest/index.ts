@@ -1,6 +1,6 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
 import MemoriaModel, { RuntimeError, primaryKeyTypeSafetyCheck } from "@memoria/model";
-import type { ModelReference } from "@memoria/model";
+import type { ModelReference, CRUDOptions } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 
@@ -53,8 +53,10 @@ export default class RESTAdapter extends MemoryAdapter {
 
   static async resetRecords(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
+    options; // TODO: remove this line, made to ignore typecheck for now
     if (Array.isArray(targetState)) {
       let ids = targetState.reduce((result, record) => {
         result.add(record[Model.primaryKeyName]);
@@ -160,8 +162,10 @@ export default class RESTAdapter extends MemoryAdapter {
 
   static async insert(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
   ): Promise<MemoriaModel> {
+    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
@@ -199,8 +203,10 @@ export default class RESTAdapter extends MemoryAdapter {
   // POST /people/bulk
   static async insertAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
+    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
