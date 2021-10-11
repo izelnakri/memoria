@@ -105,20 +105,12 @@ export default class MemoryAdapter {
     options?: CRUDOptions
   ): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
-    let primaryKey = record[Model.primaryKeyName];
-    if (!primaryKey) {
-      throw new RuntimeError(new Changeset(Model.build(record, { isNew: false })), {
-        id: null,
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "doesn't exist",
-      });
-    }
-
-    let shouldRevision = !options || options.revision !== false;
-    let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
+    let existingModelInCache = this.peek(
+      Model,
+      record[Model.primaryKeyName]
+    ) as MemoriaModel | void;
     if (existingModelInCache) {
-      let model = Object.assign(
+      return Object.assign(
         existingModelInCache,
         Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
           if (record.hasOwnProperty(attribute)) {
@@ -128,36 +120,12 @@ export default class MemoryAdapter {
           return result;
         }, {})
       );
-
-      if (Object.keys(model.changes).length > 0) {
-        clearObject(model.changes);
-
-        if (shouldRevision) {
-          model.revisionHistory.push(Object.assign({}, model));
-        }
-      }
-
-      return model;
-    } else if (record instanceof Model) {
-      primaryKeyTypeSafetyCheck(record);
-
-      Model.Cache.push(record as MemoriaModel);
-
-      clearObject(record.changes);
-
-      if (shouldRevision) {
-        record.revisionHistory.push(Object.assign({}, record));
-      }
-
-      return record as MemoriaModel;
     }
 
-    let target = cleanRelationships(
-      Model,
-      Model.build(record, Object.assign({ isNew: false }, options))
-    );
-
-    primaryKeyTypeSafetyCheck(target); // NOTE: redundant remove it in future by doing it in build()
+    let target =
+      record instanceof Model
+        ? record
+        : cleanRelationships(Model, Model.build(record, Object.assign({ isNew: false }, options)));
 
     Model.Cache.push(target as MemoriaModel);
 

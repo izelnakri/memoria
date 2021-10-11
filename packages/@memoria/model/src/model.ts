@@ -19,6 +19,8 @@ interface ModelInstantiateOptions {
 export interface CRUDOptions {
   revision?: boolean;
   cache?: number;
+  // debug?:
+  // tracer?:
 }
 
 interface ModelBuildOptions extends ModelInstantiateOptions, CRUDOptions {
@@ -67,7 +69,25 @@ export default class Model {
   }
 
   static cache(model: ModelRefOrInstance, options: CRUDOptions): Model | Model[] {
-    return this.Adapter.cache(this, model, options);
+    if (!model[Model.primaryKeyName]) {
+      throw new RuntimeError(new Changeset(Model.build(model, { isNew: false })), {
+        id: null,
+        modelName: Model.name,
+        attribute: Model.primaryKeyName,
+        message: "doesn't exist",
+      });
+    }
+
+    primaryKeyTypeSafetyCheck(model);
+
+    let cachedModel = this.Adapter.cache(this, model, options);
+    if (Object.keys(cachedModel.changes).length > 0) {
+      clearObject(cachedModel.changes);
+
+      revisionEnabled(options) && cachedModel.revisionHistory.push(Object.assign({}, cachedModel));
+    }
+
+    return cachedModel;
   }
 
   static resetCache(fixtures?: ModelRefOrInstance[], options?: CRUDOptions): Model[] {
