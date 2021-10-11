@@ -253,7 +253,7 @@ export default class MemoryAdapter {
 
           return result;
         }, {}),
-        { isNew: false }
+        Object.assign(options || {}, { isNew: false })
       )
     );
     let primaryKey = target[Model.primaryKeyName];
