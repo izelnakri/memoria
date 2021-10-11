@@ -251,23 +251,50 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
     });
     assert.ok(firstComment.inserted_at instanceof Date);
     assert.ok(firstComment.updated_at instanceof Date);
+    assert.notOk(firstComment.isNew);
+    assert.ok(firstComment.isPersisted);
+    assert.notOk(firstComment.isDeleted);
+    assert.notOk(firstComment.isDirty);
+    assert.deepEqual(firstComment.changes, {});
 
     let firstPhoto = await Photo.update({
       id: 1,
-      name: "Ski trip",
+      name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.ok(
-      !firstPhoto.isNew && !firstPhoto.isDirty && firstPhoto.isPersisted && !firstPhoto.isDeleted
-    );
     assert.propEqual(firstPhoto, {
       id: 1,
-      name: "Ski trip",
+      name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.propEqual(firstPhoto, await Photo.find(1));
+    assert.propEqual(firstPhoto, Object.assign(await Photo.find(1), { name: "S trip" }));
+    assert.notOk(firstPhoto.isNew);
+    assert.ok(firstPhoto.isPersisted);
+    assert.notOk(firstPhoto.isDeleted);
+    assert.notOk(firstPhoto.isDirty);
+    assert.deepEqual(firstPhoto.changes, {});
+    assert.deepEqual(firstPhoto.revision, {
+      id: 1,
+      name: "S trip",
+      href: "ski-trip.jpeg",
+      is_public: false,
+    });
+    assert.deepEqual(firstPhoto.revisionHistory, [
+      {
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+      {
+        id: 1,
+        name: "S trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      },
+    ]);
 
     let secondPhoto = await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
     assert.ok(

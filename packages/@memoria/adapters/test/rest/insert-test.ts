@@ -271,7 +271,26 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     );
 
     await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
-    await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
+    let model = await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
+    assert.notOk(model.isNew);
+    assert.ok(model.isPersisted);
+    assert.notOk(model.isDeleted);
+    assert.notOk(model.isDirty);
+    assert.deepEqual(model.changes, {});
+    assert.deepEqual(model.revision, {
+      id: 100,
+      name: "Baby photo",
+      href: "/baby.jpg",
+      is_public: true,
+    });
+    assert.deepEqual(model.revisionHistory, [
+      {
+        id: 100,
+        name: "Baby photo",
+        href: "/baby.jpg",
+        is_public: true,
+      },
+    ]);
 
     assert.equal(await Photo.count(), 5);
     assert.propEqual(await Photo.findAll(), [
@@ -292,9 +311,27 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
     const initialCommentUUIDs = (await PhotoComment.findAll()).map((comment) => comment.uuid);
     const commentOne = await PhotoComment.insert({
+      uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
       inserted_at: new Date("2015-10-25T20:54:04.447Z"),
       photo_id: 1,
     });
+    assert.notOk(commentOne.isNew);
+    assert.ok(commentOne.isPersisted);
+    assert.notOk(commentOne.isDeleted);
+    assert.notOk(commentOne.isDirty);
+    assert.deepEqual(commentOne.changes, {});
+    assert.deepEqual(commentOne.revision, {
+      inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+      is_important: true,
+      uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
+    });
+    assert.deepEqual(commentOne.revisionHistory, [
+      {
+        inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        is_important: true,
+        uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
+      },
+    ]);
     const commentTwo = await PhotoComment.insert({
       uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
       is_important: false,

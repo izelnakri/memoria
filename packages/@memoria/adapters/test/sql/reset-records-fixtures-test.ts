@@ -143,7 +143,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     assert.propEqual(await Photo.findAll(), PHOTO_FIXTURES);
 
     let photoComments = await PhotoComment.findAll();
-    assert.propEqual(await PhotoComment.findAll(), [
+    assert.propEqual(photoComments, [
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         content: "Interesting indeed",
@@ -175,6 +175,31 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         user_id: 1,
         is_important: true,
         inserted_at: photoComments[2].inserted_at,
+      },
+    ]);
+
+    let photoComment = photoComments[0];
+    assert.notOk(photoComment.isNew);
+    assert.ok(photoComment.isPersisted);
+    assert.notOk(photoComment.isDeleted);
+    assert.notOk(photoComment.isDirty);
+    assert.deepEqual(photoComment.changes, {});
+    assert.deepEqual(photoComment.revision, {
+      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      content: "Interesting indeed",
+      photo_id: 2,
+      user_id: 1,
+      is_important: true,
+      inserted_at: photoComments[0].inserted_at,
+    });
+    assert.deepEqual(photoComment.revisionHistory, [
+      {
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        content: "Interesting indeed",
+        photo_id: 2,
+        user_id: 1,
+        is_important: true,
+        inserted_at: photoComments[0].inserted_at,
       },
     ]);
   });
