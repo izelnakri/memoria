@@ -84,7 +84,7 @@ export default class Model {
   static peek(primaryKey: primaryKey | primaryKey[]): Model | Model[] | void {
     if (!primaryKey) {
       throw new RuntimeError(
-        `${Model.name}.find(id) or ${Model.name}.peek(id) cannot be called without a valid id`
+        `${this.name}.find(id) or ${this.name}.peek(id) cannot be called without a valid id`
       );
     }
 
@@ -203,7 +203,7 @@ export default class Model {
     }
 
     records.forEach((record) => {
-      if (record[Model.primaryKeyName]) {
+      if (record[this.primaryKeyName]) {
         primaryKeyTypeSafetyCheck(record, this);
       }
 
