@@ -235,7 +235,25 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       href: "family-photo.jpeg",
       is_public: true,
     });
-    assert.ok(!deletedPhoto.isNew && !deletedPhoto.isDirty && deletedPhoto.isDeleted);
+    assert.notOk(deletedPhoto.isNew);
+    assert.ok(deletedPhoto.isPersisted);
+    assert.ok(deletedPhoto.isDeleted);
+    assert.notOk(deletedPhoto.isDirty);
+    assert.deepEqual(deletedPhoto.changes, {});
+    assert.deepEqual(deletedPhoto.revision, {
+      id: 2,
+      name: "Family photo",
+      href: "family-photo.jpeg",
+      is_public: true,
+    });
+    assert.deepEqual(deletedPhoto.revisionHistory, [
+      {
+        id: 2,
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+      },
+    ]);
 
     let deletedComment = await PhotoComment.delete({
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",

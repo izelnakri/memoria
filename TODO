@@ -1,5 +1,19 @@
-# Intermediary states(isDirty tracking)
-# Relationships
+# build() -> most basic building block(essentialy new() with tracking and provided values) and seals or locks. Always creates a revision
+
+# push() -> To cache an object immediately for availability
+
+# maybe instead of doing Object.assign(model, {}); create a method that resets changes = {} and does the assign and maybe also creates lastRevisions
+
+# intention:
+# Sometimes CRUD operations dont create a new revision on returned data(?)(MemoryAdapter.update())
+# CRUD operations should mutate the instance if provided as value
+
+# Tracking tests:
+# NOTE: do the same to a saved model(?) - do it in the insert test
+# NOTE: do the same to a fetched and updated model - do it in the update test
+
+# Relationships( + handle internal cleanRelationships())
+# cache: ms option for save, and maybe make tracking optional for ember
 # reasons for artifacts: doc gen, code cov report, .apk builds
 
 
@@ -21,6 +35,11 @@ c8 -r html npm run test:node then upload to github pages(?)
 errors.add(attr, ['', '', '']);
 
 
+to create dynamic className:
+let Memoria = {};
+Memoria['Foo'] = class { name = 'Izel' };
+var me = new Memoria['Foo']() // Memoria.Foo{name: "Izel"}
+console.log(me);
 
 
 

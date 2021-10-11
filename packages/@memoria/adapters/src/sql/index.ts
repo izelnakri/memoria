@@ -2,7 +2,6 @@
 // SQL updateAll is buggy because of relationship references
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
-import { primaryKeyTypeSafetyCheck } from "../utils.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
@@ -12,8 +11,9 @@ import MemoriaModel, {
   InsertError,
   UpdateError,
   RuntimeError,
+  primaryKeyTypeSafetyCheck,
 } from "@memoria/model";
-import type { ModelReference } from "@memoria/model";
+import type { ModelReference, CRUDOptions } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -22,7 +22,6 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 interface FreeObject {
   [key: string]: any;
 }
-// TODO: this.cache() adds to Cache, needs relationships handling
 
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
@@ -96,54 +95,36 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async resetRecords(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
     await Manager.clear(Model);
-    await super.resetRecords(Model, targetState);
 
     if (targetState) {
       targetState.forEach((record) => {
         if (!record.hasOwnProperty(Model.primaryKeyName)) {
-          throw new CacheError(new Changeset(Model.build(record)), {
+          throw new CacheError(new Changeset(Model.build(record, options)), {
             id: null,
             modelName: Model.name,
             attribute: Model.primaryKeyName,
             message: "is missing",
           });
         }
+
+        primaryKeyTypeSafetyCheck(record, Model);
       });
-      return await this.insertAll(Model, targetState);
+      let records = await this.insertAll(Model, targetState, options);
+
+      return await super.resetRecords(
+        Model,
+        records,
+        Object.assign({}, options, { revision: false })
+      );
     }
 
-    return [];
-  }
-
-  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
-    let model = record instanceof Model ? record : Model.build(record, { isNew: false });
-
-    if (!record.hasOwnProperty(Model.primaryKeyName)) {
-      throw new CacheError(new Changeset(model), {
-        id: null,
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "is missing",
-      });
-    }
-
-    primaryKeyTypeSafetyCheck(model);
-
-    let foundInCache = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
-    if (foundInCache) {
-      return foundInCache;
-    }
-
-    let target = cleanRelationships(Model, model);
-
-    Model.Cache.push(target);
-
-    return target;
+    return await super.resetRecords(Model, []);
   }
 
   static async count(Model: typeof MemoriaModel, options?: object): Promise<number> {
@@ -211,25 +192,10 @@ export default class SQLAdapter extends MemoryAdapter {
     return result.map((model) => this.cache(Model, model));
   }
 
-  // TODO: check actions from here!! for relationship CRUD
-  static async save(
-    Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
-  ): Promise<MemoriaModel> {
-    let Manager = await this.getEntityManager();
-    let resultRaw = await Manager.save(Model, cleanRelationships(Model, record));
-    let result = Model.build(resultRaw.generatedMaps[0]) as MemoriaModel;
-
-    if (this.peek(Model, result[Model.primaryKeyName])) {
-      return await super.update(Model, result); // NOTE: this could be problematic
-    }
-
-    return this.push(Model, result) as MemoriaModel;
-  }
-
   static async insert(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
       if (Model.columnNames.has(columnName)) {
@@ -258,7 +224,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.cache(Model, result.generatedMaps[0]);
+      return this.cache(Model, result.generatedMaps[0], options);
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -324,7 +290,7 @@ export default class SQLAdapter extends MemoryAdapter {
         return await super.update(Model, result); // NOTE: this could be problematic
       }
 
-      return this.push(Model, result) as MemoriaModel;
+      return this.cache(Model, result) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -335,13 +301,6 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    if (!record) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "$Model.delete() called without a valid record"
-      );
-    }
-
     let primaryKeyName = Model.primaryKeyName;
     try {
       let Manager = await this.getEntityManager();
@@ -373,24 +332,13 @@ export default class SQLAdapter extends MemoryAdapter {
     }
   }
 
-  static async saveAll(
-    Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
-  ): Promise<MemoriaModel[]> {
-    // TODO: this should do both insertAll or updateAll based on the scenario
-    let Manager = await this.getEntityManager();
-    let results = await Manager.save(
-      records.map((record) => cleanRelationships(Model, Model.build(record)))
-    );
-
-    return results.map((result) => this.push(Model, result));
-  }
-
   // TODO: check this:
   static async insertAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
+    // TODO: maybe move this to model.ts
     let providedIds = records.reduce((result: primaryKey[], record) => {
       if (Model.primaryKeyName in record) {
         let primaryKey = record[Model.primaryKeyName] as primaryKey;
@@ -399,6 +347,8 @@ export default class SQLAdapter extends MemoryAdapter {
             `${Model.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
           );
         }
+
+        primaryKeyTypeSafetyCheck(record, Model);
 
         result.push(primaryKey);
       }
@@ -424,7 +374,7 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.cache(Model, rawResult));
+      return result.raw.map((rawResult) => this.cache(Model, rawResult, options));
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling
@@ -463,7 +413,7 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
-    return results.map((result) => this.push(Model, result));
+    return results.map((result) => this.cache(Model, result));
   }
 
   static async deleteAll(

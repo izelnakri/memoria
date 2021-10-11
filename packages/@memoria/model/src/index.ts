@@ -2,6 +2,7 @@ import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
 import Config from "./config.js";
 import Model from "./model.js";
+export type { CRUDOptions } from "./model.js";
 export type {
   DecoratorBucket,
   ColumnDefinition,
@@ -28,7 +29,7 @@ export {
 } from "./errors/index.js";
 import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
-export { generateUUID } from "./utils.js";
+export { clearObject, generateUUID, primaryKeyTypeSafetyCheck } from "./utils.js";
 export {
   Column,
   CreateDateColumn,

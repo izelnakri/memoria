@@ -10,10 +10,6 @@ export interface QueryObject {
   [propName: string]: any;
 }
 
-// NOTE: also needs Errors:
-// AbortError, AdapterError, ForbiddenError, InvalidError, NotFoundError, ServerError, TimeoutError, ConflictError(equates to a HTTP `409 Conflict)
-// coalasceFindRequests?
-
 // export abstract class Adapter {
 //   abstract resetCache(targetState: ModelRef[]): ModelRef[];
 //   abstract resetRecords(targetState: ModelRef[]): Promise<ModelRef[]>;

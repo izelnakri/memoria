@@ -134,6 +134,7 @@ async function makeFetchRequest(
   Model?: typeof MemoriaModel
 ): Promise<JSObject | MemoriaModel | MemoriaModel[]> {
   // TODO: could have the requestTime metadata
+  // TODO: could implement logging
   let response, json, timedOut;
   let timeoutController = new AbortController();
   let timeoutFunction = setTimeout(
@@ -152,7 +153,7 @@ async function makeFetchRequest(
       body: JSON.stringify(httpOptions.body),
     });
   } finally {
-    clearTimeout(timeoutFunction); // NOTE: move to try?
+    clearTimeout(timeoutFunction);
   }
 
   try {
@@ -175,12 +176,11 @@ async function makeFetchRequest(
     let errors = getErrorsIfExists(json, httpOptions);
     if (errors || response.status >= 223) {
       let ErrorInterface = getErrorInterface(httpOptions, response, Model);
-      let errorMessage = getErrorMessage(ErrorInterface, httpOptions);
 
       throw new ErrorInterface(
         new Changeset(Model ? getModelFromPayload(httpOptions.body as JSObject, Model) : undefined),
         errors as ErrorMetadata[],
-        errorMessage
+        getErrorMessage(ErrorInterface, httpOptions)
       );
     }
 
@@ -190,10 +190,10 @@ async function makeFetchRequest(
       let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
       if (Array.isArray(results)) {
-        return results.map((result) => Adapter.push(Model, result)) as MemoriaModel[];
+        return results.map((result) => Adapter.cache(Model, result)) as MemoriaModel[];
       }
 
-      return Adapter.push(Model, results) as MemoriaModel;
+      return Adapter.cache(Model, results) as MemoriaModel;
     }
 
     return json;

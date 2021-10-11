@@ -134,7 +134,26 @@ module("@memoria/adapters | RESTAdapter | Default Attributes", function (hooks) 
       href: null,
       is_public: true,
     });
-    assert.deepEqual(target, await Photo.find(target.id));
+    assert.deepEqual(target, await Photo.find(target.id)); // TODO: does find adds one?
+    assert.notOk(target.isNew);
+    assert.ok(target.isPersisted);
+    assert.notOk(target.isDeleted);
+    assert.notOk(target.isDirty);
+    assert.deepEqual(target.changes, {});
+    assert.deepEqual(target.revision, {
+      id: 5,
+      name: "Izel",
+      href: null,
+      is_public: true,
+    });
+    assert.deepEqual(target.revisionHistory, [
+      {
+        id: 5,
+        name: "Izel",
+        href: null,
+        is_public: true,
+      },
+    ]);
 
     let secondTarget = await Photo.insert({ name: "Izel", href: "something else" });
 
@@ -155,5 +174,24 @@ module("@memoria/adapters | RESTAdapter | Default Attributes", function (hooks) 
       is_public: false,
     });
     assert.deepEqual(thirdTarget, await Photo.find(thirdTarget.id));
+    assert.notOk(thirdTarget.isNew);
+    assert.ok(thirdTarget.isPersisted);
+    assert.notOk(thirdTarget.isDeleted);
+    assert.notOk(thirdTarget.isDirty);
+    assert.deepEqual(thirdTarget.changes, {});
+    assert.deepEqual(thirdTarget.revision, {
+      id: 7,
+      name: "Izel",
+      href: null,
+      is_public: false,
+    });
+    assert.deepEqual(thirdTarget.revisionHistory, [
+      {
+        id: 7,
+        name: "Izel",
+        href: null,
+        is_public: false,
+      },
+    ]);
   });
 });

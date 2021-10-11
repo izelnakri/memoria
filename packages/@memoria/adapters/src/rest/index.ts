@@ -1,9 +1,8 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { Changeset, RuntimeError } from "@memoria/model";
-import type { ModelReference } from "@memoria/model";
+import MemoriaModel, { RuntimeError, primaryKeyTypeSafetyCheck } from "@memoria/model";
+import type { ModelReference, CRUDOptions } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
-import { primaryKeyTypeSafetyCheck } from "../utils.js";
 
 export interface HTTPHeaders {
   Accept: "application/json";
@@ -54,8 +53,10 @@ export default class RESTAdapter extends MemoryAdapter {
 
   static async resetRecords(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
+    options; // TODO: remove this line, made to ignore typecheck for now
     if (Array.isArray(targetState)) {
       let ids = targetState.reduce((result, record) => {
         result.add(record[Model.primaryKeyName]);
@@ -82,7 +83,7 @@ export default class RESTAdapter extends MemoryAdapter {
         Model
       )) as MemoriaModel[];
     } catch (error) {
-      allRecords.forEach((record) => this.push(Model, record));
+      allRecords.forEach((record) => this.cache(Model, record));
       throw error;
     }
   }
@@ -159,21 +160,12 @@ export default class RESTAdapter extends MemoryAdapter {
     )) as MemoriaModel[] | MemoriaModel | void;
   }
 
-  // static async save(
-  //   Model: typeof MemoriaModel,
-  //   record: QueryObject | ModelRefOrInstance
-  // ): Promise<MemoriaModel> {
-  //   // POST or UPDATE /people/:id
-  // }
-
   static async insert(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
   ): Promise<MemoriaModel> {
-    if (record[Model.primaryKeyName]) {
-      primaryKeyTypeSafetyCheck(Model.build(record));
-    }
-
+    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
@@ -186,15 +178,6 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    if (!record || !record[Model.primaryKeyName]) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "$Model.update() called without a record with primaryKey"
-      );
-    }
-
-    primaryKeyTypeSafetyCheck(Model.build(record));
-
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
@@ -207,15 +190,6 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance
   ): Promise<MemoriaModel> {
-    if (!record || !record[Model.primaryKeyName]) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "$Model.delete() called without a record with primaryKey"
-      );
-    }
-
-    primaryKeyTypeSafetyCheck(Model.build(record));
-
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
@@ -226,28 +200,13 @@ export default class RESTAdapter extends MemoryAdapter {
     return this.unload(Model, record);
   }
 
-  // static async saveAll(
-  //   Model: typeof MemoriaModel,
-  //   records: ModelRefOrInstance[]
-  // ): Promise<MemoriaModel[]> {
-  //   // POST or UPDATE /people/bulk
-  // }
-
   // POST /people/bulk
   static async insertAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
-    if (!records || records.length === 0) {
-      throw new RuntimeError("$Model.insertAll(records) called without records");
-    }
-
-    records.forEach((record) => {
-      if (record[Model.primaryKeyName]) {
-        primaryKeyTypeSafetyCheck(Model.build(record));
-      }
-    });
-
+    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
@@ -261,21 +220,6 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
-    if (!records || records.length === 0) {
-      throw new RuntimeError("$Model.updateAll(records) called without records");
-    }
-
-    records.forEach((record) => {
-      if (!record[Model.primaryKeyName]) {
-        throw new RuntimeError(
-          new Changeset(Model.build(record)),
-          "$Model.updateAll() called without records having primaryKey"
-        );
-      }
-
-      primaryKeyTypeSafetyCheck(Model.build(record));
-    });
-
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
@@ -289,21 +233,6 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[]
   ): Promise<MemoriaModel[]> {
-    if (!records || records.length === 0) {
-      throw new RuntimeError("$Model.deleteAll(records) called without records");
-    }
-
-    records.forEach((record) => {
-      if (!record[Model.primaryKeyName]) {
-        throw new RuntimeError(
-          new Changeset(Model.build(record)),
-          "$Model.deleteAll() called without records having primaryKey"
-        );
-      }
-
-      primaryKeyTypeSafetyCheck(Model.build(record));
-    });
-
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
