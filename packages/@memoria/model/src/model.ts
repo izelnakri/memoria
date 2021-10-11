@@ -16,7 +16,12 @@ interface ModelInstantiateOptions {
   isDeleted?: boolean;
 }
 
-interface ModelBuildOptions extends ModelInstantiateOptions {
+export interface CRUDOptions {
+  revision?: boolean;
+  cache?: number;
+}
+
+interface ModelBuildOptions extends ModelInstantiateOptions, CRUDOptions {
   freeze?: boolean;
   trackAttributes?: boolean;
 }
@@ -61,16 +66,19 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static cache(model: ModelRefOrInstance): Model | Model[] {
-    return this.Adapter.cache(this, model);
+  static cache(model: ModelRefOrInstance, options: CRUDOptions): Model | Model[] {
+    return this.Adapter.cache(this, model, options);
   }
 
-  static resetCache(fixtures?: ModelRefOrInstance[]): Model[] {
-    return this.Adapter.resetCache(this, fixtures);
+  static resetCache(fixtures?: ModelRefOrInstance[], options?: CRUDOptions): Model[] {
+    return this.Adapter.resetCache(this, fixtures, options);
   }
 
-  static async resetRecords(targetState?: ModelRefOrInstance[]): Promise<Model[]> {
-    return await this.Adapter.resetRecords(this, targetState);
+  static async resetRecords(
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
+  ): Promise<Model[]> {
+    return await this.Adapter.resetRecords(this, targetState, options);
   }
 
   static peek(primaryKey: primaryKey | primaryKey[]): Model | Model[] | void {
@@ -103,14 +111,17 @@ export default class Model {
     return await this.Adapter.findAll(this, queryObject);
   }
 
-  static async insert(record?: QueryObject | ModelRefOrInstance): Promise<Model> {
+  static async insert(
+    record?: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
+  ): Promise<Model> {
     if (record && record[this.primaryKeyName]) {
-      primaryKeyTypeSafetyCheck(this.build(record));
+      primaryKeyTypeSafetyCheck(record, this);
     }
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.insert(this, record || {});
+    let model = await this.Adapter.insert(this, record || {}, options);
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -130,7 +141,7 @@ export default class Model {
       );
     }
 
-    primaryKeyTypeSafetyCheck(this.build(record));
+    primaryKeyTypeSafetyCheck(record, this);
 
     this.setRecordInTransit(record);
 
@@ -163,7 +174,7 @@ export default class Model {
       );
     }
 
-    primaryKeyTypeSafetyCheck(this.build(record));
+    primaryKeyTypeSafetyCheck(record, this);
 
     this.setRecordInTransit(record);
 
@@ -183,20 +194,23 @@ export default class Model {
       : await this.Adapter.insertAll(this, records);
   }
 
-  static async insertAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
+  static async insertAll(
+    records: QueryObject[] | ModelRefOrInstance[],
+    options?: CRUDOptions
+  ): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.insertAll(records) called without records");
     }
 
     records.forEach((record) => {
       if (record[Model.primaryKeyName]) {
-        primaryKeyTypeSafetyCheck(this.build(record));
+        primaryKeyTypeSafetyCheck(record, this);
       }
 
       this.setRecordInTransit(record);
     });
 
-    let models = await this.Adapter.insertAll(this, records);
+    let models = await this.Adapter.insertAll(this, records, options);
 
     records.forEach((record) => {
       if (record instanceof this) {
@@ -222,7 +236,7 @@ export default class Model {
         );
       }
 
-      primaryKeyTypeSafetyCheck(this.build(record));
+      primaryKeyTypeSafetyCheck(record, this);
       this.setRecordInTransit(record);
     });
 
@@ -256,7 +270,7 @@ export default class Model {
         );
       }
 
-      primaryKeyTypeSafetyCheck(this.build(record));
+      primaryKeyTypeSafetyCheck(record, this);
       this.setRecordInTransit(record);
     });
 
@@ -283,13 +297,15 @@ export default class Model {
     let model = new this(options);
 
     if (!options || options.trackAttributes !== false) {
-      model.revisionHistory.push(
-        Array.from(this.columnNames).reduce((result, keyName) => {
-          transformModelForBuild(model, keyName, buildObject);
+      if (!options || options.revision !== false) {
+        model.revisionHistory.push(
+          Array.from(this.columnNames).reduce((result, keyName) => {
+            transformModelForBuild(model, keyName, buildObject);
 
-          return Object.assign(result, { [keyName]: model[keyName] });
-        }, {} as ModelReference)
-      );
+            return Object.assign(result, { [keyName]: model[keyName] });
+          }, {} as ModelReference)
+        );
+      }
 
       Array.from(this.columnNames).forEach((columnName) => {
         let cache = model[columnName];
@@ -302,6 +318,12 @@ export default class Model {
           },
           set(value) {
             if (this[columnName] === value) {
+              return;
+            } else if (
+              value instanceof Date &&
+              this[columnName] &&
+              this[columnName].toJSON() === value.toJSON()
+            ) {
               return;
             }
 

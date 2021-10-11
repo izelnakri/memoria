@@ -89,6 +89,25 @@ module("@memoria/adapters | MemoryAdapter | Default Attributes", function (hooks
       is_public: true,
     });
     assert.deepEqual(target, await Photo.find(target.id));
+    assert.notOk(target.isNew);
+    assert.ok(target.isPersisted);
+    assert.notOk(target.isDeleted);
+    assert.notOk(target.isDirty);
+    assert.deepEqual(target.changes, {});
+    assert.deepEqual(target.revision, {
+      id: 5,
+      name: "Izel",
+      href: null,
+      is_public: true,
+    });
+    assert.deepEqual(target.revisionHistory, [
+      {
+        id: 5,
+        name: "Izel",
+        href: null,
+        is_public: true,
+      },
+    ]);
 
     let secondTarget = await Photo.insert({ name: "Izel", href: "something else" });
 

@@ -10,7 +10,7 @@ import MemoriaModel, {
   primaryKeyTypeSafetyCheck,
   clearObject,
 } from "@memoria/model";
-import type { ModelReference, DecoratorBucket } from "@memoria/model";
+import type { ModelReference, DecoratorBucket, CRUDOptions } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -67,7 +67,8 @@ export default class MemoryAdapter {
 
   static resetCache(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): MemoriaModel[] {
     Model.Cache.length = 0;
 
@@ -80,7 +81,7 @@ export default class MemoryAdapter {
           );
         }
 
-        this.cache(Model, targetFixture);
+        this.cache(Model, targetFixture, options);
 
         return primaryKeys.add(primaryKey);
       }, new Set([]));
@@ -91,13 +92,18 @@ export default class MemoryAdapter {
 
   static async resetRecords(
     Model: typeof MemoriaModel,
-    targetState?: ModelRefOrInstance[]
+    targetState?: ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
-    return this.resetCache(Model, targetState);
+    return this.resetCache(Model, targetState, options);
   }
 
   // it provided record must have the primaryKey
-  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
+  static cache(
+    Model: typeof MemoriaModel,
+    record: ModelRefOrInstance,
+    options?: CRUDOptions
+  ): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
     let primaryKey = record[Model.primaryKeyName];
     if (!primaryKey) {
@@ -109,6 +115,7 @@ export default class MemoryAdapter {
       });
     }
 
+    let shouldRevision = !options || options.revision !== false;
     let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
     if (existingModelInCache) {
       let model = Object.assign(
@@ -122,8 +129,13 @@ export default class MemoryAdapter {
         }, {})
       );
 
-      clearObject(model.changes);
-      model.revisionHistory.push(Object.assign({}, model));
+      if (Object.keys(model.changes).length > 0) {
+        clearObject(model.changes);
+
+        if (shouldRevision) {
+          model.revisionHistory.push(Object.assign({}, model));
+        }
+      }
 
       return model;
     } else if (record instanceof Model) {
@@ -132,12 +144,18 @@ export default class MemoryAdapter {
       Model.Cache.push(record as MemoriaModel);
 
       clearObject(record.changes);
-      record.revisionHistory.push(Object.assign({}, record));
+
+      if (shouldRevision) {
+        record.revisionHistory.push(Object.assign({}, record));
+      }
 
       return record as MemoriaModel;
     }
 
-    let target = cleanRelationships(Model, Model.build(record, { isNew: false }));
+    let target = cleanRelationships(
+      Model,
+      Model.build(record, Object.assign({ isNew: false }, options))
+    );
 
     primaryKeyTypeSafetyCheck(target); // NOTE: redundant remove it in future by doing it in build()
 
@@ -215,7 +233,8 @@ export default class MemoryAdapter {
 
   static async insert(
     Model: typeof MemoriaModel,
-    model: QueryObject | ModelRefOrInstance
+    model: QueryObject | ModelRefOrInstance,
+    options?: CRUDOptions
   ): Promise<MemoriaModel> {
     let defaultValues = Object.assign({}, Config.getDefaultValues(Model, "insert"));
     let target = cleanRelationships(
@@ -333,9 +352,10 @@ export default class MemoryAdapter {
 
   static async insertAll(
     Model: typeof MemoriaModel,
-    models: QueryObject[] | ModelRefOrInstance[]
+    models: QueryObject[] | ModelRefOrInstance[],
+    options?: CRUDOptions
   ): Promise<MemoriaModel[]> {
-    return await Promise.all(models.map((model) => this.insert(Model, model)));
+    return await Promise.all(models.map((model) => this.insert(Model, model, options)));
   }
 
   static async updateAll(

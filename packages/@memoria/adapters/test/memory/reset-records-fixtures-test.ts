@@ -1,4 +1,10 @@
-import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn, CacheError, RuntimeError } from "@memoria/model";
+import Model, {
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  CacheError,
+  RuntimeError,
+} from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
@@ -128,7 +134,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     assert.propEqual(await Photo.findAll(), PHOTO_FIXTURES);
 
     let photoComments = await PhotoComment.findAll();
-    assert.propEqual(await PhotoComment.findAll(), [
+    assert.propEqual(photoComments, [
       {
         content: "What a nice photo!",
         inserted_at: photoComments[0].inserted_at,
@@ -160,6 +166,31 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
         photo_id: 2,
         user_id: 1,
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      },
+    ]);
+
+    let photoComment = photoComments[0];
+    assert.notOk(photoComment.isNew);
+    assert.ok(photoComment.isPersisted);
+    assert.notOk(photoComment.isDeleted);
+    assert.notOk(photoComment.isDirty);
+    assert.deepEqual(photoComment.changes, {});
+    assert.deepEqual(photoComment.revision, {
+      content: "What a nice photo!",
+      inserted_at: photoComments[0].inserted_at,
+      is_important: null,
+      photo_id: 1,
+      user_id: 1,
+      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+    });
+    assert.deepEqual(photoComment.revisionHistory, [
+      {
+        content: "What a nice photo!",
+        inserted_at: photoComments[0].inserted_at,
+        is_important: null,
+        photo_id: 1,
+        user_id: 1,
+        uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       },
     ]);
   });
