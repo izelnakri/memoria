@@ -1,5 +1,6 @@
 /dist
 node_modules
+.parcel-cache
 /examples/dist
 /coverage
 /examples/.cache
