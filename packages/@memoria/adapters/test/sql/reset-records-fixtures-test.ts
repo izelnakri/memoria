@@ -233,7 +233,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     try {
       await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
     } catch (error) {
-      assert.ok(error instanceof CacheError);
+      assert.ok(error instanceof RuntimeError);
     }
   });
 

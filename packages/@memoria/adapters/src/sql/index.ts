@@ -6,14 +6,12 @@ import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
   Config,
-  CacheError,
   DeleteError,
   InsertError,
   UpdateError,
   RuntimeError,
-  primaryKeyTypeSafetyCheck,
 } from "@memoria/model";
-import type { ModelReference, CRUDOptions } from "@memoria/model";
+import type { ModelReference, ModelBuildOptions } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -84,58 +82,49 @@ export default class SQLAdapter extends MemoryAdapter {
     return Config;
   }
 
-  static async resetForTests(Config, modelName?: string): Promise<Config> {
-    await super.resetForTests(Config, modelName);
+  static async resetForTests(
+    Config,
+    modelName?: string,
+    options?: ModelBuildOptions
+  ): Promise<Config> {
+    await super.resetForTests(Config, modelName, options);
 
     let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
     let Manager = await this.getEntityManager();
 
-    return await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
+    await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
+
+    return Config;
   }
 
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
     await Manager.clear(Model);
 
     if (targetState) {
-      targetState.forEach((record) => {
-        if (!record.hasOwnProperty(Model.primaryKeyName)) {
-          throw new CacheError(new Changeset(Model.build(record, options)), {
-            id: null,
-            modelName: Model.name,
-            attribute: Model.primaryKeyName,
-            message: "is missing",
-          });
-        }
-
-        primaryKeyTypeSafetyCheck(record, Model);
-      });
       let records = await this.insertAll(Model, targetState, options);
 
-      return await super.resetRecords(
-        Model,
-        records,
-        Object.assign({}, options, { revision: false })
-      );
+      return await this.resetCache(Model, records, Object.assign({}, options, { revision: false }));
     }
 
-    return await super.resetRecords(Model, []);
+    return await this.resetCache(Model, [], options);
   }
 
-  static async count(Model: typeof MemoriaModel, options?: object): Promise<number> {
+  static async count(Model: typeof MemoriaModel, query?: QueryObject): Promise<number> {
     let Manager = await this.getEntityManager();
 
-    return options ? await Manager.count(Model, options) : await Manager.count(Model);
+    return query ? await Manager.count(Model, query) : await Manager.count(Model);
   }
 
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[]
+    primaryKey: primaryKey | primaryKey[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     let Manager = await this.getEntityManager();
 
@@ -145,10 +134,10 @@ export default class SQLAdapter extends MemoryAdapter {
         let foundModels = await Manager.findByIds(Model, primaryKey, {
           order: { [Model.primaryKeyName]: "ASC" },
         });
-        return foundModels.map((model) => this.cache(Model, model));
+        return foundModels.map((model) => this.cache(Model, model, options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return this.cache(Model, foundModel);
+        return this.cache(Model, foundModel, options);
       }
     } catch (error) {
       if (!error.code) {
@@ -165,17 +154,19 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async findBy(
     Model: typeof MemoriaModel,
-    queryObject: object
+    queryObject: QueryObject,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel | void> {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, queryObject);
 
-    return this.cache(Model, foundModel);
+    return this.cache(Model, foundModel, options);
   }
 
   static async findAll(
     Model: typeof MemoriaModel,
-    queryObject: object = {}
+    queryObject: QueryObject = {},
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | void> {
     let Manager = await this.getEntityManager();
     let query = await Manager.createQueryBuilder(Model, Model.tableName).orderBy(
@@ -189,13 +180,13 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.cache(Model, model));
+    return result.map((model) => this.cache(Model, model, options));
   }
 
   static async insert(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
       if (Model.columnNames.has(columnName)) {
@@ -254,7 +245,8 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async update(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: ModelRefOrInstance,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
 
@@ -276,7 +268,7 @@ export default class SQLAdapter extends MemoryAdapter {
         })
         .returning("*")
         .execute();
-      let result = Model.build(resultRaw.raw[0], { isNew: false }) as MemoriaModel;
+      let result = resultRaw.raw[0];
       if (!result || !result[Model.primaryKeyName]) {
         throw new UpdateError(new Changeset(Model.build(record)), {
           id: record[Model.primaryKeyName],
@@ -287,10 +279,10 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.update(Model, result); // NOTE: this could be problematic
+        return await super.update(Model, result, options); // NOTE: this could be problematic
       }
 
-      return this.cache(Model, result) as MemoriaModel;
+      return this.cache(Model, result, options) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -299,7 +291,8 @@ export default class SQLAdapter extends MemoryAdapter {
   // NOTE: test this delete function when id isnt provided or invalid
   static async delete(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: ModelRefOrInstance,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
     try {
@@ -323,10 +316,10 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.delete(Model, result); // NOTE: this could be problematic
+        return await super.delete(Model, result, options); // NOTE: this could be problematic
       }
 
-      return Model.build(result, { isNew: false, isDeleted: true });
+      return Model.build(result, Object.assign(options || {}, { isNew: false, isDeleted: true }));
     } catch (error) {
       throw error;
     }
@@ -336,26 +329,9 @@ export default class SQLAdapter extends MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    // TODO: maybe move this to model.ts
-    let providedIds = records.reduce((result: primaryKey[], record) => {
-      if (Model.primaryKeyName in record) {
-        let primaryKey = record[Model.primaryKeyName] as primaryKey;
-        if (result.includes(primaryKey)) {
-          throw new RuntimeError(
-            `${Model.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
-          );
-        }
-
-        primaryKeyTypeSafetyCheck(record, Model);
-
-        result.push(primaryKey);
-      }
-
-      return result;
-    }, []);
-
+    let primaryKey = records.find((record) => record[Model.primaryKeyName]);
     try {
       let Manager = await this.getEntityManager();
       let result = await Manager.createQueryBuilder()
@@ -365,7 +341,7 @@ export default class SQLAdapter extends MemoryAdapter {
         .returning("*")
         .execute();
 
-      if (providedIds[0] && typeof providedIds[0] === "number") {
+      if (primaryKey && typeof primaryKey === "number") {
         let tableName = Manager.connection.entityMetadatas.find(
           (metadata) => metadata.targetName === Model.name
         ).tableName;
@@ -405,7 +381,8 @@ export default class SQLAdapter extends MemoryAdapter {
   // In future, optimize query: https://stackoverflow.com/questions/18797608/update-multiple-rows-in-same-query-using-postgresql
   static async updateAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     // TODO: model always expects them to be instance!! Do not use save function!
     let Manager = await this.getEntityManager();
@@ -413,12 +390,13 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
-    return results.map((result) => this.cache(Model, result));
+    return results.map((result) => this.cache(Model, result, options));
   }
 
   static async deleteAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
     let targetPrimaryKeys = records.map((model) => model[Model.primaryKeyName]);
@@ -431,7 +409,9 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await this.unloadAll(Model, this.peekAll(Model, targetPrimaryKeys) as MemoriaModel[]);
 
-    return result.raw.map((rawResult) => Model.build(rawResult));
+    return result.raw.map((rawResult) =>
+      Model.build(rawResult, Object.assign(options || {}, { isNew: false, isDeleted: true }))
+    );
   }
 }
 
