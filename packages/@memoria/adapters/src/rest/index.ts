@@ -1,6 +1,6 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { RuntimeError, primaryKeyTypeSafetyCheck } from "@memoria/model";
-import type { ModelReference, CRUDOptions } from "@memoria/model";
+import MemoriaModel, { RuntimeError } from "@memoria/model";
+import type { ModelReference, ModelBuildOptions } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 
@@ -54,33 +54,16 @@ export default class RESTAdapter extends MemoryAdapter {
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    options; // TODO: remove this line, made to ignore typecheck for now
-    if (Array.isArray(targetState)) {
-      let ids = targetState.reduce((result, record) => {
-        result.add(record[Model.primaryKeyName]);
-        primaryKeyTypeSafetyCheck(Model.build(record));
-
-        return result;
-      }, new Set());
-
-      if (Array.from(ids).length < targetState.length) {
-        throw new RuntimeError(
-          `${Model.name}.resetRecords(models) one of the models missing primary key`
-        );
-      }
-    }
-
-    let allRecords = Model.peekAll();
-
+    let allRecords = this.peekAll(Model);
     try {
       Model.unloadAll();
       return (await this.http.post(
         `${this.host}/${this.pathForType(Model)}/reset`,
         { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: targetState },
         this.headers,
-        Model
+        Object.assign({ Model }, options)
       )) as MemoriaModel[];
     } catch (error) {
       allRecords.forEach((record) => this.cache(Model, record));
@@ -101,13 +84,14 @@ export default class RESTAdapter extends MemoryAdapter {
   // GET /people?ids=[], or GET /people/:id
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[]
+    primaryKey: primaryKey | primaryKey[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     if (Array.isArray(primaryKey)) {
       return (await this.http.get(
         `${this.host}/${this.pathForType(Model)}${buildQueryPath({ ids: primaryKey })}`,
         this.headers,
-        Model
+        Object.assign({ Model }, options)
       )) as MemoriaModel[];
     }
 
@@ -119,7 +103,7 @@ export default class RESTAdapter extends MemoryAdapter {
       return (await this.http.get(
         `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
         this.headers,
-        Model
+        Object.assign({ Model }, options)
       )) as MemoriaModel;
     }
 
@@ -129,13 +113,14 @@ export default class RESTAdapter extends MemoryAdapter {
   // GET /people?keyName=value, or GET /people/:id (if only primaryKeyName provided)
   static async findBy(
     Model: typeof MemoriaModel,
-    query: QueryObject
+    query: QueryObject,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel | void> {
     return (
       await this.http.get(
         `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
         this.headers,
-        Model
+        Object.assign({ Model }, options)
       )
     )[0] as MemoriaModel | void;
   }
@@ -143,58 +128,61 @@ export default class RESTAdapter extends MemoryAdapter {
   // GET /people, or GET /people?keyName=value
   static async findAll(
     Model: typeof MemoriaModel,
-    query: QueryObject
+    query: QueryObject,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | void> {
-    return (await this.query(Model, query)) as MemoriaModel[] | void;
+    return (await this.query(Model, query, options)) as MemoriaModel[] | void;
   }
 
   // GET /people, or GET /people?keyName=value
   static async query(
     Model: typeof MemoriaModel,
-    query: QueryObject
+    query: QueryObject,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     return (await this.http.get(
       `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     )) as MemoriaModel[] | MemoriaModel | void;
   }
 
   static async insert(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     )) as MemoriaModel;
   }
 
   static async update(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: ModelRefOrInstance,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     )) as MemoriaModel;
   }
 
   static async delete(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: ModelRefOrInstance,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     );
 
     return this.unload(Model, record);
@@ -204,40 +192,41 @@ export default class RESTAdapter extends MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    options; // TODO: remove this line, made to ignore typecheck for now
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     )) as MemoriaModel[];
   }
 
   // UPDATE /people/bulk
   static async updateAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     )) as MemoriaModel[];
   }
 
   // DELETE /people/bulk
   static async deleteAll(
     Model: typeof MemoriaModel,
-    records: ModelRefOrInstance[]
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Model
+      Object.assign({ Model }, options)
     );
 
     return this.unloadAll(Model, records);

@@ -127,8 +127,6 @@ async function main() {
     console.log("allDeletedUsers:");
     console.log(allDeletedUsers);
     console.log("User.count:", await User.count());
-
-    // Relationships
   } catch (error) {
     console.log("error:");
     console.log(error);
@@ -139,4 +137,4 @@ async function main() {
 
 main();
 
-// TODO: save, saveAll, insertAll, updateAll, deleteAll, resetRecords, push, cache,
+// TODO: Relationships

@@ -2,7 +2,7 @@ import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
 import Config from "./config.js";
 import Model from "./model.js";
-export type { CRUDOptions } from "./model.js";
+export type { ModelBuildOptions } from "./model.js";
 export type {
   DecoratorBucket,
   ColumnDefinition,
@@ -70,13 +70,6 @@ export default Model;
 
 export { Changeset, Config, Serializer };
 
-// Serialization
 // relationship setting and fetching
-// insertAll, updateAll, destroyAll
-// Error Handlings
-
 // User.getErrors(userInstance or Instances) // -> same array
-
-// [UserError{ message: '', type: '', snapshot, changeset }] -> Error Tracking
 // pushRecord(json);
-// transitionaryStates: isPresisted, isNew, etc, isSaved
