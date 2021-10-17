@@ -1,9 +1,9 @@
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
-import { ModelError, RuntimeError } from "./errors/index.js";
+import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
 import Config from "./config.js";
-import Serializer, { transformValue } from "./serializer.js";
+import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
 import type { ModelReference, ModelReferenceShape, RelationshipSchemaDefinition } from "./index.js";
 
@@ -16,14 +16,13 @@ interface ModelInstantiateOptions {
   isDeleted?: boolean;
 }
 
-export interface CRUDOptions {
+export interface ModelBuildOptions extends ModelInstantiateOptions {
+  freeze?: boolean;
   revision?: boolean;
   cache?: number;
-}
-
-interface ModelBuildOptions extends ModelInstantiateOptions, CRUDOptions {
-  freeze?: boolean;
-  trackAttributes?: boolean;
+  // debug?:
+  // tracer?:
+  // include?: // NOTE: would be a useful addition for JSONAPIAdapter & GraphQLAdapter
 }
 
 const LOCK_PROPERTY = {
@@ -32,9 +31,10 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
-// NOTE: CRUD params with instances change + error is not reset on each CRUD operation currently on purpose.
-// Explain what is the different between push and insert?
-// Push replaces existing record!, doesnt have defaultValues
+// NOTE: perhaps make peek and unload methods return a copied object so they can receive ModelBuildOptions,
+// also MemoryAdapter find methods call them. So check the performance impact of this change on test suites in future
+
+// cache replaces existing record!, doesnt have defaultValues
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -66,18 +66,40 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static cache(model: ModelRefOrInstance, options: CRUDOptions): Model | Model[] {
-    return this.Adapter.cache(this, model, options);
+  static cache(model: ModelRefOrInstance, options: ModelBuildOptions): Model | Model[] {
+    if (!model[this.primaryKeyName]) {
+      throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
+        id: null,
+        modelName: this.name,
+        attribute: this.primaryKeyName,
+        message: "doesn't exist",
+      });
+    }
+
+    primaryKeyTypeSafetyCheck(model, this);
+
+    let cachedModel = this.Adapter.cache(this, model, options);
+    if (Object.keys(cachedModel.changes).length > 0) {
+      clearObject(cachedModel.changes);
+
+      revisionEnabled(options) && cachedModel.revisionHistory.push(Object.assign({}, cachedModel));
+    }
+
+    return cachedModel;
   }
 
-  static resetCache(fixtures?: ModelRefOrInstance[], options?: CRUDOptions): Model[] {
-    return this.Adapter.resetCache(this, fixtures, options);
+  static resetCache(targetState?: ModelRefOrInstance[], options?: ModelBuildOptions): Model[] {
+    checkProvidedFixtures(this, targetState, options);
+
+    return this.Adapter.resetCache(this, targetState, options);
   }
 
   static async resetRecords(
     targetState?: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<Model[]> {
+    checkProvidedFixtures(this, targetState, options);
+
     return await this.Adapter.resetRecords(this, targetState, options);
   }
 
@@ -99,21 +121,31 @@ export default class Model {
     return this.Adapter.peekAll(this, queryObject);
   }
 
-  static async find(primaryKey: primaryKey | primaryKey[]): Promise<Model | Model[] | void> {
-    return await this.Adapter.find(this, primaryKey);
+  // TODO: this can perhaps extend the cache time(?) and might still have revision control
+  static async find(
+    primaryKey: primaryKey | primaryKey[],
+    options?: ModelBuildOptions
+  ): Promise<Model | Model[] | void> {
+    return await this.Adapter.find(this, primaryKey, options);
   }
 
-  static async findBy(queryObject: QueryObject): Promise<Model | void> {
-    return await this.Adapter.findBy(this, queryObject);
+  static async findBy(
+    queryObject: QueryObject,
+    options?: ModelBuildOptions
+  ): Promise<Model | void> {
+    return await this.Adapter.findBy(this, queryObject, options);
   }
 
-  static async findAll(queryObject: QueryObject = {}): Promise<Model[] | void> {
-    return await this.Adapter.findAll(this, queryObject);
+  static async findAll(
+    queryObject: QueryObject = {},
+    options?: ModelBuildOptions
+  ): Promise<Model[] | void> {
+    return await this.Adapter.findAll(this, queryObject, options);
   }
 
   static async insert(
     record?: QueryObject | ModelRefOrInstance,
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<Model> {
     if (record && record[this.primaryKeyName]) {
       primaryKeyTypeSafetyCheck(record, this);
@@ -127,13 +159,15 @@ export default class Model {
       record.#_inTransit = false;
       record.#_isNew = false;
       clearObject(record.changes);
-      model.revisionHistory.push(Object.assign({}, record));
+
+      revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, record));
     }
 
     return model;
   }
 
-  static async update(record: ModelRefOrInstance): Promise<Model> {
+  // cacheTimeout clearing absolutely needed for update(then find should also be able to change it)
+  static async update(record: ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(this.build(record)),
@@ -145,28 +179,42 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.update(this, record);
+    let model = await this.Adapter.update(this, record, options);
+
+    clearObject(model.changes);
+    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
 
     if (record instanceof this) {
       this.unsetRecordInTransit(record);
       clearObject(record.changes);
-      record.revisionHistory.push(Object.assign({}, record));
+
+      revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
     }
 
     return model;
   }
 
-  static async save(record: QueryObject | ModelRefOrInstance): Promise<Model> {
+  static async save(
+    record: QueryObject | ModelRefOrInstance,
+    options?: ModelBuildOptions
+  ): Promise<Model> {
     return shouldInsertOrUpdateARecord(this, record) === "insert"
-      ? await this.Adapter.insert(this, record)
-      : await this.Adapter.update(this, record);
+      ? await this.Adapter.insert(this, record, options)
+      : await this.Adapter.update(this, record, options);
   }
 
-  static unload(record: ModelRefOrInstance): Model {
-    return this.Adapter.unload(this, record);
+  static unload(record: ModelRefOrInstance, options?: ModelBuildOptions): Model {
+    if (!record) {
+      throw new RuntimeError(
+        new Changeset(this.build(record)),
+        "unload() called without a valid record"
+      );
+    }
+
+    return this.Adapter.unload(this, record, options);
   }
 
-  static async delete(record: ModelRefOrInstance): Promise<Model> {
+  static async delete(record: ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(this.build(record)),
@@ -178,7 +226,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let result = await this.Adapter.delete(this, record);
+    let result = await this.Adapter.delete(this, record, options);
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -188,27 +236,43 @@ export default class Model {
     return result;
   }
 
-  static async saveAll(records: QueryObject[] | ModelRefOrInstance[]): Promise<Model[]> {
+  static async saveAll(
+    records: QueryObject[] | ModelRefOrInstance[],
+    options?: ModelBuildOptions
+  ): Promise<Model[]> {
     return records.every((record) => shouldInsertOrUpdateARecord(this, record) === "update")
-      ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[])
-      : await this.Adapter.insertAll(this, records);
+      ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[], options)
+      : await this.Adapter.insertAll(this, records, options);
   }
 
-  static async insertAll(
-    records: QueryObject[] | ModelRefOrInstance[],
-    options?: CRUDOptions
-  ): Promise<Model[]> {
+  static async insertAll(records: QueryObject[], options?: ModelBuildOptions): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.insertAll(records) called without records");
     }
 
-    records.forEach((record) => {
-      if (record[this.primaryKeyName]) {
-        primaryKeyTypeSafetyCheck(record, this);
-      }
+    try {
+      records.reduce((result, record) => {
+        if (record[this.primaryKeyName]) {
+          primaryKeyTypeSafetyCheck(record, this);
 
-      this.setRecordInTransit(record);
-    });
+          let primaryKey = record[this.primaryKeyName] as primaryKey;
+          if (primaryKey && result.includes(primaryKey)) {
+            throw new RuntimeError(
+              `${this.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
+            );
+          }
+
+          result.push(primaryKey);
+        }
+
+        this.setRecordInTransit(record);
+
+        return result;
+      }, []);
+    } catch (error) {
+      records.forEach((record) => this.unsetRecordInTransit(record));
+      throw error;
+    }
 
     let models = await this.Adapter.insertAll(this, records, options);
 
@@ -216,14 +280,18 @@ export default class Model {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
-        record.revisionHistory.push(Object.assign({}, record));
+
+        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
       }
     });
 
     return models;
   }
 
-  static async updateAll(records: ModelRefOrInstance[]): Promise<Model[]> {
+  static async updateAll(
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
+  ): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
@@ -240,24 +308,27 @@ export default class Model {
       this.setRecordInTransit(record);
     });
 
-    let models = await this.Adapter.updateAll(this, records);
+    let models = await this.Adapter.updateAll(this, records, options);
 
     records.forEach((record) => {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
-        record.revisionHistory.push(Object.assign({}, record));
+        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
       }
     });
 
     return models;
   }
 
-  static unloadAll(records?: ModelRefOrInstance[]): Model[] {
-    return this.Adapter.unloadAll(this, records);
+  static unloadAll(records?: ModelRefOrInstance[], options?: ModelBuildOptions): Model[] {
+    return this.Adapter.unloadAll(this, records, options);
   }
 
-  static async deleteAll(records: ModelRefOrInstance[]): Promise<Model[]> {
+  static async deleteAll(
+    records: ModelRefOrInstance[],
+    options?: ModelBuildOptions
+  ): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.deleteAll(records) called without records");
     }
@@ -274,10 +345,10 @@ export default class Model {
       this.setRecordInTransit(record);
     });
 
-    let models = await this.Adapter.deleteAll(this, records);
+    let models = await this.Adapter.deleteAll(this, records, options);
 
     records.forEach((record) => {
-      if (record instanceof Model) {
+      if (record instanceof this) {
         this.unsetRecordInTransit(record);
         record.isDeleted = true;
       }
@@ -294,61 +365,10 @@ export default class Model {
   // could do attribute tracking
   // TODO: test also passing new Model() instance
   static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
-    let model = new this(options);
+    // NOTE: sometimes skip this part if its built(?)
+    let model = this.Adapter.build(this, buildObject, options);
 
-    if (!options || options.trackAttributes !== false) {
-      if (!options || options.revision !== false) {
-        model.revisionHistory.push(
-          Array.from(this.columnNames).reduce((result, keyName) => {
-            transformModelForBuild(model, keyName, buildObject);
-
-            return Object.assign(result, { [keyName]: model[keyName] });
-          }, {} as ModelReference)
-        );
-      }
-
-      Array.from(this.columnNames).forEach((columnName) => {
-        let cache = model[columnName];
-
-        Object.defineProperty(model, columnName, {
-          configurable: false,
-          enumerable: true,
-          get() {
-            return cache;
-          },
-          set(value) {
-            if (this[columnName] === value) {
-              return;
-            } else if (
-              value instanceof Date &&
-              this[columnName] &&
-              this[columnName].toJSON() === value.toJSON()
-            ) {
-              return;
-            }
-
-            value = value === undefined ? null : value;
-            if (this.revision[columnName] === value) {
-              delete this.changes[columnName];
-            } else {
-              Object.assign(this.changes, { [columnName]: value });
-            }
-
-            this.errors.forEach((error, errorIndex) => {
-              if (error.attribute === columnName) {
-                this.errors.splice(errorIndex, 1);
-              }
-            });
-
-            cache = value;
-          },
-        });
-      });
-    } else {
-      Array.from(this.columnNames).forEach((keyName) =>
-        transformModelForBuild(model, keyName, buildObject)
-      );
-    }
+    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
 
     return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
   }
@@ -381,7 +401,6 @@ export default class Model {
     }
   }
 
-  // tracking only is in Model.build(), same goes for model assignments
   constructor(options?: ModelInstantiateOptions) {
     Object.defineProperty(this, "changes", LOCK_PROPERTY);
     Object.defineProperty(this, "revisionHistory", LOCK_PROPERTY);
@@ -396,7 +415,7 @@ export default class Model {
     }
   }
 
-  changes = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
+  changes: QueryObject = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
   revisionHistory: ModelReferenceShape[] = [];
 
   get revision() {
@@ -414,6 +433,10 @@ export default class Model {
   #_isNew = true;
   get isNew() {
     return this.#_isNew;
+  }
+
+  get isBuilt() {
+    return Object.isSealed(this);
   }
 
   get isPersisted() {
@@ -490,11 +513,8 @@ export default class Model {
   }
 }
 
-function transformModelForBuild(model, keyName, buildObject) {
-  model[keyName] =
-    buildObject && keyName in buildObject
-      ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
-      : model[keyName] || null;
+function revisionEnabled(options?: ModelBuildOptions) {
+  return !options || options.revision !== false;
 }
 
 function shouldInsertOrUpdateARecord(
@@ -510,4 +530,28 @@ function shouldInsertOrUpdateARecord(
   }
 
   return "insert";
+}
+
+function checkProvidedFixtures(Klass: typeof Model, fixtureArray, buildOptions) {
+  if (Array.isArray(fixtureArray)) {
+    fixtureArray.reduce((primaryKeys: Set<primaryKey>, targetFixture) => {
+      primaryKeyTypeSafetyCheck(targetFixture, Klass);
+
+      let primaryKey = targetFixture[Klass.primaryKeyName];
+      if (!primaryKey) {
+        throw new CacheError(new Changeset(Klass.build(targetFixture, buildOptions)), {
+          id: null,
+          modelName: Klass.name,
+          attribute: Klass.primaryKeyName,
+          message: "is missing",
+        });
+      } else if (primaryKeys.has(primaryKey)) {
+        throw new RuntimeError(
+          `${Klass.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
+        );
+      }
+
+      return primaryKeys.add(primaryKey);
+    }, new Set([]));
+  }
 }

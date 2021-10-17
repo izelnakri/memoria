@@ -42,7 +42,8 @@
     "test:node:watch": "ENVIRONMENT=development npm run build && qunitx packages/@memoria/adapters/src/memory packages/@memoria/adapters/src/rest packages/@memoria/model test/index.ts --watch --debug --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
     "test:cli": "qunitx packages/@memoria/cli/test/index.js",
     "typecheck": "tsc --project tsconfig.json --noEmit --skipLibCheck",
-    "sketchpad": "ENVIRONMENT=development npm run libs:build && node scripts/change-entrypoints.js js && esbuild sketchpad.ts --outfile=sketchpad.js && node sketchpad.js"
+    "sketchpad": "ENVIRONMENT=development npm run libs:build && node scripts/change-entrypoints.js js && esbuild sketchpad.ts --outfile=sketchpad.js && node sketchpad.js",
+    "sketchpad:browser": "parcel index.html"
   },
   "dependencies": {
     "@types/node": "^16.10.2",

@@ -7,10 +7,9 @@ import MemoriaModel, {
   RuntimeError,
   UpdateError,
   transformValue,
-  primaryKeyTypeSafetyCheck,
   clearObject,
 } from "@memoria/model";
-import type { ModelReference, DecoratorBucket, CRUDOptions } from "@memoria/model";
+import type { ModelReference, DecoratorBucket, ModelBuildOptions } from "@memoria/model";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -55,11 +54,15 @@ export default class MemoryAdapter {
     return Config;
   }
 
-  static async resetForTests(Config, modelName?: string): Promise<Config> {
+  static async resetForTests(
+    Config,
+    modelName?: string,
+    options?: ModelBuildOptions
+  ): Promise<Config> {
     if (modelName) {
       Config.Schemas[modelName].target.resetCache();
     } else {
-      Config.Schemas.forEach((schema) => this.resetCache(schema.target));
+      Config.Schemas.forEach((schema) => this.resetCache(schema.target, [], options));
     }
 
     return Config;
@@ -68,23 +71,12 @@ export default class MemoryAdapter {
   static resetCache(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): MemoriaModel[] {
     Model.Cache.length = 0;
 
     if (targetState) {
-      targetState.reduce((primaryKeys: Set<primaryKey>, targetFixture) => {
-        let primaryKey = targetFixture[Model.primaryKeyName];
-        if (primaryKey && primaryKeys.has(primaryKey)) {
-          throw new RuntimeError(
-            `${Model.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
-          );
-        }
-
-        this.cache(Model, targetFixture, options);
-
-        return primaryKeys.add(primaryKey);
-      }, new Set([]));
+      targetState.forEach((fixture) => this.cache(Model, fixture, options));
     }
 
     return Model.Cache;
@@ -93,30 +85,46 @@ export default class MemoryAdapter {
   static async resetRecords(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     return this.resetCache(Model, targetState, options);
   }
 
-  // it provided record must have the primaryKey
+  static build(
+    Model: typeof MemoriaModel,
+    buildObject?: QueryObject | MemoriaModel,
+    options?: ModelBuildOptions
+  ) {
+    if (buildObject instanceof Model && buildObject.isBuilt) {
+      return buildObject;
+    } else if (buildObject instanceof Model) {
+      throw new Error(
+        "You should not provide an instantiated but not built model to $Model.build(model)"
+      );
+    }
+
+    let model = new Model(options);
+    if (attributeTrackingEnabled(options)) {
+      return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
+    }
+
+    return Array.from(Model.columnNames).reduce((result, keyName) => {
+      result[keyName] = transformModelForBuild(result, keyName, buildObject);
+
+      return result;
+    }, model);
+  }
+
   static cache(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): MemoriaModel {
     // TODO: make this work better, should check relationships and push to relationships if they exist
-    let primaryKey = record[Model.primaryKeyName];
-    if (!primaryKey) {
-      throw new RuntimeError(new Changeset(Model.build(record, { isNew: false })), {
-        id: null,
-        modelName: Model.name,
-        attribute: Model.primaryKeyName,
-        message: "doesn't exist",
-      });
-    }
-
-    let shouldRevision = !options || options.revision !== false;
-    let existingModelInCache = this.peek(Model, primaryKey) as MemoriaModel | void;
+    let existingModelInCache = this.peek(
+      Model,
+      record[Model.primaryKeyName]
+    ) as MemoriaModel | void;
     if (existingModelInCache) {
       let model = Object.assign(
         existingModelInCache,
@@ -129,35 +137,16 @@ export default class MemoryAdapter {
         }, {})
       );
 
-      if (Object.keys(model.changes).length > 0) {
-        clearObject(model.changes);
-
-        if (shouldRevision) {
-          model.revisionHistory.push(Object.assign({}, model));
-        }
-      }
-
       return model;
-    } else if (record instanceof Model) {
-      primaryKeyTypeSafetyCheck(record);
-
-      Model.Cache.push(record as MemoriaModel);
-
-      clearObject(record.changes);
-
-      if (shouldRevision) {
-        record.revisionHistory.push(Object.assign({}, record));
-      }
-
-      return record as MemoriaModel;
     }
 
-    let target = cleanRelationships(
-      Model,
-      Model.build(record, Object.assign({ isNew: false }, options))
-    );
-
-    primaryKeyTypeSafetyCheck(target); // NOTE: redundant remove it in future by doing it in build()
+    let target =
+      record instanceof Model
+        ? record
+        : cleanRelationships(
+            Model,
+            Model.build(record, Object.assign(options || {}, { isNew: false }))
+          );
 
     Model.Cache.push(target as MemoriaModel);
 
@@ -170,7 +159,7 @@ export default class MemoryAdapter {
   ): MemoriaModel[] | MemoriaModel | void {
     if (Array.isArray(primaryKey as primaryKey[])) {
       return Array.from(Model.Cache).reduce((result: MemoriaModel[], model: MemoriaModel) => {
-        const foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
+        let foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
           ? model
           : null;
 
@@ -212,21 +201,24 @@ export default class MemoryAdapter {
 
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[]
+    primaryKey: primaryKey | primaryKey[],
+    _options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     return this.peek(Model, primaryKey);
   }
 
   static async findBy(
     Model: typeof MemoriaModel,
-    queryObject: object
+    queryObject: object,
+    _options?: ModelBuildOptions
   ): Promise<MemoriaModel | void> {
     return this.peekBy(Model, queryObject);
   }
 
   static async findAll(
     Model: typeof MemoriaModel,
-    queryObject: object = {}
+    queryObject: object = {},
+    _options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | void> {
     return this.peekAll(Model, queryObject);
   }
@@ -234,7 +226,7 @@ export default class MemoryAdapter {
   static async insert(
     Model: typeof MemoriaModel,
     model: QueryObject | ModelRefOrInstance,
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let defaultValues = Object.assign({}, Config.getDefaultValues(Model, "insert"));
     let target = cleanRelationships(
@@ -256,13 +248,10 @@ export default class MemoryAdapter {
         Object.assign(options || {}, { isNew: false })
       )
     );
-    let primaryKey = target[Model.primaryKeyName];
 
-    primaryKeyTypeSafetyCheck(target);
-
-    if (this.peek(Model, primaryKey)) {
+    if (this.peek(Model, target[Model.primaryKeyName])) {
       throw new InsertError(new Changeset(target), {
-        id: primaryKey,
+        id: target[Model.primaryKeyName],
         modelName: Model.name,
         attribute: Model.primaryKeyName,
         message: "already exists",
@@ -276,17 +265,10 @@ export default class MemoryAdapter {
 
   static async update(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance
+    record: QueryObject | ModelRefOrInstance,
+    _options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    let primaryKey = record[Model.primaryKeyName];
-    if (!primaryKey) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "update() called without a valid primaryKey"
-      );
-    }
-
-    let targetRecord = this.peek(Model, primaryKey) as MemoriaModel;
+    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
       throw new UpdateError(new Changeset(Model.build(record)), {
         id: record[Model.primaryKeyName],
@@ -297,7 +279,7 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
-    let model = Object.assign(
+    return Object.assign(
       targetRecord,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
@@ -309,21 +291,13 @@ export default class MemoryAdapter {
         return result;
       }, {})
     );
-
-    clearObject(model.changes);
-    model.revisionHistory.push(Object.assign({}, model));
-
-    return model;
   }
 
-  static unload(Model: typeof MemoriaModel, record: ModelRefOrInstance): MemoriaModel {
-    if (!record) {
-      throw new RuntimeError(
-        new Changeset(Model.build(record)),
-        "unload() called without a valid record"
-      );
-    }
-
+  static unload(
+    Model: typeof MemoriaModel,
+    record: ModelRefOrInstance,
+    _options?: ModelBuildOptions
+  ): MemoriaModel {
     let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
       throw new DeleteError(new Changeset(Model.build(record)), {
@@ -345,42 +319,53 @@ export default class MemoryAdapter {
 
   static async delete(
     Model: typeof MemoriaModel,
-    record: ModelRefOrInstance
+    record: ModelRefOrInstance,
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    return this.unload(Model, record);
+    return this.unload(Model, record, options);
   }
 
   static async insertAll(
     Model: typeof MemoriaModel,
     models: QueryObject[] | ModelRefOrInstance[],
-    options?: CRUDOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.insert(Model, model, options)));
   }
 
   static async updateAll(
     Model: typeof MemoriaModel,
-    models: ModelRefOrInstance[]
+    models: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    return await Promise.all(models.map((model) => this.update(Model, model)));
+    return await Promise.all(models.map((model) => this.update(Model, model, options)));
   }
 
-  static unloadAll(Model: typeof MemoriaModel, models?: ModelRefOrInstance[]): MemoriaModel[] {
+  static unloadAll(
+    Model: typeof MemoriaModel,
+    models?: ModelRefOrInstance[],
+    options?: ModelBuildOptions
+  ): MemoriaModel[] {
     if (!models) {
       Model.Cache.length = 0;
 
       return [];
     }
 
-    return models.map((model) => this.unload(Model, model));
+    return models.map((model) => this.unload(Model, model, options));
   }
 
   static async deleteAll(
     Model: typeof MemoriaModel,
-    models: ModelRefOrInstance[]
+    models: ModelRefOrInstance[],
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    return await Promise.all(models.map((model) => this.unload(Model, model)));
+    return await Promise.all(models.map((model) => this.unload(Model, model, options)));
   }
+}
+
+function attributeTrackingEnabled(options?: ModelBuildOptions) {
+  return !options || options.revision !== false;
 }
 
 // NOTE: if records were ordered by ID after insert, then there could be performance benefit
@@ -404,4 +389,60 @@ function cleanRelationships(Model, instance) {
   });
 
   return instance;
+}
+
+function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
+  model: MemoriaModel,
+  buildObject?: QueryObject | MemoriaModel
+) {
+  let Model = model.constructor as typeof MemoriaModel;
+  Array.from(Model.columnNames).forEach((columnName) => {
+    let cache = transformModelForBuild(model, columnName, buildObject);
+
+    Object.defineProperty(model, columnName, {
+      configurable: false,
+      enumerable: true,
+      get() {
+        return cache;
+      },
+      set(value) {
+        if (this[columnName] === value) {
+          return;
+        } else if (
+          value instanceof Date &&
+          this[columnName] &&
+          this[columnName].toJSON() === value.toJSON()
+        ) {
+          return;
+        }
+
+        value = value === undefined ? null : value;
+        if (this.revision[columnName] === value) {
+          delete this.changes[columnName];
+        } else {
+          Object.assign(this.changes, { [columnName]: value });
+        }
+
+        this.errors.forEach((error, errorIndex) => {
+          if (error.attribute === columnName) {
+            this.errors.splice(errorIndex, 1);
+          }
+        });
+
+        cache = value;
+      },
+    });
+  });
+
+  return model;
+}
+
+function transformModelForBuild(
+  model: MemoriaModel,
+  keyName: string,
+  buildObject?: QueryObject | MemoriaModel
+) {
+  return buildObject && keyName in buildObject
+    ? transformValue(model.constructor as typeof MemoriaModel, keyName, buildObject[keyName])
+    : model[keyName] || null;
 }

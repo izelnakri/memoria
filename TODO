@@ -1,3 +1,8 @@
+# DirtyState(isLoaded, hasAllRelationshipsLoaded, persistedAt, loadedAt)
+# add benchmark setup
+# Removing a relationship form an array
+# store.findAll() returns a PromiseArray that fulfills to a RecordArray and store.peekAll directly returns a RecordArray.
+# RecordArray implements MutableArray: https://api.emberjs.com/ember/release/classes/MutableArray
 # <C-n> <C-p> to jump hunks, zo, zc
 # build() -> most basic building block(essentialy new() with tracking and provided values) and seals or locks. Always creates a revision
 

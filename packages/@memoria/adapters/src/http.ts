@@ -14,6 +14,7 @@ import MemoriaModel, {
   DeleteError,
   RuntimeError,
 } from "@memoria/model";
+import type { ModelBuildOptions } from "@memoria/model";
 import { pluralize } from "inflected";
 
 interface JSObject {
@@ -32,6 +33,10 @@ export interface HTTPOptions {
   logging: boolean;
   timeout: number;
   body?: JSObject;
+}
+
+interface HTTPMemoriaOptions extends ModelBuildOptions {
+  Model?: typeof MemoriaModel;
 }
 
 const DEFAULT_TIMEOUT_IN_MS = 30000;
@@ -58,7 +63,7 @@ export default class HTTP {
     );
   }
 
-  static async get(url: string, headers: JSObject = {}, Model?: typeof MemoriaModel) {
+  static async get(url: string, headers: JSObject = {}, options?: HTTPMemoriaOptions) {
     return await makeFetchRequest(
       {
         headers: this.buildHeaders(headers),
@@ -67,7 +72,7 @@ export default class HTTP {
         logging: this.logging,
         timeout: this.timeout,
       },
-      Model
+      options || {}
     );
   }
 
@@ -75,7 +80,7 @@ export default class HTTP {
     url: string,
     body: JSObject = {},
     headers: JSObject = {},
-    Model?: typeof MemoriaModel
+    options?: HTTPMemoriaOptions
   ) {
     return await makeFetchRequest(
       {
@@ -86,7 +91,7 @@ export default class HTTP {
         timeout: this.timeout,
         body,
       },
-      Model
+      options || {}
     );
   }
 
@@ -94,7 +99,7 @@ export default class HTTP {
     url: string,
     body: JSObject = {},
     headers: JSObject = {},
-    Model?: typeof MemoriaModel
+    options?: HTTPMemoriaOptions
   ) {
     return await makeFetchRequest(
       {
@@ -105,7 +110,7 @@ export default class HTTP {
         timeout: this.timeout,
         body: body,
       },
-      Model
+      options || {}
     );
   }
 
@@ -113,7 +118,7 @@ export default class HTTP {
     url: string,
     body: JSObject = {},
     headers: JSObject = {},
-    Model?: typeof MemoriaModel
+    options?: HTTPMemoriaOptions
   ) {
     return await makeFetchRequest(
       {
@@ -124,17 +129,18 @@ export default class HTTP {
         timeout: this.timeout,
         body: body,
       },
-      Model
+      options || {}
     );
   }
 }
 
 async function makeFetchRequest(
   httpOptions: HTTPOptions,
-  Model?: typeof MemoriaModel
+  options: HTTPMemoriaOptions
 ): Promise<JSObject | MemoriaModel | MemoriaModel[]> {
   // TODO: could have the requestTime metadata
   // TODO: could implement logging
+  let { Model } = options;
   let response, json, timedOut;
   let timeoutController = new AbortController();
   let timeoutFunction = setTimeout(
@@ -190,10 +196,12 @@ async function makeFetchRequest(
       let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
       if (Array.isArray(results)) {
-        return results.map((result) => Adapter.cache(Model, result)) as MemoriaModel[];
+        return results.map((result) =>
+          Adapter.cache(Model as typeof MemoriaModel, result, options)
+        ) as MemoriaModel[];
       }
 
-      return Adapter.cache(Model, results) as MemoriaModel;
+      return Adapter.cache(Model, results, options) as MemoriaModel;
     }
 
     return json;
