@@ -156,6 +156,23 @@ export default class MemoriaConfigurations {
     return this._DB[Class.name];
   }
 
+  static _cacheTimeouts = {};
+  static setTimeout(cachedModel: Model, timer: number) {
+    let Klass = cachedModel.constructor as typeof Model;
+    let primaryKey = cachedModel[Klass.primaryKeyName];
+    if (!this._cacheTimeouts[Klass.name]) {
+      this._cacheTimeouts[Klass.name] = {};
+    } else if (this._cacheTimeouts[Klass.name][primaryKey]) {
+      clearTimeout(this._cacheTimeouts[Klass.name][primaryKey]);
+    }
+
+    this._cacheTimeouts[Klass.name][primaryKey] = setTimeout(
+      () => Klass.unload(cachedModel),
+      timer
+    );
+    return this._cacheTimeouts[Klass.name][primaryKey];
+  }
+
   // NOTE: maybe move this to serializer in future
   static _embedReferences: { [className: string]: { [columnName: string]: any } } = {};
   static getEmbedDataForSerialization(Class: typeof Model) {
