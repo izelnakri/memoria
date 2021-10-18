@@ -137,7 +137,7 @@ export default class MemoryAdapter {
         }, {})
       );
 
-      return model;
+      return this.returnWithCacheEviction(model, options);
     }
 
     let target =
@@ -150,7 +150,7 @@ export default class MemoryAdapter {
 
     Model.Cache.push(target as MemoriaModel);
 
-    return target as MemoriaModel;
+    return this.returnWithCacheEviction(target, options);
   }
 
   static peek(
@@ -260,13 +260,13 @@ export default class MemoryAdapter {
 
     Model.Cache.push(target as MemoriaModel);
 
-    return target as MemoriaModel;
+    return this.returnWithCacheEviction(target, options);
   }
 
   static async update(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
@@ -279,7 +279,7 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
-    return Object.assign(
+    let model = Object.assign(
       targetRecord,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
@@ -291,6 +291,8 @@ export default class MemoryAdapter {
         return result;
       }, {})
     );
+
+    return this.returnWithCacheEviction(model, options);
   }
 
   static unload(
@@ -361,6 +363,18 @@ export default class MemoryAdapter {
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.unload(Model, model, options)));
+  }
+
+  protected static returnWithCacheEviction(model: MemoriaModel, options: ModelBuildOptions | undefined) {
+    if (options && "cache" in options && Number.isInteger(options.cache)) {
+      if (options.cache === 0) {
+        this.unload(model.constructor as typeof MemoriaModel, model)
+      }
+
+      Config.setTimeout(model, options.cache || 0);
+    }
+
+    return model;
   }
 }
 
