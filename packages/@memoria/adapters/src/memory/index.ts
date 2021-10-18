@@ -137,7 +137,7 @@ export default class MemoryAdapter {
         }, {})
       );
 
-      return model;
+      return this.returnWithCacheEviction(model, options);
     }
 
     let target =
@@ -150,12 +150,13 @@ export default class MemoryAdapter {
 
     Model.Cache.push(target as MemoriaModel);
 
-    return target as MemoriaModel;
+    return this.returnWithCacheEviction(target, options);
   }
 
   static peek(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[]
+    primaryKey: primaryKey | primaryKey[],
+    options?: ModelBuildOptions
   ): MemoriaModel[] | MemoriaModel | void {
     if (Array.isArray(primaryKey as primaryKey[])) {
       return Array.from(Model.Cache).reduce((result: MemoriaModel[], model: MemoriaModel) => {
@@ -163,32 +164,47 @@ export default class MemoryAdapter {
           ? model
           : null;
 
-        return foundModel ? result.concat([foundModel]) : result;
+        return foundModel
+          ? result.concat([this.returnWithCacheEviction(foundModel, options)])
+          : result;
       }, []) as MemoriaModel[];
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      return Array.from(Model.Cache).find(
+      let model = Array.from(Model.Cache).find(
         (model: MemoriaModel) => model[Model.primaryKeyName] === primaryKey
       ) as MemoriaModel | undefined;
+
+      return model && this.returnWithCacheEviction(model, options);
     }
 
     throw new RuntimeError(`${Model.name}.peek() called without a valid primaryKey`);
   }
 
-  static peekBy(Model: typeof MemoriaModel, queryObject: object): MemoriaModel | void {
+  static peekBy(
+    Model: typeof MemoriaModel,
+    queryObject: object,
+    options?: ModelBuildOptions
+  ): MemoriaModel | void {
     let keys = Object.keys(queryObject);
+    let model = Model.Cache.find((model: MemoriaModel) => comparison(model, queryObject, keys, 0));
 
-    return Model.Cache.find((model: MemoriaModel) => comparison(model, queryObject, keys, 0));
+    return model && this.returnWithCacheEviction(model, options);
   }
 
-  static peekAll(Model: typeof MemoriaModel, queryObject: object = {}): MemoriaModel[] {
+  static peekAll(
+    Model: typeof MemoriaModel,
+    queryObject: object = {},
+    options?: ModelBuildOptions
+  ): MemoriaModel[] {
     let keys = Object.keys(queryObject);
     if (keys.length === 0) {
-      return Array.from(Model.Cache);
+      return Model.Cache.map((model) => this.returnWithCacheEviction(model, options));
     }
 
-    return Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
+    let results = Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
       comparison(model, queryObject, keys, 0)
     );
+
+    return results.map((model) => this.returnWithCacheEviction(model, options));
   }
 
   static async count(Model: typeof MemoriaModel, queryObject?: QueryObject): Promise<number> {
@@ -202,25 +218,25 @@ export default class MemoryAdapter {
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: primaryKey | primaryKey[],
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
-    return this.peek(Model, primaryKey);
+    return this.peek(Model, primaryKey, options);
   }
 
   static async findBy(
     Model: typeof MemoriaModel,
     queryObject: object,
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel | void> {
-    return this.peekBy(Model, queryObject);
+    return this.peekBy(Model, queryObject, options);
   }
 
   static async findAll(
     Model: typeof MemoriaModel,
     queryObject: object = {},
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | void> {
-    return this.peekAll(Model, queryObject);
+    return this.peekAll(Model, queryObject, options);
   }
 
   static async insert(
@@ -260,13 +276,13 @@ export default class MemoryAdapter {
 
     Model.Cache.push(target as MemoriaModel);
 
-    return target as MemoriaModel;
+    return this.returnWithCacheEviction(target, options);
   }
 
   static async update(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
@@ -279,7 +295,7 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
-    return Object.assign(
+    let model = Object.assign(
       targetRecord,
       Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
@@ -291,6 +307,8 @@ export default class MemoryAdapter {
         return result;
       }, {})
     );
+
+    return this.returnWithCacheEviction(model, options);
   }
 
   static unload(
@@ -361,6 +379,21 @@ export default class MemoryAdapter {
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.unload(Model, model, options)));
+  }
+
+  protected static returnWithCacheEviction(
+    model: MemoriaModel,
+    options: ModelBuildOptions | undefined
+  ) {
+    if (options && "cache" in options && Number.isInteger(options.cache)) {
+      if (options.cache === 0) {
+        this.unload(model.constructor as typeof MemoriaModel, model);
+      }
+
+      Config.setTimeout(model, options.cache || 0);
+    }
+
+    return model;
   }
 }
 

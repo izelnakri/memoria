@@ -7,6 +7,7 @@ import Model, {
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
+import wait from "@memoria/model/test/helpers/wait.js";
 
 module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
@@ -330,6 +331,105 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         name: "Some default name",
         href: null,
       },
+    ]);
+  });
+
+  test("$Model.insert(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
+    const { Photo } = prepare();
+
+    await Photo.insert(PHOTO_FIXTURES[0]);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let photo = await Photo.insert(PHOTO_FIXTURES[1], { cache: 0 });
+
+    assert.propEqual(photo, PHOTO_FIXTURES[1]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let secondPhoto = await Photo.insert(PHOTO_FIXTURES[1]);
+
+    assert.propEqual(secondPhoto, PHOTO_FIXTURES[1]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      secondPhoto,
+    ]);
+  });
+
+  test("$Model.insert(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+    const { Photo } = prepare();
+
+    await Photo.insert(PHOTO_FIXTURES[0]);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let photoOne = await Photo.insert(PHOTO_FIXTURES[1], { cache: 10 });
+    let photoTwo = await Photo.insert(PHOTO_FIXTURES[2], { cache: 70 });
+
+    assert.propEqual(photoOne, PHOTO_FIXTURES[1]);
+    assert.propEqual(photoTwo, PHOTO_FIXTURES[2]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoOne,
+      photoTwo,
+    ]);
+
+    await wait(10);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoTwo,
+    ]);
+
+    let lastPhoto = await Photo.insert(PHOTO_FIXTURES[1]);
+
+    assert.propEqual(lastPhoto, PHOTO_FIXTURES[1]);
+
+    await wait(60);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        href: "ski-trip.jpeg",
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoOne,
     ]);
   });
 });

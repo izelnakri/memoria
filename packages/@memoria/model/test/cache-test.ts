@@ -6,6 +6,7 @@ import Model, {
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
+import wait from "./helpers/wait.js";
 
 module("@memoria/model | $Model.cache()", function (hooks) {
   setupMemoria(hooks);
@@ -14,19 +15,16 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     {
       id: 1,
       name: "Ski trip",
-      href: "ski-trip.jpeg",
       is_public: false,
     },
     {
       id: 2,
       name: "Family photo",
-      href: "family-photo.jpeg",
       is_public: true,
     },
     {
       id: 3,
       name: "Selfie",
-      href: "selfie.jpeg",
       is_public: false,
     },
   ];
@@ -344,6 +342,125 @@ module("@memoria/model | $Model.cache()", function (hooks) {
       "d351963d-e725-4092-a37c-1ca1823b57d3",
       "374c7f4a-85d6-429a-bf2a-0719525f5f29",
     ]);
+  });
+
+  test("$Model.cache(json, { cache: 0 }) can immediately evict the cache", async function (assert) {
+    const { Photo } = prepare();
+
+    await Photo.insert(PHOTO_FIXTURES[0]);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let photo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 0 });
+
+    assert.propEqual(photo, PHOTO_FIXTURES[1]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let secondPhoto = await Photo.insert(PHOTO_FIXTURES[1]);
+
+    assert.propEqual(secondPhoto, PHOTO_FIXTURES[1]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      secondPhoto,
+    ]);
+  });
+
+  test("$Model.cache(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+    const { Photo } = prepare();
+
+    await Photo.insert(PHOTO_FIXTURES[0]);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+    ]);
+
+    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 10 });
+    let photoTwo = await Photo.cache(PHOTO_FIXTURES[2], { cache: 70 });
+
+    assert.propEqual(photoOne, PHOTO_FIXTURES[1]);
+    assert.propEqual(photoTwo, PHOTO_FIXTURES[2]);
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoOne,
+      photoTwo,
+    ]);
+
+    await wait(10);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoTwo,
+    ]);
+
+    let lastPhoto = await Photo.insert(PHOTO_FIXTURES[1]);
+
+    assert.propEqual(lastPhoto, PHOTO_FIXTURES[1]);
+
+    await wait(60);
+
+    assert.propEqual(await Photo.findAll(), [
+      {
+        id: 1,
+        name: "Ski trip",
+        is_public: false,
+      },
+      photoOne,
+    ]);
+  });
+
+  test("$Model.cache(json. { cache: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
+    const { Photo } = prepare();
+
+    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 25 });
+    let anotherPhotoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 150 });
+
+    await wait(25);
+
+    assert.propEqual(await Photo.findAll(), [photoOne]);
+
+    await wait(150);
+
+    assert.propEqual(await Photo.findAll(), []);
+
+    let photoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 150 });
+
+    await wait(25);
+
+    assert.propEqual(await Photo.findAll(), [photoTwo]);
+
+    let anotherPhotoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 25 });
+
+    await wait(25);
+
+    assert.propEqual(await Photo.findAll(), []);
   });
 
   // test("$Model.cache(model) sets non-embed relationships correctly", async function (assert) {});

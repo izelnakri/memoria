@@ -66,7 +66,7 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static cache(model: ModelRefOrInstance, options: ModelBuildOptions): Model | Model[] {
+  static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model | Model[] {
     if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
         id: null,
@@ -103,22 +103,25 @@ export default class Model {
     return await this.Adapter.resetRecords(this, targetState, options);
   }
 
-  static peek(primaryKey: primaryKey | primaryKey[]): Model | Model[] | void {
+  static peek(
+    primaryKey: primaryKey | primaryKey[],
+    options?: ModelBuildOptions
+  ): Model | Model[] | void {
     if (!primaryKey) {
       throw new RuntimeError(
         `${this.name}.find(id) or ${this.name}.peek(id) cannot be called without a valid id`
       );
     }
 
-    return this.Adapter.peek(this, primaryKey);
+    return this.Adapter.peek(this, primaryKey, options);
   }
 
-  static peekBy(queryObject: QueryObject): Model | void {
-    return this.Adapter.peekBy(this, queryObject);
+  static peekBy(queryObject: QueryObject, options?: ModelBuildOptions): Model | void {
+    return this.Adapter.peekBy(this, queryObject, options);
   }
 
-  static peekAll(queryObject: QueryObject = {}): Model[] {
-    return this.Adapter.peekAll(this, queryObject);
+  static peekAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Model[] {
+    return this.Adapter.peekAll(this, queryObject, options);
   }
 
   // TODO: this can perhaps extend the cache time(?) and might still have revision control
@@ -365,7 +368,6 @@ export default class Model {
   // could do attribute tracking
   // TODO: test also passing new Model() instance
   static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
-    // NOTE: sometimes skip this part if its built(?)
     let model = this.Adapter.build(this, buildObject, options);
 
     revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
