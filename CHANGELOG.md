@@ -2,8 +2,23 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.19](https://github.com/izelnakri/memoria/compare/0.0.19...0.0.19)
+#### [0.0.20](https://github.com/izelnakri/memoria/compare/0.0.20...0.0.20)
 
+- Bump actions/checkout from 2.3.4 to 2.3.5 [`#14`](https://github.com/izelnakri/memoria/pull/14)
+- Cache timeouts [`#15`](https://github.com/izelnakri/memoria/pull/15)
+- CRUDOptions for CRUD Operations [`#13`](https://github.com/izelnakri/memoria/pull/13)
+- pass ModelBuildOptions from CRUD down to adapters [`6f6d7c3`](https://github.com/izelnakri/memoria/commit/6f6d7c3f44ccc7f17e242c8c7cffd9aa6248c8b2)
+- Full test coverage for CRUD cache timeout feature [`2a7f788`](https://github.com/izelnakri/memoria/commit/2a7f788d113d23c392534d8ac0aadfe0f5549e2b)
+- add $ npm run sketchpad:browser [`152b527`](https://github.com/izelnakri/memoria/commit/152b52779e2b4b6f8600e72528fa37f982de4a08)
+- simplify $Model.Adapter.cache() code move to model [`40906de`](https://github.com/izelnakri/memoria/commit/40906decd9a7885bebf26a9a600957aac55fca08)
+- make cache timeout eviction for query methods [`d6f96f9`](https://github.com/izelnakri/memoria/commit/d6f96f9f160651dc4971f720568b752ebed01f7d)
+- initial cache timeout logic on config.ts [`9293ab3`](https://github.com/izelnakri/memoria/commit/9293ab395a357ab23ffd832b2b8c897aca8dfda1)
+
+#### [0.0.20](https://github.com/izelnakri/memoria/compare/0.0.19...0.0.20)
+
+> 12 October 2021
+
+- Release 0.0.20 [`c9168ff`](https://github.com/izelnakri/memoria/commit/c9168ff12b436935df85691007ff8f48bee99c31)
 - bugfix: fix model.ts Model references [`84e180e`](https://github.com/izelnakri/memoria/commit/84e180e3d69a035c6c81b51d73a324c8ea4f219c)
 - small typefix and TODO comment [`05b4a91`](https://github.com/izelnakri/memoria/commit/05b4a911bd2c3087cbbbc9c67d187a823887dd14)
 
