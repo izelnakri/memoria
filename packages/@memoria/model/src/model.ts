@@ -66,7 +66,7 @@ export default class Model {
     return Config.getSchema(this).relations;
   }
 
-  static cache(model: ModelRefOrInstance, options: ModelBuildOptions): Model | Model[] {
+  static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model | Model[] {
     if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
         id: null,
@@ -365,7 +365,6 @@ export default class Model {
   // could do attribute tracking
   // TODO: test also passing new Model() instance
   static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
-    // NOTE: sometimes skip this part if its built(?)
     let model = this.Adapter.build(this, buildObject, options);
 
     revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
