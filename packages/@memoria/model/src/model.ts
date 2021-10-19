@@ -2,10 +2,10 @@ import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
-import Config from "./config.js";
+import Config, { RelationshipSummary } from "./config.js";
 import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type { ModelReference, ModelReferenceShape, RelationshipSchemaDefinition } from "./index.js";
+import type { ModelReference, ModelReferenceShape, RelationshipDefinitionStore } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -62,11 +62,32 @@ export default class Model {
     return Config.getColumnNames(this);
   }
 
-  static get relationships(): RelationshipSchemaDefinition {
-    return Config.getSchema(this).relations;
+  // NOTE: currently this is costly, optimize it in future:
+  static get relationshipNames(): Set<string> {
+    return new Set(Object.keys(this.relationshipSummary));
   }
 
-  static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model | Model[] {
+  static get relationshipSummary(): RelationshipSummary {
+    return Config.relationshipsSummary[this.name];
+  }
+
+  static get belongsToRelationships() {
+    return filterRelationsFromEntity(this, "many-to-one");
+  }
+
+  static get hasOneRelationships() {
+    return filterRelationsFromEntity(this, "one-to-one");
+  }
+
+  static get hasManyRelationships() {
+    return filterRelationsFromEntity(this, "one-to-many");
+  }
+
+  static get manyToManyRelationships() {
+    return filterRelationsFromEntity(this, "many-to-many");
+  }
+
+  static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model {
     if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
         id: null,
@@ -556,4 +577,23 @@ function checkProvidedFixtures(Klass: typeof Model, fixtureArray, buildOptions) 
       return primaryKeys.add(primaryKey);
     }, new Set([]));
   }
+}
+
+type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
+
+function filterRelationsFromEntity(Class: typeof Model, relationshipType: relationshipType) {
+  let relationshipSchema = Config.getRelationshipSchemaDefinitions(
+    Class
+  ) as RelationshipDefinitionStore;
+
+  return relationshipSchema
+    ? Object.keys(relationshipSchema).reduce((result, relationshipPropertyName) => {
+        let schema = relationshipSchema[relationshipPropertyName];
+        if (schema.type === relationshipType) {
+          result.push(typeof schema.target === "function" ? schema.target() : schema.target);
+        }
+
+        return result;
+      }, [] as Array<typeof Model>)
+    : [];
 }

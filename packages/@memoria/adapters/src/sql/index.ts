@@ -416,7 +416,7 @@ export default class SQLAdapter extends MemoryAdapter {
 }
 
 function cleanRelationships(Model, instance) {
-  Object.keys(Model.relationships).forEach((relationshipKey) => {
+  Model.relationshipNames.forEach((relationshipKey) => {
     if (relationshipKey in instance) {
       instance[relationshipKey] = undefined;
     }

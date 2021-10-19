@@ -10,6 +10,7 @@ import { Index, Unique, Check, Exclusion, Generated } from "./other.js";
 import {
   OneToOne,
   ManyToOne,
+  HasOne,
   HasMany,
   OneToMany,
   BelongsTo,
@@ -34,6 +35,7 @@ export default {
   ManyToOne,
   BelongsTo,
   OneToMany,
+  HasOne,
   HasMany,
   ManyToMany,
   JoinColumn,
@@ -54,6 +56,7 @@ export {
   Exclusion,
   OneToOne,
   ManyToOne,
+  HasOne,
   HasMany,
   OneToMany,
   BelongsTo,
