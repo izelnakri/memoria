@@ -10,18 +10,34 @@ interface DefaultValueReferences {
   [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
 }
 
+export interface RelationshipSummary {
+  [relationshipName: string]: typeof Model | Array<typeof Model>;
+}
+
+interface RelationshipSummaryStore {
+  [modelName: string]: RelationshipSummary;
+}
+
 type DB = { [className: string]: Model[] };
 
+// NOTE: WeakMap not implemented so far because:
+// 1- Adapters need to iterate over each schema.target.Adapter (can be done with getSchema() and push to array during insert)
+// 2- Cannot produce relationshipSummary -> big limitation
+// 3- resetCache and resetRecords gets the target tables/models from Config.Schema
+// 4- resetSchemas iterate through all the Adapters [possible]
+// 5- Decorators directly push to the schema getting it via getSchema() [possible]
+
+// Maybe move objects to Map for easy clearing for Schema
+// Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
+const arrayValueRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
 // Maybe cache and store relationships(probably not)
+// relationshipSummary inject and the mutate maybe from decorator
 export default class MemoriaConfigurations {
-  // typeof MemoryAdapter[]
   static get Adapters() {
     let result = new Set();
 
-    this.Schemas.forEach((schema) => {
-      result.add(schema.target.Adapter);
-    });
+    this.Schemas.forEach((schema) => result.add(schema.target.Adapter));
 
     return Array.from(result) as typeof MemoryAdapter[];
   }
@@ -67,6 +83,30 @@ export default class MemoriaConfigurations {
 
     return this._primaryKeyNameCache[Class.name];
   }
+
+  // static _relationships; // TODO: cache this lookup in future
+  static get relationshipsSummary(): RelationshipSummaryStore {
+    return this.Schemas.reduce((result, modelSchema) => {
+      return Object.assign(result, {
+        [modelSchema.name]: Object.keys(modelSchema.relations).reduce((result, relationName) => {
+          let relation = modelSchema.relations[relationName];
+
+          return Object.assign(result, {
+            [relationName]: arrayValueRelationships.includes(relation.type)
+              ? [relation.target()]
+              : relation.target(),
+          });
+        }, {}),
+      });
+    }, {});
+  }
+
+  static getRelationshipSchemaDefinitions(Class: typeof Model) {
+    let schema = this.Schemas.find((schema) => schema.name === Class.name);
+
+    return schema && schema.relations;
+  }
+
   static getColumnsMetadata(Class: typeof Model): ColumnSchemaDefinition {
     let schema = this.getSchema(Class);
     if (!schema) {
