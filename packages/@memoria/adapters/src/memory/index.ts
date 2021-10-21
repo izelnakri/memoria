@@ -25,31 +25,29 @@ export default class MemoryAdapter {
         (schema) => schema.target.name === modelName
       );
       if (targetSchemaIndex >= 0) {
+        clearObject(Config.Schemas[targetSchemaIndex].target.Serializer.embeds);
         Config.Schemas.splice(targetSchemaIndex, 1);
         delete Config._DB[modelName];
         delete Config._columnNames[modelName];
         delete Config._primaryKeyNameCache[modelName];
         delete Config._defaultValuesCache[modelName];
-        delete Config._embedReferences[modelName];
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
       return Config;
     }
 
-    Config.Schemas.length = 0;
     clearObject(Config._DB);
     clearObject(Config._columnNames);
     clearObject(Config._primaryKeyNameCache);
     clearObject(Config._defaultValuesCache);
 
-    for (let cache in Config._embedReferences) {
+    for (let schema of Config.Schemas) {
       // NOTE: this is complex because could hold cyclical references
       // TODO: this only cleans registered data!!
-      clearObject(Config._embedReferences[cache]);
-
-      delete Config._embedReferences[cache];
+      clearObject(schema.target.Serializer.embeds);
     }
+    Config.Schemas.length = 0;
 
     return Config;
   }
