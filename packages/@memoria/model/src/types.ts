@@ -9,7 +9,7 @@ export interface SchemaDefinition {
   name: string;
   target: typeof Model;
   columns: ColumnSchemaDefinition;
-  relations: RelationshipSchemaDefinition;
+  relations: RelationshipDefinitionStore;
   checks: CheckConstraintDefinition[];
   indices: IndexDefinition[];
   uniques: UniqueIndexDefinition[];
@@ -86,13 +86,13 @@ export interface JoinTableOptions {
   schema?: string;
 }
 
-export interface RelationshipSchemaDefinition {
+export interface RelationshipDefinitionStore {
   [relationshipName: string]: RelationshipDefinition;
 }
 
 // NOTE: this could be different definition: There is global and prop level one:
 export interface RelationshipDefinition {
-  target: Function | string;
+  target: Function;
   type: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
   inverseSide?: string;
   lazy?: boolean;

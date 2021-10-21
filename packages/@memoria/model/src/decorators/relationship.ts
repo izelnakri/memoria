@@ -4,7 +4,6 @@ import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../ty
 type ObjectType<T> = { new (): T } | Function;
 
 // TODO: clean-up repetition
-
 export function OneToOne<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
@@ -74,7 +73,8 @@ export function OneToOne<T>(
 export function ManyToOne<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
+  type?: "many-to-one" | "one-to-one"
 ) {
   return function (target: any, propertyName: string, descriptor: any) {
     // Normalize parameters.
@@ -108,7 +108,7 @@ export function ManyToOne<T>(
       foundRelation,
       {
         target: typeFunctionOrTarget,
-        type: "many-to-one",
+        type: type || "many-to-one",
         // @ts-ignore
         inverseSide: inverseSideProperty,
         lazy: isLazy,
@@ -136,8 +136,6 @@ export function ManyToOne<T>(
     )(target.constructor, propertyName, descriptor);
   };
 }
-
-export const BelongsTo = ManyToOne;
 
 export function OneToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
@@ -195,8 +193,6 @@ export function OneToMany<T>(
     )(target.constructor, propertyName, descriptor);
   };
 }
-
-export const HasMany = OneToMany;
 
 export function ManyToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
@@ -322,12 +318,24 @@ export function JoinTable(options: JoinTableOptions = {}) {
   };
 }
 
+export const HasMany = OneToMany;
+export const BelongsTo = ManyToOne;
+
+export function HasOne<T>(
+  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
+  options?: RelationOptions
+) {
+  return ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options, "one-to-one");
+}
+
 export default {
   OneToOne,
   ManyToOne,
   BelongsTo,
   OneToMany,
   HasMany,
+  HasOne,
   ManyToMany,
   JoinColumn,
   JoinTable,

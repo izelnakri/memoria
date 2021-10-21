@@ -7,7 +7,7 @@ export type {
   DecoratorBucket,
   ColumnDefinition,
   RelationshipDefinition,
-  RelationshipSchemaDefinition,
+  RelationshipDefinitionStore,
 } from "./types.js";
 export type { ErrorMetadata } from "./errors/index.js";
 export {
@@ -46,6 +46,7 @@ export {
   BelongsTo,
   ManyToOne,
   OneToMany,
+  HasOne,
   HasMany,
   ManyToMany,
   JoinColumn,

@@ -1,3 +1,6 @@
+# Check reflexive relationships, readonly nested data, updating from both sides(_id, relationship and inverse relationship, creating new record relationship updates)
+
+
 # DirtyState(isLoaded, hasAllRelationshipsLoaded, persistedAt, loadedAt)
 # add benchmark setup
 # Removing a relationship form an array

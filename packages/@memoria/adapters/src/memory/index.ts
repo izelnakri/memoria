@@ -415,7 +415,7 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
 }
 
 function cleanRelationships(Model, instance) {
-  Object.keys(Model.relationships).forEach((relationshipKey) => {
+  Model.relationshipNames.forEach((relationshipKey) => {
     if (relationshipKey in instance) {
       instance[relationshipKey] = undefined;
     }
