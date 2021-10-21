@@ -31,7 +31,6 @@ type DB = { [className: string]: Model[] };
 // Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
 const arrayValueRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
-// Maybe cache and store relationships(probably not)
 // relationshipSummary inject and the mutate maybe from decorator
 export default class MemoriaConfigurations {
   static get Adapters() {
@@ -211,18 +210,6 @@ export default class MemoriaConfigurations {
       timer
     );
     return this._cacheTimeouts[Klass.name][primaryKey];
-  }
-
-  // NOTE: maybe move this to serializer in future
-  static _embedReferences: { [className: string]: { [columnName: string]: any } } = {};
-  static getEmbedDataForSerialization(Class: typeof Model) {
-    if (!this._embedReferences[Class.name]) {
-      this._embedReferences[Class.name] = Class.Serializer.embeds;
-
-      return this._embedReferences[Class.name];
-    }
-
-    return this._embedReferences[Class.name];
   }
 
   static async resetSchemas(modelName?: string): Promise<MemoriaConfigurations> {

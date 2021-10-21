@@ -50,7 +50,7 @@ export default class Serializer {
       );
     }
 
-    return Object.assign(Config.getEmbedDataForSerialization(Model), relationship);
+    return Object.assign(Model.Serializer.embeds, relationship);
   }
 
   static modelKeyNameFromPayload(Model: typeof MemoriaModel) {
@@ -81,8 +81,8 @@ export default class Serializer {
       );
     }
 
-    const targetRelationshipModel =
-      relationshipModel || Config.getEmbedDataForSerialization(Model)[relationshipName];
+    const targetRelationshipModel: typeof MemoriaModel =
+      relationshipModel || Model.Serializer.embeds[relationshipName];
     const hasManyRelationship = pluralize(relationshipName) === relationshipName;
 
     if (!targetRelationshipModel) {
@@ -96,7 +96,10 @@ export default class Serializer {
         });
 
         return hasManyIDRecords.length > 0
-          ? sortByIdOrUUID(hasManyIDRecords, hasManyIDRecords[0].constructor.primaryKeyName)
+          ? sortByIdOrUUID(
+              hasManyIDRecords,
+              (hasManyIDRecords[0].constructor as typeof MemoriaModel).primaryKeyName
+            )
           : [];
       } else if (parentObject.uuid) {
         const hasManyUUIDRecords = targetRelationshipModel.Adapter.peekAll(
@@ -107,7 +110,10 @@ export default class Serializer {
         );
 
         return hasManyUUIDRecords.length > 0
-          ? sortByIdOrUUID(hasManyUUIDRecords, hasManyUUIDRecords[0].constructor.primaryKeyName)
+          ? sortByIdOrUUID(
+              hasManyUUIDRecords,
+              (hasManyUUIDRecords[0].constructor as typeof MemoriaModel).primaryKeyName
+            )
           : [];
       }
     }
@@ -146,15 +152,14 @@ export default class Serializer {
 
       return result;
     }, {});
-    let embedReferences = Config.getEmbedDataForSerialization(Model);
-    return Object.keys(embedReferences).reduce((result, embedKey) => {
-      let embedModel = embedReferences[embedKey];
+    return Object.keys(Model.Serializer.embeds).reduce((result, embedKey) => {
+      let embedModel = Model.Serializer.embeds[embedKey];
       let embeddedRecords = this.getEmbeddedRelationship(
         Model,
         model as ModelReferenceShape,
         embedKey,
         embedModel
-      );
+      ) as MemoriaModel | MemoriaModel[];
 
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllColumns);
