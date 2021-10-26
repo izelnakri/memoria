@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.20](https://github.com/izelnakri/memoria/compare/0.0.20...0.0.20)
+#### [0.0.21](https://github.com/izelnakri/memoria/compare/0.0.21...0.0.21)
+
+- get and set util functions [`#17`](https://github.com/izelnakri/memoria/pull/17)
+- Relationship metadata lookups [`#16`](https://github.com/izelnakri/memoria/pull/16)
+- initial model side relationships tests setup [`efcdffd`](https://github.com/izelnakri/memoria/commit/efcdffdedaed5abfbec8768efb708c61d4aa026d)
+- tests added for getter/setter utils [`6f53269`](https://github.com/izelnakri/memoria/commit/6f53269039d64b9895d4be79f307b5e5bf33bbfa)
+- Remove Config.getEmbedDataForSerialization() [`11fe9ba`](https://github.com/izelnakri/memoria/commit/11fe9ba42649e8e243a4df8ae8e9588d7f7b1f1e)
+
+#### [0.0.21](https://github.com/izelnakri/memoria/compare/0.0.20...0.0.21)
+
+> 18 October 2021
 
 - Bump actions/checkout from 2.3.4 to 2.3.5 [`#14`](https://github.com/izelnakri/memoria/pull/14)
 - Cache timeouts [`#15`](https://github.com/izelnakri/memoria/pull/15)
@@ -12,6 +22,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - add $ npm run sketchpad:browser [`152b527`](https://github.com/izelnakri/memoria/commit/152b52779e2b4b6f8600e72528fa37f982de4a08)
 - simplify $Model.Adapter.cache() code move to model [`40906de`](https://github.com/izelnakri/memoria/commit/40906decd9a7885bebf26a9a600957aac55fca08)
 - make cache timeout eviction for query methods [`d6f96f9`](https://github.com/izelnakri/memoria/commit/d6f96f9f160651dc4971f720568b752ebed01f7d)
+- Release 0.0.21 [`7342427`](https://github.com/izelnakri/memoria/commit/7342427e0c60e07bfa330b28c3368ad55702c1ad)
 - initial cache timeout logic on config.ts [`9293ab3`](https://github.com/izelnakri/memoria/commit/9293ab395a357ab23ffd832b2b8c897aca8dfda1)
 
 #### [0.0.20](https://github.com/izelnakri/memoria/compare/0.0.19...0.0.20)
