@@ -15,8 +15,8 @@ export default function generateGroup() {
   class Group extends Model {
     static Serializer = class GroupSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn("uuid")
+    uuid: string;
 
     @Column()
     name: string;
