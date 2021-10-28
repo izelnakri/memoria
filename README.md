@@ -3,12 +3,35 @@
 [![npm version](https://badge.fury.io/js/@memoria%2Fmodel.svg)](https://badge.fury.io/js/@memoria%2Fmodel)
 
 # What is Memoria?
-Memoria is an in-memory database/ORM and http mock server you can run in-browser and node environments.
-Extremely useful library for fast frontend tests, rapid prototyping, single-file SPA demo deployments.
+Memoria is an in-memory/off-memory state management solution for JavaScript apps on client and/or server side. It is a
+very flexible typeorm-like entity definition API that just use JS classes and decorators to define or generate the
+schema. In other words it is a data library and http mock server you can run in-browser and node environments.
+Extremely useful library for fast frontend tests that can use MemoryAdapter models and in-browser http server,
+rapid prototyping, single-file SPA demo deployments, frontend SPA data store or backend HTTP Server ORMs.
+
+It is based on these principles:
+
+- TypeORM based Entity API: This makes the SQLAdapter easy to work with typeorm while making the API usable in browser
+for frontend.
+
+- One Schema/Class that can be used in 4 environments with different Adapters: MemoryAdapter, RESTAdapter, SQLAdapter,
+GraphQLAdapter(in future maybe).
+
+- Default Model CRUD operations represented as static class methods: User.insert(), User.update() etc.
+
+- Provides ember-data like property dirty tracking on changed properties until successful CRUD operation.
+
+- Optional entity/instance based caching: Enabled by default, timeout adjustable, RESTAdapter & SQLAdapter extends from
+MemoryAdapter which provides this caching. Also useful for advanced frontend tests when used with in-browser mode of
+@memoria/server.
+
+- [Ecto Changeset](https://hexdocs.pm/ecto/Ecto.Changeset.html) inspired: Changeset structs with pipeline
+operators are very powerful. Memoria CRUD operations return ChangesetError which extends from JS Error with Ecto-like Changeset shape.
 
 ## Installation
 In order to use memoria CLI you need to have typescript set up in your project folder.
-`memoria` binary will only work on typescript project directories since it uses ts-node under the hood for `memoria console` and `memoria g fixtures $modelName` generation commands.
+`memoria` binary will only work on typescript project directories since it uses ts-node under the hood for
+`memoria console` and `memoria g fixtures $modelName` generation commands.
 
 ``` npm install -g @memoria/cli ```
 
@@ -18,14 +41,24 @@ You can use the CLI to create relevant boilerplate files and initial setup
 
 ### memoria Model API
 
-```js
+```ts
 // memoria MODEL API
-import Model from '@memoria/model';
+import Model, { primaryGeneratedColumn, Column } from '@memoria/model';
 // OR:
 const Model = require('@memoria/model').default;
 // THEN:
 
 class User extends Model {
+ // Optionally add static Adapter = RESTAdapter; by default its MemoryAdapter
+ @PrimaryGeneratedColumn()
+ id: number;
+
+ @Column()
+ firstName: string;
+
+ @Column()
+ lastName: string
+
  // NOTE: you can add here your static methods
  static serializer(modelOrArray) {
    return modelOrArray;
@@ -35,31 +68,31 @@ class User extends Model {
 
 await User.findAll(); // [];
 
-await User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // { id: 1, firstName: 'Izel', lastName: 'Nakri' }
+await User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }
 
-let usersAfterInsert = await User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
+let usersAfterInsert = await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
 let insertedUser = usersAfterInsert[0];
 
 insertedUser.firstName = 'Isaac';
 
-await User.findAll(); // [{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
+await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
-await User.update(insertedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+await User.update(insertedUser); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-await User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
+await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
 
-let updatedUser = await User.find(1); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+let updatedUser = await User.find(1); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-let anotherUser = await User.insert({ firstName: 'Brendan' }); // { id: 2, firstName: 'Brendan', lastName: null }
+let anotherUser = await User.insert({ firstName: 'Brendan' }); // User{ id: 2, firstName: 'Brendan', lastName: null }
 
 updatedUser.firstName = 'Izel';
 
-await User.findAll(); // [{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: null }]
+await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, User{ id: 2, firstName: 'Brendan', lastName: null }]
 
-await User.delete(updatedUser); // { id: 1, firstName: 'Isaac', lastName: 'Nakri' }
+await User.delete(updatedUser); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-await User.findAll(); // [{ id: 2, firstName: 'Brendan', lastName: null }]
+await User.findAll(); // [User{ id: 2, firstName: 'Brendan', lastName: null }]
 ```
 
 NOTE: API also works for UUIDs instead of id primary keys
@@ -254,12 +287,13 @@ const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // o
 
 ### Why this is superior to Mirage?
 
-- Data stored as pure JS objects and their Model module methods provides a functional way to work on the data.
-This makes the inserts, updates faster and encourages a better programming model.
+- Class static method provide a better and more functional way to work on CRUD operations.
 
 - Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key constraints are not strings.
 
-- `@memoria/response` does not require `new Reponse`, just `Response`.
+- can run on node.js thus allows frontend mocking on server-side rendering context.
+
+- `@memoria/response` does not require `new Response`, just `Response`.
 
 - Less code output and dependencies.
 
@@ -268,20 +302,9 @@ or implicit association behavior. Your model inserts are your factories. You can
 methods on the model modules, thus memoria is easier and better to extend.
 
 - No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
-This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation in our
-runtimes. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations could be done
-in future as types or TS type decorators(like `class-validator` npm package), thus validations don't need to  happen in
-runtime and all would be check during development via typescript typecheck/linting.
-
-- No implicit relationship tracking, creating and updating a relationship should be done on the foreign-key of the
-models relationship. This might seem verbose, but leads to faster runtime and in future might allow better
-typechecking/annotated validations on model properties. Due to unresolved nature of this situation we leave implicit
-relationship settings. Instead users should set the related foreign keys and change that value to relationship
-primary key just as it would have been done on a SQL database.
-
-- No implicit/custom serializer abstraction/API. memoria model serializer is more sane than mirage. It makes it easier
-and more functional to create your own serializers since all `memoriaModel.serializer(modelOrArray)` does is, it embeds
-defined `embedReferences`s and sets undefined or null values to null in the resulted objectOrArray.
+This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation during
+runtime for all CRUD. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations
+could be done in future as types or TS type decorators(like `class-validator` npm package).
 
 - route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,
 underscore or do any other string manipulation to get the reference model definition. It also returns correct default
@@ -290,7 +313,5 @@ http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just 
 - very easy to debug/develop the server, serialize any data in a very predictable and functional way.
 
 - API is very similar to Mirage, it can do everything mirage can do, while all redudant and worse API removed.
-
-- can run on node.js thus allows frontend mocking on server-side rendering context.
 
 - written in Typescript, thus provides type definitions by default.
