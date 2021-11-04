@@ -152,12 +152,22 @@ export default class RESTAdapter extends MemoryAdapter {
     record: QueryObject | ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    return (await this.http.post(
+    // TODO: make this get the attributes from the result just like MemoryAdapter
+    let result = await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Object.assign({ Model }, options)
-    )) as MemoriaModel;
+    );
+
+    if (record instanceof MemoriaModel) {
+      Object.keys(result).forEach((keyName) => {
+        record[keyName] = result[keyName];
+      });
+      // TODO: clear changeset
+    }
+
+    return result as MemoriaModel;
   }
 
   static async update(
@@ -165,12 +175,22 @@ export default class RESTAdapter extends MemoryAdapter {
     record: ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    return (await this.http.put(
+    let result = await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Object.assign({ Model }, options)
-    )) as MemoriaModel;
+    );
+
+    debugger;
+    if (record instanceof MemoriaModel) {
+      Object.keys(result).forEach((keyName) => {
+        record[keyName] = result[keyName];
+      });
+      // TODO: clear changeset
+    }
+
+    return result as MemoriaModel;
   }
 
   static async delete(

@@ -1,6 +1,8 @@
 // NOTE: investigate connection.entityMetadatas;
 // TRUNCATE TABLE my_table RESTART IDENTITY;
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
+// TODO: rewrite this file as store.ts and utilize WeakMap, Map, WeakSet
+// TODO: turn _DB into a Map<InstanceWithoutRelationship(?)> -> WeakSet to include the relationships(?) or a WeakMap with WeakSet(?)
 import Model from "./index.js";
 import { generateUUID } from "./utils.js";
 import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "./types";
@@ -29,7 +31,7 @@ type DB = { [className: string]: Model[] };
 
 // Maybe move objects to Map for easy clearing for Schema
 // Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
-const arrayValueRelationships = ["one-to-many", "many-to-many"];
+const arrayAskingRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
 // relationshipSummary inject and the mutate maybe from decorator
 export default class MemoriaConfigurations {
@@ -91,7 +93,7 @@ export default class MemoriaConfigurations {
           let relation = modelSchema.relations[relationName];
 
           return Object.assign(result, {
-            [relationName]: arrayValueRelationships.includes(relation.type)
+            [relationName]: arrayAskingRelationships.includes(relation.type)
               ? [relation.target()]
               : relation.target(),
           });
@@ -129,6 +131,37 @@ export default class MemoriaConfigurations {
     columns[columnName] = { ...columns[columnName], ...columnMetadata };
 
     return columns;
+  }
+
+  static _belongsToColumnNames: { [className: string]: Set<string> } = {};
+  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
+    if (!this._belongsToColumnNames[Class.name]) {
+      this._belongsToColumnNames[Class.name] = new Set();
+    }
+
+    return this._belongsToColumnNames[Class.name];
+  }
+  static _belongsToPointers: {
+    [className: string]: {
+      [belongsToColumnName: string]: {
+        relationshipForeignKeyName: string;
+        relationshipClass: typeof Model;
+      };
+    };
+  } = {};
+  static getBelongsToPointers(
+    Class: typeof Model
+  ): {
+    [belongsToColumnName: string]: {
+      relationshipForeignKeyName: string;
+      relationshipClass: typeof Model;
+    };
+  } {
+    if (!this._belongsToPointers[Class.name]) {
+      this._belongsToPointers[Class.name] = {};
+    }
+
+    return this._belongsToPointers[Class.name];
   }
 
   static _columnNames: { [className: string]: Set<string> } = {};
@@ -205,8 +238,13 @@ export default class MemoriaConfigurations {
       clearTimeout(this._cacheTimeouts[Klass.name][primaryKey]);
     }
 
+    if (timer === 0) {
+      Klass.Adapter.unload(Klass, cachedModel);
+      return;
+    }
+
     this._cacheTimeouts[Klass.name][primaryKey] = setTimeout(
-      () => Klass.unload(cachedModel),
+      () => Klass.Adapter.unload(Klass, cachedModel),
       timer
     );
     return this._cacheTimeouts[Klass.name][primaryKey];
