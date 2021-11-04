@@ -1,4 +1,7 @@
+// NOTE: maybe add @BelongsTo(x, y, { columnName: }) option and ignore JoinColumn() decorator possibilitiy
+// NOTE: study lazy relation
 import Config from "../config.js";
+import Model from "../model.js";
 import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../types.js";
 
 type ObjectType<T> = { new (): T } | Function;
@@ -9,7 +12,7 @@ export function OneToOne<T>(
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
       options = <RelationOptions>inverseSideOrOptions;
@@ -76,7 +79,7 @@ export function ManyToOne<T>(
   options?: RelationOptions,
   type?: "many-to-one" | "one-to-one"
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // Normalize parameters.
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -128,6 +131,17 @@ export function ManyToOne<T>(
         orphanedRowAction: options.orphanedRowAction,
       }
     );
+    let targetRelationshipClass = getTargetRelationshipClass(typeFunctionOrTarget);
+    let targetColumnName = findOrGuessBelongsToColumnName(
+      target.constructor,
+      propertyName,
+      targetRelationshipClass
+    );
+    Config.getBelongsToColumnNames(target.constructor).add(targetColumnName);
+    Config.getBelongsToPointers(target.constructor)[targetColumnName] = {
+      relationshipForeignKeyName: propertyName,
+      relationshipClass: targetRelationshipClass,
+    };
 
     return target.constructor.Adapter.Decorators.ManyToOne(
       typeFunctionOrTarget,
@@ -142,7 +156,7 @@ export function OneToMany<T>(
   inverseSideOrOptions: string | ((object: T) => any),
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // TODO: inverse
     if (!options) {
       options = {};
@@ -199,7 +213,7 @@ export function ManyToMany<T>(
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // normalize parameters
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -342,6 +356,18 @@ export default {
 };
 // NOTE: not done: RelationId
 
+function findOrGuessBelongsToColumnName(Class, belongsToRelationshipName, targetRelationshipModel) {
+  let generatedRelationshipName =
+    targetRelationshipModel.primaryKeyType === "uuid"
+      ? `${belongsToRelationshipName}_uuid`
+      : `${belongsToRelationshipName}_id`;
+
+  return (
+    Array.from(Class.columnNames).find((columnName) => generatedRelationshipName === columnName) ||
+    generatedRelationshipName
+  );
+}
+
 // NOTE: maybe I can remove one call with: returning the function directly:
 export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
   return function (target, propertyKey, _descriptor) {
@@ -352,4 +378,13 @@ export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
       secondParam
     );
   };
+}
+function getTargetRelationshipClass(typeFunctionOrTarget) {
+  if (typeFunctionOrTarget.prototype instanceof Model) {
+    return typeFunctionOrTarget;
+  } else if (typeFunctionOrTarget === "function") {
+    return typeFunctionOrTarget();
+  }
+
+  return typeFunctionOrTarget;
 }

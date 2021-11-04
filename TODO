@@ -1,5 +1,9 @@
 # Check reflexive relationships, readonly nested data, updating from both sides(_id, relationship and inverse relationship, creating new record relationship updates)
 
+# add ember-concurrency like primitives with a new Promise-like interface for .retry(), .abort() [particularly interesting for async relationships]
+# maybe apply this to all async functions, after config->store refactor
+
+# Post /photos(should not have owner embedded by default on REST) but after post should still keep the reference
 
 # DirtyState(isLoaded, hasAllRelationshipsLoaded, persistedAt, loadedAt)
 # add benchmark setup
@@ -22,9 +26,7 @@
 # NOTE: do the same to a fetched and updated model - do it in the update test
 
 # Relationships( + handle internal cleanRelationships())
-# cache: ms option for save, and maybe make tracking optional for ember
 # reasons for artifacts: doc gen, code cov report, .apk builds
-
 
 try {
   let photo = PhotoComment.insert({ name: 'something' });

@@ -11,6 +11,10 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
+interface ModelRelationships {
+  [relationshipName: string]: typeof Model;
+}
+
 interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
@@ -24,6 +28,8 @@ export interface ModelBuildOptions extends ModelInstantiateOptions {
   // tracer?:
   // include?: // NOTE: would be a useful addition for JSONAPIAdapter & GraphQLAdapter
 }
+
+// NOTE: maybe add embed option? for CRUDOptions
 
 const LOCK_PROPERTY = {
   configurable: false,
@@ -62,6 +68,10 @@ export default class Model {
     return Config.getColumnNames(this);
   }
 
+  static get belongsToColumnNames(): Set<string> {
+    return Config.getBelongsToColumnNames(this);
+  }
+
   // NOTE: currently this is costly, optimize it in future:
   static get relationshipNames(): Set<string> {
     return new Set(Object.keys(this.relationshipSummary));
@@ -71,19 +81,19 @@ export default class Model {
     return Config.relationshipsSummary[this.name];
   }
 
-  static get belongsToRelationships() {
+  static get belongsToRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "many-to-one");
   }
 
-  static get hasOneRelationships() {
+  static get hasOneRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "one-to-one");
   }
 
-  static get hasManyRelationships() {
+  static get hasManyRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "one-to-many");
   }
 
-  static get manyToManyRelationships() {
+  static get manyToManyRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "many-to-many");
   }
 
@@ -581,7 +591,10 @@ function checkProvidedFixtures(Klass: typeof Model, fixtureArray, buildOptions) 
 
 type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
 
-function filterRelationsFromEntity(Class: typeof Model, relationshipType: relationshipType) {
+function filterRelationsFromEntity(
+  Class: typeof Model,
+  relationshipType: relationshipType
+): ModelRelationships {
   let relationshipSchema = Config.getRelationshipSchemaDefinitions(
     Class
   ) as RelationshipDefinitionStore;
@@ -589,11 +602,13 @@ function filterRelationsFromEntity(Class: typeof Model, relationshipType: relati
   return relationshipSchema
     ? Object.keys(relationshipSchema).reduce((result, relationshipPropertyName) => {
         let schema = relationshipSchema[relationshipPropertyName];
+
         if (schema.type === relationshipType) {
-          result.push(typeof schema.target === "function" ? schema.target() : schema.target);
+          result[relationshipPropertyName] =
+            typeof schema.target === "function" ? schema.target() : schema.target;
         }
 
         return result;
-      }, [] as Array<typeof Model>)
-    : [];
+      }, {})
+    : {};
 }
