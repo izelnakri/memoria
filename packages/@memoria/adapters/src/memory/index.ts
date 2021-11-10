@@ -116,24 +116,40 @@ export default class MemoryAdapter {
       }
     }
 
-    let model = new Model(options);
-    let relationshipSummary = Model.relationshipSummary;
-    let belongsToPointers = Config.getBelongsToPointers(Model);
+    let model = new Model(options); // NOTE: this could be change to only on { copy: true } and make it mutate on other cases
+    if (buildObject && buildObject.revisionHistory) {
+      buildObject.revisionHistory.forEach((revision) => {
+        model.revisionHistory.push({ ...revision });
+      });
+    }
+    if (buildObject && buildObject.changes) {
+      Object.keys(buildObject.changes).forEach((key) => {
+        model.changes[key] = buildObject.changes[key];
+      });
+    }
 
+    let belongsToPointers = Config.getBelongsToPointers(Model);
+    let relationshipSummary = Model.relationshipSummary;
     Object.keys(relationshipSummary).forEach((relationshipName) => {
       // NOTE: do here runtime checks maybe!
-      // TODO: do I need the cache anymore??
       // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
       // NOTE: maybe do this foreignKeyReference
       let cache =
         buildObject && relationshipName in buildObject
           ? // if relationshipProvided just leave it there
-            castRelationships(model, Model.relationshipSummary, relationshipName, buildObject)
+            castRelationship(model, relationshipName, Model.relationshipSummary, buildObject)
           : model[relationshipName] || null;
       let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
         (belongsToColumnName) =>
           belongsToPointers[belongsToColumnName].relationshipForeignKeyName === relationshipName
       ) as string;
+
+      if (relationshipForeignKeyName) {
+        model[relationshipForeignKeyName] = cache
+          ? cache[Model.belongsToRelationships[relationshipName].primaryKeyName] || null
+          : null;
+      }
+
       let RelationshipClass = Array.isArray(relationshipSummary[relationshipName])
         ? relationshipSummary[relationshipName][0]
         : relationshipSummary[relationshipName];
@@ -153,17 +169,17 @@ export default class MemoryAdapter {
             return cache || null;
           }
 
-          return (cache && cache[relationshipName]) || null; // TODO: adjust this for hasMany, hasOne, and ManyToMany.
+          return cache || null; // TODO: adjust this for hasMany, hasOne, and ManyToMany.
         },
-        async set(value) {
-          cache = value instanceof Model ? value : null;
+        set(value) {
           if (Object.keys(Model.belongsToRelationships).includes(relationshipName)) {
-            let targetRelationship = await this[relationshipName];
+            let RelationshipModel = Model.belongsToRelationships[relationshipName];
 
-            this[relationshipForeignKeyName] =
-              value instanceof Model
-                ? targetRelationship && targetRelationship[Model.primaryKeyName]
-                : null;
+            cache = value instanceof MemoriaModel ? value : null;
+
+            this[relationshipForeignKeyName] = cache
+              ? cache[RelationshipModel.primaryKeyName] || null
+              : null;
           }
         },
       });
@@ -192,10 +208,18 @@ export default class MemoryAdapter {
 
             let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
             if (belongsToPointer) {
+              let relationship = this[belongsToPointer.relationshipForeignKeyName];
+              if (
+                relationship &&
+                !relationship[belongsToPointer.relationshipClass.primaryKeyName]
+              ) {
+                return;
+              }
+
               this[belongsToPointer.relationshipForeignKeyName] =
                 value === null
                   ? null
-                  : getRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, value);
+                  : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, value);
             }
           },
         });
@@ -221,7 +245,6 @@ export default class MemoryAdapter {
       record[Model.primaryKeyName]
     ) as MemoriaModel | void;
     if (existingModelInCache) {
-      // TODO: this function ignores previous models revisionHistory
       let model = Model.build(
         Object.assign(
           existingModelInCache,
@@ -236,15 +259,14 @@ export default class MemoryAdapter {
         targetOptions
       );
 
-      return this.returnWithCacheEviction(model, options);
+      return this.returnWithCacheEviction(tryToRevision(model, options), options);
     }
 
-    // not good because
-    let target = Model.build(record, targetOptions);
+    let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
     Model.Cache.push(Model.build(target, targetOptions));
 
-    return this.returnWithCacheEviction(target, options);
+    return this.returnWithCacheEviction(target, options); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
   }
 
   static peek(
@@ -371,20 +393,20 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
-    let model = Object.assign(
-      targetRecord,
-      Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+
+    return this.cache(
+      Model,
+      Array.from(Model.columnNames).reduce((result, attribute: string) => {
         if (record.hasOwnProperty(attribute)) {
           result[attribute] = record[attribute];
         } else if (typeof defaultColumnsForUpdate[attribute] === "function") {
           result[attribute] = defaultColumnsForUpdate[attribute](Model);
         }
 
-        return result;
-      }, {})
+        return result as ModelRefOrInstance;
+      }, {} as ModelRefOrInstance),
+      options
     );
-
-    return this.returnWithCacheEviction(model, options);
   }
 
   static unload(
@@ -523,11 +545,12 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
           return;
         }
 
-        value = value === undefined ? null : value;
-        if (this.revision[columnName] === value) {
+        cache = value === undefined ? null : value;
+
+        if (this.revision[columnName] === cache) {
           delete this.changes[columnName];
         } else {
-          Object.assign(this.changes, { [columnName]: value });
+          Object.assign(this.changes, { [columnName]: cache });
         }
 
         this.errors.forEach((error, errorIndex) => {
@@ -536,14 +559,17 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
           }
         });
 
-        cache = value;
-
         if (Model.belongsToColumnNames.has(columnName)) {
           let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
+          let relationship = this[belongsToPointer.relationshipForeignKeyName];
+          if (relationship && !relationship[belongsToPointer.relationshipClass.primaryKeyName]) {
+            return;
+          }
+
           this[belongsToPointer.relationshipForeignKeyName] =
-            value === null
+            cache === null
               ? null
-              : getRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, value);
+              : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, cache);
         }
       },
     });
@@ -562,10 +588,10 @@ function transformModelForBuild(
     : model[keyName] || null;
 }
 
-function castRelationships(
+function castRelationship(
   model: MemoriaModel,
-  relationshipSummary: RelationshipSummary,
   relationshipName: string,
+  relationshipSummary: RelationshipSummary,
   buildObject: QueryObject | MemoriaModel
 ) {
   // NOTE: MAKE this array or single object-aware
@@ -582,14 +608,17 @@ function castRelationships(
   ) as string;
 
   return relationshipForeignKeyName
-    ? getRelationshipFromPrimaryKey(
+    ? tryGettingRelationshipFromPrimaryKey(
         belongsToPointers[relationshipForeignKeyName].relationshipClass,
         model[relationshipForeignKeyName]
       )
     : null;
 }
 
-function getRelationshipFromPrimaryKey(RelationshipClass: typeof MemoriaModel, primaryKey: any) {
+function tryGettingRelationshipFromPrimaryKey(
+  RelationshipClass: typeof MemoriaModel,
+  primaryKey: any
+) {
   if (!primaryKey) {
     return null;
   }
@@ -616,4 +645,18 @@ function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
 
     return result;
   }, model);
+}
+
+function tryToRevision(model: MemoriaModel, options) {
+  if (Object.keys(model.changes).length > 0) {
+    clearObject(model.changes);
+
+    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
+  }
+
+  return model;
+}
+
+function revisionEnabled(options?: ModelBuildOptions) {
+  return !options || options.revision !== false;
 }
