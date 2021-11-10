@@ -164,7 +164,6 @@ export default class RESTAdapter extends MemoryAdapter {
       Object.keys(result).forEach((keyName) => {
         record[keyName] = result[keyName];
       });
-      // TODO: clear changeset
     }
 
     return result as MemoriaModel;
@@ -182,12 +181,10 @@ export default class RESTAdapter extends MemoryAdapter {
       Object.assign({ Model }, options)
     );
 
-    debugger;
     if (record instanceof MemoriaModel) {
       Object.keys(result).forEach((keyName) => {
         record[keyName] = result[keyName];
       });
-      // TODO: clear changeset
     }
 
     return result as MemoriaModel;
