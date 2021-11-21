@@ -137,7 +137,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     assert.deepEqual(await Photo.findAll(), []);
     assert.deepEqual(await PhotoComment.findAll(), []);
 
-    await Photo.resetRecords(PHOTO_FIXTURES);
+    let fixtures = await Photo.resetRecords(PHOTO_FIXTURES);
     await PhotoComment.resetRecords(PHOTO_COMMENT_FIXTURES);
 
     assert.propEqual(await Photo.findAll(), PHOTO_FIXTURES);

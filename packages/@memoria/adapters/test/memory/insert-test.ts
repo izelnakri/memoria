@@ -242,8 +242,14 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     const allComments = await PhotoComment.findAll();
     const lastInsertedComments = allComments.slice(4, allComments.length);
 
-    assert.ok(allComments.includes(commentOne), "first comment insert in the database");
-    assert.ok(allComments.includes(commentTwo), "second comment insert in the database");
+    assert.ok(
+      allComments.find((comment) => comment.uuid === commentOne.uuid),
+      "first comment insert in the database"
+    );
+    assert.ok(
+      allComments.find((comment) => comment.uuid === commentTwo.uuid),
+      "second comment insert in the database"
+    );
 
     assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
     assert.equal(commentOne.photo_id, undefined);
@@ -256,6 +262,35 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     lastInsertedComments.forEach((comment) => {
       assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
     });
+  });
+
+  test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+    const { Photo } = prepare();
+
+    let photo = Photo.build({ name: "some name" });
+
+    assert.propEqual(photo, {
+      href: null,
+      id: null,
+      is_public: null,
+      name: "some name",
+    });
+
+    let insertedPhoto = await Photo.insert(photo);
+
+    assert.propEqual(photo, {
+      href: null,
+      id: 1,
+      is_public: null,
+      name: "some name",
+    });
+    assert.deepEqual(Photo.peek(insertedPhoto.id), insertedPhoto);
+
+    insertedPhoto.name = "testing store just holds a copy";
+
+    assert.equal(insertedPhoto.name, "testing store just holds a copy");
+    assert.notEqual(photo.name, insertedPhoto.name);
+    assert.notPropEqual(Photo.peek(photo.id), insertedPhoto);
   });
 
   test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
