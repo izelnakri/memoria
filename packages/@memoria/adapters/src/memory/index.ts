@@ -508,16 +508,6 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
   return false;
 }
 
-function cleanRelationships(Model, instance) {
-  Model.relationshipNames.forEach((relationshipName) => {
-    if (relationshipName in instance) {
-      instance[relationshipName] = undefined;
-    }
-  });
-
-  return instance;
-}
-
 function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
   model: MemoriaModel,
   buildObject?: QueryObject | MemoriaModel
