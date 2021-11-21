@@ -25,11 +25,11 @@ export default function generatePhoto() {
     @Column("boolean")
     is_public: boolean;
 
-    @Column("int")
-    owner_id: number;
+    @Column()
+    owner_uuid: string;
 
-    @Column("int")
-    group_id: number;
+    @Column()
+    group_uuid: string;
 
     @BelongsTo(User)
     owner;

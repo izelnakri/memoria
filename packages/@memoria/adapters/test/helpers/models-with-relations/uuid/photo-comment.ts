@@ -12,11 +12,11 @@ export default function generatePhotoComment() {
     @Column()
     content: string;
 
-    @Column("int")
-    photo_id: number;
+    @Column()
+    photo_uuid: string;
 
-    @Column("int")
-    user_id: number;
+    @Column()
+    user_uuid: string;
 
     @BelongsTo(User)
     user;

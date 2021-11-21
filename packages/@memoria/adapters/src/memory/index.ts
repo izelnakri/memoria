@@ -36,6 +36,8 @@ export default class MemoryAdapter {
         delete Config._columnNames[modelName];
         delete Config._primaryKeyNameCache[modelName];
         delete Config._defaultValuesCache[modelName];
+        delete Config._belongsToColumnNames[modelName];
+        delete Config._belongsToPointers[modelName];
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
@@ -46,6 +48,8 @@ export default class MemoryAdapter {
     clearObject(Config._columnNames);
     clearObject(Config._primaryKeyNameCache);
     clearObject(Config._defaultValuesCache);
+    clearObject(Config._belongsToColumnNames);
+    clearObject(Config._belongsToPointers);
 
     for (let schema of Config.Schemas) {
       // NOTE: this is complex because could hold cyclical references
@@ -128,8 +132,12 @@ export default class MemoryAdapter {
       });
     }
 
+    let belongsToRelationships = Model.belongsToRelationships;
+    let belongsToRelationshipKeys = Object.keys(belongsToRelationships);
+    let belongsToColumnNames = Model.belongsToColumnNames;
     let belongsToPointers = Config.getBelongsToPointers(Model);
     let relationshipSummary = Model.relationshipSummary;
+
     Object.keys(relationshipSummary).forEach((relationshipName) => {
       // NOTE: do here runtime checks maybe!
       // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
@@ -139,10 +147,13 @@ export default class MemoryAdapter {
           ? // if relationshipProvided just leave it there
             castRelationship(model, relationshipName, Model.relationshipSummary, buildObject)
           : model[relationshipName] || null;
-      let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
-        (belongsToColumnName) =>
-          belongsToPointers[belongsToColumnName].relationshipForeignKeyName === relationshipName
-      ) as string;
+      let isBelongsToRelationship = belongsToRelationshipKeys.includes(relationshipName);
+      let relationshipForeignKeyName = isBelongsToRelationship
+        ? Config.getBelongsToForeignKey(Model, relationshipName)
+        : null;
+      let RelationshipClass = Array.isArray(relationshipSummary[relationshipName])
+        ? relationshipSummary[relationshipName][0]
+        : relationshipSummary[relationshipName];
 
       if (relationshipForeignKeyName) {
         model[relationshipForeignKeyName] = cache
@@ -150,16 +161,12 @@ export default class MemoryAdapter {
           : null;
       }
 
-      let RelationshipClass = Array.isArray(relationshipSummary[relationshipName])
-        ? relationshipSummary[relationshipName][0]
-        : relationshipSummary[relationshipName];
-
       Object.defineProperty(model, relationshipName, {
         configurable: false,
         enumerable: true,
         get() {
-          if (Object.keys(Model.belongsToRelationships).includes(relationshipName)) {
-            let primaryKey = this[relationshipForeignKeyName];
+          if (isBelongsToRelationship) {
+            let primaryKey = this[relationshipForeignKeyName as string];
             if (primaryKey) {
               return (
                 RelationshipClass.peek(primaryKey) || cache || RelationshipClass.find(primaryKey)
@@ -172,12 +179,12 @@ export default class MemoryAdapter {
           return cache || null; // TODO: adjust this for hasMany, hasOne, and ManyToMany.
         },
         set(value) {
-          if (Object.keys(Model.belongsToRelationships).includes(relationshipName)) {
+          if (isBelongsToRelationship) {
             let RelationshipModel = Model.belongsToRelationships[relationshipName];
 
             cache = value instanceof MemoriaModel ? value : null;
 
-            this[relationshipForeignKeyName] = cache
+            this[relationshipForeignKeyName as string] = cache
               ? cache[RelationshipModel.primaryKeyName] || null
               : null;
           }
@@ -192,6 +199,7 @@ export default class MemoryAdapter {
     return Array.from(Model.columnNames).reduce((result, columnName) => {
       if (Model.belongsToColumnNames.has(columnName)) {
         let cache = transformModelForBuild(model, columnName, buildObject);
+        let belongsToPointer = belongsToPointers[columnName];
 
         Object.defineProperty(model, columnName, {
           configurable: false,
@@ -206,9 +214,8 @@ export default class MemoryAdapter {
 
             cache = value === undefined ? null : value;
 
-            let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
-            if (belongsToPointer) {
-              let relationship = this[belongsToPointer.relationshipForeignKeyName];
+            if (belongsToColumnNames.has(columnName)) {
+              let relationship = this[belongsToPointer.relationshipName];
               if (
                 relationship &&
                 !relationship[belongsToPointer.relationshipClass.primaryKeyName]
@@ -216,7 +223,7 @@ export default class MemoryAdapter {
                 return;
               }
 
-              this[belongsToPointer.relationshipForeignKeyName] =
+              this[belongsToPointer.relationshipName] =
                 value === null
                   ? null
                   : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, value);
@@ -551,12 +558,12 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
 
         if (Model.belongsToColumnNames.has(columnName)) {
           let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
-          let relationship = this[belongsToPointer.relationshipForeignKeyName];
+          let relationship = this[belongsToPointer.relationshipName];
           if (relationship && !relationship[belongsToPointer.relationshipClass.primaryKeyName]) {
             return;
           }
 
-          this[belongsToPointer.relationshipForeignKeyName] =
+          this[belongsToPointer.relationshipName] =
             cache === null
               ? null
               : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, cache);
@@ -594,7 +601,7 @@ function castRelationship(
   let belongsToPointers = Config.getBelongsToPointers(model.constructor as typeof MemoriaModel);
   let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
     (belongsToColumnName) =>
-      belongsToPointers[belongsToColumnName].relationshipForeignKeyName === relationshipName
+      belongsToPointers[belongsToColumnName].relationshipName === relationshipName
   ) as string;
 
   return relationshipForeignKeyName
