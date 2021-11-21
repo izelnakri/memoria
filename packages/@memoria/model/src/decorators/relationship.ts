@@ -38,8 +38,10 @@ export function OneToOne<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -65,7 +67,7 @@ export function OneToOne<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.OneToOne(
+    return Class.Adapter.Decorators.OneToOne(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -105,8 +107,10 @@ export function ManyToOne<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -131,19 +135,8 @@ export function ManyToOne<T>(
         orphanedRowAction: options.orphanedRowAction,
       }
     );
-    let targetRelationshipClass = getTargetRelationshipClass(typeFunctionOrTarget);
-    let targetColumnName = findOrGuessBelongsToColumnName(
-      target.constructor,
-      propertyName,
-      targetRelationshipClass
-    );
-    Config.getBelongsToColumnNames(target.constructor).add(targetColumnName);
-    Config.getBelongsToPointers(target.constructor)[targetColumnName] = {
-      relationshipForeignKeyName: propertyName,
-      relationshipClass: targetRelationshipClass,
-    };
 
-    return target.constructor.Adapter.Decorators.ManyToOne(
+    return Class.Adapter.Decorators.ManyToOne(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -174,8 +167,10 @@ export function OneToMany<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -200,7 +195,7 @@ export function OneToMany<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.OneToMany(
+    return Class.Adapter.Decorators.OneToMany(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -239,8 +234,10 @@ export function ManyToMany<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -266,7 +263,7 @@ export function ManyToMany<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.ManyToMany(
+    return Class.Adapter.Decorators.ManyToMany(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -356,18 +353,6 @@ export default {
 };
 // NOTE: not done: RelationId
 
-function findOrGuessBelongsToColumnName(Class, belongsToRelationshipName, targetRelationshipModel) {
-  let generatedRelationshipName =
-    targetRelationshipModel.primaryKeyType === "uuid"
-      ? `${belongsToRelationshipName}_uuid`
-      : `${belongsToRelationshipName}_id`;
-
-  return (
-    Array.from(Class.columnNames).find((columnName) => generatedRelationshipName === columnName) ||
-    generatedRelationshipName
-  );
-}
-
 // NOTE: maybe I can remove one call with: returning the function directly:
 export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
   return function (target, propertyKey, _descriptor) {
@@ -378,13 +363,4 @@ export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
       secondParam
     );
   };
-}
-function getTargetRelationshipClass(typeFunctionOrTarget) {
-  if (typeFunctionOrTarget.prototype instanceof Model) {
-    return typeFunctionOrTarget;
-  } else if (typeFunctionOrTarget === "function") {
-    return typeFunctionOrTarget();
-  }
-
-  return typeFunctionOrTarget;
 }

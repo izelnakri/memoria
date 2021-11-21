@@ -45,7 +45,6 @@ export default class MemoriaConfigurations {
 
   static Schemas: SchemaDefinition[] = [];
   static getSchema(Class: typeof Model): SchemaDefinition {
-    // TODO: make this is a full schema
     let targetSchema = this.Schemas.find((schema) => schema.name === Class.name);
     if (!targetSchema) {
       targetSchema = {
@@ -137,14 +136,37 @@ export default class MemoriaConfigurations {
   static getBelongsToColumnNames(Class: typeof Model): Set<string> {
     if (!this._belongsToColumnNames[Class.name]) {
       this._belongsToColumnNames[Class.name] = new Set();
+
+      Object.keys(Class.belongsToRelationships).forEach((relationshipName) => {
+        let relationshipClass = Class.belongsToRelationships[relationshipName];
+        let targetRelationshipForeignKey = getTargetRelationshipForeignKey(
+          Class,
+          relationshipName,
+          relationshipClass
+        );
+        (this.getBelongsToPointers(Class)[targetRelationshipForeignKey] = {
+          relationshipName,
+          relationshipClass,
+        }),
+          this._belongsToColumnNames[Class.name].add(targetRelationshipForeignKey);
+      });
     }
 
     return this._belongsToColumnNames[Class.name];
   }
+  static getBelongsToForeignKey(Class: typeof Model, relationshipName: string): string {
+    let belongsToPointers = this.getBelongsToPointers(Class);
+
+    return Object.keys(belongsToPointers).find(
+      (belongsToColumnName) =>
+        belongsToPointers[belongsToColumnName].relationshipName === relationshipName
+    ) as string;
+  }
+
   static _belongsToPointers: {
     [className: string]: {
-      [belongsToColumnName: string]: {
-        relationshipForeignKeyName: string;
+      [belongsToColumnForeignKeyName: string]: {
+        relationshipName: string;
         relationshipClass: typeof Model;
       };
     };
@@ -152,8 +174,8 @@ export default class MemoriaConfigurations {
   static getBelongsToPointers(
     Class: typeof Model
   ): {
-    [belongsToColumnName: string]: {
-      relationshipForeignKeyName: string;
+    [belongsToColumnForeignKeyName: string]: {
+      relationshipName: string;
       relationshipClass: typeof Model;
     };
   } {
@@ -272,4 +294,24 @@ function incrementId(DB: Model[], keyName: string) {
   let lastIdInSequence = DB.map((model) => model[keyName]).sort((a, b) => a - b);
   // .find((id, index, array) => (index === array.length - 1 ? true : id + 1 !== array[index + 1])); // NOTE: this fills gaps! Maybe mismatches SQL DB implementation
   return lastIdInSequence[lastIdInSequence.length - 1] + 1;
+}
+
+function getTargetRelationshipForeignKey(
+  Class: typeof Model,
+  relationshipName: string,
+  RelationshipClass: typeof Model
+) {
+  let preferredRelationshipForeignKey =
+    RelationshipClass.primaryKeyType === "uuid"
+      ? `${relationshipName}_uuid`
+      : `${relationshipName}_id`;
+  if (Class.columnNames.has(preferredRelationshipForeignKey)) {
+    return preferredRelationshipForeignKey;
+  } else if (Class.columnNames.has(`${relationshipName}_uuid`)) {
+    return `${relationshipName}_uuid`;
+  } else if (Class.columnNames.has(`${relationshipName}_id`)) {
+    return `${relationshipName}_id`;
+  }
+
+  return preferredRelationshipForeignKey;
 }
