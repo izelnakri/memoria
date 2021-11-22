@@ -5,16 +5,18 @@ import Model, {
   HasMany,
   ManyToMany,
 } from "@memoria/model";
+import { RESTAdapter } from "@memoria/adapter";
 import Group from "./group.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generateUser() {
-  class User extends Model {
+  class RESTUser extends Model {
+    static Adapter = RESTAdapter;
     static Serializer = class UserSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn("uuid")
+    uuid: string;
 
     @Column()
     first_name: string;
@@ -32,5 +34,5 @@ export default function generateUser() {
     groups;
   }
 
-  return User;
+  return RESTUser;
 }

@@ -7,12 +7,14 @@ import Model, {
   HasOne,
   HasMany,
 } from "@memoria/model";
+import { RESTAdapter } from "@memoria/adapters";
 import User from "./user.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generateGroup() {
-  class Group extends Model {
+  class RESTGroup extends Model {
+    static Adapter = RESTAdapter;
     static Serializer = class GroupSerializer extends Serializer {};
 
     @PrimaryGeneratedColumn()
@@ -34,5 +36,5 @@ export default function generateGroup() {
     photoComments;
   }
 
-  return Group;
+  return RESTGroup;
 }

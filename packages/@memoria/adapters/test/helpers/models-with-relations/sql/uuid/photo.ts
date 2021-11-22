@@ -5,12 +5,14 @@ import Model, {
   BelongsTo,
   HasMany,
 } from "@memoria/model";
+import { SQLAdapter } from "@memoria/adapter";
 import User from "./user.js";
 import Group from "./group.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generatePhoto() {
-  class Photo extends Model {
+  class SQLPhoto extends Model {
+    static Adapter = SQLAdapter;
     static Serializer = class PhotoSerializer extends Serializer {};
 
     @PrimaryGeneratedColumn("uuid")
@@ -41,5 +43,5 @@ export default function generatePhoto() {
     comments;
   }
 
-  return Photo;
+  return SQLPhoto;
 }

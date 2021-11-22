@@ -5,12 +5,14 @@ import Model, {
   HasMany,
   ManyToMany,
 } from "@memoria/model";
+import { SQLAdapter } from "@memoria/adapter";
 import Group from "./group.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generateUser() {
-  class User extends Model {
+  class SQLUser extends Model {
+    static Adapter = SQLAdapter;
     static Serializer = class UserSerializer extends Serializer {};
 
     @PrimaryGeneratedColumn("uuid")
@@ -32,5 +34,5 @@ export default function generateUser() {
     groups;
   }
 
-  return User;
+  return SQLUser;
 }
