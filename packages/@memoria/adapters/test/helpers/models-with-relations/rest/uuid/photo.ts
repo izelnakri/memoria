@@ -5,16 +5,18 @@ import Model, {
   BelongsTo,
   HasMany,
 } from "@memoria/model";
+import { RESTAdapter } from "@memoria/adapter";
 import User from "./user.js";
 import Group from "./group.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generatePhoto() {
-  class Photo extends Model {
+  class RESTPhoto extends Model {
+    static Adapter = RESTAdapter;
     static Serializer = class PhotoSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn("uuid")
+    uuid: string;
 
     @Column()
     name: string;
@@ -25,11 +27,11 @@ export default function generatePhoto() {
     @Column("boolean")
     is_public: boolean;
 
-    @Column("int")
-    owner_id: number;
+    @Column()
+    owner_uuid: string;
 
-    @Column("int")
-    group_id: number;
+    @Column()
+    group_uuid: string;
 
     @BelongsTo(User)
     owner;
@@ -41,5 +43,5 @@ export default function generatePhoto() {
     comments;
   }
 
-  return Photo;
+  return RESTPhoto;
 }

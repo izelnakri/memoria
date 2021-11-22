@@ -1,22 +1,24 @@
 import Model, { PrimaryGeneratedColumn, Serializer, Column, BelongsTo } from "@memoria/model";
+import { RESTAdapter } from "@memoria/adapter";
 import User from "./user.js";
 import Photo from "./photo.js";
 
 export default function generatePhotoComment() {
-  class PhotoComment extends Model {
+  class RESTPhotoComment extends Model {
+    static Adapter = RESTAdapter;
     static Serializer = class PhotoCommentSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn("uuid")
+    uuid: string;
 
     @Column()
     content: string;
 
-    @Column("int")
-    photo_id: number;
+    @Column()
+    photo_uuid: string;
 
-    @Column("int")
-    user_id: number;
+    @Column()
+    user_uuid: string;
 
     @BelongsTo(User)
     user;
@@ -25,5 +27,5 @@ export default function generatePhotoComment() {
     photo;
   }
 
-  return PhotoComment;
+  return RESTPhotoComment;
 }

@@ -5,9 +5,9 @@ import generateUser from "./user.js";
 
 export default function generateModels() {
   return {
-    Group: generateGroup(),
-    Photo: generatePhoto(),
-    PhotoComment: generatePhotoComment(),
-    User: generateUser(),
+    SQLGroup: generateGroup(),
+    SQLPhoto: generatePhoto(),
+    SQLPhotoComment: generatePhotoComment(),
+    SQLUser: generateUser(),
   };
 }

@@ -7,12 +7,14 @@ import Model, {
   HasOne,
   HasMany,
 } from "@memoria/model";
+import { SQLAdapter } from "@memoria/adapter";
 import User from "./user.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generateGroup() {
-  class Group extends Model {
+  class SQLGroup extends Model {
+    static Adapter = SQLAdapter;
     static Serializer = class GroupSerializer extends Serializer {};
 
     @PrimaryGeneratedColumn("uuid")
@@ -34,5 +36,5 @@ export default function generateGroup() {
     photoComments;
   }
 
-  return Group;
+  return SQLGroup;
 }
