@@ -2,13 +2,28 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.21](https://github.com/izelnakri/memoria/compare/0.0.21...0.0.21)
+#### [0.0.22](https://github.com/izelnakri/memoria/compare/0.0.22...0.0.22)
+
+- @BelongsTo MemoryAdapter feature complete & tests [`#20`](https://github.com/izelnakri/memoria/pull/20)
+- upgrade packages & dependencies [`64947c9`](https://github.com/izelnakri/memoria/commit/64947c9c28e36cdf529e330cda840abbde98c2bd)
+- changes for memory,rest,sql test helper model file [`7177101`](https://github.com/izelnakri/memoria/commit/7177101a88a1c28a27f9084bd41faae69d968d75)
+- test adjustments & first done belongsTo API tests [`b3b068e`](https://github.com/izelnakri/memoria/commit/b3b068e955663b8278659545d5b246572fca54f7)
+- fix & test MemoryAdapter UUID belongsTo API [`2554867`](https://github.com/izelnakri/memoria/commit/2554867e84e925f7eb00a3ff3eb4e11b8ce14c3e)
+- initial relationship feature impl before tests [`3564286`](https://github.com/izelnakri/memoria/commit/3564286dfd39d1a5f406e7b7e13f5088c74ff9de)
+- initial relationship feature test setup [`00c95c0`](https://github.com/izelnakri/memoria/commit/00c95c0f68aabef7f8f1d654f909b32ce28c7b1f)
+- initial relationship feature impl before tests [`6f41cc9`](https://github.com/izelnakri/memoria/commit/6f41cc9cac260cd35ee37cc1866774dc71154c9c)
+- README.md update [`bd700c6`](https://github.com/izelnakri/memoria/commit/bd700c6a6120c6dd2d60d39143bf8e4b4ec26e5d)
+
+#### [0.0.22](https://github.com/izelnakri/memoria/compare/0.0.21...0.0.22)
+
+> 26 October 2021
 
 - get and set util functions [`#17`](https://github.com/izelnakri/memoria/pull/17)
 - Relationship metadata lookups [`#16`](https://github.com/izelnakri/memoria/pull/16)
 - initial model side relationships tests setup [`efcdffd`](https://github.com/izelnakri/memoria/commit/efcdffdedaed5abfbec8768efb708c61d4aa026d)
 - tests added for getter/setter utils [`6f53269`](https://github.com/izelnakri/memoria/commit/6f53269039d64b9895d4be79f307b5e5bf33bbfa)
 - Remove Config.getEmbedDataForSerialization() [`11fe9ba`](https://github.com/izelnakri/memoria/commit/11fe9ba42649e8e243a4df8ae8e9588d7f7b1f1e)
+- Release 0.0.22 [`d9af8c3`](https://github.com/izelnakri/memoria/commit/d9af8c3decd3aad331cbc552b4a02e0a3d1b94dc)
 
 #### [0.0.21](https://github.com/izelnakri/memoria/compare/0.0.20...0.0.21)
 
