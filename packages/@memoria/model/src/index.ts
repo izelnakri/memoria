@@ -1,6 +1,7 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
 import Config from "./config.js";
+export type { RelationshipSummary } from "./config.js";
 import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
 export type {

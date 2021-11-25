@@ -1,4 +1,7 @@
+// NOTE: maybe add @BelongsTo(x, y, { columnName: }) option and ignore JoinColumn() decorator possibilitiy
+// NOTE: study lazy relation
 import Config from "../config.js";
+import Model from "../model.js";
 import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../types.js";
 
 type ObjectType<T> = { new (): T } | Function;
@@ -9,7 +12,7 @@ export function OneToOne<T>(
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
       options = <RelationOptions>inverseSideOrOptions;
@@ -35,8 +38,10 @@ export function OneToOne<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -62,7 +67,7 @@ export function OneToOne<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.OneToOne(
+    return Class.Adapter.Decorators.OneToOne(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -76,7 +81,7 @@ export function ManyToOne<T>(
   options?: RelationOptions,
   type?: "many-to-one" | "one-to-one"
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // Normalize parameters.
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -102,8 +107,10 @@ export function ManyToOne<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -129,7 +136,7 @@ export function ManyToOne<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.ManyToOne(
+    return Class.Adapter.Decorators.ManyToOne(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -142,7 +149,7 @@ export function OneToMany<T>(
   inverseSideOrOptions: string | ((object: T) => any),
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // TODO: inverse
     if (!options) {
       options = {};
@@ -160,8 +167,10 @@ export function OneToMany<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -186,7 +195,7 @@ export function OneToMany<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.OneToMany(
+    return Class.Adapter.Decorators.OneToMany(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options
@@ -199,7 +208,7 @@ export function ManyToMany<T>(
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions
 ) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: typeof Model, propertyName: string, descriptor: any) {
     // normalize parameters
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -225,8 +234,10 @@ export function ManyToMany<T>(
       }
     }
 
-    let foundRelation = Config.getSchema(target.constructor).relations[propertyName];
-    Config.getSchema(target.constructor).relations[propertyName] = Object.assign(
+    let Class = target.constructor as typeof Model;
+    let foundRelation = Config.getSchema(Class).relations[propertyName];
+
+    Config.getSchema(Class).relations[propertyName] = Object.assign(
       {},
       foundRelation,
       {
@@ -252,7 +263,7 @@ export function ManyToMany<T>(
       }
     );
 
-    return target.constructor.Adapter.Decorators.ManyToMany(
+    return Class.Adapter.Decorators.ManyToMany(
       typeFunctionOrTarget,
       inverseSideOrOptions,
       options

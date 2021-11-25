@@ -4,7 +4,7 @@ import Memoria from "@memoria/server";
 import Response from "@memoria/response";
 import { module, test } from "qunitx";
 import setupForTests from "./helpers/setup-for-tests.js";
-import sinon from "sinon/pkg/sinon.js";
+import sinon from "sinon";
 
 module("@memoria/server | passthrough tests", function (hooks) {
   setupForTests(hooks);

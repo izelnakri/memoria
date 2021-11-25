@@ -1,6 +1,8 @@
 // NOTE: investigate connection.entityMetadatas;
 // TRUNCATE TABLE my_table RESTART IDENTITY;
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
+// TODO: rewrite this file as store.ts and utilize WeakMap, Map, WeakSet
+// TODO: turn _DB into a Map<InstanceWithoutRelationship(?)> -> WeakSet to include the relationships(?) or a WeakMap with WeakSet(?)
 import Model from "./index.js";
 import { generateUUID } from "./utils.js";
 import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "./types";
@@ -29,7 +31,7 @@ type DB = { [className: string]: Model[] };
 
 // Maybe move objects to Map for easy clearing for Schema
 // Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
-const arrayValueRelationships = ["one-to-many", "many-to-many"];
+const arrayAskingRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
 // relationshipSummary inject and the mutate maybe from decorator
 export default class MemoriaConfigurations {
@@ -43,7 +45,6 @@ export default class MemoriaConfigurations {
 
   static Schemas: SchemaDefinition[] = [];
   static getSchema(Class: typeof Model): SchemaDefinition {
-    // TODO: make this is a full schema
     let targetSchema = this.Schemas.find((schema) => schema.name === Class.name);
     if (!targetSchema) {
       targetSchema = {
@@ -91,7 +92,7 @@ export default class MemoriaConfigurations {
           let relation = modelSchema.relations[relationName];
 
           return Object.assign(result, {
-            [relationName]: arrayValueRelationships.includes(relation.type)
+            [relationName]: arrayAskingRelationships.includes(relation.type)
               ? [relation.target()]
               : relation.target(),
           });
@@ -129,6 +130,60 @@ export default class MemoriaConfigurations {
     columns[columnName] = { ...columns[columnName], ...columnMetadata };
 
     return columns;
+  }
+
+  static _belongsToColumnNames: { [className: string]: Set<string> } = {};
+  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
+    if (!this._belongsToColumnNames[Class.name]) {
+      this._belongsToColumnNames[Class.name] = new Set();
+
+      Object.keys(Class.belongsToRelationships).forEach((relationshipName) => {
+        let relationshipClass = Class.belongsToRelationships[relationshipName];
+        let targetRelationshipForeignKey = getTargetRelationshipForeignKey(
+          Class,
+          relationshipName,
+          relationshipClass
+        );
+        (this.getBelongsToPointers(Class)[targetRelationshipForeignKey] = {
+          relationshipName,
+          relationshipClass,
+        }),
+          this._belongsToColumnNames[Class.name].add(targetRelationshipForeignKey);
+      });
+    }
+
+    return this._belongsToColumnNames[Class.name];
+  }
+  static getBelongsToForeignKey(Class: typeof Model, relationshipName: string): string {
+    let belongsToPointers = this.getBelongsToPointers(Class);
+
+    return Object.keys(belongsToPointers).find(
+      (belongsToColumnName) =>
+        belongsToPointers[belongsToColumnName].relationshipName === relationshipName
+    ) as string;
+  }
+
+  static _belongsToPointers: {
+    [className: string]: {
+      [belongsToColumnForeignKeyName: string]: {
+        relationshipName: string;
+        relationshipClass: typeof Model;
+      };
+    };
+  } = {};
+  static getBelongsToPointers(
+    Class: typeof Model
+  ): {
+    [belongsToColumnForeignKeyName: string]: {
+      relationshipName: string;
+      relationshipClass: typeof Model;
+    };
+  } {
+    if (!this._belongsToPointers[Class.name]) {
+      this._belongsToPointers[Class.name] = {};
+    }
+
+    return this._belongsToPointers[Class.name];
   }
 
   static _columnNames: { [className: string]: Set<string> } = {};
@@ -205,8 +260,13 @@ export default class MemoriaConfigurations {
       clearTimeout(this._cacheTimeouts[Klass.name][primaryKey]);
     }
 
+    if (timer === 0) {
+      Klass.Adapter.unload(Klass, cachedModel);
+      return;
+    }
+
     this._cacheTimeouts[Klass.name][primaryKey] = setTimeout(
-      () => Klass.unload(cachedModel),
+      () => Klass.Adapter.unload(Klass, cachedModel),
       timer
     );
     return this._cacheTimeouts[Klass.name][primaryKey];
@@ -234,4 +294,24 @@ function incrementId(DB: Model[], keyName: string) {
   let lastIdInSequence = DB.map((model) => model[keyName]).sort((a, b) => a - b);
   // .find((id, index, array) => (index === array.length - 1 ? true : id + 1 !== array[index + 1])); // NOTE: this fills gaps! Maybe mismatches SQL DB implementation
   return lastIdInSequence[lastIdInSequence.length - 1] + 1;
+}
+
+function getTargetRelationshipForeignKey(
+  Class: typeof Model,
+  relationshipName: string,
+  RelationshipClass: typeof Model
+) {
+  let preferredRelationshipForeignKey =
+    RelationshipClass.primaryKeyType === "uuid"
+      ? `${relationshipName}_uuid`
+      : `${relationshipName}_id`;
+  if (Class.columnNames.has(preferredRelationshipForeignKey)) {
+    return preferredRelationshipForeignKey;
+  } else if (Class.columnNames.has(`${relationshipName}_uuid`)) {
+    return `${relationshipName}_uuid`;
+  } else if (Class.columnNames.has(`${relationshipName}_id`)) {
+    return `${relationshipName}_id`;
+  }
+
+  return preferredRelationshipForeignKey;
 }

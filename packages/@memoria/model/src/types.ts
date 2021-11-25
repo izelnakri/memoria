@@ -1,5 +1,5 @@
 import type Model from "./index.js";
-import { ColumnType } from "typeorm/driver/types/ColumnTypes";
+import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
 export interface DecoratorBucket {
   [decoratorKey: string]: any;

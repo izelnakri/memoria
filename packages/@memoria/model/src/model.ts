@@ -1,3 +1,8 @@
+// TODO: make Model.build() throw error if model.isBuilt is provided
+// TODO: should I change the data structure to allow for better revision storage(?)
+// |> store successful build, insert, update, delete actions as revision
+// |> make revision data structure like a changeset(?)
+// Add errors:[] to the revisionList(?) then could be problematic how the template model.errors work(?) - no maybe not(?) -> this is the question
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
@@ -11,6 +16,10 @@ type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
+interface ModelRelationships {
+  [relationshipName: string]: typeof Model;
+}
+
 interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
@@ -20,10 +29,13 @@ export interface ModelBuildOptions extends ModelInstantiateOptions {
   freeze?: boolean;
   revision?: boolean;
   cache?: number;
+  copy?: boolean; // NOTE: it copies by default
   // debug?:
   // tracer?:
   // include?: // NOTE: would be a useful addition for JSONAPIAdapter & GraphQLAdapter
 }
+
+// NOTE: maybe add embed option? for CRUDOptions
 
 const LOCK_PROPERTY = {
   configurable: false,
@@ -35,6 +47,8 @@ const LOCK_PROPERTY = {
 // also MemoryAdapter find methods call them. So check the performance impact of this change on test suites in future
 
 // cache replaces existing record!, doesnt have defaultValues
+// revision strategy, create one revision for: build -> insert, update(if it updates with changes)
+// there is also provided model and returned model on crud
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -62,6 +76,10 @@ export default class Model {
     return Config.getColumnNames(this);
   }
 
+  static get belongsToColumnNames(): Set<string> {
+    return Config.getBelongsToColumnNames(this);
+  }
+
   // NOTE: currently this is costly, optimize it in future:
   static get relationshipNames(): Set<string> {
     return new Set(Object.keys(this.relationshipSummary));
@@ -71,19 +89,19 @@ export default class Model {
     return Config.relationshipsSummary[this.name];
   }
 
-  static get belongsToRelationships() {
+  static get belongsToRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "many-to-one");
   }
 
-  static get hasOneRelationships() {
+  static get hasOneRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "one-to-one");
   }
 
-  static get hasManyRelationships() {
+  static get hasManyRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "one-to-many");
   }
 
-  static get manyToManyRelationships() {
+  static get manyToManyRelationships(): ModelRelationships {
     return filterRelationsFromEntity(this, "many-to-many");
   }
 
@@ -99,14 +117,8 @@ export default class Model {
 
     primaryKeyTypeSafetyCheck(model, this);
 
-    let cachedModel = this.Adapter.cache(this, model, options);
-    if (Object.keys(cachedModel.changes).length > 0) {
-      clearObject(cachedModel.changes);
-
-      revisionEnabled(options) && cachedModel.revisionHistory.push(Object.assign({}, cachedModel));
-    }
-
-    return cachedModel;
+    // NOTE: this creates revision only for update and if model is not an instance, maybe it shouldnt create on every update when no change is there
+    return this.Adapter.cache(this, model, options);
   }
 
   static resetCache(targetState?: ModelRefOrInstance[], options?: ModelBuildOptions): Model[] {
@@ -180,6 +192,7 @@ export default class Model {
     let model = await this.Adapter.insert(this, record || {}, options);
 
     if (record instanceof this) {
+      // TODO: make record sourced from model
       record.#_inTransit = false;
       record.#_isNew = false;
       clearObject(record.changes);
@@ -204,9 +217,6 @@ export default class Model {
     this.setRecordInTransit(record);
 
     let model = await this.Adapter.update(this, record, options);
-
-    clearObject(model.changes);
-    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
 
     if (record instanceof this) {
       this.unsetRecordInTransit(record);
@@ -391,7 +401,9 @@ export default class Model {
   static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
     let model = this.Adapter.build(this, buildObject, options);
 
-    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
+    revisionEnabled(options) &&
+      !(buildObject instanceof Model && buildObject.isBuilt) &&
+      model.revisionHistory.push(Object.assign({}, model));
 
     return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
   }
@@ -581,7 +593,10 @@ function checkProvidedFixtures(Klass: typeof Model, fixtureArray, buildOptions) 
 
 type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
 
-function filterRelationsFromEntity(Class: typeof Model, relationshipType: relationshipType) {
+function filterRelationsFromEntity(
+  Class: typeof Model,
+  relationshipType: relationshipType
+): ModelRelationships {
   let relationshipSchema = Config.getRelationshipSchemaDefinitions(
     Class
   ) as RelationshipDefinitionStore;
@@ -589,11 +604,13 @@ function filterRelationsFromEntity(Class: typeof Model, relationshipType: relati
   return relationshipSchema
     ? Object.keys(relationshipSchema).reduce((result, relationshipPropertyName) => {
         let schema = relationshipSchema[relationshipPropertyName];
+
         if (schema.type === relationshipType) {
-          result.push(typeof schema.target === "function" ? schema.target() : schema.target);
+          result[relationshipPropertyName] =
+            typeof schema.target === "function" ? schema.target() : schema.target;
         }
 
         return result;
-      }, [] as Array<typeof Model>)
-    : [];
+      }, {})
+    : {};
 }

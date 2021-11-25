@@ -11,7 +11,7 @@ import User from "./user.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
-export default function genereateGroup() {
+export default function generateGroup() {
   class Group extends Model {
     static Serializer = class GroupSerializer extends Serializer {};
 

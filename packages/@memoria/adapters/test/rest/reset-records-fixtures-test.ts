@@ -275,7 +275,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         content: "What a nice photo!",
         photo_id: 1,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[0].inserted_at,
       },
       {
@@ -283,7 +283,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         content: "I agree",
         photo_id: 1,
         user_id: 2,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[1].inserted_at,
       },
       {
@@ -291,7 +291,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         content: "I was kidding",
         photo_id: 1,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[2].inserted_at,
       },
       {
@@ -299,7 +299,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         content: "Interesting indeed",
         photo_id: 2,
         user_id: 1,
-        is_important: null,
+        is_important: true,
         inserted_at: photoComments[3].inserted_at,
       },
     ]);
@@ -313,7 +313,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
     assert.deepEqual(photoComment.revision, {
       content: "What a nice photo!",
       inserted_at: photoComments[0].inserted_at,
-      is_important: null,
+      is_important: true,
       photo_id: 1,
       user_id: 1,
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -322,7 +322,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
       {
         content: "What a nice photo!",
         inserted_at: photoComments[0].inserted_at,
-        is_important: null,
+        is_important: true,
         photo_id: 1,
         user_id: 1,
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
