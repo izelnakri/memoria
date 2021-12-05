@@ -210,8 +210,8 @@ module(
       let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, secondUser);
-      assert.equal(deletedPhoto.owner_uuid, secondUser.uuid);
+      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner_uuid, null);
     });
 
     test("a model can fetch its not loaded relationship", async function (assert) {

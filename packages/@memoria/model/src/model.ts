@@ -192,7 +192,10 @@ export default class Model {
     let model = await this.Adapter.insert(this, record || {}, options);
 
     if (record instanceof this) {
-      // TODO: make record sourced from model
+      this.relationshipNames.forEach((relationshipName) => {
+        model[relationshipName] = record[relationshipName];
+      });
+
       record.#_inTransit = false;
       record.#_isNew = false;
       clearObject(record.changes);
@@ -219,7 +222,11 @@ export default class Model {
     let model = await this.Adapter.update(this, record, options);
 
     if (record instanceof this) {
+      this.relationshipNames.forEach((relationshipName) => {
+        model[relationshipName] = record[relationshipName];
+      });
       this.unsetRecordInTransit(record);
+
       clearObject(record.changes);
 
       revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
@@ -263,6 +270,9 @@ export default class Model {
     let result = await this.Adapter.delete(this, record, options);
 
     if (record instanceof this) {
+      this.relationshipNames.forEach((relationshipName) => {
+        result[relationshipName] = record[relationshipName];
+      });
       record.#_inTransit = false;
       record.#_isDeleted = true;
     }
@@ -310,8 +320,11 @@ export default class Model {
 
     let models = await this.Adapter.insertAll(this, records, options);
 
-    records.forEach((record) => {
+    records.forEach((record, index) => {
       if (record instanceof this) {
+        this.relationshipNames.forEach((relationshipName) => {
+          models[index][relationshipName] = record[relationshipName];
+        });
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
 
@@ -330,15 +343,18 @@ export default class Model {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
 
-    records.forEach((record) => {
+    records.forEach((record, index) => {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
           "$Model.updateAll() called without records having primaryKey"
         );
       }
-
       primaryKeyTypeSafetyCheck(record, this);
+
+      this.relationshipNames.forEach((relationshipName) => {
+        models[index][relationshipName] = record[relationshipName];
+      });
       this.setRecordInTransit(record);
     });
 
@@ -376,13 +392,17 @@ export default class Model {
       }
 
       primaryKeyTypeSafetyCheck(record, this);
+
       this.setRecordInTransit(record);
     });
 
     let models = await this.Adapter.deleteAll(this, records, options);
 
-    records.forEach((record) => {
+    records.forEach((record, index) => {
       if (record instanceof this) {
+        this.relationshipNames.forEach((relationshipName) => {
+          models[index][relationshipName] = record[relationshipName];
+        });
         this.unsetRecordInTransit(record);
         record.isDeleted = true;
       }

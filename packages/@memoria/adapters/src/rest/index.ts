@@ -162,8 +162,10 @@ export default class RESTAdapter extends MemoryAdapter {
     );
 
     if (record instanceof MemoriaModel) {
-      Object.keys(result).forEach((keyName) => {
-        record[keyName] = result[keyName];
+      Model.columnNames.forEach((columnName) => {
+        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+          record[columnName] = result[columnName];
+        }
       });
     }
 
@@ -183,8 +185,10 @@ export default class RESTAdapter extends MemoryAdapter {
     );
 
     if (record instanceof MemoriaModel) {
-      Object.keys(result).forEach((keyName) => {
-        record[keyName] = result[keyName];
+      Model.columnNames.forEach((columnName) => {
+        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+          record[columnName] = result[columnName];
+        }
       });
     }
 
