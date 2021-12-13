@@ -1,7 +1,7 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
-import Config from "./config.js";
-export type { RelationshipSummary } from "./config.js";
+export { ConfigStore, DB, RelationshipStore } from "./stores/index.js";
+export type { RelationshipSummary } from "./stores/configuration.js";
 import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
 export type {
@@ -78,7 +78,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Changeset, Config, Serializer };
+export { Changeset, Serializer };
 
 // relationship setting and fetching
 // User.getErrors(userInstance or Instances) // -> same array

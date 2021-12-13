@@ -5,7 +5,7 @@ import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
-  Config,
+  ConfigStore,
   DeleteError,
   InsertError,
   UpdateError,
@@ -47,7 +47,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // @ts-ignore
     this._connection = (await createConnection({
       // @ts-ignore
-      entities: Config.Schemas.map((schema) => new EntitySchema(schema)),
+      entities: ConfigStore.Schemas.map((schema) => new EntitySchema(schema)),
       ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
     })) as Connection;
 
@@ -59,7 +59,7 @@ export default class SQLAdapter extends MemoryAdapter {
     return connection.manager;
   }
 
-  static async resetSchemas(Config, modelName?: string): Promise<Config> {
+  static async resetSchemas(ConfigStore, modelName?: string): Promise<ConfigStore> {
     if (modelName) {
       throw new RuntimeError(
         "$Model.resetSchemas(modelName) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
@@ -68,7 +68,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let connection = await this.getConnection();
 
     await connection.dropDatabase();
-    await super.resetSchemas(Config, modelName);
+    await super.resetSchemas(ConfigStore, modelName);
 
     // TODO: check if this is needed to clear typeorm MetadataArgsStore:
     // NOTE: uncommenting this breaks test builds on static imports. Check if this is even needed, or there is another way:
@@ -79,22 +79,22 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await connection.close();
 
-    return Config;
+    return ConfigStore;
   }
 
   static async resetForTests(
-    Config,
+    ConfigStore,
     modelName?: string,
     options?: ModelBuildOptions
-  ): Promise<Config> {
-    await super.resetForTests(Config, modelName, options);
+  ): Promise<ConfigStore> {
+    await super.resetForTests(ConfigStore, modelName, options);
 
-    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
+    let tableNames = ConfigStore.Schemas.map((schema) => `"${schema.target.tableName}"`);
     let Manager = await this.getEntityManager();
 
     await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
 
-    return Config;
+    return ConfigStore;
   }
 
   static async resetRecords(

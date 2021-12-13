@@ -1,6 +1,6 @@
 // NOTE: maybe add @BelongsTo(x, y, { columnName: }) option and ignore JoinColumn() decorator possibilitiy
 // NOTE: study lazy relation
-import Config from "../config.js";
+import ConfigStore from "../stores/configuration.js";
 import Model from "../model.js";
 import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../types.js";
 
@@ -39,39 +39,35 @@ export function OneToOne<T>(
     }
 
     let Class = target.constructor as typeof Model;
-    let foundRelation = Config.getSchema(Class).relations[propertyName];
+    let foundRelation = ConfigStore.getSchema(Class).relations[propertyName];
 
-    Config.getSchema(Class).relations[propertyName] = Object.assign(
-      {},
-      foundRelation,
-      {
-        target: typeFunctionOrTarget,
-        type: "one-to-one",
-        // @ts-ignore
-        inverseSide: inverseSideProperty,
-        lazy: isLazy,
-        eager: options.eager,
-        persistence: options.persistence,
-        primary: options.primary,
-        joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
-        joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
-        treeParent: false,
-        treeChildren: false,
-        cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-        default: null, // any;
-        nullable: options.nullable,
-        onDelete: options.onDelete,
-        onUpdate: options.onUpdate,
-        deferrable: options.deferrable,
-        orphanedRowAction: options.orphanedRowAction,
-      }
+    ConfigStore.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "one-to-one",
+      // @ts-ignore
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return Class.Adapter.Decorators.OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
+      target.constructor,
+      propertyName,
+      descriptor
     );
-
-    return Class.Adapter.Decorators.OneToOne(
-      typeFunctionOrTarget,
-      inverseSideOrOptions,
-      options
-    )(target.constructor, propertyName, descriptor);
   };
 }
 
@@ -108,39 +104,35 @@ export function ManyToOne<T>(
     }
 
     let Class = target.constructor as typeof Model;
-    let foundRelation = Config.getSchema(Class).relations[propertyName];
+    let foundRelation = ConfigStore.getSchema(Class).relations[propertyName];
 
-    Config.getSchema(Class).relations[propertyName] = Object.assign(
-      {},
-      foundRelation,
-      {
-        target: typeFunctionOrTarget,
-        type: type || "many-to-one",
-        // @ts-ignore
-        inverseSide: inverseSideProperty,
-        lazy: isLazy,
-        eager: options.eager,
-        persistence: options.persistence,
-        primary: options.primary,
-        joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
-        joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
-        treeParent: false, // should change with Decorator
-        treeChildren: false,
-        cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-        default: null, // any;
-        nullable: options.nullable,
-        onDelete: options.onDelete,
-        onUpdate: options.onUpdate,
-        deferrable: options.deferrable,
-        orphanedRowAction: options.orphanedRowAction,
-      }
+    ConfigStore.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: type || "many-to-one",
+      // @ts-ignore
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false, // should change with Decorator
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return Class.Adapter.Decorators.ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
+      target.constructor,
+      propertyName,
+      descriptor
     );
-
-    return Class.Adapter.Decorators.ManyToOne(
-      typeFunctionOrTarget,
-      inverseSideOrOptions,
-      options
-    )(target.constructor, propertyName, descriptor);
   };
 }
 
@@ -168,38 +160,34 @@ export function OneToMany<T>(
     }
 
     let Class = target.constructor as typeof Model;
-    let foundRelation = Config.getSchema(Class).relations[propertyName];
+    let foundRelation = ConfigStore.getSchema(Class).relations[propertyName];
 
-    Config.getSchema(Class).relations[propertyName] = Object.assign(
-      {},
-      foundRelation,
-      {
-        target: typeFunctionOrTarget,
-        type: "one-to-many",
-        // inverseSide: inverseSideProperty,
-        lazy: isLazy,
-        eager: options.eager,
-        persistence: options.persistence,
-        primary: options.primary,
-        joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
-        joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
-        treeParent: false,
-        treeChildren: false,
-        cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-        default: null, // any;
-        nullable: options.nullable,
-        onDelete: options.onDelete,
-        onUpdate: options.onUpdate,
-        deferrable: options.deferrable,
-        orphanedRowAction: options.orphanedRowAction,
-      }
+    ConfigStore.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "one-to-many",
+      // inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return Class.Adapter.Decorators.OneToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
+      target.constructor,
+      propertyName,
+      descriptor
     );
-
-    return Class.Adapter.Decorators.OneToMany(
-      typeFunctionOrTarget,
-      inverseSideOrOptions,
-      options
-    )(target.constructor, propertyName, descriptor);
   };
 }
 
@@ -235,45 +223,41 @@ export function ManyToMany<T>(
     }
 
     let Class = target.constructor as typeof Model;
-    let foundRelation = Config.getSchema(Class).relations[propertyName];
+    let foundRelation = ConfigStore.getSchema(Class).relations[propertyName];
 
-    Config.getSchema(Class).relations[propertyName] = Object.assign(
-      {},
-      foundRelation,
-      {
-        target: typeFunctionOrTarget,
-        type: "many-to-many",
-        // @ts-ignore
-        inverseSide: inverseSideProperty,
-        lazy: isLazy,
-        eager: options.eager,
-        persistence: options.persistence,
-        primary: options.primary,
-        // joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
-        // joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
-        treeParent: false,
-        treeChildren: false,
-        cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
-        default: null, // any;
-        nullable: options.nullable,
-        onDelete: options.onDelete,
-        onUpdate: options.onUpdate,
-        deferrable: options.deferrable,
-        orphanedRowAction: options.orphanedRowAction,
-      }
+    ConfigStore.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
+      target: typeFunctionOrTarget,
+      type: "many-to-many",
+      // @ts-ignore
+      inverseSide: inverseSideProperty,
+      lazy: isLazy,
+      eager: options.eager,
+      persistence: options.persistence,
+      primary: options.primary,
+      // joinTable: false, // boolean | JoinTableOptions | JoinTableMultipleColumnsOptions;
+      // joinColumn: false, // boolean | JoinColumnOptions | JoinColumnOptions[];
+      treeParent: false,
+      treeChildren: false,
+      cascade: options.cascade, // boolean | ("insert" | "update" | "remove" | "soft-remove" | "recover")[];
+      default: null, // any;
+      nullable: options.nullable,
+      onDelete: options.onDelete,
+      onUpdate: options.onUpdate,
+      deferrable: options.deferrable,
+      orphanedRowAction: options.orphanedRowAction,
+    });
+
+    return Class.Adapter.Decorators.ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
+      target.constructor,
+      propertyName,
+      descriptor
     );
-
-    return Class.Adapter.Decorators.ManyToMany(
-      typeFunctionOrTarget,
-      inverseSideOrOptions,
-      options
-    )(target.constructor, propertyName, descriptor);
   };
 }
 
 export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColumnOptions[]) {
   return function (target: any, propertyName: string, descriptor: any) {
-    let targetRelationship = Config.getSchema(target.constructor).relations[propertyName];
+    let targetRelationship = ConfigStore.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
       throw new Error(
         `@JoinColumn() on ${target.constructor.name} requires relationship declaration first`
@@ -302,7 +286,7 @@ export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColum
 
 export function JoinTable(options: JoinTableOptions = {}) {
   return function (target: any, propertyName: string, descriptor: any) {
-    let targetRelationship = Config.getSchema(target.constructor).relations[propertyName];
+    let targetRelationship = ConfigStore.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
       throw new Error(
         `@JoinTable() on ${target.constructor.name} requires relationship declaration first`

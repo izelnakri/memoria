@@ -1,9 +1,10 @@
 // TODO: deleting a model should delete it from all possible relationships!!
 
 import Decorators from "./decorators/index.js";
-import RelationshipCache from "./relationship/cache.js";
 import MemoriaModel, {
-  Config,
+  ConfigStore,
+  DB,
+  RelationshipStore,
   Changeset,
   DeleteError,
   InsertError,
@@ -27,55 +28,55 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
-  static async resetSchemas(Config, modelName?: string): Promise<Config> {
+  static async resetSchemas(ConfigStore, modelName?: string): Promise<ConfigStore> {
     if (modelName) {
-      let targetSchemaIndex = Config.Schemas.findIndex(
+      let targetSchemaIndex = ConfigStore.Schemas.findIndex(
         (schema) => schema.target.name === modelName
       );
       if (targetSchemaIndex >= 0) {
-        clearObject(Config.Schemas[targetSchemaIndex].target.Serializer.embeds);
-        Config.Schemas.splice(targetSchemaIndex, 1);
-        delete Config._DB[modelName];
-        delete Config._columnNames[modelName];
-        delete Config._primaryKeyNameCache[modelName];
-        delete Config._defaultValuesCache[modelName];
-        delete Config._belongsToColumnNames[modelName];
-        delete Config._belongsToPointers[modelName];
+        clearObject(ConfigStore.Schemas[targetSchemaIndex].target.Serializer.embeds);
+        ConfigStore.Schemas.splice(targetSchemaIndex, 1);
+        delete DB._DB[modelName];
+        delete DB._defaultValuesCache[modelName];
+        delete ConfigStore._columnNames[modelName];
+        delete ConfigStore._primaryKeyNameCache[modelName];
+        delete ConfigStore._belongsToColumnNames[modelName];
+        delete ConfigStore._belongsToPointers[modelName];
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
-      return Config;
+      return ConfigStore;
     }
 
-    clearObject(Config._DB);
-    clearObject(Config._columnNames);
-    clearObject(Config._primaryKeyNameCache);
-    clearObject(Config._defaultValuesCache);
-    clearObject(Config._belongsToColumnNames);
-    clearObject(Config._belongsToPointers);
+    clearObject(DB._DB);
+    clearObject(DB._defaultValuesCache);
+    clearObject(ConfigStore._columnNames);
+    clearObject(ConfigStore._primaryKeyNameCache);
+    clearObject(ConfigStore._belongsToColumnNames);
+    clearObject(ConfigStore._belongsToPointers);
 
-    for (let schema of Config.Schemas) {
+    for (let schema of ConfigStore.Schemas) {
       // NOTE: this is complex because could hold cyclical references
       // TODO: this only cleans registered data!!
       clearObject(schema.target.Serializer.embeds);
     }
-    Config.Schemas.length = 0;
+    ConfigStore.Schemas.length = 0;
 
-    return Config;
+    return ConfigStore;
   }
 
   static async resetForTests(
-    Config,
+    ConfigStore,
     modelName?: string,
     options?: ModelBuildOptions
-  ): Promise<Config> {
+  ): Promise<ConfigStore> {
     if (modelName) {
-      Config.Schemas[modelName].target.resetCache();
+      ConfigStore.Schemas[modelName].target.resetCache();
     } else {
-      Config.Schemas.forEach((schema) => this.resetCache(schema.target, [], options));
+      ConfigStore.Schemas.forEach((schema) => this.resetCache(schema.target, [], options));
     }
 
-    return Config;
+    return ConfigStore;
   }
 
   static resetCache(
@@ -138,11 +139,11 @@ export default class MemoryAdapter {
     let relationshipSummary = Model.relationshipSummary;
 
     Object.keys(relationshipSummary).forEach((relationshipName) => {
-      Config.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+      ConfigStore.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
       // NOTE: do here runtime checks maybe!
       // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
 
-      RelationshipCache.set(
+      RelationshipStore.set(
         model,
         relationshipName,
         buildObject && relationshipName in buildObject
@@ -155,10 +156,10 @@ export default class MemoryAdapter {
         configurable: false,
         enumerable: true,
         get() {
-          return RelationshipCache.get(model, relationshipName);
+          return RelationshipStore.get(model, relationshipName);
         },
         set(value) {
-          return RelationshipCache.set(
+          return RelationshipStore.set(
             model,
             relationshipName,
             value instanceof MemoriaModel ? value : null
@@ -172,7 +173,7 @@ export default class MemoryAdapter {
     }
 
     let belongsToColumnNames = Model.belongsToColumnNames;
-    let belongsToPointers = Config.getBelongsToPointers(Model);
+    let belongsToPointers = ConfigStore.getBelongsToPointers(Model);
 
     return Array.from(Model.columnNames).reduce((result, columnName) => {
       if (belongsToColumnNames.has(columnName)) {
@@ -377,7 +378,7 @@ export default class MemoryAdapter {
       });
     }
 
-    let defaultColumnsForUpdate = Config.getDefaultValues(Model, "update");
+    let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
 
     return this.cache(
       Model,
@@ -412,6 +413,7 @@ export default class MemoryAdapter {
     let targetIndex = Model.Cache.indexOf(targetRecord);
 
     Model.Cache.splice(targetIndex, 1);
+    // RelationshipStore.delete(targetRecord);
 
     targetRecord.isDeleted = true;
 
@@ -469,7 +471,7 @@ export default class MemoryAdapter {
     options: ModelBuildOptions | undefined
   ) {
     if (options && "cache" in options && Number.isInteger(options.cache)) {
-      Config.setTimeout(model, options.cache || 0);
+      DB.setTimeout(model, options.cache || 0);
     }
 
     return model;
@@ -535,7 +537,7 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
         });
 
         if (Model.belongsToColumnNames.has(columnName)) {
-          let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
+          let belongsToPointer = ConfigStore.getBelongsToPointers(Model)[columnName];
           let relationship = this[belongsToPointer.relationshipName];
           if (relationship && !relationship[belongsToPointer.relationshipClass.primaryKeyName]) {
             return;
@@ -576,7 +578,9 @@ function castRelationship(
     return null;
   }
 
-  let belongsToPointers = Config.getBelongsToPointers(model.constructor as typeof MemoriaModel);
+  let belongsToPointers = ConfigStore.getBelongsToPointers(
+    model.constructor as typeof MemoriaModel
+  );
   let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
     (belongsToColumnName) =>
       belongsToPointers[belongsToColumnName].relationshipName === relationshipName
@@ -602,7 +606,7 @@ function tryGettingRelationshipFromPrimaryKey(
 }
 
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
-  let defaultValues = Config.getDefaultValues(Model, "insert");
+  let defaultValues = DB.getDefaultValues(Model, "insert");
 
   return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {
     if (attribute === Model.primaryKeyName) {

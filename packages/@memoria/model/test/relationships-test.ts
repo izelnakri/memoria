@@ -4,7 +4,7 @@ import Model, {
   ManyToOne,
   HasMany,
   BelongsTo,
-  Config,
+  ConfigStore,
   PrimaryGeneratedColumn,
   Column,
   Serializer,
@@ -13,7 +13,7 @@ import { module, test, skip } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 import generateModels from "./helpers/relationship-test-models/index.js";
 
-module("@memoria/model | $Config.relationships", function (hooks) {
+module("@memoria/model | $ConfigStore.relationships", function (hooks) {
   setupMemoria(hooks);
 
   const PHOTO_FIXTURES = [
@@ -73,7 +73,7 @@ module("@memoria/model | $Config.relationships", function (hooks) {
   test("relationships get registered correctly on config", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(Config.relationshipsSummary, {
+    assert.propEqual(ConfigStore.relationshipsSummary, {
       Photo: {
         comments: [PhotoComment],
         owner: User,

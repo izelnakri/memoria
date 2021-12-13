@@ -1,5 +1,5 @@
 import Model, {
-  Config,
+  DB,
   PrimaryGeneratedColumn,
   Column,
   RuntimeError,
@@ -188,7 +188,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       is_public: boolean;
     }
 
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }

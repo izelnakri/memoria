@@ -1,4 +1,5 @@
-import Model, { Config } from "@memoria/model";
+import Model from "../model.js";
+import ConfigStore from "./configuration.js";
 
 type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 
@@ -12,7 +13,7 @@ type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 
 // set() model reference could always be the stored model, but then id: null needs its own
 // maybe make Cache buckets Class scoped, so its easier to clear
-export default class RelationshipCache {
+export default class RelationshipStore {
   static BelongsToCache = new WeakMap(); // maybe source primaryKey:
   static OneToOneCache = new WeakMap();
 
@@ -31,7 +32,7 @@ export default class RelationshipCache {
     }
 
     if (relationshipType === "BelongsTo") {
-      model[Config.getBelongsToForeignKey(Class, relationshipName)] = input
+      model[ConfigStore.getBelongsToForeignKey(Class, relationshipName)] = input
         ? input[Class.belongsToRelationships[relationshipName].primaryKeyName] || null
         : null;
     }
@@ -53,7 +54,7 @@ export default class RelationshipCache {
 
     if (relationshipType === "BelongsTo") {
       let RelationshipClass = Class.relationshipSummary[relationshipName] as typeof Model;
-      let primaryKey = model[Config.getBelongsToForeignKey(Class, relationshipName) as string];
+      let primaryKey = model[ConfigStore.getBelongsToForeignKey(Class, relationshipName) as string];
       if (primaryKey) {
         return RelationshipClass.peek(primaryKey) || cache || RelationshipClass.find(primaryKey);
       }

@@ -1,4 +1,4 @@
-import Model, { Config, Column, PrimaryGeneratedColumn, RuntimeError } from "@memoria/model";
+import Model, { DB, Column, PrimaryGeneratedColumn, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -90,7 +90,7 @@ module("@memoria/adapters | SQLAdapter | Query API", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return { Photo, User, PhotoComment };
   }

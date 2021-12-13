@@ -5,7 +5,7 @@ import Model, {
   RuntimeError,
   CreateDateColumn,
   Changeset,
-  Config,
+  DB,
   PrimaryGeneratedColumn,
   Column,
 } from "@memoria/model";
@@ -106,13 +106,13 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
       inserted_at: Date;
     }
 
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return { Photo, PhotoComment, User };
   }
 
   async function prepareServer() {
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     class ServerPhoto extends Model {
       @PrimaryGeneratedColumn()

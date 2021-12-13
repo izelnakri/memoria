@@ -7,9 +7,10 @@ import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
-import Config, { RelationshipSummary } from "./config.js";
+import { ConfigStore, DB } from "./stores/index.js";
 import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
+import type { RelationshipSummary } from "./stores/configuration.js";
 import type { ModelReference, ModelReferenceShape, RelationshipDefinitionStore } from "./index.js";
 
 type primaryKey = number | string;
@@ -55,7 +56,7 @@ export default class Model {
   static Serializer: typeof Serializer = Serializer;
 
   static get Cache(): Model[] {
-    return Config.getDB(this);
+    return DB.getDB(this);
   }
 
   static get tableName(): string {
@@ -63,21 +64,21 @@ export default class Model {
   }
 
   static get primaryKeyName(): string {
-    return Config.getPrimaryKeyName(this);
+    return ConfigStore.getPrimaryKeyName(this);
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Config.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
+    return ConfigStore.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
       ? "uuid"
       : "id";
   }
 
   static get columnNames(): Set<string> {
-    return Config.getColumnNames(this);
+    return ConfigStore.getColumnNames(this);
   }
 
   static get belongsToColumnNames(): Set<string> {
-    return Config.getBelongsToColumnNames(this);
+    return ConfigStore.getBelongsToColumnNames(this);
   }
 
   // NOTE: currently this is costly, optimize it in future:
@@ -86,7 +87,7 @@ export default class Model {
   }
 
   static get relationshipSummary(): RelationshipSummary {
-    return Config.relationshipsSummary[this.name];
+    return ConfigStore.relationshipsSummary[this.name];
   }
 
   static get belongsToRelationships(): ModelRelationships {
@@ -252,6 +253,8 @@ export default class Model {
       );
     }
 
+    // TODO: reset model instance cache of the related records
+
     return this.Adapter.unload(this, record, options);
   }
 
@@ -276,6 +279,9 @@ export default class Model {
       record.#_inTransit = false;
       record.#_isDeleted = true;
     }
+
+    // hasOne, hasMany, oneToOne, ManyToMany
+    // TODO: reset model instance cache of the related records
 
     return result;
   }
@@ -617,7 +623,7 @@ function filterRelationsFromEntity(
   Class: typeof Model,
   relationshipType: relationshipType
 ): ModelRelationships {
-  let relationshipSchema = Config.getRelationshipSchemaDefinitions(
+  let relationshipSchema = ConfigStore.getRelationshipSchemaDefinitions(
     Class
   ) as RelationshipDefinitionStore;
 

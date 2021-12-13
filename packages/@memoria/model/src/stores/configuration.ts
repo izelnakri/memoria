@@ -3,14 +3,9 @@
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
 // TODO: rewrite this file as store.ts and utilize WeakMap, Map, WeakSet
 // TODO: turn _DB into a Map<InstanceWithoutRelationship(?)> -> WeakSet to include the relationships(?) or a WeakMap with WeakSet(?)
-import Model from "./index.js";
-import { generateUUID } from "./utils.js";
-import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "./types";
+import Model from "../model.js";
+import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "../types";
 import type { MemoryAdapter } from "@memoria/adapters";
-
-interface DefaultValueReferences {
-  [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
-}
 
 export interface RelationshipSummary {
   [relationshipName: string]: typeof Model | Array<typeof Model>;
@@ -19,8 +14,6 @@ export interface RelationshipSummary {
 interface RelationshipSummaryStore {
   [modelName: string]: RelationshipSummary;
 }
-
-type DB = { [className: string]: Model[] };
 
 // NOTE: WeakMap not implemented so far because:
 // 1- Adapters need to iterate over each schema.target.Adapter (can be done with getSchema() and push to array during insert)
@@ -34,7 +27,7 @@ type DB = { [className: string]: Model[] };
 const arrayAskingRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
 // relationshipSummary inject and the mutate maybe from decorator
-export default class MemoriaConfigurations {
+export default class ConfigStore {
   static get Adapters() {
     let result = new Set();
 
@@ -195,106 +188,11 @@ export default class MemoriaConfigurations {
     return this._columnNames[Class.name];
   }
 
-  static _defaultValuesCache: {
-    [className: string]: {
-      insert: DefaultValueReferences;
-      update: DefaultValueReferences;
-      delete: DefaultValueReferences;
-    };
-  } = {};
-  static getDefaultValues(
-    Class: typeof Model,
-    operationType: "insert" | "update" | "delete"
-  ): DefaultValueReferences {
-    if (Class.name in this._defaultValuesCache) {
-      return this._defaultValuesCache[Class.name][operationType];
-    }
-
-    let columns = this.getColumnsMetadata(Class) as ColumnSchemaDefinition;
-    this._defaultValuesCache[Class.name] = Object.keys(columns).reduce(
-      (result, columnName: string) => {
-        let column = columns[columnName] as ColumnDefinition;
-
-        if (column.default) {
-          Object.assign(result.insert, { [columnName]: column.default });
-        } else if (column.createDate) {
-          Object.assign(result.insert, { [columnName]: () => new Date() });
-        } else if (column.updateDate) {
-          Object.assign(result.insert, { [columnName]: () => new Date() });
-          Object.assign(result.update, { [columnName]: () => new Date() });
-        } else if (column.deleteDate) {
-          Object.assign(result.delete, { [columnName]: () => new Date() });
-        } else if (column.generated) {
-          Object.assign(result.insert, {
-            [columnName]:
-              column.generated === "uuid"
-                ? generateUUID
-                : (Class: typeof Model) => incrementId(Class.Cache as Model[], columnName),
-          });
-        }
-
-        return result;
-      },
-      { insert: {}, update: {}, delete: {} }
-    );
-
-    return this._defaultValuesCache[Class.name][operationType];
-  }
-
-  static _DB: DB = {};
-  static getDB(Class: typeof Model): Model[] {
-    if (!this._DB[Class.name]) {
-      this._DB[Class.name] = [];
-    }
-
-    return this._DB[Class.name];
-  }
-
-  static _cacheTimeouts = {};
-  static setTimeout(cachedModel: Model, timer: number) {
-    let Klass = cachedModel.constructor as typeof Model;
-    let primaryKey = cachedModel[Klass.primaryKeyName];
-    if (!this._cacheTimeouts[Klass.name]) {
-      this._cacheTimeouts[Klass.name] = {};
-    } else if (this._cacheTimeouts[Klass.name][primaryKey]) {
-      clearTimeout(this._cacheTimeouts[Klass.name][primaryKey]);
-    }
-
-    if (timer === 0) {
-      Klass.Adapter.unload(Klass, cachedModel);
-      return;
-    }
-
-    this._cacheTimeouts[Klass.name][primaryKey] = setTimeout(
-      () => Klass.Adapter.unload(Klass, cachedModel),
-      timer
-    );
-    return this._cacheTimeouts[Klass.name][primaryKey];
-  }
-
-  static async resetSchemas(modelName?: string): Promise<MemoriaConfigurations> {
+  static async resetSchemas(modelName?: string): Promise<ConfigStore> {
     await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, modelName)));
 
     return this;
   }
-
-  // TODO: make this name more explicit: smt like resetCacheForTests() perhaps, or resetCache()
-  static async resetForTests(): Promise<MemoriaConfigurations> {
-    await Promise.all(this.Adapters.map((Adapter) => Adapter.resetForTests(this)));
-
-    return this;
-  }
-}
-
-// TODO: turn this into a sequence so no need for sorting, faster inserts
-function incrementId(DB: Model[], keyName: string) {
-  if (!DB || DB.length === 0) {
-    return 1;
-  }
-
-  let lastIdInSequence = DB.map((model) => model[keyName]).sort((a, b) => a - b);
-  // .find((id, index, array) => (index === array.length - 1 ? true : id + 1 !== array[index + 1])); // NOTE: this fills gaps! Maybe mismatches SQL DB implementation
-  return lastIdInSequence[lastIdInSequence.length - 1] + 1;
 }
 
 function getTargetRelationshipForeignKey(

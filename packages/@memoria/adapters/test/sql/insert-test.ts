@@ -1,5 +1,5 @@
 import Model, {
-  Config,
+  DB,
   Column,
   CreateDateColumn,
   PrimaryGeneratedColumn,
@@ -99,7 +99,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       user_id: number;
     }
 
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return { Photo, PhotoComment, User };
   }

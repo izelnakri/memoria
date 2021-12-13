@@ -2,7 +2,7 @@ import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import Model, {
   Changeset,
   Column,
-  Config,
+  DB,
   CreateDateColumn,
   PrimaryGeneratedColumn,
   InsertError,
@@ -94,7 +94,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       is_important: boolean;
     }
 
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return { Photo, PhotoComment, User };
   }
@@ -130,7 +130,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       is_important: boolean;
     }
 
-    await Config.resetForTests();
+    await DB.resetForTests();
 
     return new Memoria({
       routes() {
