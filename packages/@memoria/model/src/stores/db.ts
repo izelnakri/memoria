@@ -19,24 +19,24 @@ export default class DB {
 
   static _cacheTimeouts = {};
   static setTimeout(cachedModel: Model, timer: number) {
-    let Klass = cachedModel.constructor as typeof Model;
-    let primaryKey = cachedModel[Klass.primaryKeyName];
-    if (!this._cacheTimeouts[Klass.name]) {
-      this._cacheTimeouts[Klass.name] = {};
-    } else if (this._cacheTimeouts[Klass.name][primaryKey]) {
-      clearTimeout(this._cacheTimeouts[Klass.name][primaryKey]);
+    let Class = cachedModel.constructor as typeof Model;
+    let primaryKey = cachedModel[Class.primaryKeyName];
+    if (!this._cacheTimeouts[Class.name]) {
+      this._cacheTimeouts[Class.name] = {};
+    } else if (this._cacheTimeouts[Class.name][primaryKey]) {
+      clearTimeout(this._cacheTimeouts[Class.name][primaryKey]);
     }
 
     if (timer === 0) {
-      Klass.Adapter.unload(Klass, cachedModel);
+      Class.Adapter.unload(Class, cachedModel);
       return;
     }
 
-    this._cacheTimeouts[Klass.name][primaryKey] = setTimeout(
-      () => Klass.Adapter.unload(Klass, cachedModel),
+    this._cacheTimeouts[Class.name][primaryKey] = setTimeout(
+      () => Class.Adapter.unload(Class, cachedModel),
       timer
     );
-    return this._cacheTimeouts[Klass.name][primaryKey];
+    return this._cacheTimeouts[Class.name][primaryKey];
   }
 
   static _defaultValuesCache: {

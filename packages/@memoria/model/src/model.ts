@@ -568,9 +568,9 @@ export default class Model {
   }
 
   async reload() {
-    let Klass = this.constructor as typeof Model;
+    let Class = this.constructor as typeof Model;
 
-    return await Klass.Adapter.find(Klass, this[Klass.primaryKeyName]);
+    return await Class.Adapter.find(Class, this[Class.primaryKeyName]);
   }
 }
 
@@ -579,36 +579,36 @@ function revisionEnabled(options?: ModelBuildOptions) {
 }
 
 function shouldInsertOrUpdateARecord(
-  Klass: typeof Model,
+  Class: typeof Model,
   record: QueryObject | ModelRefOrInstance
 ): "insert" | "update" {
-  if (!record[Klass.primaryKeyName]) {
+  if (!record[Class.primaryKeyName]) {
     return "insert";
-  } else if (record instanceof Klass) {
+  } else if (record instanceof Class) {
     return record.isNew ? "insert" : "update";
-  } else if (Klass.peek(record[Klass.primaryKeyName])) {
+  } else if (Class.peek(record[Class.primaryKeyName])) {
     return "update";
   }
 
   return "insert";
 }
 
-function checkProvidedFixtures(Klass: typeof Model, fixtureArray, buildOptions) {
+function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) {
   if (Array.isArray(fixtureArray)) {
     fixtureArray.reduce((primaryKeys: Set<primaryKey>, targetFixture) => {
-      primaryKeyTypeSafetyCheck(targetFixture, Klass);
+      primaryKeyTypeSafetyCheck(targetFixture, Class);
 
-      let primaryKey = targetFixture[Klass.primaryKeyName];
+      let primaryKey = targetFixture[Class.primaryKeyName];
       if (!primaryKey) {
-        throw new CacheError(new Changeset(Klass.build(targetFixture, buildOptions)), {
+        throw new CacheError(new Changeset(Class.build(targetFixture, buildOptions)), {
           id: null,
-          modelName: Klass.name,
-          attribute: Klass.primaryKeyName,
+          modelName: Class.name,
+          attribute: Class.primaryKeyName,
           message: "is missing",
         });
       } else if (primaryKeys.has(primaryKey)) {
         throw new RuntimeError(
-          `${Klass.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
+          `${Class.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
         );
       }
 
