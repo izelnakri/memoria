@@ -195,6 +195,7 @@ async function makeFetchRequest(
       let modelKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
       let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
+      // TODO: if result is empty throw an error
       if (Array.isArray(results)) {
         return results.map((result) =>
           Adapter.cache(Model as typeof MemoriaModel, result, options)

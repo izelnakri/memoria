@@ -14,8 +14,16 @@ import PhotoComment from "./photo-comment.js";
 
 export default function generateGroup() {
   class RESTGroup extends Model {
-    static Adapter = RESTAdapter;
-    static Serializer = class GroupSerializer extends Serializer {};
+    static Adapter = class GroupRESTAdapter extends RESTAdapter {
+      static pathForType(_Model: typeof Model) {
+        return "groups";
+      }
+    };
+    static Serializer = class GroupSerializer extends Serializer {
+      static modelKeyNameFromPayload(_Model: typeof Model) {
+        return "group";
+      }
+    };
 
     @PrimaryGeneratedColumn("uuid")
     uuid: string;

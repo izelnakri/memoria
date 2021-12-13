@@ -278,6 +278,7 @@ export default class MemoriaConfigurations {
     return this;
   }
 
+  // TODO: make this name more explicit: smt like resetCacheForTests() perhaps, or resetCache()
   static async resetForTests(): Promise<MemoriaConfigurations> {
     await Promise.all(this.Adapters.map((Adapter) => Adapter.resetForTests(this)));
 

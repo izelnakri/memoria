@@ -24,15 +24,16 @@ export default class RESTAdapter extends MemoryAdapter {
   static logging: boolean = false;
   static timeout: number = 0;
 
-  static #_http: void | typeof HTTP;
-  static get http() {
-    this.#_http = this.#_http || HTTP;
-    this.#_http.host = this.host;
-    this.#_http.headers = this.headers;
-    this.#_http.logging = this.logging;
-    this.#_http.timeout = this.timeout;
+  private static _http: void | typeof HTTP;
 
-    return this.#_http as typeof HTTP;
+  static get http() {
+    this._http = this._http || HTTP;
+    this._http.host = this.host;
+    this._http.headers = this.headers;
+    this._http.logging = this.logging;
+    this._http.timeout = this.timeout;
+
+    return this._http as typeof HTTP;
   }
 
   static removeHTTPHeader(headers: any = {}) {
@@ -161,8 +162,10 @@ export default class RESTAdapter extends MemoryAdapter {
     );
 
     if (record instanceof MemoriaModel) {
-      Object.keys(result).forEach((keyName) => {
-        record[keyName] = result[keyName];
+      Model.columnNames.forEach((columnName) => {
+        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+          record[columnName] = result[columnName];
+        }
       });
     }
 
@@ -182,8 +185,10 @@ export default class RESTAdapter extends MemoryAdapter {
     );
 
     if (record instanceof MemoriaModel) {
-      Object.keys(result).forEach((keyName) => {
-        record[keyName] = result[keyName];
+      Model.columnNames.forEach((columnName) => {
+        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+          record[columnName] = result[columnName];
+        }
       });
     }
 

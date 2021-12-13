@@ -5,15 +5,23 @@ import Model, {
   HasMany,
   ManyToMany,
 } from "@memoria/model";
-import { RESTAdapter } from "@memoria/adapter";
+import { RESTAdapter } from "@memoria/adapters";
 import Group from "./group.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
 
 export default function generateUser() {
   class RESTUser extends Model {
-    static Adapter = RESTAdapter;
-    static Serializer = class UserSerializer extends Serializer {};
+    static Adapter = class UserRESTAdapter extends RESTAdapter {
+      static pathForType(_Model: typeof Model) {
+        return "users";
+      }
+    };
+    static Serializer = class UserSerializer extends Serializer {
+      static modelKeyNameFromPayload(_Model: typeof Model) {
+        return "user";
+      }
+    };
 
     @PrimaryGeneratedColumn()
     id: number;
