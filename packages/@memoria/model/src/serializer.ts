@@ -58,7 +58,7 @@ export default class Serializer {
   }
 
   static modelKeyNameForPayload(Model: typeof MemoriaModel) {
-    return camelize(Model.name, false);
+    return this.modelKeyNameFromPayload(Model);
   }
 
   static keyNameFromPayloadFormat(keyName: string) {

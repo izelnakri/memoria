@@ -26,7 +26,7 @@ export default function generateRESTModels() {
         }
       });
 
-      this.put("/photos/:id", async () => {
+      this.put("/photos/:id", async (request) => {
         try {
           let photo = await Photo.update(request.params.photo);
 
@@ -50,7 +50,7 @@ export default function generateRESTModels() {
 
       this.delete("/photos/:id", async (request) => {
         try {
-          await Photo.delete(params.photo);
+          await Photo.delete(request.params.photo);
         } catch (changeset) {
           return { errors: Changeset.serializer(changeset) };
         }
@@ -76,6 +76,14 @@ export default function generateRESTModels() {
         let user = await User.find(request.params.id);
 
         return { user: User.serializer(user) };
+      });
+
+      this.delete("/users/:id", async (request) => {
+        try {
+          await User.delete(request.params.user);
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
       });
     },
   });
