@@ -1,4 +1,7 @@
+// TODO: deleting a model should delete it from all possible relationships!!
+
 import Decorators from "./decorators/index.js";
+import RelationshipCache from "./relationship/cache.js";
 import MemoriaModel, {
   Config,
   Changeset,
@@ -132,62 +135,34 @@ export default class MemoryAdapter {
       });
     }
 
-    let belongsToRelationships = Model.belongsToRelationships;
-    let belongsToRelationshipKeys = Object.keys(belongsToRelationships);
-    let belongsToColumnNames = Model.belongsToColumnNames;
-    let belongsToPointers = Config.getBelongsToPointers(Model);
     let relationshipSummary = Model.relationshipSummary;
 
     Object.keys(relationshipSummary).forEach((relationshipName) => {
+      Config.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
       // NOTE: do here runtime checks maybe!
       // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
-      // NOTE: maybe do this foreignKeyReference
-      let cache =
+
+      RelationshipCache.set(
+        model,
+        relationshipName,
         buildObject && relationshipName in buildObject
           ? // if relationshipProvided just leave it there
             castRelationship(model, relationshipName, Model.relationshipSummary, buildObject)
-          : model[relationshipName] || null;
-      let isBelongsToRelationship = belongsToRelationshipKeys.includes(relationshipName);
-      let relationshipForeignKeyName = isBelongsToRelationship
-        ? Config.getBelongsToForeignKey(Model, relationshipName)
-        : null;
-      let RelationshipClass = Array.isArray(relationshipSummary[relationshipName])
-        ? relationshipSummary[relationshipName][0]
-        : relationshipSummary[relationshipName];
-
-      if (relationshipForeignKeyName) {
-        model[relationshipForeignKeyName] = cache
-          ? cache[Model.belongsToRelationships[relationshipName].primaryKeyName] || null
-          : null;
-      }
+          : model[relationshipName] || null
+      );
 
       Object.defineProperty(model, relationshipName, {
         configurable: false,
         enumerable: true,
         get() {
-          if (isBelongsToRelationship) {
-            let primaryKey = this[relationshipForeignKeyName as string];
-            if (primaryKey) {
-              return (
-                RelationshipClass.peek(primaryKey) || cache || RelationshipClass.find(primaryKey)
-              );
-            }
-
-            return cache || null;
-          }
-
-          return cache || null; // TODO: adjust this for hasMany, hasOne, and ManyToMany.
+          return RelationshipCache.get(model, relationshipName);
         },
         set(value) {
-          if (isBelongsToRelationship) {
-            let RelationshipModel = Model.belongsToRelationships[relationshipName];
-
-            cache = value instanceof MemoriaModel ? value : null;
-
-            this[relationshipForeignKeyName as string] = cache
-              ? cache[RelationshipModel.primaryKeyName] || null
-              : null;
-          }
+          return RelationshipCache.set(
+            model,
+            relationshipName,
+            value instanceof MemoriaModel ? value : null
+          );
         },
       });
     });
@@ -196,8 +171,11 @@ export default class MemoryAdapter {
       return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
     }
 
+    let belongsToColumnNames = Model.belongsToColumnNames;
+    let belongsToPointers = Config.getBelongsToPointers(Model);
+
     return Array.from(Model.columnNames).reduce((result, columnName) => {
-      if (Model.belongsToColumnNames.has(columnName)) {
+      if (belongsToColumnNames.has(columnName)) {
         let cache = transformModelForBuild(model, columnName, buildObject);
         let belongsToPointer = belongsToPointers[columnName];
 
