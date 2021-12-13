@@ -1,6 +1,6 @@
 import Model, {
   ConfigStore,
-  ModelStore,
+  DB,
   PrimaryGeneratedColumn,
   Column,
   RuntimeError,
@@ -192,7 +192,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       comments: PhotoComment,
     };
 
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }

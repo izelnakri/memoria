@@ -3,14 +3,12 @@ import ConfigStore from "./configuration.js";
 import { generateUUID } from "../utils.js";
 import type { ColumnSchemaDefinition, ColumnDefinition } from "../types";
 
-type DB = { [className: string]: Model[] };
-
 interface DefaultValueReferences {
   [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
 }
 
-export default class ModelStore {
-  static _DB: DB = {};
+export default class DB {
+  static _DB: { [className: string]: Model[] } = {};
   static getDB(Class: typeof Model): Model[] {
     if (!this._DB[Class.name]) {
       this._DB[Class.name] = [];

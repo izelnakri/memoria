@@ -1,5 +1,5 @@
 import Model, {
-  ModelStore,
+  DB,
   PrimaryGeneratedColumn,
   Column,
   DeleteError,
@@ -96,7 +96,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     return { User, Photo, PhotoComment };
   }

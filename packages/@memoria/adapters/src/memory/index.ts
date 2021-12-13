@@ -3,7 +3,7 @@
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   ConfigStore,
-  ModelStore,
+  DB,
   RelationshipStore,
   Changeset,
   DeleteError,
@@ -36,8 +36,8 @@ export default class MemoryAdapter {
       if (targetSchemaIndex >= 0) {
         clearObject(ConfigStore.Schemas[targetSchemaIndex].target.Serializer.embeds);
         ConfigStore.Schemas.splice(targetSchemaIndex, 1);
-        delete ModelStore._DB[modelName];
-        delete ModelStore._defaultValuesCache[modelName];
+        delete DB._DB[modelName];
+        delete DB._defaultValuesCache[modelName];
         delete ConfigStore._columnNames[modelName];
         delete ConfigStore._primaryKeyNameCache[modelName];
         delete ConfigStore._belongsToColumnNames[modelName];
@@ -48,8 +48,8 @@ export default class MemoryAdapter {
       return ConfigStore;
     }
 
-    clearObject(ModelStore._DB);
-    clearObject(ModelStore._defaultValuesCache);
+    clearObject(DB._DB);
+    clearObject(DB._defaultValuesCache);
     clearObject(ConfigStore._columnNames);
     clearObject(ConfigStore._primaryKeyNameCache);
     clearObject(ConfigStore._belongsToColumnNames);
@@ -378,7 +378,7 @@ export default class MemoryAdapter {
       });
     }
 
-    let defaultColumnsForUpdate = ModelStore.getDefaultValues(Model, "update");
+    let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
 
     return this.cache(
       Model,
@@ -471,7 +471,7 @@ export default class MemoryAdapter {
     options: ModelBuildOptions | undefined
   ) {
     if (options && "cache" in options && Number.isInteger(options.cache)) {
-      ModelStore.setTimeout(model, options.cache || 0);
+      DB.setTimeout(model, options.cache || 0);
     }
 
     return model;
@@ -606,7 +606,7 @@ function tryGettingRelationshipFromPrimaryKey(
 }
 
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
-  let defaultValues = ModelStore.getDefaultValues(Model, "insert");
+  let defaultValues = DB.getDefaultValues(Model, "insert");
 
   return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {
     if (attribute === Model.primaryKeyName) {

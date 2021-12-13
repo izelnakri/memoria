@@ -7,7 +7,7 @@ import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
-import { ConfigStore, ModelStore } from "./stores/index.js";
+import { ConfigStore, DB } from "./stores/index.js";
 import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
 import type { RelationshipSummary } from "./stores/configuration.js";
@@ -56,7 +56,7 @@ export default class Model {
   static Serializer: typeof Serializer = Serializer;
 
   static get Cache(): Model[] {
-    return ModelStore.getDB(this);
+    return DB.getDB(this);
   }
 
   static get tableName(): string {

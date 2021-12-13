@@ -2,7 +2,7 @@ import { RESTAdapter } from "@memoria/adapters";
 import Memoria from "@memoria/server";
 import Model, {
   Changeset,
-  ModelStore,
+  DB,
   PrimaryGeneratedColumn,
   Column,
   RuntimeError,
@@ -190,7 +190,7 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
       is_public: boolean;
     }
 
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }
@@ -277,7 +277,7 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
       is_public: boolean;
     }
 
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     return new Memoria({
       routes() {

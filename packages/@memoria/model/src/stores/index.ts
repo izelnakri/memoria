@@ -1,5 +1,5 @@
 import ConfigStore from "./configuration.js";
-import ModelStore from "./model.js";
+import DB from "./db.js";
 import RelationshipStore from "./relationship.js";
 
-export { ConfigStore, ModelStore, RelationshipStore };
+export { ConfigStore, DB, RelationshipStore };

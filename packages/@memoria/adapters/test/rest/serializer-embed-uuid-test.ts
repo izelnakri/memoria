@@ -2,7 +2,7 @@ import Memoria from "@memoria/server";
 import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import Model, {
   Changeset,
-  ModelStore,
+  DB,
   PrimaryGeneratedColumn,
   Column,
   Serializer,
@@ -190,13 +190,13 @@ module("@memoria/adapters | RESTAdapter | Serializer UUID for UUID(string)", fun
       comments: PhotoComment,
     };
 
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }
 
   async function prepareServer() {
-    await ModelStore.resetForTests();
+    await DB.resetForTests();
 
     class ServerUser extends Model {
       static Serializer = class ServerUserSerializer extends Serializer {};
