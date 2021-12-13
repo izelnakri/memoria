@@ -32,18 +32,18 @@ export function primaryKeyTypeSafetyCheck(
   model: Model | AnyObject,
   ModelDefinition?: typeof Model
 ) {
-  let Klass = ModelDefinition || (model.constructor as typeof Model);
+  let Class = ModelDefinition || (model.constructor as typeof Model);
   let primaryKeyIsValid =
-    Klass.primaryKeyType === "id"
-      ? typeof model[Klass.primaryKeyName] === "number"
-      : typeof model[Klass.primaryKeyName] === "string";
+    Class.primaryKeyType === "id"
+      ? typeof model[Class.primaryKeyName] === "number"
+      : typeof model[Class.primaryKeyName] === "string";
 
   if (!primaryKeyIsValid) {
     throw new RuntimeError(
-      new Changeset(Klass.build(model)),
-      `Wrong ${Klass.primaryKeyName} input type: entered ${typeof model[
-        Klass.primaryKeyName
-      ]} instead of ${Klass.primaryKeyType}`
+      new Changeset(Class.build(model)),
+      `Wrong ${Class.primaryKeyName} input type: entered ${typeof model[
+        Class.primaryKeyName
+      ]} instead of ${Class.primaryKeyType}`
     );
   }
 
