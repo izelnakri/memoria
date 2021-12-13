@@ -2,7 +2,7 @@ import Memoria from "@memoria/server";
 import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import Model, {
   Changeset,
-  Config,
+  ModelStore,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
@@ -141,7 +141,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       id: number;
     }
 
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return new Memoria({
       routes() {

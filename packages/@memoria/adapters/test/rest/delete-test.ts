@@ -2,7 +2,7 @@ import Memoria from "@memoria/server";
 import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import Model, {
   Changeset,
-  Config,
+  ModelStore,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
@@ -100,7 +100,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { User, Photo, PhotoComment };
   }
@@ -146,7 +146,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       id: number;
     }
 
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return new Memoria({
       routes() {

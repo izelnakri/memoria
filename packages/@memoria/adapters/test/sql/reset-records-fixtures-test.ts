@@ -1,5 +1,5 @@
 import Model, {
-  Config,
+  ModelStore,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
@@ -105,7 +105,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
       @CreateDateColumn()
       inserted_at: Date;
     }
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { Photo, PhotoComment, User };
   }

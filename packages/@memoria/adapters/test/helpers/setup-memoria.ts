@@ -1,6 +1,6 @@
 import match from "match-json";
 import QUnit from "qunitx";
-import Model, { Config } from "@memoria/model";
+import Model, { ConfigStore, ModelStore } from "@memoria/model";
 
 export default function (hooks) {
   hooks.before(function () {
@@ -15,15 +15,15 @@ export default function (hooks) {
     };
   });
   hooks.beforeEach(async function () {
-    await Config.resetForTests();
-    await Config.resetSchemas();
+    await ModelStore.resetForTests();
+    await ConfigStore.resetSchemas();
   });
   hooks.afterEach(async function () {
     if (this.Server) {
       this.Server.shutdown();
     }
 
-    await Config.resetForTests();
-    await Config.resetSchemas();
+    await ModelStore.resetForTests();
+    await ConfigStore.resetSchemas();
   });
 }

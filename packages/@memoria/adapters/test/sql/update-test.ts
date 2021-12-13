@@ -1,5 +1,5 @@
 import Model, {
-  Config,
+  ModelStore,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
@@ -100,7 +100,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       @PrimaryGeneratedColumn()
       id: number;
     }
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { Photo, PhotoComment, User };
   }

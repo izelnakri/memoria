@@ -1,4 +1,4 @@
-import MemoriaModel from "../../model.js";
+import Model from "../../model.js";
 
 // TODO: how can we lookup, an unsaved(without id) errors?
 // basically it is the changeset
@@ -27,37 +27,37 @@ export default class ModelError extends Error {
   modelName: string;
   attribute: string;
   message: string;
-  // reference?: MemoriaModel;
+  // reference?: Model;
   // TODO: there has to be a reference to records with no id
 
-  static has(model: MemoriaModel, attribute: string) {
+  static has(model: Model, attribute: string) {
     return model.errors.some((error) => error.attribute === attribute);
   }
 
-  static remove(model: MemoriaModel, attribute: string) {
+  static remove(model: Model, attribute: string) {
     model.errors = model.errors.filter((error) => error.attribute !== attribute);
 
     return model.errors;
   }
 
-  static errorsFor(model: MemoriaModel, attribute?: string) {
+  static errorsFor(model: Model, attribute?: string) {
     return attribute ? model.errors.filter((error) => error.attribute === attribute) : model.errors;
   }
 
-  static add(model: MemoriaModel, attribute: string, messages: string[]) {
-    let Model = model.constructor as typeof MemoriaModel;
+  static add(model: Model, attribute: string, messages: string[]) {
+    let Class = model.constructor as typeof Model;
 
     return messages.map((message) => {
       return new ModelError(model, {
-        id: model[Model.primaryKeyName],
-        modelName: Model.name,
+        id: model[Class.primaryKeyName],
+        modelName: Class.name,
         attribute,
         message,
       });
     });
   }
 
-  constructor(model: MemoriaModel, errorMetadata: ErrorMetadata) {
+  constructor(model: Model, errorMetadata: ErrorMetadata) {
     if (!model) {
       throw new Error(
         "ModelError should pass an memoria model instance when creating new MemoriaError($model, errorMetadata)"
@@ -86,23 +86,23 @@ export default class ModelError extends Error {
 
 // problem is with every null object, do they get the same errors[]?
 
-// export function createModelErrorClass(Model: typeof MemoriaModel): typeof ModelError {
+// export function createModelErrorClass(Model: typeof Model): typeof ModelError {
 //   let errorClass = class extends ModelError {
 //     static Model = Model;
 
-//     static has(model: MemoriaModel, attribute: string) {
+//     static has(model: Model, attribute: string) {
 //       // return super.has(this.Model, attribute);
 //     }
 
-//     static remove(model: MemoriaModel, attribute: string) {
+//     static remove(model: Model, attribute: string) {
 //       // return super.remove(this.Model, attribute);
 //     }
 
-//     static errorsFor(model: MemoriaModel, attribute: string) {
+//     static errorsFor(model: Model, attribute: string) {
 //       // return super.errorsFor(this.Model, attribute);
 //     }
 
-//     static add(model: MemoriaModel, attribute: string, messages: string[]) {
+//     static add(model: Model, attribute: string, messages: string[]) {
 //       // return super.add(this.Model, attribute, messages);
 //     }
 //   };

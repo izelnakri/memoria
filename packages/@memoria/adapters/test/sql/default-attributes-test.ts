@@ -1,4 +1,4 @@
-import Model, { Config, PrimaryGeneratedColumn, Column } from "@memoria/model";
+import Model, { ModelStore, PrimaryGeneratedColumn, Column } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -47,7 +47,7 @@ module("@memoria/adapters | SQLAdapter | Default Attributes", function (hooks) {
       @Column("varchar", { nullable: true })
       href: string;
     }
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { Photo };
   }

@@ -1,6 +1,6 @@
 import Memoria from "@memoria/server";
 import Model, {
-  Config,
+  ModelStore,
   CreateDateColumn,
   Column,
   PrimaryGeneratedColumn,
@@ -98,7 +98,7 @@ module("@memoria/adapters | RESTAdapter | Query API", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { Photo, User, PhotoComment };
   }
@@ -144,7 +144,7 @@ module("@memoria/adapters | RESTAdapter | Query API", function (hooks) {
       id: number;
     }
 
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return new Memoria({
       routes() {

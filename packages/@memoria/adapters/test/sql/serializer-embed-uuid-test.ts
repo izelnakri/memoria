@@ -1,5 +1,6 @@
 import Model, {
-  Config,
+  ConfigStore,
+  ModelStore,
   PrimaryGeneratedColumn,
   Column,
   RuntimeError,
@@ -92,7 +93,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
   ];
 
   async function prepare() {
-    await Config.resetSchemas();
+    await ConfigStore.resetSchemas();
 
     class User extends Model {
       static Adapter = SQLAdapter;
@@ -191,7 +192,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       comments: PhotoComment,
     };
 
-    await Config.resetForTests();
+    await ModelStore.resetForTests();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }

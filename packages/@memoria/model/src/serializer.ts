@@ -1,5 +1,5 @@
 import { camelize, pluralize, underscore } from "inflected";
-import { Config, RuntimeError } from "./index.js";
+import { ConfigStore, RuntimeError } from "./index.js";
 import type { ModelReferenceShape } from "./index.js";
 import type MemoriaModel from "./model.js";
 
@@ -177,7 +177,7 @@ export function transformValue(Model: typeof MemoriaModel, keyName: string, valu
     return null;
   } else if (
     typeof value === "string" &&
-    DATE_COLUMN_DEFINITIONS.has(Config.getSchema(Model).columns[keyName].type as string)
+    DATE_COLUMN_DEFINITIONS.has(ConfigStore.getSchema(Model).columns[keyName].type as string)
   ) {
     return new Date(value);
   }

@@ -1,4 +1,4 @@
-import MemoriaModel from "./model.js";
+import Model from "./model.js";
 import ChangesetError from "./errors/changeset-error.js";
 import RuntimeError from "./errors/runtime-error.js";
 
@@ -20,17 +20,18 @@ export default class Changeset {
   errors: ChangesetErrorItem[]; // [{ attribute: '', message: '', modelName: '', id: '' }] // reference()
   // emptyValues: string[] = []; // NOTE: might be useful for default casting
 
-  constructor(model?: MemoriaModel | Changeset, params?: JSObject) {
+  constructor(model?: Model | Changeset, params?: JSObject) {
     if (!model) {
       this.action = null;
       this.data = {};
       this.changes = {};
       this.errors = [];
-    } else if (model instanceof MemoriaModel) {
+    } else if (model instanceof Model) {
       this.action = model.isNew ? "insert" : "update";
       this.data = model;
       this.errors = model.errors;
 
+      // TODO: this could be problematic for relationship mutations
       let castedChanges = params
         ? Object.keys(this.data).reduce((result, keyName) => {
             if (keyName in params && this.data[keyName] !== params[keyName]) {
@@ -45,6 +46,7 @@ export default class Changeset {
       this.action = (model as Changeset).action;
       this.data = (model as Changeset).data;
       this.errors = (model as Changeset).errors;
+      // TODO: this could be problematic for relationship mutations
       this.changes = params
         ? Object.keys(this.data).reduce((result, keyName) => {
             if (keyName in params && this.data[keyName] !== params[keyName]) {
