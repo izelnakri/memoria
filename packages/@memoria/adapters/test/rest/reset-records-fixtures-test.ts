@@ -106,13 +106,13 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
       inserted_at: Date;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, PhotoComment, User };
   }
 
   async function prepareServer() {
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     class ServerPhoto extends Model {
       @PrimaryGeneratedColumn()

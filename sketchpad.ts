@@ -62,7 +62,7 @@ console.log(a);
 
 async function main() {
   try {
-    await Config.resetForTests();
+    await Config.resetRecords();
     // console.log(Config.Schemas[1].relations);
     let user = await User.insert({ first_name: "Izel", last_name: "Nakri" });
     console.log("User insert:");

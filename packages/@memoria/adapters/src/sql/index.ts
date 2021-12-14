@@ -81,37 +81,34 @@ export default class SQLAdapter extends MemoryAdapter {
     return Config;
   }
 
-  static async resetForTests(
-    Config,
-    Model?: typeof MemoriaModel,
-    options?: ModelBuildOptions
-  ): Promise<Config> {
-    await super.resetForTests(Config, Model, options);
-
-    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
-    let Manager = await this.getEntityManager();
-
-    await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
-
-    return Config;
-  }
-
   static async resetRecords(
-    Model: typeof MemoriaModel,
+    Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
-    await Manager.clear(Model);
+    if (Model) {
+      await Manager.clear(Model);
 
-    if (targetState) {
-      let records = await this.insertAll(Model, targetState, options);
+      if (targetState) {
+        let records = await this.insertAll(Model, targetState, options);
 
-      return await this.resetCache(Model, records, Object.assign({}, options, { revision: false }));
+        return await this.resetCache(
+          Model,
+          records,
+          Object.assign({}, options, { revision: false })
+        );
+      }
+
+      return await this.resetCache(Model, [], options);
     }
 
-    return await this.resetCache(Model, [], options);
+    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
+
+    await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
+
+    return await super.resetRecords(Model, targetState, options);
   }
 
   static async count(Model: typeof MemoriaModel, query?: QueryObject): Promise<number> {

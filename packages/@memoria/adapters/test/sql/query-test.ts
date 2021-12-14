@@ -90,7 +90,7 @@ module("@memoria/adapters | SQLAdapter | Query API", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, User, PhotoComment };
   }

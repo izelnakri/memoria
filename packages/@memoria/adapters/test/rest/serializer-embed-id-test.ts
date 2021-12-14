@@ -190,7 +190,7 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
       is_public: boolean;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }
@@ -277,7 +277,7 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
       is_public: boolean;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return new Memoria({
       routes() {

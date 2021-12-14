@@ -1,5 +1,5 @@
 memory/index Adapter.resetCache() -> returns a shallow copy instead of full copy(check speed impact)
-// TODO: remove resetForTests from everything, rename it to resetRecords
+// incrementId algo change
 
 # let ServerPhoto = Object.assign(Object.create({}), Photo);
 # Object.setPrototypeOf(ServerPhoto, Photo);

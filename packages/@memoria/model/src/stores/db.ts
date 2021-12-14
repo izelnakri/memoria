@@ -14,7 +14,6 @@ interface DefaultValueReferences {
   [columnName: string]: any; // NOTE: this can be literally any value but also 'increment', 'uuid', Date
 }
 
-// TODO: remove resetForTests from everything, rename it to resetRecords
 export default class DB {
   static _DB: ModuleSavedRecordDatabase<Model> = new Map();
   static getDB(Class: typeof Model): Map<PrimaryKey, Model> {
@@ -96,9 +95,8 @@ export default class DB {
     return target[operationType];
   }
 
-  // TODO: make this name more explicit: smt like resetCacheForTests() perhaps, or resetCache()
-  static async resetForTests(): Promise<Config> {
-    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetForTests(Config)));
+  static async resetRecords(): Promise<Config> {
+    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetRecords()));
 
     return this;
   }

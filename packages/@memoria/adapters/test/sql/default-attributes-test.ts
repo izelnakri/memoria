@@ -47,7 +47,7 @@ module("@memoria/adapters | SQLAdapter | Default Attributes", function (hooks) {
       @Column("varchar", { nullable: true })
       href: string;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo };
   }
