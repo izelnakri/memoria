@@ -1,31 +1,40 @@
 import Model from "../model.js";
 import Config from "./config.js";
 import { generateUUID } from "../utils.js";
-import type { ColumnSchemaDefinition, ColumnDefinition } from "../types";
+import type {
+  PrimaryKey,
+  ModuleDatabase,
+  ColumnSchemaDefinition,
+  ColumnDefinition,
+} from "../types";
+
+type ModuleSavedRecordDatabase<Value> = ModuleDatabase<Map<PrimaryKey, Value>>;
 
 interface DefaultValueReferences {
-  [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
+  [columnName: string]: any; // NOTE: this can be literally any value but also 'increment', 'uuid', Date
 }
-// type PrimaryKey = number | string;
 
+// TODO: remove resetForTests from everything, rename it to resetRecords
 export default class DB {
-  static _DB: { [className: string]: Model[] } = {};
-  static getDB(Class: typeof Model): Model[] {
-    if (!this._DB[Class.name]) {
-      this._DB[Class.name] = [];
+  static _DB: ModuleSavedRecordDatabase<Model> = new Map();
+  static getDB(Class: typeof Model): Map<PrimaryKey, Model> {
+    if (!this._DB.has(Class.name)) {
+      this._DB.set(Class.name, new Map());
     }
 
-    return this._DB[Class.name];
+    return this._DB.get(Class.name) as Map<PrimaryKey, Model>;
   }
 
-  static _cacheTimeouts = {};
+  static _cacheTimeouts: ModuleSavedRecordDatabase<number> = new Map();
   static setTimeout(cachedModel: Model, timer: number) {
     let Class = cachedModel.constructor as typeof Model;
     let primaryKey = cachedModel[Class.primaryKeyName];
-    if (!this._cacheTimeouts[Class.name]) {
-      this._cacheTimeouts[Class.name] = {};
-    } else if (this._cacheTimeouts[Class.name][primaryKey]) {
-      clearTimeout(this._cacheTimeouts[Class.name][primaryKey]);
+    let TimeoutDB = this._cacheTimeouts.get(Class.name) || new Map();
+
+    if (!this._cacheTimeouts.has(Class.name)) {
+      this._cacheTimeouts.set(Class.name, TimeoutDB);
+    } else if (TimeoutDB.get(primaryKey)) {
+      clearTimeout(TimeoutDB.get(primaryKey));
     }
 
     if (timer === 0) {
@@ -33,30 +42,30 @@ export default class DB {
       return;
     }
 
-    this._cacheTimeouts[Class.name][primaryKey] = setTimeout(
-      () => Class.Adapter.unload(Class, cachedModel),
-      timer
+    TimeoutDB.set(
+      primaryKey,
+      setTimeout(() => Class.Adapter.unload(Class, cachedModel), timer)
     );
-    return this._cacheTimeouts[Class.name][primaryKey];
+
+    return TimeoutDB.get(primaryKey);
   }
 
-  static _defaultValuesCache: {
-    [className: string]: {
-      insert: DefaultValueReferences;
-      update: DefaultValueReferences;
-      delete: DefaultValueReferences;
-    };
-  } = {};
+  static _defaultValuesCache: ModuleDatabase<{
+    insert: DefaultValueReferences;
+    update: DefaultValueReferences;
+    delete: DefaultValueReferences;
+  }> = new Map();
   static getDefaultValues(
     Class: typeof Model,
     operationType: "insert" | "update" | "delete"
   ): DefaultValueReferences {
-    if (Class.name in this._defaultValuesCache) {
-      return this._defaultValuesCache[Class.name][operationType];
+    let defaultValues = this._defaultValuesCache.get(Class.name);
+    if (defaultValues) {
+      return defaultValues[operationType];
     }
 
     let columns = Config.getColumnsMetadata(Class) as ColumnSchemaDefinition;
-    this._defaultValuesCache[Class.name] = Object.keys(columns).reduce(
+    let target = Object.keys(columns).reduce(
       (result, columnName: string) => {
         let column = columns[columnName] as ColumnDefinition;
 
@@ -74,7 +83,7 @@ export default class DB {
             [columnName]:
               column.generated === "uuid"
                 ? generateUUID
-                : (Class: typeof Model) => incrementId(Class.Cache as Model[], columnName),
+                : (Class: typeof Model) => incrementId(Class.Cache),
           });
         }
 
@@ -82,8 +91,9 @@ export default class DB {
       },
       { insert: {}, update: {}, delete: {} }
     );
+    this._defaultValuesCache.set(Class.name, target);
 
-    return this._defaultValuesCache[Class.name][operationType];
+    return target[operationType];
   }
 
   // TODO: make this name more explicit: smt like resetCacheForTests() perhaps, or resetCache()
@@ -95,12 +105,10 @@ export default class DB {
 }
 
 // TODO: turn this into a sequence so no need for sorting, faster inserts
-function incrementId(DB: Model[], keyName: string) {
-  if (!DB || DB.length === 0) {
+function incrementId(DB: Map<PrimaryKey, Model>) {
+  if (!DB || DB.size === 0) {
     return 1;
   }
 
-  let lastIdInSequence = DB.map((model) => model[keyName]).sort((a, b) => a - b);
-  // .find((id, index, array) => (index === array.length - 1 ? true : id + 1 !== array[index + 1])); // NOTE: this fills gaps! Maybe mismatches SQL DB implementation
-  return lastIdInSequence[lastIdInSequence.length - 1] + 1;
+  return (Array.from(DB.keys())[DB.size - 1] as number) + 1; // NOTE: maybe instead do [...map][map.size-1][0]
 }

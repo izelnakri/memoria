@@ -1,5 +1,6 @@
 import Model from "../../model.js";
 import Config from "../config.js";
+import type { ModuleDatabase } from "../../types.js";
 
 const arrayAskingRelationships = ["one-to-many", "many-to-many"];
 
@@ -7,16 +8,21 @@ export interface RelationshipSummary {
   [relationshipName: string]: typeof Model | Array<typeof Model>;
 }
 
-interface RelationshipSummaryStore {
-  [modelName: string]: RelationshipSummary;
+interface BelongsToPointers {
+  [belongsToColumnForeignKeyName: string]: {
+    relationshipName: string;
+    relationshipClass: typeof Model;
+  };
 }
 
 export default class RelationshipConfig {
-  // static _relationships; // TODO: cache this lookup in future
-  static get relationshipsSummary(): RelationshipSummaryStore {
+  static _relationshipsSummary; // TODO: cache this lookup in future, also make it a map
+  static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
+    // if (!this._relationshipsSummary) {
+    // this._relationshipsSummary = Config.Schemas.reduce((result, modelSchema) => {
     return Config.Schemas.reduce((result, modelSchema) => {
-      return Object.assign(result, {
-        [modelSchema.name]: Object.keys(modelSchema.relations).reduce((result, relationName) => {
+      result[modelSchema.name] = Object.keys(modelSchema.relations).reduce(
+        (result, relationName) => {
           let relation = modelSchema.relations[relationName];
 
           return Object.assign(result, {
@@ -24,9 +30,15 @@ export default class RelationshipConfig {
               ? [relation.target()]
               : relation.target(),
           });
-        }, {}),
-      });
+        },
+        {}
+      );
+
+      return result;
     }, {});
+    // }
+
+    // return this._relationshipsSummary;
   }
 
   static getRelationshipSchemaDefinitions(Class: typeof Model) {
@@ -35,10 +47,12 @@ export default class RelationshipConfig {
     return schema && schema.relations;
   }
 
-  static _belongsToColumnNames: { [className: string]: Set<string> } = {};
+  static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
   static getBelongsToColumnNames(Class: typeof Model): Set<string> {
-    if (!this._belongsToColumnNames[Class.name]) {
-      this._belongsToColumnNames[Class.name] = new Set();
+    if (!this._belongsToColumnNames.has(Class.name)) {
+      let belongsToColumnNames = new Set() as Set<string>;
+
+      this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
 
       Object.keys(Class.belongsToRelationships).forEach((relationshipName) => {
         let relationshipClass = Class.belongsToRelationships[relationshipName];
@@ -47,15 +61,15 @@ export default class RelationshipConfig {
           relationshipName,
           relationshipClass
         );
-        (this.getBelongsToPointers(Class)[targetRelationshipForeignKey] = {
+        this.getBelongsToPointers(Class)[targetRelationshipForeignKey] = {
           relationshipName,
           relationshipClass,
-        }),
-          this._belongsToColumnNames[Class.name].add(targetRelationshipForeignKey);
+        };
+        belongsToColumnNames.add(targetRelationshipForeignKey);
       });
     }
 
-    return this._belongsToColumnNames[Class.name];
+    return this._belongsToColumnNames.get(Class.name) as Set<string>;
   }
   static getBelongsToForeignKey(Class: typeof Model, relationshipName: string): string {
     let belongsToPointers = this.getBelongsToPointers(Class);
@@ -66,27 +80,13 @@ export default class RelationshipConfig {
     ) as string;
   }
 
-  static _belongsToPointers: {
-    [className: string]: {
-      [belongsToColumnForeignKeyName: string]: {
-        relationshipName: string;
-        relationshipClass: typeof Model;
-      };
-    };
-  } = {};
-  static getBelongsToPointers(
-    Class: typeof Model
-  ): {
-    [belongsToColumnForeignKeyName: string]: {
-      relationshipName: string;
-      relationshipClass: typeof Model;
-    };
-  } {
-    if (!this._belongsToPointers[Class.name]) {
-      this._belongsToPointers[Class.name] = {};
+  static _belongsToPointers: ModuleDatabase<BelongsToPointers> = new Map();
+  static getBelongsToPointers(Class: typeof Model): BelongsToPointers {
+    if (!this._belongsToPointers.has(Class.name)) {
+      this._belongsToPointers.set(Class.name, {});
     }
 
-    return this._belongsToPointers[Class.name];
+    return this._belongsToPointers.get(Class.name) as BelongsToPointers;
   }
 }
 

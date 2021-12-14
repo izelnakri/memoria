@@ -256,7 +256,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
       }).then((data, textStatus, jqXHR) => {
         assert.equal(jqXHR.status, 201);
         assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(4)) });
-        assert.equal(Photo.Cache.length, 4);
+        assert.equal(Photo.Cache.size, 4);
       });
     });
 
@@ -493,7 +493,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
         data: { name: "", title: "Cool" },
       }).then((data, textStatus, jqXHR) => {
         assert.equal(jqXHR.status, 201);
-        assert.equal(Photo.Cache.length, 4);
+        assert.equal(Photo.Cache.size, 4);
       });
     });
 

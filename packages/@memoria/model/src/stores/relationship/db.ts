@@ -53,7 +53,7 @@ export default class RelationshipDB {
     let cache = targetRelationships[relationshipName];
 
     if (relationshipType === "BelongsTo") {
-      let RelationshipClass = Class.relationshipSummary[relationshipName] as typeof Model;
+      let RelationshipClass = Class.relationshipSummary[relationshipName] as typeof Model; // NOTE: there are 2 models with same name due to registration
       let primaryKey =
         model[RelationshipConfig.getBelongsToForeignKey(Class, relationshipName) as string];
       if (primaryKey) {

@@ -80,7 +80,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 201);
       assert.deepEqual(data, { photo: Photo.serializer(Photo.peek(4)) });
-      assert.equal(Photo.Cache.length, 4);
+      assert.equal(Photo.Cache.size, 4);
       assert.propEqual(Photo.peek(4), {
         id: 4,
         name: "Izel Nakri",
@@ -108,7 +108,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       },
     });
 
-    assert.equal(Photo.Cache.length, 3);
+    assert.equal(Photo.Cache.size, 3);
 
     await $.ajax({
       type: "GET",
@@ -117,7 +117,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
       assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
-      assert.equal(Photo.Cache.length, 3);
+      assert.equal(Photo.Cache.size, 3);
     });
   });
 
@@ -198,7 +198,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       },
     });
 
-    assert.equal(Photo.Cache.length, 3);
+    assert.equal(Photo.Cache.size, 3);
 
     await $.ajax({
       type: "DELETE",
@@ -207,7 +207,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 204);
       assert.deepEqual(data, undefined);
-      assert.equal(Photo.Cache.length, 2);
+      assert.equal(Photo.Cache.size, 2);
       assert.equal(Photo.peek(1), undefined);
     });
   });
@@ -253,7 +253,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       },
     });
 
-    assert.equal(Photo.Cache.length, 3);
+    assert.equal(Photo.Cache.size, 3);
 
     await $.ajax({
       type: "GET",
@@ -262,7 +262,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).then((data, textStatus, jqXHR) => {
       assert.equal(jqXHR.status, 200);
       assert.deepEqual(data, { photos: Photo.serializer(Photo.peekAll()) });
-      assert.equal(Photo.Cache.length, 3);
+      assert.equal(Photo.Cache.size, 3);
     });
   });
 
@@ -283,7 +283,7 @@ module("@memoria/server| handler defaults", function (hooks) {
       },
     });
 
-    assert.equal(Photo.Cache.length, 3);
+    assert.equal(Photo.Cache.size, 3);
 
     await $.ajax({
       type: "POST",
@@ -295,7 +295,7 @@ module("@memoria/server| handler defaults", function (hooks) {
         error:
           "[Memoria] POST /photos route handler did not return anything to respond to the request!",
       });
-      assert.equal(Photo.Cache.length, 3);
+      assert.equal(Photo.Cache.size, 3);
     });
   });
 

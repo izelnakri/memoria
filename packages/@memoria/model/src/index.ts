@@ -5,6 +5,8 @@ export type { RelationshipSummary } from "./stores/relationship/config.js";
 import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
 export type {
+  PrimaryKey,
+  ModuleDatabase,
   DecoratorBucket,
   ColumnDefinition,
   RelationshipDefinition,

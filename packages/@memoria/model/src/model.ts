@@ -6,12 +6,16 @@
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import Changeset from "./changeset.js";
 import { Config, DB, RelationshipConfig } from "./stores/index.js";
-import type { RelationshipSummary } from "./stores/index.js";
+import Changeset from "./changeset.js";
 import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type { ModelReference, ModelReferenceShape, RelationshipDefinitionStore } from "./index.js";
+import type {
+  ModelReference,
+  ModelReferenceShape,
+  RelationshipDefinitionStore,
+  RelationshipSummary,
+} from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -55,7 +59,7 @@ export default class Model {
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
 
-  static get Cache(): Model[] {
+  static get Cache() {
     return DB.getDB(this);
   }
 
@@ -87,7 +91,7 @@ export default class Model {
   }
 
   static get relationshipSummary(): RelationshipSummary {
-    return RelationshipConfig.relationshipsSummary[this.name];
+    return RelationshipConfig.relationshipsSummary[this.name] as RelationshipSummary;
   }
 
   static get belongsToRelationships(): ModelRelationships {

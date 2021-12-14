@@ -1,6 +1,6 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
 import MemoriaModel, { RuntimeError } from "@memoria/model";
-import type { ModelReference, ModelBuildOptions } from "@memoria/model";
+import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 
@@ -9,7 +9,6 @@ export interface HTTPHeaders {
   [headerKey: string]: any;
 }
 
-type primaryKey = number | string;
 type JSObject = { [key: string]: any };
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
@@ -85,7 +84,7 @@ export default class RESTAdapter extends MemoryAdapter {
   // GET /people?ids=[], or GET /people/:id
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     if (Array.isArray(primaryKey)) {
