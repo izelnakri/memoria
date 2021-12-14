@@ -100,7 +100,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { User, Photo, PhotoComment };
   }
@@ -146,7 +146,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       id: number;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return new Memoria({
       routes() {

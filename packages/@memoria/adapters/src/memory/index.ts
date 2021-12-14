@@ -32,7 +32,9 @@ export default class MemoryAdapter {
   // TODO: make this directly Class not modelName
   static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
     if (Model) {
-      let targetSchemaIndex = Config.Schemas.findIndex((schema) => schema.target.name === Model.name);
+      let targetSchemaIndex = Config.Schemas.findIndex(
+        (schema) => schema.target.name === Model.name
+      );
       if (targetSchemaIndex >= 0) {
         clearObject(Config.Schemas[targetSchemaIndex].target.Serializer.embeds);
         Config.Schemas.splice(targetSchemaIndex, 1);
@@ -66,20 +68,6 @@ export default class MemoryAdapter {
     return Config;
   }
 
-  static async resetForTests(
-    Config,
-    Model?: typeof MemoriaModel,
-    options?: ModelBuildOptions
-  ): Promise<Config> {
-    if (Model) {
-      Model.resetCache();
-    } else {
-      Config.Schemas.forEach((schema) => this.resetCache(schema.target, [], options));
-    }
-
-    return Config;
-  }
-
   static resetCache(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
@@ -95,19 +83,25 @@ export default class MemoryAdapter {
   }
 
   static async resetRecords(
-    Model: typeof MemoriaModel,
+    Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    if (targetState && targetState.length > 0) {
-      let newTargetState = targetState.map((model: ModelRefOrInstance) =>
-        assignDefaultValuesForInsert(model, Model)
-      );
+    if (Model) {
+      if (targetState && targetState.length > 0) {
+        let newTargetState = targetState.map((model: ModelRefOrInstance) =>
+          assignDefaultValuesForInsert(model, Model)
+        );
 
-      return this.resetCache(Model, newTargetState, options);
+        return this.resetCache(Model, newTargetState, options);
+      }
+
+      return this.resetCache(Model, targetState, options);
     }
 
-    return this.resetCache(Model, targetState, options);
+    DB._DB.clear();
+
+    return [];
   }
 
   static build(

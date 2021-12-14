@@ -99,7 +99,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       user_id: number;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, PhotoComment, User };
   }

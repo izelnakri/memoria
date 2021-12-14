@@ -98,7 +98,7 @@ module("@memoria/adapters | RESTAdapter | Query API", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, User, PhotoComment };
   }
@@ -144,7 +144,7 @@ module("@memoria/adapters | RESTAdapter | Query API", function (hooks) {
       id: number;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return new Memoria({
       routes() {

@@ -188,7 +188,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       is_public: boolean;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }

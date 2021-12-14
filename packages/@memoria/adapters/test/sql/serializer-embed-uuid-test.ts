@@ -192,7 +192,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       comments: PhotoComment,
     };
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }

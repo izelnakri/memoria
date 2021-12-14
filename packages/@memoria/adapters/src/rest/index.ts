@@ -52,23 +52,27 @@ export default class RESTAdapter extends MemoryAdapter {
   }
 
   static async resetRecords(
-    Model: typeof MemoriaModel,
+    Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[]> {
-    let allRecords = this.peekAll(Model);
-    try {
-      Model.unloadAll();
-      return (await this.http.post(
-        `${this.host}/${this.pathForType(Model)}/reset`,
-        { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: targetState },
-        this.headers,
-        Object.assign({ Model }, options)
-      )) as MemoriaModel[];
-    } catch (error) {
-      allRecords.forEach((record) => this.cache(Model, record));
-      throw error;
+    if (Model) {
+      let allRecords = this.peekAll(Model);
+      try {
+        Model.unloadAll();
+        return (await this.http.post(
+          `${this.host}/${this.pathForType(Model)}/reset`,
+          { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: targetState },
+          this.headers,
+          Object.assign({ Model }, options)
+        )) as MemoriaModel[];
+      } catch (error) {
+        allRecords.forEach((record) => this.cache(Model, record));
+        throw error;
+      }
     }
+
+    return await super.resetRecords(Model, targetState, options);
   }
 
   // GET /people/count, or GET /people/count?keyName=value

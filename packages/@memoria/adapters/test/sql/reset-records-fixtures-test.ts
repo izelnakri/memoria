@@ -105,7 +105,7 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
       @CreateDateColumn()
       inserted_at: Date;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, PhotoComment, User };
   }

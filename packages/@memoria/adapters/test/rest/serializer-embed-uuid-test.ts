@@ -1,12 +1,6 @@
 import Memoria from "@memoria/server";
 import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
-import Model, {
-  Changeset,
-  DB,
-  PrimaryGeneratedColumn,
-  Column,
-  Serializer,
-} from "@memoria/model";
+import Model, { Changeset, DB, PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 
@@ -190,13 +184,13 @@ module("@memoria/adapters | RESTAdapter | Serializer UUID for UUID(string)", fun
       comments: PhotoComment,
     };
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Activity, Email, User, Photo, PhotoComment };
   }
 
   async function prepareServer() {
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     class ServerUser extends Model {
       static Serializer = class ServerUserSerializer extends Serializer {};

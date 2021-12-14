@@ -141,7 +141,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       id: number;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return new Memoria({
       routes() {

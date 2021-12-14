@@ -100,7 +100,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       @PrimaryGeneratedColumn()
       id: number;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, PhotoComment, User };
   }

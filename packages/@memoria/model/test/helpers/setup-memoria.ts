@@ -26,11 +26,11 @@ export default function (hooks) {
     };
   });
   hooks.beforeEach(async function () {
-    await DB.resetForTests();
+    await DB.resetRecords();
     await Config.resetSchemas();
   });
   hooks.afterEach(async function () {
-    await DB.resetForTests();
+    await DB.resetRecords();
     await Config.resetSchemas();
   });
 }

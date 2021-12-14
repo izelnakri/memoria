@@ -96,7 +96,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       @Column("int")
       user_id: number;
     }
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { User, Photo, PhotoComment };
   }

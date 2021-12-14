@@ -94,7 +94,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       is_important: boolean;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return { Photo, PhotoComment, User };
   }
@@ -130,7 +130,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       is_important: boolean;
     }
 
-    await DB.resetForTests();
+    await DB.resetRecords();
 
     return new Memoria({
       routes() {

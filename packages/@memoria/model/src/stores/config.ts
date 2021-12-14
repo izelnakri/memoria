@@ -112,4 +112,10 @@ export default class Config {
 
     return this;
   }
+
+  static async resetRecords() {
+    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetRecords()));
+
+    return this;
+  }
 }
