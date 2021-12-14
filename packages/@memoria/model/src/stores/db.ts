@@ -1,11 +1,12 @@
 import Model from "../model.js";
-import ConfigStore from "./configuration.js";
+import Config from "./config.js";
 import { generateUUID } from "../utils.js";
 import type { ColumnSchemaDefinition, ColumnDefinition } from "../types";
 
 interface DefaultValueReferences {
   [columnName: string]: any; // this can be literally any value but also 'increment', 'uuid', Date
 }
+// type PrimaryKey = number | string;
 
 export default class DB {
   static _DB: { [className: string]: Model[] } = {};
@@ -54,7 +55,7 @@ export default class DB {
       return this._defaultValuesCache[Class.name][operationType];
     }
 
-    let columns = ConfigStore.getColumnsMetadata(Class) as ColumnSchemaDefinition;
+    let columns = Config.getColumnsMetadata(Class) as ColumnSchemaDefinition;
     this._defaultValuesCache[Class.name] = Object.keys(columns).reduce(
       (result, columnName: string) => {
         let column = columns[columnName] as ColumnDefinition;
@@ -86,8 +87,8 @@ export default class DB {
   }
 
   // TODO: make this name more explicit: smt like resetCacheForTests() perhaps, or resetCache()
-  static async resetForTests(): Promise<ConfigStore> {
-    await Promise.all(ConfigStore.Adapters.map((Adapter) => Adapter.resetForTests(ConfigStore)));
+  static async resetForTests(): Promise<Config> {
+    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetForTests(Config)));
 
     return this;
   }

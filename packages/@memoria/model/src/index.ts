@@ -1,7 +1,7 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
-export { ConfigStore, DB, RelationshipStore } from "./stores/index.js";
-export type { RelationshipSummary } from "./stores/configuration.js";
+export { Config, DB, RelationshipConfig, RelationshipDB } from "./stores/index.js";
+export type { RelationshipSummary } from "./stores/relationship/config.js";
 import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
 export type {

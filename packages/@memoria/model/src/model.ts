@@ -7,10 +7,10 @@ import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import Changeset from "./changeset.js";
-import { ConfigStore, DB } from "./stores/index.js";
+import { Config, DB, RelationshipConfig } from "./stores/index.js";
+import type { RelationshipSummary } from "./stores/index.js";
 import Serializer from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type { RelationshipSummary } from "./stores/configuration.js";
 import type { ModelReference, ModelReferenceShape, RelationshipDefinitionStore } from "./index.js";
 
 type primaryKey = number | string;
@@ -64,21 +64,21 @@ export default class Model {
   }
 
   static get primaryKeyName(): string {
-    return ConfigStore.getPrimaryKeyName(this);
+    return Config.getPrimaryKeyName(this);
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return ConfigStore.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
+    return Config.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
       ? "uuid"
       : "id";
   }
 
   static get columnNames(): Set<string> {
-    return ConfigStore.getColumnNames(this);
+    return Config.getColumnNames(this);
   }
 
   static get belongsToColumnNames(): Set<string> {
-    return ConfigStore.getBelongsToColumnNames(this);
+    return RelationshipConfig.getBelongsToColumnNames(this);
   }
 
   // NOTE: currently this is costly, optimize it in future:
@@ -87,7 +87,7 @@ export default class Model {
   }
 
   static get relationshipSummary(): RelationshipSummary {
-    return ConfigStore.relationshipsSummary[this.name];
+    return RelationshipConfig.relationshipsSummary[this.name];
   }
 
   static get belongsToRelationships(): ModelRelationships {
@@ -623,7 +623,7 @@ function filterRelationsFromEntity(
   Class: typeof Model,
   relationshipType: relationshipType
 ): ModelRelationships {
-  let relationshipSchema = ConfigStore.getRelationshipSchemaDefinitions(
+  let relationshipSchema = RelationshipConfig.getRelationshipSchemaDefinitions(
     Class
   ) as RelationshipDefinitionStore;
 
