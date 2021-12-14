@@ -27,7 +27,7 @@ interface RelationshipSummaryStore {
 const arrayAskingRelationships = ["one-to-many", "many-to-many"];
 // Stores all the internal data Memoria needs
 // relationshipSummary inject and the mutate maybe from decorator
-export default class ConfigStore {
+export default class Config {
   static get Adapters() {
     let result = new Set();
 
@@ -188,7 +188,7 @@ export default class ConfigStore {
     return this._columnNames[Class.name];
   }
 
-  static async resetSchemas(modelName?: string): Promise<ConfigStore> {
+  static async resetSchemas(modelName?: string): Promise<Config> {
     await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, modelName)));
 
     return this;
