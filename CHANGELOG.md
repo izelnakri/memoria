@@ -2,7 +2,25 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.22](https://github.com/izelnakri/memoria/compare/0.0.22...0.0.22)
+#### [0.0.23](https://github.com/izelnakri/memoria/compare/0.0.23...0.0.23)
+
+- DB.resetForTests method removed for DB.resetRecords [`#28`](https://github.com/izelnakri/memoria/pull/28)
+- Bump actions/checkout from 2.3.5 to 2.4.0 [`#19`](https://github.com/izelnakri/memoria/pull/19)
+- Change internal stores to use JS Map [`#27`](https://github.com/izelnakri/memoria/pull/27)
+- move stores to Config, RelationshipConfig, DB, RelationshipDB [`#26`](https://github.com/izelnakri/memoria/pull/26)
+- rename Klass to Class word [`#25`](https://github.com/izelnakri/memoria/pull/25)
+- Refactor Config to ConfigStore, DB & RelationshipStore [`#24`](https://github.com/izelnakri/memoria/pull/24)
+- Relationship store & RESTAdapter relationship setup [`#23`](https://github.com/izelnakri/memoria/pull/23)
+- initial rest models setup for relation tests [`3ce7fc5`](https://github.com/izelnakri/memoria/commit/3ce7fc5ab405e95be54f15a377fe728ed14dc48a)
+- refactor Config to ConfigStore and ModelStore [`a8e84ed`](https://github.com/izelnakri/memoria/commit/a8e84ed8a64b18c143926da7c09af9caacd4a7d8)
+- move model instance relationship cache to a module [`4615234`](https://github.com/izelnakri/memoria/commit/4615234d4028c0d93b852f7693ab7e3cc810dfff)
+- rename ModelStore to DB [`40229a5`](https://github.com/izelnakri/memoria/commit/40229a530994dd299d7acab9b510e8b66eb668ae)
+- make correct relationship casting on instance CRUD [`971e12e`](https://github.com/izelnakri/memoria/commit/971e12eb164494cf1569ac90135299e2cfd68765)
+- improve/fix RESTAdapter modelKeyNameForPayload [`76aae1e`](https://github.com/izelnakri/memoria/commit/76aae1eb85df45459d5d750bf218f7ca30bb7393)
+
+#### [0.0.23](https://github.com/izelnakri/memoria/compare/0.0.22...0.0.23)
+
+> 25 November 2021
 
 - @BelongsTo MemoryAdapter feature complete & tests [`#20`](https://github.com/izelnakri/memoria/pull/20)
 - upgrade packages & dependencies [`64947c9`](https://github.com/izelnakri/memoria/commit/64947c9c28e36cdf529e330cda840abbde98c2bd)
@@ -13,6 +31,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - initial relationship feature test setup [`00c95c0`](https://github.com/izelnakri/memoria/commit/00c95c0f68aabef7f8f1d654f909b32ce28c7b1f)
 - initial relationship feature impl before tests [`6f41cc9`](https://github.com/izelnakri/memoria/commit/6f41cc9cac260cd35ee37cc1866774dc71154c9c)
 - README.md update [`bd700c6`](https://github.com/izelnakri/memoria/commit/bd700c6a6120c6dd2d60d39143bf8e4b4ec26e5d)
+- Release 0.0.23 [`7823edc`](https://github.com/izelnakri/memoria/commit/7823edcac61b232c4ecebeffcd3fd649a05831a5)
 
 #### [0.0.22](https://github.com/izelnakri/memoria/compare/0.0.21...0.0.22)
 
