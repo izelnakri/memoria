@@ -1,5 +1,5 @@
-import Model from "../model.js";
-import Config from "../config.js";
+import Model from "../../model.js";
+import RelationshipConfig from "./config.js";
 
 type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 
@@ -32,7 +32,7 @@ export default class RelationshipDB {
     }
 
     if (relationshipType === "BelongsTo") {
-      model[Config.getBelongsToForeignKey(Class, relationshipName)] = input
+      model[RelationshipConfig.getBelongsToForeignKey(Class, relationshipName)] = input
         ? input[Class.belongsToRelationships[relationshipName].primaryKeyName] || null
         : null;
     }
@@ -54,7 +54,8 @@ export default class RelationshipDB {
 
     if (relationshipType === "BelongsTo") {
       let RelationshipClass = Class.relationshipSummary[relationshipName] as typeof Model;
-      let primaryKey = model[Config.getBelongsToForeignKey(Class, relationshipName) as string];
+      let primaryKey =
+        model[RelationshipConfig.getBelongsToForeignKey(Class, relationshipName) as string];
       if (primaryKey) {
         return RelationshipClass.peek(primaryKey) || cache || RelationshipClass.find(primaryKey);
       }

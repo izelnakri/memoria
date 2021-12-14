@@ -4,6 +4,7 @@ import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Config,
   DB,
+  RelationshipConfig,
   RelationshipDB,
   Changeset,
   DeleteError,
@@ -40,8 +41,8 @@ export default class MemoryAdapter {
         delete DB._defaultValuesCache[modelName];
         delete Config._columnNames[modelName];
         delete Config._primaryKeyNameCache[modelName];
-        delete Config._belongsToColumnNames[modelName];
-        delete Config._belongsToPointers[modelName];
+        delete RelationshipConfig._belongsToColumnNames[modelName];
+        delete RelationshipConfig._belongsToPointers[modelName];
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
@@ -52,8 +53,8 @@ export default class MemoryAdapter {
     clearObject(DB._defaultValuesCache);
     clearObject(Config._columnNames);
     clearObject(Config._primaryKeyNameCache);
-    clearObject(Config._belongsToColumnNames);
-    clearObject(Config._belongsToPointers);
+    clearObject(RelationshipConfig._belongsToColumnNames);
+    clearObject(RelationshipConfig._belongsToPointers);
 
     for (let schema of Config.Schemas) {
       // NOTE: this is complex because could hold cyclical references
@@ -139,7 +140,7 @@ export default class MemoryAdapter {
     let relationshipSummary = Model.relationshipSummary;
 
     Object.keys(relationshipSummary).forEach((relationshipName) => {
-      Config.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+      RelationshipConfig.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
       // NOTE: do here runtime checks maybe!
       // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
 
@@ -173,7 +174,7 @@ export default class MemoryAdapter {
     }
 
     let belongsToColumnNames = Model.belongsToColumnNames;
-    let belongsToPointers = Config.getBelongsToPointers(Model);
+    let belongsToPointers = RelationshipConfig.getBelongsToPointers(Model);
 
     return Array.from(Model.columnNames).reduce((result, columnName) => {
       if (belongsToColumnNames.has(columnName)) {
@@ -537,7 +538,7 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
         });
 
         if (Model.belongsToColumnNames.has(columnName)) {
-          let belongsToPointer = Config.getBelongsToPointers(Model)[columnName];
+          let belongsToPointer = RelationshipConfig.getBelongsToPointers(Model)[columnName];
           let relationship = this[belongsToPointer.relationshipName];
           if (relationship && !relationship[belongsToPointer.relationshipClass.primaryKeyName]) {
             return;
@@ -578,7 +579,7 @@ function castRelationship(
     return null;
   }
 
-  let belongsToPointers = Config.getBelongsToPointers(
+  let belongsToPointers = RelationshipConfig.getBelongsToPointers(
     model.constructor as typeof MemoriaModel
   );
   let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
