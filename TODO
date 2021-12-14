@@ -1,3 +1,10 @@
+memory/index Adapter.resetCache() -> returns a shallow copy instead of full copy(check speed impact)
+// TODO: remove resetForTests from everything, rename it to resetRecords
+
+# let ServerPhoto = Object.assign(Object.create({}), Photo);
+# Object.setPrototypeOf(ServerPhoto, Photo);
+
+
 # Check reflexive relationships, readonly nested data, updating from both sides(_id, relationship and inverse relationship, creating new record relationship updates)
 
 # add ember-concurrency like primitives with a new Promise-like interface for .retry(), .abort() [particularly interesting for async relationships]

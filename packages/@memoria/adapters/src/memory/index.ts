@@ -15,13 +15,13 @@ import MemoriaModel, {
   clearObject,
 } from "@memoria/model";
 import type {
+  PrimaryKey,
   RelationshipSummary,
   ModelReference,
   DecoratorBucket,
   ModelBuildOptions,
 } from "@memoria/model";
 
-type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
 
@@ -29,38 +29,38 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
-  static async resetSchemas(Config, modelName?: string): Promise<Config> {
-    if (modelName) {
-      let targetSchemaIndex = Config.Schemas.findIndex(
-        (schema) => schema.target.name === modelName
-      );
+  // TODO: make this directly Class not modelName
+  static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
+    if (Model) {
+      let targetSchemaIndex = Config.Schemas.findIndex((schema) => schema.target.name === Model.name);
       if (targetSchemaIndex >= 0) {
         clearObject(Config.Schemas[targetSchemaIndex].target.Serializer.embeds);
         Config.Schemas.splice(targetSchemaIndex, 1);
-        delete DB._DB[modelName];
-        delete DB._defaultValuesCache[modelName];
-        delete Config._columnNames[modelName];
-        delete Config._primaryKeyNameCache[modelName];
-        delete RelationshipConfig._belongsToColumnNames[modelName];
-        delete RelationshipConfig._belongsToPointers[modelName];
+        DB._DB.delete(Model.name);
+        DB._defaultValuesCache.delete(Model.name);
+        Config._columnNames.delete(Model.name);
+        Config._primaryKeyNameCache.delete(Model.name);
+        RelationshipConfig._belongsToColumnNames.delete(Model.name);
+        RelationshipConfig._belongsToPointers.delete(Model.name);
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
       return Config;
     }
 
-    clearObject(DB._DB);
-    clearObject(DB._defaultValuesCache);
-    clearObject(Config._columnNames);
-    clearObject(Config._primaryKeyNameCache);
-    clearObject(RelationshipConfig._belongsToColumnNames);
-    clearObject(RelationshipConfig._belongsToPointers);
+    DB._DB.clear();
+    DB._defaultValuesCache.clear();
+    Config._columnNames.clear();
+    Config._primaryKeyNameCache.clear();
+    RelationshipConfig._belongsToColumnNames.clear();
+    RelationshipConfig._belongsToPointers.clear();
 
     for (let schema of Config.Schemas) {
       // NOTE: this is complex because could hold cyclical references
       // TODO: this only cleans registered data!!
       clearObject(schema.target.Serializer.embeds);
     }
+
     Config.Schemas.length = 0;
 
     return Config;
@@ -68,11 +68,11 @@ export default class MemoryAdapter {
 
   static async resetForTests(
     Config,
-    modelName?: string,
+    Model?: typeof MemoriaModel,
     options?: ModelBuildOptions
   ): Promise<Config> {
-    if (modelName) {
-      Config.Schemas[modelName].target.resetCache();
+    if (Model) {
+      Model.resetCache();
     } else {
       Config.Schemas.forEach((schema) => this.resetCache(schema.target, [], options));
     }
@@ -85,13 +85,13 @@ export default class MemoryAdapter {
     targetState?: ModelRefOrInstance[],
     options?: ModelBuildOptions
   ): MemoriaModel[] {
-    Model.Cache.length = 0;
+    Model.Cache.clear();
 
     if (targetState) {
       targetState.forEach((fixture) => this.cache(Model, fixture, options));
     }
 
-    return Model.Cache;
+    return Array.from(Model.Cache.values()); // NOTE: This is a shallow copy, could be problematic
   }
 
   static async resetRecords(
@@ -251,30 +251,26 @@ export default class MemoryAdapter {
 
     let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
-    Model.Cache.push(Model.build(target, targetOptions));
+    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
 
     return this.returnWithCacheEviction(target, options); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
   }
 
   static peek(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): MemoriaModel[] | MemoriaModel | void {
-    if (Array.isArray(primaryKey as primaryKey[])) {
-      return Array.from(Model.Cache).reduce((result: MemoriaModel[], model: MemoriaModel) => {
-        let foundModel = (primaryKey as primaryKey[]).includes(model[Model.primaryKeyName])
-          ? model
-          : null;
+    if (Array.isArray(primaryKey)) {
+      return (primaryKey as PrimaryKey[]).reduce((result, targetKey) => {
+        let foundModel = Model.Cache.get(targetKey);
 
         return foundModel
           ? result.concat([this.returnWithCacheEviction(foundModel, options)])
           : result;
-      }, []) as MemoriaModel[];
+      }, [] as MemoriaModel[]);
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      let model = Array.from(Model.Cache).find(
-        (model: MemoriaModel) => model[Model.primaryKeyName] === primaryKey
-      ) as MemoriaModel | undefined;
+      let model = Model.Cache.get(primaryKey);
 
       return model && this.returnWithCacheEviction(model, options);
     }
@@ -288,7 +284,9 @@ export default class MemoryAdapter {
     options?: ModelBuildOptions
   ): MemoriaModel | void {
     let keys = Object.keys(queryObject);
-    let model = Model.Cache.find((model: MemoriaModel) => comparison(model, queryObject, keys, 0));
+    let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) =>
+      comparison(model, queryObject, keys, 0)
+    );
 
     return model && this.returnWithCacheEviction(model, options);
   }
@@ -300,14 +298,19 @@ export default class MemoryAdapter {
   ): MemoriaModel[] {
     let keys = Object.keys(queryObject);
     if (keys.length === 0) {
-      return Model.Cache.map((model) => this.returnWithCacheEviction(model, options));
+      return Array.from(Model.Cache.values()).map((model) =>
+        this.returnWithCacheEviction(model, options)
+      );
     }
 
-    let results = Array.from(Model.Cache as MemoriaModel[]).filter((model: MemoriaModel) =>
-      comparison(model, queryObject, keys, 0)
-    );
+    let results = [] as MemoriaModel[];
+    for (const model of Model.Cache.values()) {
+      if (comparison(model, queryObject, keys, 0)) {
+        results.push(this.returnWithCacheEviction(model, options));
+      }
+    }
 
-    return results.map((model) => this.returnWithCacheEviction(model, options));
+    return results;
   }
 
   static async count(Model: typeof MemoriaModel, queryObject?: QueryObject): Promise<number> {
@@ -315,12 +318,12 @@ export default class MemoryAdapter {
       return this.peekAll(Model, queryObject).length;
     }
 
-    return Model.Cache.length;
+    return Model.Cache.size;
   }
 
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     return this.peek(Model, primaryKey, options);
@@ -359,7 +362,7 @@ export default class MemoryAdapter {
     let buildOptions = Object.assign(options || {}, { isNew: false });
     let target = Model.build(assignDefaultValuesForInsert(model, Model), buildOptions);
 
-    Model.Cache.push(Model.build(target, buildOptions));
+    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, buildOptions));
 
     return this.returnWithCacheEviction(target, options);
   }
@@ -411,9 +414,7 @@ export default class MemoryAdapter {
       });
     }
 
-    let targetIndex = Model.Cache.indexOf(targetRecord);
-
-    Model.Cache.splice(targetIndex, 1);
+    Model.Cache.delete(targetRecord[Model.primaryKeyName]);
     // RelationshipDB.delete(targetRecord);
 
     targetRecord.isDeleted = true;
@@ -451,7 +452,7 @@ export default class MemoryAdapter {
     options?: ModelBuildOptions
   ): MemoriaModel[] {
     if (!models) {
-      Model.Cache.length = 0;
+      Model.Cache.clear();
 
       return [];
     }

@@ -11,9 +11,8 @@ import MemoriaModel, {
   UpdateError,
   RuntimeError,
 } from "@memoria/model";
-import type { ModelReference, ModelBuildOptions } from "@memoria/model";
+import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
 
-type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
 
@@ -59,16 +58,16 @@ export default class SQLAdapter extends MemoryAdapter {
     return connection.manager;
   }
 
-  static async resetSchemas(Config, modelName?: string): Promise<Config> {
-    if (modelName) {
+  static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
+    if (Model) {
       throw new RuntimeError(
-        "$Model.resetSchemas(modelName) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
+        "$Model.resetSchemas($Model) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
       );
     }
     let connection = await this.getConnection();
 
     await connection.dropDatabase();
-    await super.resetSchemas(Config, modelName);
+    await super.resetSchemas(Config, Model);
 
     // TODO: check if this is needed to clear typeorm MetadataArgsStore:
     // NOTE: uncommenting this breaks test builds on static imports. Check if this is even needed, or there is another way:
@@ -84,10 +83,10 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async resetForTests(
     Config,
-    modelName?: string,
+    Model?: typeof MemoriaModel,
     options?: ModelBuildOptions
   ): Promise<Config> {
-    await super.resetForTests(Config, modelName, options);
+    await super.resetForTests(Config, Model, options);
 
     let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
     let Manager = await this.getEntityManager();
@@ -123,7 +122,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async find(
     Model: typeof MemoriaModel,
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Promise<MemoriaModel[] | MemoriaModel | void> {
     let Manager = await this.getEntityManager();

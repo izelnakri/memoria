@@ -4,7 +4,12 @@
 // TODO: rewrite this file as store.ts and utilize WeakMap, Map, WeakSet
 // TODO: turn _DB into a Map<InstanceWithoutRelationship(?)> -> WeakSet to include the relationships(?) or a WeakMap with WeakSet(?)
 import Model from "../model.js";
-import type { SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "../types";
+import type {
+  ModuleDatabase,
+  SchemaDefinition,
+  ColumnSchemaDefinition,
+  ColumnDefinition,
+} from "../types";
 import type { MemoryAdapter } from "@memoria/adapters";
 
 // NOTE: WeakMap not implemented so far because:
@@ -17,6 +22,8 @@ import type { MemoryAdapter } from "@memoria/adapters";
 // Maybe move objects to Map for easy clearing for Schema
 // Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
 // relationshipSummary inject and the mutate maybe from decorator
+// TODO: make arrays into classes(?)
+
 export default class Config {
   static get Adapters() {
     let result = new Set();
@@ -46,25 +53,24 @@ export default class Config {
     return targetSchema;
   }
 
-  static _primaryKeyNameCache: { [className: string]: string } = {};
+  static _primaryKeyNameCache: ModuleDatabase<string> = new Map();
   static getPrimaryKeyName(Class: typeof Model): string {
-    if (Class.name in this._primaryKeyNameCache) {
-      return this._primaryKeyNameCache[Class.name];
+    if (this._primaryKeyNameCache.has(Class.name)) {
+      return this._primaryKeyNameCache.get(Class.name) as string;
     }
 
     let columns = this.getColumnsMetadata(Class);
+    let primaryKeyName = Object.keys(columns).find((key) => columns[key].primary) as string;
 
-    this._primaryKeyNameCache[Class.name] = Object.keys(columns).find(
-      (key) => columns[key].primary
-    ) as string;
+    this._primaryKeyNameCache.set(Class.name, primaryKeyName);
 
-    if (!this._primaryKeyNameCache[Class.name]) {
+    if (!primaryKeyName) {
       throw new Error(
         `[@memoria/model] ${Class.name} has no primary key! Please declare one with @PrimaryGeneratedColumn`
       );
     }
 
-    return this._primaryKeyNameCache[Class.name];
+    return primaryKeyName;
   }
 
   static getColumnsMetadata(Class: typeof Model): ColumnSchemaDefinition {
@@ -92,17 +98,17 @@ export default class Config {
     return columns;
   }
 
-  static _columnNames: { [className: string]: Set<string> } = {};
+  static _columnNames: ModuleDatabase<Set<string>> = new Map();
   static getColumnNames(Class: typeof Model): Set<string> {
-    if (!this._columnNames[Class.name]) {
-      this._columnNames[Class.name] = new Set(Object.keys(this.getColumnsMetadata(Class)));
+    if (!this._columnNames.has(Class.name)) {
+      this._columnNames.set(Class.name, new Set(Object.keys(this.getColumnsMetadata(Class))));
     }
 
-    return this._columnNames[Class.name];
+    return this._columnNames.get(Class.name) as Set<string>;
   }
 
-  static async resetSchemas(modelName?: string): Promise<Config> {
-    await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, modelName)));
+  static async resetSchemas(Class: typeof Model): Promise<Config> {
+    await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, Class)));
 
     return this;
   }
