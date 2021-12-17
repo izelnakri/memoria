@@ -44,6 +44,7 @@ export default class MemoryAdapter {
         Config._primaryKeyNameCache.delete(Model.name);
         RelationshipConfig._belongsToColumnNames.delete(Model.name);
         RelationshipConfig._belongsToPointers.delete(Model.name);
+        delete RelationshipConfig._relationshipsSummary;
         // TODO: this is problematic, doesnt clear other relationship embeds
       }
 
@@ -56,6 +57,7 @@ export default class MemoryAdapter {
     Config._primaryKeyNameCache.clear();
     RelationshipConfig._belongsToColumnNames.clear();
     RelationshipConfig._belongsToPointers.clear();
+    delete RelationshipConfig._relationshipsSummary;
 
     for (let schema of Config.Schemas) {
       // NOTE: this is complex because could hold cyclical references
@@ -75,11 +77,11 @@ export default class MemoryAdapter {
   ): MemoriaModel[] {
     Model.Cache.clear();
 
-    if (targetState) {
-      targetState.forEach((fixture) => this.cache(Model, fixture, options));
+    if (!targetState) {
+      return [];
     }
 
-    return Array.from(Model.Cache.values()); // NOTE: This is a shallow copy, could be problematic
+    return targetState.map((fixture) => this.cache(Model, fixture, options));
   }
 
   static async resetRecords(

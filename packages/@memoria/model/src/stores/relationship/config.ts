@@ -15,30 +15,30 @@ interface BelongsToPointers {
   };
 }
 
+// NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
 export default class RelationshipConfig {
   static _relationshipsSummary; // TODO: cache this lookup in future, also make it a map
   static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
-    // if (!this._relationshipsSummary) {
-    // this._relationshipsSummary = Config.Schemas.reduce((result, modelSchema) => {
-    return Config.Schemas.reduce((result, modelSchema) => {
-      result[modelSchema.name] = Object.keys(modelSchema.relations).reduce(
-        (result, relationName) => {
-          let relation = modelSchema.relations[relationName];
+    if (!this._relationshipsSummary) {
+      this._relationshipsSummary = Config.Schemas.reduce((result, modelSchema) => {
+        result[modelSchema.name] = Object.keys(modelSchema.relations).reduce(
+          (result, relationName) => {
+            let relation = modelSchema.relations[relationName];
 
-          return Object.assign(result, {
-            [relationName]: arrayAskingRelationships.includes(relation.type)
-              ? [relation.target()]
-              : relation.target(),
-          });
-        },
-        {}
-      );
+            return Object.assign(result, {
+              [relationName]: arrayAskingRelationships.includes(relation.type)
+                ? [relation.target()]
+                : relation.target(),
+            });
+          },
+          {}
+        );
 
-      return result;
-    }, {});
-    // }
+        return result;
+      }, {});
+    }
 
-    // return this._relationshipsSummary;
+    return this._relationshipsSummary;
   }
 
   static getRelationshipSchemaDefinitions(Class: typeof Model) {
