@@ -95,19 +95,19 @@ export default class Model {
   }
 
   static get belongsToRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "many-to-one");
+    return getRelationsForEntity(this, "many-to-one");
   }
 
   static get hasOneRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "one-to-one");
+    return getRelationsForEntity(this, "one-to-one");
   }
 
   static get hasManyRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "one-to-many");
+    return getRelationsForEntity(this, "one-to-many");
   }
 
   static get manyToManyRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "many-to-many");
+    return getRelationsForEntity(this, "many-to-many");
   }
 
   static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model {
@@ -623,7 +623,7 @@ function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) 
 
 type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
 
-function filterRelationsFromEntity(
+function getRelationsForEntity(
   Class: typeof Model,
   relationshipType: relationshipType
 ): ModelRelationships {

@@ -71,7 +71,7 @@ export default class RelationshipConfig {
 
     return this._belongsToColumnNames.get(Class.name) as Set<string>;
   }
-  static getBelongsToForeignKey(Class: typeof Model, relationshipName: string): string {
+  static getForeignKeyFromBelongsTo(Class: typeof Model, relationshipName: string): string {
     let belongsToPointers = this.getBelongsToPointers(Class);
 
     return Object.keys(belongsToPointers).find(
