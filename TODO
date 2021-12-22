@@ -1,9 +1,20 @@
-memory/index Adapter.resetCache() -> returns a shallow copy instead of full copy(check speed impact)
-// incrementId algo change
+persistedRecordsBelongsToCache mutation on this.insert()(memory adapter), this.cache(), this.delete(model)
+
+set (can be proxied)
+delete (can be proxied)
+
+email will not be reflexive to user until insert(?) if user also fetched email in this scenario:
+
+saved user then makes email assoc
+server says -> user gets inserted email gets inserted
+// it should change all email and then user relationship caches
+
+deleteInArray / change / addInArray (should be proxied correctly when reference diff different)
+
+changing instance/array (can be proxied for primaryKeyChange)
 
 # let ServerPhoto = Object.assign(Object.create({}), Photo);
 # Object.setPrototypeOf(ServerPhoto, Photo);
-
 
 # Check reflexive relationships, readonly nested data, updating from both sides(_id, relationship and inverse relationship, creating new record relationship updates)
 

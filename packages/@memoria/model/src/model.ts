@@ -6,9 +6,9 @@
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Config, DB, RelationshipConfig } from "./stores/index.js";
+import { Config, DB, RelationshipConfig, RelationshipDB } from "./stores/index.js";
 import Changeset from "./changeset.js";
-import Serializer from "./serializer.js";
+import Serializer, { transformValue } from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
 import type {
   ModelReference,
@@ -110,6 +110,114 @@ export default class Model {
     return getRelationsForEntity(this, "many-to-many");
   }
 
+  // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
+  // could do attribute tracking
+  // TODO: test also passing new Model() instance
+  // TODO: setPersistedRecords should be done here, (maybe optimize it for multiple calls in one)
+  static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
+    let Model = this.constructor as typeof this;
+
+    if (buildObject instanceof Model) {
+      if (!buildObject.isBuilt) {
+        throw new Error(
+          "You should not provide an instantiated but not built model to $Model.build(model)"
+        );
+      } else if (options && options.copy === false) {
+        return buildObject;
+      }
+    }
+
+    let model = new Model(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
+    if (buildObject && buildObject.revisionHistory) {
+      buildObject.revisionHistory.forEach((revision) => {
+        model.revisionHistory.push({ ...revision });
+      });
+    }
+    if (buildObject && buildObject.changes) {
+      Object.keys(buildObject.changes).forEach((key) => {
+        model.changes[key] = buildObject.changes[key];
+      });
+    }
+    if (model[Model.primaryKeyName]) {
+      RelationshipDB.findModelReferences(Model, model[Model.primaryKeyName]).add(model);
+    }
+
+    let belongsToColumnNames = RelationshipConfig.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+    let relationshipSummary = Model.relationshipSummary;
+    Object.keys(relationshipSummary).forEach((relationshipName) => {
+      // TODO: if isNew then do persistanceCache changes
+      if (buildObject && relationshipName in buildObject) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+      } else if (belongsToColumnNames.has(relationshipName)) {
+        RelationshipDB.getInstanceRecordsCacheForTableKey(
+          `${Model.name}:${relationshipName}`,
+          "BelongsTo"
+        ).set(model, model[RelationshipConfig.getForeignKeyColumnName(Model, relationshipName)]);
+      }
+
+      Object.defineProperty(model, relationshipName, {
+        configurable: false,
+        enumerable: true,
+        get() {
+          return RelationshipDB.get(model, relationshipName);
+        },
+        set(value) {
+          return RelationshipDB.set(model, relationshipName, value);
+        },
+      });
+    });
+
+    if (attributeTrackingEnabled(options)) {
+      return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
+    }
+
+    let belongsToPointers = RelationshipConfig.getBelongsToPointers(Model);
+
+    Array.from(Model.columnNames).forEach((columnName) => {
+      if (belongsToColumnNames.has(columnName)) {
+        let cache = getTransformedValue(model, columnName, buildObject);
+        let { relationshipName, relationshipClass } = belongsToPointers[columnName];
+
+        return Object.defineProperty(model, columnName, {
+          configurable: false,
+          enumerable: true,
+          get() {
+            return cache;
+          },
+          set(value) {
+            if (this[columnName] === value) {
+              return;
+            }
+
+            cache = value === undefined ? null : value;
+
+            if (
+              this[relationshipName] &&
+              !this[relationshipName][relationshipClass.primaryKeyName]
+            ) {
+              return;
+            }
+
+            this[relationshipName] =
+              cache === null
+                ? null
+                : relationshipClass.peek(cache) || relationshipClass.find(cache);
+          },
+        });
+      }
+
+      model[columnName] = getTransformedValue(model, columnName, buildObject);
+    });
+
+    revisionEnabled(options) &&
+      !(buildObject instanceof Model && buildObject.isBuilt) &&
+      model.revisionHistory.push(Object.assign({}, model));
+
+    return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
+  }
+
+  // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
+  // That payload parsing can happen in the Adapter.cache() the method can recursively call itself & handle payloads in 2nd arg
   static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model {
     if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
@@ -197,12 +305,16 @@ export default class Model {
     let model = await this.Adapter.insert(this, record || {}, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        model[relationshipName] = record[relationshipName];
-      });
-
       record.#_inTransit = false;
       record.#_isNew = false;
+
+      // TODO: these relationship syncs needs to change for insert, update, delete:
+      this.relationshipNames.forEach((relationshipName) => {
+        // TODO: maybe all except hasMany as model has no hasMany at the beginning
+        record[relationshipName] = model[relationshipName];
+        // model can have the same relationship as record
+      });
+
       clearObject(record.changes);
 
       revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, record));
@@ -425,19 +537,6 @@ export default class Model {
     return await this.Adapter.count(this, options);
   }
 
-  // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
-  // could do attribute tracking
-  // TODO: test also passing new Model() instance
-  static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
-    let model = this.Adapter.build(this, buildObject, options);
-
-    revisionEnabled(options) &&
-      !(buildObject instanceof Model && buildObject.isBuilt) &&
-      model.revisionHistory.push(Object.assign({}, model));
-
-    return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
-  }
-
   static serializer(objectOrArray: Model | Model[]) {
     if (!objectOrArray) {
       return;
@@ -643,4 +742,74 @@ function getRelationsForEntity(
         return result;
       }, {})
     : {};
+}
+
+function attributeTrackingEnabled(options?: ModelBuildOptions) {
+  return !options || options.revision !== false;
+}
+
+function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
+  model: Model,
+  buildObject?: QueryObject | Model
+) {
+  let Class = model.constructor as typeof Model;
+  // buildObject iteration, or nullifying
+  // set relationships if provided
+  Array.from(Class.columnNames).forEach((columnName) => {
+    let cache = getTransformedValue(model, columnName, buildObject);
+
+    Object.defineProperty(model, columnName, {
+      configurable: false,
+      enumerable: true,
+      get() {
+        return cache;
+      },
+      set(value) {
+        if (this[columnName] === value) {
+          return;
+        } else if (
+          value instanceof Date &&
+          this[columnName] &&
+          this[columnName].toJSON() === value.toJSON()
+        ) {
+          return;
+        }
+
+        cache = value === undefined ? null : value;
+
+        if (this.revision[columnName] === cache) {
+          delete this.changes[columnName];
+        } else {
+          this.changes[columnName] = cache;
+        }
+
+        this.errors.forEach((error, errorIndex) => {
+          if (error.attribute === columnName) {
+            this.errors.splice(errorIndex, 1);
+          }
+        });
+
+        if (Class.belongsToColumnNames.has(columnName)) {
+          let { relationshipClass, relationshipName } = RelationshipConfig.getBelongsToPointers(
+            Class
+          )[columnName];
+
+          if (this[relationshipName] && !this[relationshipName][relationshipClass.primaryKeyName]) {
+            return;
+          }
+
+          this[relationshipName] =
+            cache === null ? null : relationshipClass.peek(cache) || relationshipClass.find(cache);
+        }
+      },
+    });
+  });
+
+  return model;
+}
+
+function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {
+  return buildObject && keyName in buildObject
+    ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
+    : model[keyName] || null;
 }

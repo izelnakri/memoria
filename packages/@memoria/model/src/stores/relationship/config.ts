@@ -17,6 +17,12 @@ interface BelongsToPointers {
 
 // NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
 export default class RelationshipConfig {
+  static getRelationshipSchemaDefinitions(Class: typeof Model) {
+    let schema = Config.Schemas.find((schema) => schema.name === Class.name);
+
+    return schema && schema.relations;
+  }
+
   static _relationshipsSummary; // TODO: cache this lookup in future, also make it a map
   static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
     if (!this._relationshipsSummary) {
@@ -39,12 +45,6 @@ export default class RelationshipConfig {
     }
 
     return this._relationshipsSummary;
-  }
-
-  static getRelationshipSchemaDefinitions(Class: typeof Model) {
-    let schema = Config.Schemas.find((schema) => schema.name === Class.name);
-
-    return schema && schema.relations;
   }
 
   static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
@@ -71,7 +71,7 @@ export default class RelationshipConfig {
 
     return this._belongsToColumnNames.get(Class.name) as Set<string>;
   }
-  static getForeignKeyFromBelongsTo(Class: typeof Model, relationshipName: string): string {
+  static getForeignKeyColumnName(Class: typeof Model, relationshipName: string): string {
     let belongsToPointers = this.getBelongsToPointers(Class);
 
     return Object.keys(belongsToPointers).find(
