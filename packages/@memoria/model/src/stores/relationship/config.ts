@@ -15,36 +15,36 @@ interface BelongsToPointers {
   };
 }
 
+// NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
 export default class RelationshipConfig {
-  static _relationshipsSummary; // TODO: cache this lookup in future, also make it a map
-  static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
-    // if (!this._relationshipsSummary) {
-    // this._relationshipsSummary = Config.Schemas.reduce((result, modelSchema) => {
-    return Config.Schemas.reduce((result, modelSchema) => {
-      result[modelSchema.name] = Object.keys(modelSchema.relations).reduce(
-        (result, relationName) => {
-          let relation = modelSchema.relations[relationName];
-
-          return Object.assign(result, {
-            [relationName]: arrayAskingRelationships.includes(relation.type)
-              ? [relation.target()]
-              : relation.target(),
-          });
-        },
-        {}
-      );
-
-      return result;
-    }, {});
-    // }
-
-    // return this._relationshipsSummary;
-  }
-
   static getRelationshipSchemaDefinitions(Class: typeof Model) {
     let schema = Config.Schemas.find((schema) => schema.name === Class.name);
 
     return schema && schema.relations;
+  }
+
+  static _relationshipsSummary; // TODO: cache this lookup in future, also make it a map
+  static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
+    if (!this._relationshipsSummary) {
+      this._relationshipsSummary = Config.Schemas.reduce((result, modelSchema) => {
+        result[modelSchema.name] = Object.keys(modelSchema.relations).reduce(
+          (result, relationName) => {
+            let relation = modelSchema.relations[relationName];
+
+            return Object.assign(result, {
+              [relationName]: arrayAskingRelationships.includes(relation.type)
+                ? [relation.target()]
+                : relation.target(),
+            });
+          },
+          {}
+        );
+
+        return result;
+      }, {});
+    }
+
+    return this._relationshipsSummary;
   }
 
   static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
@@ -71,7 +71,7 @@ export default class RelationshipConfig {
 
     return this._belongsToColumnNames.get(Class.name) as Set<string>;
   }
-  static getBelongsToForeignKey(Class: typeof Model, relationshipName: string): string {
+  static getForeignKeyColumnName(Class: typeof Model, relationshipName: string): string {
     let belongsToPointers = this.getBelongsToPointers(Class);
 
     return Object.keys(belongsToPointers).find(
