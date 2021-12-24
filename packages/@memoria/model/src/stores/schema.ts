@@ -15,7 +15,7 @@ import type { MemoryAdapter } from "@memoria/adapters";
 // NOTE: WeakMap not implemented so far because:
 // 1- Adapters need to iterate over each schema.target.Adapter (can be done with getSchema() and push to array during insert)
 // 2- Cannot produce relationshipSummary -> big limitation
-// 3- resetCache and resetRecords gets the target tables/models from Config.Schema
+// 3- resetCache and resetRecords gets the target tables/models from Schema.Schema
 // 4- resetSchemas iterate through all the Adapters [possible]
 // 5- Decorators directly push to the schema getting it via getSchema() [possible]
 
@@ -24,7 +24,7 @@ import type { MemoryAdapter } from "@memoria/adapters";
 // relationshipSummary inject and the mutate maybe from decorator
 // TODO: make arrays into classes(?)
 
-export default class Config {
+export default class Schema {
   static get Adapters() {
     let result = new Set();
 
@@ -59,7 +59,7 @@ export default class Config {
       return this._primaryKeyNameCache.get(Class.name) as string;
     }
 
-    let columns = this.getColumnsMetadata(Class);
+    let columns = this.getColumnsFromSchema(Class);
     let primaryKeyName = Object.keys(columns).find((key) => columns[key].primary) as string;
 
     this._primaryKeyNameCache.set(Class.name, primaryKeyName);
@@ -73,7 +73,7 @@ export default class Config {
     return primaryKeyName;
   }
 
-  static getColumnsMetadata(Class: typeof Model): ColumnSchemaDefinition {
+  static getColumnsFromSchema(Class: typeof Model): ColumnSchemaDefinition {
     let schema = this.getSchema(Class);
     if (!schema) {
       throw new Error(
@@ -83,15 +83,15 @@ export default class Config {
 
     return schema.columns;
   }
-  static getColumnMetadata(Class: typeof Model, columnName: string): ColumnDefinition {
-    return this.getColumnsMetadata(Class)[columnName];
+  static getColumnFromSchema(Class: typeof Model, columnName: string): ColumnDefinition {
+    return this.getColumnsFromSchema(Class)[columnName];
   }
-  static assignColumnMetadata(
+  static assignColumnForSchema(
     Class: typeof Model,
     columnName: string,
     columnMetadata: ColumnDefinition
   ): ColumnSchemaDefinition {
-    let columns = this.getColumnsMetadata(Class);
+    let columns = this.getColumnsFromSchema(Class);
 
     columns[columnName] = { ...columns[columnName], ...columnMetadata };
 
@@ -101,20 +101,14 @@ export default class Config {
   static _columnNames: ModuleDatabase<Set<string>> = new Map();
   static getColumnNames(Class: typeof Model): Set<string> {
     if (!this._columnNames.has(Class.name)) {
-      this._columnNames.set(Class.name, new Set(Object.keys(this.getColumnsMetadata(Class))));
+      this._columnNames.set(Class.name, new Set(Object.keys(this.getColumnsFromSchema(Class))));
     }
 
     return this._columnNames.get(Class.name) as Set<string>;
   }
 
-  static async resetSchemas(Class: typeof Model): Promise<Config> {
+  static async resetSchemas(Class: typeof Model): Promise<Schema> {
     await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, Class)));
-
-    return this;
-  }
-
-  static async resetRecords() {
-    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetRecords()));
 
     return this;
   }

@@ -4,8 +4,8 @@ import Model, {
   ManyToOne,
   HasMany,
   BelongsTo,
-  Config,
-  RelationshipConfig,
+  Schema,
+  RelationshipSchema,
   PrimaryGeneratedColumn,
   Column,
   Serializer,
@@ -71,10 +71,10 @@ module("@memoria/model | $Model.relationships", function (hooks) {
     },
   ];
 
-  test("relationships get registered correctly on config", async function (assert) {
+  test("relationships get registered correctly on Schema", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(RelationshipConfig.relationshipsSummary, {
+    assert.propEqual(RelationshipSchema.relationshipsSummary, {
       Photo: {
         comments: [PhotoComment],
         owner: User,

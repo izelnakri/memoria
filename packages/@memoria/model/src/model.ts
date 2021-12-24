@@ -6,24 +6,15 @@
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Config, DB, RelationshipConfig, RelationshipDB } from "./stores/index.js";
+import { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 import Changeset from "./changeset.js";
 import Serializer, { transformValue } from "./serializer.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type {
-  ModelReference,
-  ModelReferenceShape,
-  RelationshipDefinitionStore,
-  RelationshipSummary,
-} from "./index.js";
+import type { ModelReference, ModelReferenceShape, RelationshipType } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
-
-interface ModelRelationships {
-  [relationshipName: string]: typeof Model;
-}
 
 interface ModelInstantiateOptions {
   isNew?: boolean;
@@ -58,6 +49,7 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
+  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB };
 
   static get Cache() {
     return DB.getDB(this);
@@ -68,46 +60,25 @@ export default class Model {
   }
 
   static get primaryKeyName(): string {
-    return Config.getPrimaryKeyName(this);
+    return Schema.getPrimaryKeyName(this);
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Config.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
+    return Schema.getColumnsFromSchema(this)[this.primaryKeyName].generated === "uuid"
       ? "uuid"
       : "id";
   }
 
   static get columnNames(): Set<string> {
-    return Config.getColumnNames(this);
+    return Schema.getColumnNames(this);
   }
 
-  static get belongsToColumnNames(): Set<string> {
-    return RelationshipConfig.getBelongsToColumnNames(this);
-  }
-
-  // NOTE: currently this is costly, optimize it in future:
   static get relationshipNames(): Set<string> {
-    return new Set(Object.keys(this.relationshipSummary));
+    return new Set(Object.keys(RelationshipSchema.getRelationshipTable(this)));
   }
 
-  static get relationshipSummary(): RelationshipSummary {
-    return RelationshipConfig.relationshipsSummary[this.name] as RelationshipSummary;
-  }
-
-  static get belongsToRelationships(): ModelRelationships {
-    return getRelationsForEntity(this, "many-to-one");
-  }
-
-  static get hasOneRelationships(): ModelRelationships {
-    return getRelationsForEntity(this, "one-to-one");
-  }
-
-  static get hasManyRelationships(): ModelRelationships {
-    return getRelationsForEntity(this, "one-to-many");
-  }
-
-  static get manyToManyRelationships(): ModelRelationships {
-    return getRelationsForEntity(this, "many-to-many");
+  static getRelationshipTable(relationshipType?: RelationshipType) {
+    return RelationshipSchema.getRelationshipTable(this, relationshipType);
   }
 
   // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
@@ -142,9 +113,9 @@ export default class Model {
       RelationshipDB.findModelReferences(Model, model[Model.primaryKeyName]).add(model);
     }
 
-    let belongsToColumnNames = RelationshipConfig.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
-    let relationshipSummary = Model.relationshipSummary;
-    Object.keys(relationshipSummary).forEach((relationshipName) => {
+    let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+    let relationshipTable = RelationshipSchema.getRelationshipTable(Model);
+    Object.keys(relationshipTable).forEach((relationshipName) => {
       // TODO: if isNew then do persistanceCache changes
       if (buildObject && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
@@ -152,7 +123,7 @@ export default class Model {
         RelationshipDB.getInstanceRecordsCacheForTableKey(
           `${Model.name}:${relationshipName}`,
           "BelongsTo"
-        ).set(model, model[RelationshipConfig.getForeignKeyColumnName(Model, relationshipName)]);
+        ).set(model, model[RelationshipSchema.getForeignKeyColumnName(Model, relationshipName)]);
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -171,12 +142,12 @@ export default class Model {
       return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
     }
 
-    let belongsToPointers = RelationshipConfig.getBelongsToPointers(Model);
+    let belongsToColumnTable = RelationshipSchema.getBelongsToColumnTable(Model);
 
     Array.from(Model.columnNames).forEach((columnName) => {
       if (belongsToColumnNames.has(columnName)) {
         let cache = getTransformedValue(model, columnName, buildObject);
-        let { relationshipName, relationshipClass } = belongsToPointers[columnName];
+        let { relationshipName, relationshipClass } = belongsToColumnTable[columnName];
 
         return Object.defineProperty(model, columnName, {
           configurable: false,
@@ -628,6 +599,19 @@ export default class Model {
     return new Changeset(this, this.changes);
   }
 
+  get fetchedRelationships() {
+    let Class = this.constructor as typeof Model;
+    let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
+
+    return Object.keys(relationshipTable).filter((relationshipName) => {
+      return RelationshipDB[
+        `instanceRecords${relationshipTable[relationshipName].relationshipType}Cache`
+      ]
+        .get(`${Class.name}:${relationshipName}`)
+        ?.has(this);
+    });
+  }
+
   changedAttributes() {
     if (this.revisionHistory.length === 0) {
       throw new RuntimeError(
@@ -720,30 +704,6 @@ function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) 
   }
 }
 
-type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
-
-function getRelationsForEntity(
-  Class: typeof Model,
-  relationshipType: relationshipType
-): ModelRelationships {
-  let relationshipSchema = RelationshipConfig.getRelationshipSchemaDefinitions(
-    Class
-  ) as RelationshipDefinitionStore;
-
-  return relationshipSchema
-    ? Object.keys(relationshipSchema).reduce((result, relationshipPropertyName) => {
-        let schema = relationshipSchema[relationshipPropertyName];
-
-        if (schema.type === relationshipType) {
-          result[relationshipPropertyName] =
-            typeof schema.target === "function" ? schema.target() : schema.target;
-        }
-
-        return result;
-      }, {})
-    : {};
-}
-
 function attributeTrackingEnabled(options?: ModelBuildOptions) {
   return !options || options.revision !== false;
 }
@@ -789,8 +749,8 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
           }
         });
 
-        if (Class.belongsToColumnNames.has(columnName)) {
-          let { relationshipClass, relationshipName } = RelationshipConfig.getBelongsToPointers(
+        if (RelationshipSchema.getBelongsToColumnNames(Class).has(columnName)) {
+          let { relationshipClass, relationshipName } = RelationshipSchema.getBelongsToColumnTable(
             Class
           )[columnName];
 

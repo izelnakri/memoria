@@ -1,5 +1,5 @@
 import Model from "../../model.js";
-import RelationshipConfig from "./config.js";
+import RelationshipSchema from "./config.js";
 import type { PrimaryKey } from "../../types.js";
 
 // Mutation functions:
@@ -13,7 +13,6 @@ import type { PrimaryKey } from "../../types.js";
 // generatedRecordFromPersistance
 // References(Only For Records with PrimaryKey)
 
-type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 type RelationshipTableKey = string;
 type BelongsToPrimaryKey = PrimaryKey;
 
@@ -25,6 +24,8 @@ type BelongsToPrimaryKey = PrimaryKey;
 // I might really need a Graph here instead in future:
 
 // TODO: NOW question is can CCUD refresh the cache correctly and fast
+// TODO: in future try to optimize instanceCache(s) with id references instead of full instance variables(?)
+// TODO: investigate if I can optimize or cache relatedRelationships(model) lookup(less iteration)
 export default class RelationshipDB {
   static persistedRecordsBelongsToCache: Map<
     RelationshipTableKey,
@@ -32,17 +33,16 @@ export default class RelationshipDB {
   > = new Map();
 
   // NOTE: this state is kept for user changes prior CRUD:
-  // When getting relationship we do reflexive lookup for (belongsTo & hasMany) if it doesnt exist in direct instance cache
   static instanceRecordsBelongsToCache: Map<
     RelationshipTableKey,
     WeakMap<Model, null | Model>
   > = new Map();
 
-  // TODO: is OneToOne still needed(?), yes because we cant reach otherwise, prior CCUD mutated relationship on re-read without reload
+  // TODO: is OneToOne still needed because we cant reach otherwise relationships that are mutated and not saved or re-read without reload
   static instanceRecordsOneToOneCache: Map<
     RelationshipTableKey,
     WeakMap<Model, null | Model>
-  > = new Map(); // NOTE: can be done in instanceReferences(?)
+  > = new Map();
 
   static instanceRecordsHasManyCache: Map<
     RelationshipTableKey,
@@ -53,20 +53,6 @@ export default class RelationshipDB {
   // NOTE: maybe add null too lookup keys, probably not needed at the beginning
   static instanceReferences: Map<typeof Model, Map<PrimaryKey, Set<Model>>> = new Map(); // Only used for models with id on purpose! NOTE: needed for updating instance hasMany Records
 
-  static getModelReferences(Class: typeof Model) {
-    if (!this.instanceReferences.has(Class)) {
-      this.instanceReferences.set(Class, new Map());
-    }
-
-    return this.instanceReferences.get(Class);
-  }
-  static findModelReferences(Class: typeof Model, primaryKey: PrimaryKey): Set<Model> {
-    let references = this.getModelReferences(Class) as Map<PrimaryKey, Set<Model>>;
-
-    return (references.has(primaryKey)
-      ? references.get(primaryKey)
-      : references.set(primaryKey, new Set())) as Set<Model>;
-  }
   static getInstanceRecordsCacheForTableKey(
     relationshipTableKey: string,
     relationshipType: string
@@ -76,6 +62,16 @@ export default class RelationshipDB {
     }
 
     return this[`instanceRecords${relationshipType}Cache`].get(relationshipTableKey);
+  }
+  static getPersistedRecordsCacheForTableKey(tableKey: string) {
+    if (!this.persistedRecordsBelongsToCache.has(tableKey)) {
+      this.persistedRecordsBelongsToCache.set(tableKey, new Map());
+    }
+
+    return this.persistedRecordsBelongsToCache.get(tableKey) as Map<
+      PrimaryKey,
+      null | BelongsToPrimaryKey
+    >;
   }
   static findInstanceRelationshipRecordsFor(
     model,
@@ -89,19 +85,79 @@ export default class RelationshipDB {
     ).get(model);
   }
 
+  static getModelReferences(Class: typeof Model) {
+    if (!this.instanceReferences.has(Class)) {
+      this.instanceReferences.set(Class, new Map());
+    }
+
+    return this.instanceReferences.get(Class);
+  }
+  static findModelReferences(Class: typeof Model, primaryKey: PrimaryKey): Set<Model> {
+    let references = this.getModelReferences(Class) as Map<PrimaryKey, Set<Model>>;
+
+    if (!references.has(primaryKey)) {
+      references.set(primaryKey, new Set());
+    }
+
+    return references.get(primaryKey) as Set<Model>;
+  }
+
   // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos', 'HasMany')
-  // Example: Relationship.generateRelationshipFromPersistence(user, 'email', OneToOne); // looks both sides
+  // Example: Relationship.generateRelationshipFromPersistence(user, 'email', 'OneToOne'); // looks both sides
   // used deciding whether record should be fetched for BelongsTo, OneToOne
-  // used for diffing on HasMany, BelongsTo & OneToOne(provided to CCUD and compare with newly obtained)
+  // used for diffing on HasMany, BelongsTo & OneToOne(provided to CCUD and compare with newly obtained) instead I do a instanceCheck wtf(?)
   static generateRelationshipFromPersistence(
     model: Model,
     relationshipName: string,
     relationshipType: string,
     RelationshipClass: typeof Model
   ) {
-    // let RelationshipClass = Array.isArray(Class.relationshipSummary[relationshipName])
-    //   ? Class.relationshipSummary[relationshipName][0]
-    //   : Class.relationshipSummary[relationshipName];
+    let Class = model.constructor as typeof Model;
+    let primaryKey = model[Class.primaryKeyName];
+
+    if (relationshipType === "BelongsTo") {
+      // NOTE: what if primaryKey doesnt exist(?)
+      return this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).get(
+        model[Class.primaryKeyName]
+      );
+    } else if (relationshipType === "OneToOne") {
+      // let reverseRelationship =
+    } else if (relationshipType === "HasMany") {
+    }
+
+    // let snapshot = this[`find${relationshipType}InstanceSnapshotFor`](
+    //   model,
+    //   relationshipName,
+    //   RelationshipClass
+    // );
+    // if (snapshot) {
+    //   return snapshot;
+    // }
+
+    // if (relationshipType === "BelongsTo") {
+    //   let reverseRelationshipType = "OneToOne";
+    //   let snapshot = this[`find${reverseRelationshipType}InstanceSnapshotFor`](
+    //     model, // NOTE: reverseModel(?)
+    //     relationshipName,
+    //     RelationshipClass // NOTE: model.constructor(?)
+    //   );
+    //   if (snapshot) {
+    //     return snapshot;
+    //   }
+    //   // NOTE: also try from HasMany afterwards(?)
+    // } else if (relationshipType === "OneToOne") {
+    //   let reverseRelationshipType = "BelongsTo";
+    //   let snapshot = this[`find${reverseRelationshipType}InstanceSnapshotFor`](
+    //     model, // NOTE: reverseModel(?)
+    //     relationshipName,
+    //     RelationshipClass // NOTE: model.constructor(?)
+    //   );
+    //   if (snapshot) {
+    //     return snapshot;
+    //   }
+    // } else if (relationshipType === "HasMany") {
+    //   // TODO: generate from belongsTo References
+    // }
     // TODO: these will use lookup direct cache first, then possibilities for a final snapshots. It creates a optimistic snapshot for hasMany Records
   }
 
@@ -135,6 +191,7 @@ export default class RelationshipDB {
     let reverseRelationships = RelationshipModel.relationshipSummary;
     let targetReverseRelationshipName = Object.keys(reverseRelationships).find(
       (relationshipName) => {
+        // TODO: improve this to only target BelongsTo(?)
         return (
           !Array.isArray(reverseRelationships[relationshipName]) &&
           reverseRelationships[relationshipName].name === Class.name
@@ -181,18 +238,69 @@ export default class RelationshipDB {
     return targetReferences.map((reference) => peekRecord(RelationshipModel, reference));
   }
 
-  static insert(model: Model) {}
+  static insert(model: Model) {
+    let Class = model.constructor as typeof Model;
+    let primaryKey = model[Model.primaryKeyName];
 
-  static cache(model: Model) {}
+    Class.belongsToColumnNames.forEach((columnName) => {
+      let relationshipName; // TODO:
+      this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
+        primaryKey,
+        model[columnName]
+      );
+    });
 
-  // TODO: does diffing for adding or replacing relationship records
-  static update(model: Model) {} // NOTE: This will be used for fetch as well, when fetching no need to set anything(no storage on instanceRecordsBelongsToCache, no store smt(?))
+    return this.updateAllInstanceRelationshipsCachesFor(model);
+
+    // TODO: Maybe update from other side needed(?) where Class is the value NOT the key
+    // recreate a temp small target Object to iterate: Map<typeof Model, { [relationshipName]: value }>
+    // it should only update where the value is the same primaryKey
+  }
+
+  // TODO: this should also be done for Model.cache() ? RelationshipDB.insert(model) : RelationshipDB.update(model)
+  static update(model: Model) {
+    // TODO: update persistedRecordsBelongsToCache
+
+    return this.updateAllInstanceRelationshipsCachesFor(model);
+  }
+
+  static updateAllInstanceRelationshipsCachesFor(model: Model) {
+    let Class = model.constructor as typeof Model;
+    let relationshipsToSync = Array.from(Class.relationshipNames).reduce(
+      (result, relationshipName) => {
+        let map = this.getInstanceRecordsCacheForTableKey(
+          `${Class.name}:${relationshipName}`,
+          relationshipType
+        );
+        let value = map.get(model);
+        if (value || value === null) {
+          result[relationshipName] = value;
+        }
+
+        return result;
+      },
+      {}
+    );
+
+    this.findModelReferences(Class, primaryKey).forEach((instance) => {
+      if (instance !== model) {
+        Object.keys(relationshipsToSync).forEach((relationshipName) => {
+          let relationshipType; // TODO:
+          let map = this.getInstanceRecordsCacheForTableKey(
+            `${Class.name}:${relationshipName}`,
+            relationshipType
+          );
+          map.set(instance, relationshipsToSync[relationshipName]); // TODO: maybe setWithRevisionIfNeeded
+        });
+      }
+    });
+  }
 
   // NOTE: Deletes persisted to references, from references to instances from instances to relationship change
   static delete(model: Model) {
     let Class = model.constructor as typeof Model;
-    let relationshipSummary = RelationshipConfig.relationshipsSummary;
-    let belongsToPointers = RelationshipConfig.getBelongsToPointers(Class);
+    let relationshipSummary = RelationshipSchema.relationshipsSummary;
+    let belongsToColumnTable = RelationshipSchema.getBelongsToColumnTable(Class);
     let instanceSet = this.getModelReferences(Class).get(model[Model.primaryKeyName]);
 
     instanceSet.forEach((instance) => {
@@ -202,8 +310,8 @@ export default class RelationshipDB {
     instanceSet.add(model);
 
     let modelReference = model.isNew ? model : model[Class.primaryKeyName];
-    let belongsToReferences = Object.keys(belongsToPointers).map((columnName) => {
-      let targetInstance = model[belongsToPointers[columnName].relationshipName];
+    let belongsToReferences = Object.keys(belongsToColumnTable).map((columnName) => {
+      let targetInstance = model[belongsToColumnTable[columnName].relationshipName];
       let target = targetInstance[reverseRelationshipName]; // NOTE: do this to all instances(?) if needed
 
       if (Array.isArray(target)) {
@@ -214,7 +322,7 @@ export default class RelationshipDB {
         // delete if needed: primaryKey match or instance
       }
 
-      return `${belongsToPointers[columnName].relationshipClass.name}:${columnName}`;
+      return `${belongsToColumnTable[columnName].relationshipClass.name}:${columnName}`;
     });
 
     belongsToReferences.forEach((reference) => {
@@ -228,9 +336,9 @@ export default class RelationshipDB {
       // Class.belongsToRelationships.forEach((relationshipName) => {
       //   this.persistedRecordsBelongsToCache.get(`${Class.name}:${relationshipName}`).clear();
       // });
-      // Object.keys(RelationshipConfig.relationshipsSummary).forEach((modelName) => {
+      // Object.keys(RelationshipSchema.relationshipsSummary).forEach((modelName) => {
       //   if (Class.name !== modelName) {
-      //     let relationshipSummary = RelationshipConfig.relationshipsSummary[modelName];
+      //     let relationshipSummary = RelationshipSchema.relationshipsSummary[modelName];
       //     Object.keys(relationshipSummary).forEach((relationshipName) => {
       //       let summaryDefinition = relationshipSummary[relationshipName];
       //       if (
@@ -297,7 +405,7 @@ export default class RelationshipDB {
   static set(model: Model, relationshipName: string, input: null | Model) {
     // NOTE: this should change models foreignKey on assignment!
     let Class = model.constructor;
-    let relationshipType = getRelationshipType(model, relationshipName);
+    let relationshipType = RelationshipSchema.getRelationshipType(model, relationshipName);
     if (relationshipType === "BelongsTo") {
       let map = this.getInstanceRecordsCacheForTableKey(
         `${Class.name}:${relationshipName}`,
@@ -325,7 +433,7 @@ function peekRecord(
 }
 
 // function getBelongsToRecords(reference = "instance") {
-//   return RelationshipConfig[
+//   return RelationshipSchema[
 //     reference === "instance" ? "instanceRecordsBelongsToCache" : "persistedRecordsBelongsToCache"
 //   ];
 // }
@@ -361,7 +469,7 @@ function buildReferenceFromPersistedCache(model: Model, relationshipName: string
   let RelationshipClass = Array.isArray(Class.relationshipSummary[relationshipName])
     ? Class.relationshipSummary[relationshipName][0]
     : Class.relationshipSummary[relationshipName];
-  let relationshipType = getRelationshipType(model, relationshipName);
+  let relationshipType = RelationshipSchema.getRelationshipType(model, relationshipName);
   let foundValue;
   if (relationshipType === "BelongsTo" || relationshipType === "OneToOne") {
     foundValue = RelationshipDB.generateRelationshipFromPersistence(
@@ -389,21 +497,6 @@ function buildReferenceFromPersistedCache(model: Model, relationshipName: string
     relationshipName
   );
 }
-
-// NOTE: this possibly causes major performance issues
-// TODO: maybe this can be optimized(!!);
-function getRelationshipType(model: Model, relationshipName: string): RelationshipType {
-  let Class = model.constructor as typeof Model;
-
-  if (Object.keys(Class.belongsToRelationships).find((name) => name === relationshipName)) {
-    return "BelongsTo";
-  } else if (Object.keys(Class.hasOneRelationships).find((name) => name === relationshipName)) {
-    return "OneToOne";
-  } else if (Object.keys(Class.hasManyRelationships).find((name) => name === relationshipName)) {
-    return "HasMany";
-  } else if (Object.keys(Class.manyToManyRelationships).find((name) => name === relationshipName)) {
-    return "ManyToMany";
-  }
-
-  throw new Error(`${relationshipName} relationship not found on ${Class.name}`);
-}
+// let RelationshipClass = Array.isArray(Class.relationshipSummary[relationshipName])
+//   ? Class.relationshipSummary[relationshipName][0]
+//   : Class.relationshipSummary[relationshipName];

@@ -1,5 +1,5 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { RuntimeError } from "@memoria/model";
+import MemoriaModel, { RuntimeError, RelationshipPromise } from "@memoria/model";
 import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
@@ -255,6 +255,18 @@ export default class RESTAdapter extends MemoryAdapter {
     );
 
     return this.unloadAll(Model, records);
+  }
+
+  // NOTE: make this work in REST
+  static fetchRelationship(
+    model: MemoriaModel,
+    RelationshipClass: typeof MemoriaModel,
+    relationshipType: string,
+    relationshipName: string
+  ) {
+    return new RelationshipPromise(async (resolve, reject) => {
+      // TODO:
+    });
   }
 }
 

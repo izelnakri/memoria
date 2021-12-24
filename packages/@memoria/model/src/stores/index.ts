@@ -1,8 +1,12 @@
-import Config from "./config.js";
+import Schema from "./config.js";
 import DB from "./db.js";
-import RelationshipConfig from "./relationship/config.js";
+import RelationshipSchema from "./relationship/config.js";
 import RelationshipDB from "./relationship/db.js";
 
-export type { RelationshipSummary } from "./relationship/config.js";
+export type {
+  RelationshipType,
+  RelationshipSummary,
+  RelationshipTable,
+} from "./relationship/config.js";
 
-export { Config, DB, RelationshipConfig, RelationshipDB };
+export { Schema, DB, RelationshipSchema, RelationshipDB };

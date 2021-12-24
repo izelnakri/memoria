@@ -5,11 +5,12 @@ import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
-  Config,
+  Schema,
   DeleteError,
   InsertError,
   UpdateError,
   RuntimeError,
+  RelationshipPromise,
 } from "@memoria/model";
 import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
 
@@ -46,7 +47,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // @ts-ignore
     this._connection = (await createConnection({
       // @ts-ignore
-      entities: Config.Schemas.map((schema) => new EntitySchema(schema)),
+      entities: Schema.Schemas.map((schema) => new EntitySchema(schema)),
       ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
     })) as Connection;
 
@@ -58,7 +59,7 @@ export default class SQLAdapter extends MemoryAdapter {
     return connection.manager;
   }
 
-  static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
+  static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
       throw new RuntimeError(
         "$Model.resetSchemas($Model) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
@@ -67,7 +68,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let connection = await this.getConnection();
 
     await connection.dropDatabase();
-    await super.resetSchemas(Config, Model);
+    await super.resetSchemas(Schema, Model);
 
     // TODO: check if this is needed to clear typeorm MetadataArgsStore:
     // NOTE: uncommenting this breaks test builds on static imports. Check if this is even needed, or there is another way:
@@ -78,7 +79,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await connection.close();
 
-    return Config;
+    return Schema;
   }
 
   static async resetRecords(
@@ -104,7 +105,7 @@ export default class SQLAdapter extends MemoryAdapter {
       return await this.resetCache(Model, [], options);
     }
 
-    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
+    let tableNames = Schema.Schemas.map((schema) => `"${schema.target.tableName}"`);
 
     await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
 
@@ -408,6 +409,18 @@ export default class SQLAdapter extends MemoryAdapter {
     return result.raw.map((rawResult) =>
       Model.build(rawResult, Object.assign(options || {}, { isNew: false, isDeleted: true }))
     );
+  }
+
+  // TODO: make this work in SQL
+  static fetchRelationship(
+    model: MemoriaModel,
+    RelationshipClass: typeof MemoriaModel,
+    relationshipType: string,
+    relationshipName: string
+  ) {
+    return new RelationshipPromise(async (resolve, reject) => {
+      // TODO:
+    });
   }
 }
 

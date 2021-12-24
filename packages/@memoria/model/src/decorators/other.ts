@@ -1,9 +1,9 @@
-import Config from "../stores/config.js";
+import Schema from "../stores/schema.js";
 
 // NOTE: maybe remove target: references if it bloats memory
 export function Generated(generateFunction) {
   return function (target: any, propertyName: string, descriptor: any) {
-    Config.assignColumnMetadata(target.constructor, propertyName, {
+    Schema.assignColumnForSchema(target.constructor, propertyName, {
       generated: generateFunction || true,
     });
 
@@ -34,7 +34,7 @@ export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOption
     }
     let Class = propertyName ? target.constructor : target;
 
-    Config.getSchema(Class).indices.push({
+    Schema.getSchema(Class).indices.push({
       target: Class,
       name: name,
       columns: propertyName ? [propertyName] : fields,
@@ -84,7 +84,7 @@ export function Unique(
 
     let Class = propertyName ? target.constructor : target;
 
-    Config.getSchema(Class).uniques.push({
+    Schema.getSchema(Class).uniques.push({
       target: Class,
       name: name,
       columns,
@@ -104,7 +104,7 @@ export function Check(nameOrExpression: string, maybeExpression?: string) {
     let name = maybeExpression ? nameOrExpression : undefined;
     let expression = maybeExpression ? maybeExpression : nameOrExpression;
 
-    Config.getSchema(Class).checks.push({ target: Class, name, expression });
+    Schema.getSchema(Class).checks.push({ target: Class, name, expression });
 
     return target.constructor.Adapter.Decorators.Check(nameOrExpression, maybeExpression)(
       target.constructor,
@@ -121,7 +121,7 @@ export function Exclusion(nameOrExpression: string, maybeExpression?: string) {
     let name = maybeExpression ? nameOrExpression : undefined;
     let expression = maybeExpression ? maybeExpression : nameOrExpression;
 
-    Config.getSchema(Class).exclusions.push({ target: Class, name, expression });
+    Schema.getSchema(Class).exclusions.push({ target: Class, name, expression });
 
     return target.constructor.Adapter.Decorators.Exclusion(nameOrExpression, maybeExpression)(
       target.constructor,
