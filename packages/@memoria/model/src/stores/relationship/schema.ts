@@ -133,7 +133,8 @@ export default class RelationshipSchema {
         this.getBelongsToColumnTable(Class)[foreignKeyColumnName] = {
           RelationshipClass,
           relationshipName,
-          reverseRelationshipName: this.getReverseRelationshipName(Class, relationshipName),
+          reverseRelationshipName: this.getRelationshipMetadataFor(Class, relationshipName)
+            .reverseRelationshipName,
         };
         belongsToColumnNames.add(foreignKeyColumnName);
       });
@@ -158,32 +159,16 @@ export default class RelationshipSchema {
   }
 
   static getReverseRelationshipTable(Class: typeof Model, relationshipName: string) {
-    let { RelationshipClass } = this.getRelationshipTable(Class)[relationshipName]; // TODO: maybe do this getOrCacheReverseRelationshipTable as well always
+    let { RelationshipClass } = this.getRelationshipTable(Class)[relationshipName]; // TODO: maybe do this getRelationshipMetadataFor as well always
 
     return this.getRelationshipTable(RelationshipClass);
   }
 
-  // NOTE: in future this can be smarter with new decorator API Changes:
-  static getReverseRelationshipName(Class: typeof Model, relationshipName: string) {
-    let relationshipTable = this.getOrCacheReverseRelationshipTable(Class, relationshipName);
-
-    return relationshipTable[relationshipName].reverseRelationshipName;
-  }
-
-  static getReverseRelationshipForeignColumnName(Class: typeof Model, relationshipName: string) {
-    let relationshipTable = this.getOrCacheReverseRelationshipTable(Class, relationshipName);
-
-    return relationshipTable[relationshipName].reverseRelationshipForeignKeyColumnName;
-  }
-
-  static getOrCacheReverseRelationshipTable(Class: typeof Model, relationshipName: string) {
+  static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
 
-    if (
-      !currentMetadata.foreignKeyColumnName &&
-      !currentMetadata.reverseRelationshipForeignKeyColumnName
-    ) {
+    if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipTable = this.getReverseRelationshipTable(Class, relationshipName);
       let reverseRelationshipName =
         Object.keys(reverseRelationshipTable).find((reverseRelationshipName) => {
@@ -212,7 +197,7 @@ export default class RelationshipSchema {
       }
     }
 
-    return relationshipTable;
+    return relationshipTable[relationshipName];
   }
 
   static getRelationshipType(Class: typeof Model, relationshipName: string): RelationshipType {

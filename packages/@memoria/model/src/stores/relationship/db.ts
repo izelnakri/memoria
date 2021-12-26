@@ -1,31 +1,28 @@
+// We should refresh/mutate caches on CCUD: create, cache(fetch), update, delete
+// NOTE: Not implemented for ManyToMany which will be important
 import Model from "../../model.js";
 import RelationshipSchema from "./config.js";
 import type { PrimaryKey } from "../../types.js";
 
-// Mutation functions:
-// referenceAdd(model, relationshipName, value)
-// referenceChange(model, relationshipName, from, to)
-// referenceDelete(model, relationshipName) all intendend with setReference() atm
-
 // Types:
 // instanceRecord
-// instanceSnapshot(if doesnt exist, generate)
 // generatedRecordFromPersistance
 // References(Only For Records with PrimaryKey)
 
 type RelationshipTableKey = string;
 type BelongsToPrimaryKey = PrimaryKey;
 
-// We should refresh/mutate caches on CCUD: create, cache(fetch), update, delete
 // only hasMany lookups are slightly expensive, and deleting models with them, re-evaluate
 // NOTE: maybe seekCachedValue() is undeed if lookups never go to persistedRecordsBelongsToCache
-
-// NOTE: Not adjusted for ManyToMany which will be important
-// I might really need a Graph here instead in future:
 
 // TODO: NOW question is can CCUD refresh the cache correctly and fast
 // TODO: in future try to optimize instanceCache(s) with id references instead of full instance variables(?)
 // TODO: investigate if I can optimize or cache relatedRelationships(model) lookup(less iteration)
+
+// TODO: optimize relationshipType lookups
+
+// TODO: Two approaches: Update similar instances on CRUD, NOT update similar instances on CRUD, only persistedRecordsBelongsToCache, and have timeStamp for each revision(?)
+// TODO: make it so lazy that most computation happens when instance is (get-ted) not even on crud(?)
 export default class RelationshipDB {
   static persistedRecordsBelongsToCache: Map<
     RelationshipTableKey,
@@ -76,12 +73,15 @@ export default class RelationshipDB {
   static findInstanceRelationshipRecordsFor(
     model,
     relationshipName: string,
-    relationshipType: string
+    relationshipType?: string
   ) {
     let Class = model.constructor as typeof Model;
+    let targetReverseRelationshipType =
+      relationshipType ||
+      RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName).relationshipType;
     return this.getInstanceRecordsCacheForTableKey(
       `${Class.name}:${relationshipName}`,
-      relationshipType
+      targetReverseRelationshipType
     ).get(model);
   }
 
@@ -102,169 +102,86 @@ export default class RelationshipDB {
     return references.get(primaryKey) as Set<Model>;
   }
 
-  // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos', 'HasMany')
-  // Example: Relationship.generateRelationshipFromPersistence(user, 'email', 'OneToOne'); // looks both sides
+  // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos') #=> Photo[]
+  // Example: Relationship.generateRelationshipFromPersistence(user, 'email'); #=> Email // looks both sides
   // used deciding whether record should be fetched for BelongsTo, OneToOne
   // used for diffing on HasMany, BelongsTo & OneToOne(provided to CCUD and compare with newly obtained) instead I do a instanceCheck wtf(?)
-  static generateRelationshipFromPersistence(
-    model: Model,
-    relationshipName: string,
-    relationshipType: string,
-    RelationshipClass: typeof Model
-  ) {
+  static generateRelationshipFromPersistence(model: Model, relationshipName: string) {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
-
-    if (relationshipType === "BelongsTo") {
-      // NOTE: what if primaryKey doesnt exist(?)
-      return this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).get(
-        model[Class.primaryKeyName]
-      );
-    } else if (relationshipType === "OneToOne") {
-      // let reverseRelationship =
-    } else if (relationshipType === "HasMany") {
+    if (!primaryKey) {
+      return;
     }
 
-    // let snapshot = this[`find${relationshipType}InstanceSnapshotFor`](
-    //   model,
-    //   relationshipName,
-    //   RelationshipClass
-    // );
-    // if (snapshot) {
-    //   return snapshot;
-    // }
+    let {
+      RelationshipClass,
+      relationshipType,
+      foreignKeyColumnName,
+      reverseRelationshipName,
+      reverseRelationshipForeignKeyColumnName,
+    } = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
 
-    // if (relationshipType === "BelongsTo") {
-    //   let reverseRelationshipType = "OneToOne";
-    //   let snapshot = this[`find${reverseRelationshipType}InstanceSnapshotFor`](
-    //     model, // NOTE: reverseModel(?)
-    //     relationshipName,
-    //     RelationshipClass // NOTE: model.constructor(?)
-    //   );
-    //   if (snapshot) {
-    //     return snapshot;
-    //   }
-    //   // NOTE: also try from HasMany afterwards(?)
-    // } else if (relationshipType === "OneToOne") {
-    //   let reverseRelationshipType = "BelongsTo";
-    //   let snapshot = this[`find${reverseRelationshipType}InstanceSnapshotFor`](
-    //     model, // NOTE: reverseModel(?)
-    //     relationshipName,
-    //     RelationshipClass // NOTE: model.constructor(?)
-    //   );
-    //   if (snapshot) {
-    //     return snapshot;
-    //   }
-    // } else if (relationshipType === "HasMany") {
-    //   // TODO: generate from belongsTo References
-    // }
-    // TODO: these will use lookup direct cache first, then possibilities for a final snapshots. It creates a optimistic snapshot for hasMany Records
+    if (relationshipType === "BelongsTo") {
+      return model[foreignKeyColumnName] && RelationshipClass.peek(model[foreignKeyColumnName]);
+    } else if (relationshipType === "OneToOne") {
+      return RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey });
+    } else if (relationshipType === "HasMany") {
+      return filterInIterator(
+        this.persistedRecordsBelongsToCache.get(
+          `${RelationshipClass.name}:${reverseRelationshipName}`
+        ),
+        (relatedModel) => relatedModel[Class.primaryKeyName] === primaryKey
+      );
+    }
   }
 
-  // TODO: Refactor these query methods below, logic is wrong
   // NOTE: Cache is inserted lazily for model instances, these helper methods looks it up from cache references
-  static findBelongsToInstanceSnapshotFor(
-    model: Model,
-    relationshipName: string,
-    TargetRelationship: typeof Model
-  ) {
-    let Class = model.constructor as typeof Model;
-    let tableKey = `${Class.name}:${relationshipName}`;
-
-    let cachedBelongsTo = peekRecord(
-      TargetRelationship,
-      this.instanceRecordsBelongsToCache.get(tableKey)?.get(model)
-    ); // also check if it happens reverse + instanceDirect + belongsToDirect + belongsToReflection + instanceReflection
-
-    return seekCachedValue(
-      cachedBelongsTo,
-      peekRecord(
-        TargetRelationship,
-        this.persistedRecordsBelongsToCache.get(tableKey)?.get(model[Class.primaryKeyName])
-      )
-    );
-  }
-
-  static findOneToOneInstanceSnapshotFor(model, relationshipName) {
-    let Class = model.constructor;
-    let RelationshipModel = model.relationshipSummary[relationshipName];
-    let reverseRelationships = RelationshipModel.relationshipSummary;
-    let targetReverseRelationshipName = Object.keys(reverseRelationships).find(
-      (relationshipName) => {
-        // TODO: improve this to only target BelongsTo(?)
-        return (
-          !Array.isArray(reverseRelationships[relationshipName]) &&
-          reverseRelationships[relationshipName].name === Class.name
-        );
-      }
-    );
-    let targetValue = model.isNew ? model : model[Class.primaryKeyName];
-    let tableKey = `${RelationshipModel.name}:${targetReverseRelationshipName}`;
-
-    return peekRecord(
-      RelationshipModel,
-      seekCachedValue(
-        findKeyByValue(getBelongsToRecords("instance")[tableKey], targetValue),
-        findKeyByValue(getBelongsToRecords("persisted")[tableKey], targetValue)
-      )
-    );
-  }
-
-  // TODO: this is not right logic as HasMany might still be missing records,
-  // mutation on it should be done on belongsTo(?) only on CCUD on single record
-
-  // reflexive mutation on HasMany(?) yes can be done against the search(is it cheap(?))
-
-  // TODO: do not use it for caching, only for diffing on CCUD for the instance cache
-  static findHasManyRecordsInstanceSnapshotFor(model, relationshipName) {
-    let Class = model.constructor;
-    let RelationshipModel = model.relationshipSummary[relationshipName][0];
-    let reverseRelationships = RelationshipModel.relationshipSummary;
-    let targetReverseRelationshipName = Object.keys(reverseRelationships).find(
-      (relationshipName) => {
-        return (
-          Array.isArray(reverseRelationships[relationshipName]) &&
-          reverseRelationships[relationshipName][0].name === Class.name
-        );
-      }
-    );
-    let targetValue = model.isNew ? model : model[Class.primaryKeyName];
-    let targetTableKey = `${RelationshipModel.name}:${targetReverseRelationshipName}`;
-    let targetReferences = seekCachedValue(
-      findKeysByValue(getBelongsToRecords("instance")[targetTableKey], targetValue), // not true
-      findKeysByValue(getBelongsToRecords("persisted")[targetTableKey], targetValue)
-    );
-
-    return targetReferences.map((reference) => peekRecord(RelationshipModel, reference));
-  }
+  // TODO: do not use it for caching, only for diffing on CCUD for the instance cache, small optimization(?) can be large for HasMany
+  // NOTE: this could be useful only for optimizating mutatations on similar instances for CCUD, we can also do reflexive lookup if needed
+  // static findSnapshotFor(model: Model, relationshipName: string) {
+  //   // TODO: problem is we dont know which one is latest, also we dont know the origin of the instance mutation reference!!
+  //   // NOTE: thats why naive, update all similar instances approach seems better(but it wont update foreignKey reference changes only existing records, thats what we want(?), but its potentially slower)
+  //   return (
+  //     this.findInstanceRelationshipRecordsFor(model, relationshipName) ||
+  //     this.generateRelationshipFromPersistence(model, relationshipName)
+  //   );
+  // }
 
   static insert(model: Model) {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Model.primaryKeyName];
+    let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo");
 
-    Class.belongsToColumnNames.forEach((columnName) => {
-      let relationshipName; // TODO:
+    Object.keys(belongsToRelationshipTable).forEach((relationshipName) => {
       this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
         primaryKey,
-        model[columnName]
+        model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName]
       );
     });
 
     return this.updateAllInstanceRelationshipsCachesFor(model);
-
-    // TODO: Maybe update from other side needed(?) where Class is the value NOT the key
-    // recreate a temp small target Object to iterate: Map<typeof Model, { [relationshipName]: value }>
-    // it should only update where the value is the same primaryKey
   }
 
   // TODO: this should also be done for Model.cache() ? RelationshipDB.insert(model) : RelationshipDB.update(model)
   static update(model: Model) {
-    // TODO: update persistedRecordsBelongsToCache
+    let Class = model.constructor as typeof Model;
+    let primaryKey = model[Model.primaryKeyName];
+    let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo");
+
+    Object.keys(belongsToRelationshipTable).forEach((relationshipName) => {
+      this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
+        primaryKey,
+        model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName]
+      );
+    });
 
     return this.updateAllInstanceRelationshipsCachesFor(model);
   }
 
   static updateAllInstanceRelationshipsCachesFor(model: Model) {
+    // TODO: Maybe update from other side needed(?) where Class is the value NOT the key
+    // recreate a temp small target Object to iterate: Map<typeof Model, { [relationshipName]: value }>
+    // it should only update where the value is the same primaryKey
     let Class = model.constructor as typeof Model;
     let relationshipsToSync = Array.from(Class.relationshipNames).reduce(
       (result, relationshipName) => {
@@ -421,6 +338,26 @@ export default class RelationshipDB {
 
     return model;
   }
+}
+
+function findInIterator(iterator, value) {
+  let isFunction = typeof value === "function";
+  for (let iteratorValue in iterator) {
+    if (isFunction ? iteratorValue === value() : iteratorValue == value) {
+      return iteratorValue;
+    }
+  }
+}
+function filterInIterator(iterator, value) {
+  let result = [];
+  let isFunction = typeof value === "function";
+  for (let iteratorValue in iterator) {
+    if (isFunction ? iteratorValue === value() : iteratorValue == value) {
+      result.push(iteratorValue);
+    }
+  }
+
+  return result;
 }
 
 function peekRecord(
