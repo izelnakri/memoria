@@ -12,7 +12,12 @@ import MemoriaModel, {
   RuntimeError,
   RelationshipPromise,
 } from "@memoria/model";
-import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
+import type {
+  PrimaryKey,
+  ModelReference,
+  ModelBuildOptions,
+  RelationshipMetadata,
+} from "@memoria/model";
 
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
@@ -414,11 +419,11 @@ export default class SQLAdapter extends MemoryAdapter {
   // TODO: make this work in SQL
   static fetchRelationship(
     model: MemoriaModel,
-    RelationshipClass: typeof MemoriaModel,
-    relationshipType: string,
-    relationshipName: string
+    relationshipName: string,
+    relationshipMetadata?: RelationshipMetadata
   ) {
-    return new RelationshipPromise(async (resolve, reject) => {
+    console.log(model, relationshipName, relationshipMetadata);
+    return new RelationshipPromise(async () => {
       // TODO:
     });
   }

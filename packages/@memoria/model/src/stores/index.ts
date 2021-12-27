@@ -1,12 +1,13 @@
-import Schema from "./config.js";
+import Schema from "./schema.js";
 import DB from "./db.js";
-import RelationshipSchema from "./relationship/config.js";
+import RelationshipSchema from "./relationship/schema.js";
 import RelationshipDB from "./relationship/db.js";
 
 export type {
   RelationshipType,
   RelationshipSummary,
   RelationshipTable,
-} from "./relationship/config.js";
+  RelationshipMetadata,
+} from "./relationship/schema.js";
 
 export { Schema, DB, RelationshipSchema, RelationshipDB };

@@ -1,5 +1,3 @@
-// TODO: deleting a model should delete it from all possible relationships!!
-
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Schema,
@@ -20,6 +18,7 @@ import type {
   ModelReference,
   DecoratorBucket,
   ModelBuildOptions,
+  RelationshipMetadata,
 } from "@memoria/model";
 
 type QueryObject = { [key: string]: any };
@@ -31,23 +30,19 @@ export default class MemoryAdapter {
 
   // TODO: make this directly Class not modelName
   static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
-    RelationshipSchema._relationshipTable.clear();
-
     if (Model) {
       let targetSchemaIndex = Schema.Schemas.findIndex(
         (schema) => schema.target.name === Model.name
       );
       if (targetSchemaIndex >= 0) {
         clearObject(Schema.Schemas[targetSchemaIndex].target.Serializer.embeds);
-        Schema.Schemas.splice(targetSchemaIndex, 1);
         DB._DB.delete(Model.name);
         DB._defaultValuesCache.delete(Model.name);
+        Schema.Schemas.splice(targetSchemaIndex, 1);
         Schema._columnNames.delete(Model.name);
         Schema._primaryKeyNameCache.delete(Model.name);
         RelationshipDB.clear(Model);
-        RelationshipSchema._belongsToColumnNames.delete(Model.name);
-        RelationshipSchema._belongsToColumnTable.delete(Model.name);
-        // TODO: this is problematic, doesnt clear other relationship embeds
+        RelationshipSchema.clear(Model);
       }
 
       return Schema;
@@ -58,8 +53,7 @@ export default class MemoryAdapter {
     Schema._columnNames.clear();
     Schema._primaryKeyNameCache.clear();
     RelationshipDB.clear();
-    RelationshipSchema._belongsToColumnNames.clear();
-    RelationshipSchema._belongsToColumnTable.clear();
+    RelationshipSchema.clear();
 
     for (let schema of Schema.Schemas) {
       // NOTE: this is complex because could hold cyclical references
@@ -143,18 +137,16 @@ export default class MemoryAdapter {
         targetOptions
       );
 
-      // setPersistedRecords
-
-      return this.returnWithCacheEviction(tryToRevision(model, options), options);
+      return this.returnWithCacheEviction(
+        RelationshipDB.cache(tryToRevision(model, options), "update"),
+        options
+      );
     }
 
     let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
-    // 1 - do it here: setPersistedRecords
-
     Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
-
-    // 2- do it here: setPersistedRecords
+    RelationshipDB.cache(target, "insert");
 
     return this.returnWithCacheEviction(target, options); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
   }
@@ -266,6 +258,7 @@ export default class MemoryAdapter {
     let target = Model.build(assignDefaultValuesForInsert(model, Model), buildOptions);
 
     Model.Cache.set(target[Model.primaryKeyName], Model.build(target, buildOptions));
+    RelationshipDB.cache(target, "insert");
 
     return this.returnWithCacheEviction(target, options);
   }
@@ -384,66 +377,40 @@ export default class MemoryAdapter {
 
   static fetchRelationship(
     model: MemoriaModel,
-    RelationshipModel: typeof MemoriaModel,
-    relationshipType: string,
-    relationshipName: string
+    relationshipName: string,
+    relationshipMetadata?: RelationshipMetadata
   ) {
     let Model = model.constructor as typeof MemoriaModel;
+    let metadata =
+      relationshipMetadata ||
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
       if (relationshipType === "BelongsTo") {
-        let foreignKeyColumnName = RelationshipSchema.getForeignKeyColumnName(
-          Model,
-          relationshipName
-        );
+        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
         if (!model[foreignKeyColumnName]) {
-          reject(
-            new Error(
-              `${Model.name}:${
-                model[Model.primaryKeyName]
-              } missing ${foreignKeyColumnName} to fetch ${RelationshipModel.name}`
-            )
-          );
+          return resolve(null);
         }
-        return resolve(RelationshipModel.peek(model[foreignKeyColumnName]));
-      } else if (relationshipType === "OneToOne") {
-        let reverseRelationships = RelationshipSchema.getReverseRelationshipTable(
-          Model,
-          relationshipName
-        );
-        let reverseRelationshipName = Object.keys(reverseRelationships).find((relationshipName) => {
-          return (
-            reverseRelationships[relationshipName].relationshipType === "BelongsTo" &&
-            reverseRelationships[relationshipName].relationshipClass.name === Model.name
-          );
-        });
 
+        return resolve(RelationshipClass.peek(model[foreignKeyColumnName]));
+      } else if (relationshipType === "OneToOne") {
         if (reverseRelationshipName) {
-          let { foreignKeyColumnName } = reverseRelationships[relationshipName];
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
           return resolve(
-            RelationshipModel.peekBy({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+            RelationshipClass.peekBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
           );
         }
 
         return reject();
       } else if (relationshipType === "HasMany") {
-        let reverseRelationships = RelationshipSchema.getReverseRelationshipTable(
-          Model,
-          relationshipName
-        );
-        let reverseRelationshipName = Object.keys(reverseRelationships).find((relationshipName) => {
-          return (
-            reverseRelationships[relationshipName].relationshipType === "BelongsTo" &&
-            reverseRelationships[relationshipName].relationshipClass.name === Model.name
-          );
-        });
-
         if (reverseRelationshipName) {
-          let { foreignKeyColumnName } = reverseRelationships[relationshipName];
-
+          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
           return resolve(
-            RelationshipModel.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+            RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
           );
         }
 

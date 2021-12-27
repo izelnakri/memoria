@@ -86,9 +86,7 @@ export default class Model {
   // TODO: test also passing new Model() instance
   // TODO: setPersistedRecords should be done here, (maybe optimize it for multiple calls in one)
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
-    let Model = this.constructor as typeof this;
-
-    if (buildObject instanceof Model) {
+    if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
         throw new Error(
           "You should not provide an instantiated but not built model to $Model.build(model)"
@@ -98,7 +96,7 @@ export default class Model {
       }
     }
 
-    let model = new Model(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
+    let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
     if (buildObject && buildObject.revisionHistory) {
       buildObject.revisionHistory.forEach((revision) => {
         model.revisionHistory.push({ ...revision });
@@ -109,21 +107,23 @@ export default class Model {
         model.changes[key] = buildObject.changes[key];
       });
     }
-    if (model[Model.primaryKeyName]) {
-      RelationshipDB.findModelReferences(Model, model[Model.primaryKeyName]).add(model);
+    if (model[this.primaryKeyName]) {
+      RelationshipDB.findModelReferences(this, model[this.primaryKeyName]).add(model);
     }
 
-    let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
-    let relationshipTable = RelationshipSchema.getRelationshipTable(Model);
-    Object.keys(relationshipTable).forEach((relationshipName) => {
-      // TODO: if isNew then do persistanceCache changes
+    let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+
+    Object.keys(RelationshipSchema.getRelationshipTable(this)).forEach((relationshipName) => {
       if (buildObject && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (belongsToColumnNames.has(relationshipName)) {
         RelationshipDB.getInstanceRecordsCacheForTableKey(
-          `${Model.name}:${relationshipName}`,
+          `${this.name}:${relationshipName}`,
           "BelongsTo"
-        ).set(model, model[RelationshipSchema.getForeignKeyColumnName(Model, relationshipName)]);
+        ).set(
+          model,
+          model[RelationshipSchema.getForeignKeyColumnName(this, relationshipName) as string]
+        );
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -139,15 +139,15 @@ export default class Model {
     });
 
     if (attributeTrackingEnabled(options)) {
-      return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
+      return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, options, buildObject);
     }
 
-    let belongsToColumnTable = RelationshipSchema.getBelongsToColumnTable(Model);
+    let belongsToColumnTable = RelationshipSchema.getBelongsToColumnTable(this);
 
-    Array.from(Model.columnNames).forEach((columnName) => {
+    Array.from(this.columnNames).forEach((columnName) => {
       if (belongsToColumnNames.has(columnName)) {
         let cache = getTransformedValue(model, columnName, buildObject);
-        let { relationshipName, relationshipClass } = belongsToColumnTable[columnName];
+        let { relationshipName, RelationshipClass } = belongsToColumnTable[columnName];
 
         return Object.defineProperty(model, columnName, {
           configurable: false,
@@ -164,7 +164,7 @@ export default class Model {
 
             if (
               this[relationshipName] &&
-              !this[relationshipName][relationshipClass.primaryKeyName]
+              !this[relationshipName][RelationshipClass.primaryKeyName]
             ) {
               return;
             }
@@ -172,7 +172,7 @@ export default class Model {
             this[relationshipName] =
               cache === null
                 ? null
-                : relationshipClass.peek(cache) || relationshipClass.find(cache);
+                : RelationshipClass.peek(cache) || RelationshipClass.find(cache);
           },
         });
       }
@@ -180,11 +180,7 @@ export default class Model {
       model[columnName] = getTransformedValue(model, columnName, buildObject);
     });
 
-    revisionEnabled(options) &&
-      !(buildObject instanceof Model && buildObject.isBuilt) &&
-      model.revisionHistory.push(Object.assign({}, model));
-
-    return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
+    return revisionAndLockModel(model, options, buildObject);
   }
 
   // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
@@ -202,6 +198,7 @@ export default class Model {
     primaryKeyTypeSafetyCheck(model, this);
 
     // NOTE: this creates revision only for update and if model is not an instance, maybe it shouldnt create on every update when no change is there
+
     return this.Adapter.cache(this, model, options);
   }
 
@@ -370,7 +367,7 @@ export default class Model {
     // hasOne, hasMany, oneToOne, ManyToMany
     // TODO: reset model instance cache of the related records
 
-    return result;
+    return RelationshipDB.delete(result);
   }
 
   static async saveAll(
@@ -710,6 +707,7 @@ function attributeTrackingEnabled(options?: ModelBuildOptions) {
 
 function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
   model: Model,
+  options,
   buildObject?: QueryObject | Model
 ) {
   let Class = model.constructor as typeof Model;
@@ -750,26 +748,34 @@ function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
         });
 
         if (RelationshipSchema.getBelongsToColumnNames(Class).has(columnName)) {
-          let { relationshipClass, relationshipName } = RelationshipSchema.getBelongsToColumnTable(
+          let { RelationshipClass, relationshipName } = RelationshipSchema.getBelongsToColumnTable(
             Class
           )[columnName];
 
-          if (this[relationshipName] && !this[relationshipName][relationshipClass.primaryKeyName]) {
+          if (this[relationshipName] && !this[relationshipName][RelationshipClass.primaryKeyName]) {
             return;
           }
 
           this[relationshipName] =
-            cache === null ? null : relationshipClass.peek(cache) || relationshipClass.find(cache);
+            cache === null ? null : RelationshipClass.peek(cache) || RelationshipClass.find(cache);
         }
       },
     });
   });
 
-  return model;
+  return revisionAndLockModel(model, options, buildObject);
 }
 
 function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {
   return buildObject && keyName in buildObject
     ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
     : model[keyName] || null;
+}
+
+function revisionAndLockModel(model, options?, buildObject?) {
+  revisionEnabled(options) &&
+    !(buildObject instanceof Model && buildObject.isBuilt) &&
+    model.revisionHistory.push(Object.assign({}, model));
+
+  return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }

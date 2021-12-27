@@ -4,13 +4,22 @@ import type { ModuleDatabase } from "../../types.js";
 
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 
+export interface RelationshipMetadata {
+  RelationshipClass: typeof Model;
+  relationshipType: RelationshipType;
+  foreignKeyColumnName: null | string;
+  reverseRelationshipForeignKeyColumnName: null | string;
+  reverseRelationshipName: null | string;
+}
+
 export interface RelationshipTable {
-  [relationshipName: string]: {
-    RelationshipClass: typeof Model;
+  [relationshipName: string]: RelationshipMetadata;
+}
+
+export interface ReverseRelationshipTable {
+  [TableKey: string]: {
+    TargetClass: typeof Model;
     relationshipType: RelationshipType;
-    foreignKeyColumnName: null | string;
-    reverseRelationshipForeignKeyColumnName: null | string;
-    reverseRelationshipName: null | string;
   };
 }
 
@@ -101,6 +110,36 @@ export default class RelationshipSchema {
     return this._relationshipTable.get(Class.name) as RelationshipTable;
   }
 
+  static _reverseRelationshipTable: Map<string, ReverseRelationshipTable> = new Map();
+  static getReverseRelationshipTable(Class: typeof Model): ReverseRelationshipTable {
+    if (!this._reverseRelationshipTable.has(Class.name)) {
+      // static _relationshipTable: Map<string, RelationshipTable> = new Map();
+      this._reverseRelationshipTable.set(
+        Class.name,
+        Object.keys(this._relationshipTable).reduce((result, className) => {
+          if (className === Class.name) {
+            return result;
+          }
+
+          let relationshipTable = this._relationshipTable[className];
+
+          return Object.keys(relationshipTable).reduce((result, relationshipName) => {
+            if (relationshipTable[relationshipName].RelationshipClass.name === Class.name) {
+              result[`${className}:${relationshipName}`] = {
+                TargetClass: relationshipTable[relationshipName].RelationshipClass,
+                relationshipType: relationshipTable[relationshipName].relationshipType,
+              };
+            }
+
+            return result;
+          }, result);
+        }, {})
+      );
+    }
+
+    return this._reverseRelationshipTable.get(Class.name) as ReverseRelationshipTable;
+  }
+
   static get relationshipsSummary(): { [modelName: string]: RelationshipSummary } {
     let summary = {};
     for (let [modelName, modelRelationTable] of this._relationshipTable.entries()) {
@@ -158,7 +197,7 @@ export default class RelationshipSchema {
     return relationshipTable[relationshipName].foreignKeyColumnName;
   }
 
-  static getReverseRelationshipTable(Class: typeof Model, relationshipName: string) {
+  static getReverseRelationshipTableFor(Class: typeof Model, relationshipName: string) {
     let { RelationshipClass } = this.getRelationshipTable(Class)[relationshipName]; // TODO: maybe do this getRelationshipMetadataFor as well always
 
     return this.getRelationshipTable(RelationshipClass);
@@ -169,7 +208,7 @@ export default class RelationshipSchema {
     let currentMetadata = relationshipTable[relationshipName];
 
     if (!currentMetadata.reverseRelationshipName) {
-      let reverseRelationshipTable = this.getReverseRelationshipTable(Class, relationshipName);
+      let reverseRelationshipTable = this.getReverseRelationshipTableFor(Class, relationshipName);
       let reverseRelationshipName =
         Object.keys(reverseRelationshipTable).find((reverseRelationshipName) => {
           let { RelationshipClass, relationshipType } = reverseRelationshipTable[
@@ -207,6 +246,21 @@ export default class RelationshipSchema {
     }
 
     throw new Error(`${relationshipName} relationship not found on ${Class.name}`);
+  }
+
+  static clear(Class?: typeof Model) {
+    this._relationshipTable.clear();
+    this._reverseRelationshipTable.clear();
+
+    if (Class) {
+      this._belongsToColumnNames.delete(Model.name);
+      this._belongsToColumnTable.delete(Model.name);
+    } else {
+      this._belongsToColumnNames.clear();
+      this._belongsToColumnTable.clear();
+    }
+
+    return this;
   }
 }
 

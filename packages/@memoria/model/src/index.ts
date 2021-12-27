@@ -5,6 +5,7 @@ export type {
   RelationshipType,
   RelationshipSummary,
   RelationshipTable,
+  RelationshipMetadata,
 } from "./stores/relationship/schema.js";
 import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
@@ -34,6 +35,7 @@ export {
   ConflictError,
   ServerError,
 } from "./errors/index.js";
+export { RelationshipPromise } from "./promises/relationship/index.js";
 import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
 export {

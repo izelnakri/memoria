@@ -1,6 +1,15 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { RuntimeError, RelationshipPromise } from "@memoria/model";
-import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
+import MemoriaModel, {
+  RuntimeError,
+  RelationshipPromise,
+  RelationshipSchema,
+} from "@memoria/model";
+import type {
+  PrimaryKey,
+  ModelReference,
+  ModelBuildOptions,
+  RelationshipMetadata,
+} from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 
@@ -166,7 +175,10 @@ export default class RESTAdapter extends MemoryAdapter {
 
     if (record instanceof MemoriaModel) {
       Model.columnNames.forEach((columnName) => {
-        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+        if (
+          result[columnName] ||
+          !RelationshipSchema.getBelongsToColumnNames(Model).has(columnName)
+        ) {
           record[columnName] = result[columnName];
         }
       });
@@ -189,7 +201,10 @@ export default class RESTAdapter extends MemoryAdapter {
 
     if (record instanceof MemoriaModel) {
       Model.columnNames.forEach((columnName) => {
-        if (result[columnName] || !Model.belongsToColumnNames.has(columnName)) {
+        if (
+          result[columnName] ||
+          !RelationshipSchema.getBelongsToColumnNames(Model).has(columnName)
+        ) {
           record[columnName] = result[columnName];
         }
       });
@@ -260,11 +275,11 @@ export default class RESTAdapter extends MemoryAdapter {
   // NOTE: make this work in REST
   static fetchRelationship(
     model: MemoriaModel,
-    RelationshipClass: typeof MemoriaModel,
-    relationshipType: string,
-    relationshipName: string
+    relationshipName: string,
+    relationshipMetadata?: RelationshipMetadata
   ) {
-    return new RelationshipPromise(async (resolve, reject) => {
+    console.log(model, relationshipName, relationshipMetadata);
+    return new RelationshipPromise(async () => {
       // TODO:
     });
   }

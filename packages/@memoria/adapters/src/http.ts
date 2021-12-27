@@ -1,4 +1,3 @@
-import RESTAdapter from "./rest/index.js";
 import MemoriaModel, {
   ErrorMetadata,
   Changeset,
@@ -191,7 +190,7 @@ async function makeFetchRequest(
     }
 
     if (httpOptions.method !== "DELETE" && Model) {
-      let Adapter = Model.Adapter as typeof RESTAdapter;
+      let Adapter = Model.Adapter;
       let modelKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
       let results = json[modelKeyName] || json[pluralize(modelKeyName)];
 
