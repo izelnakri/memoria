@@ -11,6 +11,7 @@ import Model from "./model.js";
 export type { ModelBuildOptions } from "./model.js";
 export type {
   PrimaryKey,
+  ModelName,
   ModuleDatabase,
   DecoratorBucket,
   ColumnDefinition,

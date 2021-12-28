@@ -28,21 +28,21 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
-  // TODO: make this directly Class not modelName
   static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
       let targetSchemaIndex = Schema.Schemas.findIndex(
         (schema) => schema.target.name === Model.name
       );
-      if (targetSchemaIndex >= 0) {
-        clearObject(Schema.Schemas[targetSchemaIndex].target.Serializer.embeds);
+      if (Schema.Models.get(Model)) {
         DB._DB.delete(Model.name);
         DB._defaultValuesCache.delete(Model.name);
+        Schema.Models.delete(Model.name);
         Schema.Schemas.splice(targetSchemaIndex, 1);
-        Schema._columnNames.delete(Model.name);
         Schema._primaryKeyNameCache.delete(Model.name);
+        Schema._columnNames.delete(Model.name);
+        clearObject(Schema.Schemas[targetSchemaIndex].target.Serializer.embeds);
         RelationshipDB.clear(Model);
-        RelationshipSchema.clear(Model);
+        RelationshipSchema.resetSchema(Model);
       }
 
       return Schema;
@@ -50,18 +50,17 @@ export default class MemoryAdapter {
 
     DB._DB.clear();
     DB._defaultValuesCache.clear();
-    Schema._columnNames.clear();
+    Schema.Models.clear();
     Schema._primaryKeyNameCache.clear();
-    RelationshipDB.clear();
-    RelationshipSchema.clear();
-
+    Schema._columnNames.clear();
     for (let schema of Schema.Schemas) {
       // NOTE: this is complex because could hold cyclical references
       // TODO: this only cleans registered data!!
       clearObject(schema.target.Serializer.embeds);
     }
-
     Schema.Schemas.length = 0;
+    RelationshipDB.clear();
+    RelationshipSchema.resetSchema();
 
     return Schema;
   }
@@ -311,7 +310,7 @@ export default class MemoryAdapter {
     }
 
     Model.Cache.delete(targetRecord[Model.primaryKeyName]);
-    // RelationshipDB.delete(targetRecord);
+    RelationshipDB.delete(targetRecord);
 
     targetRecord.isDeleted = true;
 
@@ -405,6 +404,7 @@ export default class MemoryAdapter {
           );
         }
 
+        debugger;
         return reject();
       } else if (relationshipType === "HasMany") {
         if (reverseRelationshipName) {
@@ -414,6 +414,7 @@ export default class MemoryAdapter {
           );
         }
 
+        debugger;
         return reject();
       }
 

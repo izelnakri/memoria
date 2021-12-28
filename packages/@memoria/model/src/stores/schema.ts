@@ -33,6 +33,7 @@ export default class Schema {
     return Array.from(result) as typeof MemoryAdapter[];
   }
 
+  static Models: ModuleDatabase<typeof Model> = new Map();
   static Schemas: SchemaDefinition[] = [];
   static getSchema(Class: typeof Model): SchemaDefinition {
     let targetSchema = this.Schemas.find((schema) => schema.name === Class.name);
@@ -48,6 +49,7 @@ export default class Schema {
         exclusions: [],
       };
       this.Schemas.push(targetSchema);
+      this.Models.set(Class.name, Class);
     }
 
     return targetSchema;
@@ -59,7 +61,7 @@ export default class Schema {
       return this._primaryKeyNameCache.get(Class.name) as string;
     }
 
-    let columns = this.getColumnsFromSchema(Class);
+    let columns = this.getColumnsMetadataFrom(Class);
     let primaryKeyName = Object.keys(columns).find((key) => columns[key].primary) as string;
 
     this._primaryKeyNameCache.set(Class.name, primaryKeyName);
@@ -73,7 +75,7 @@ export default class Schema {
     return primaryKeyName;
   }
 
-  static getColumnsFromSchema(Class: typeof Model): ColumnSchemaDefinition {
+  static getColumnsMetadataFrom(Class: typeof Model): ColumnSchemaDefinition {
     let schema = this.getSchema(Class);
     if (!schema) {
       throw new Error(
@@ -83,15 +85,15 @@ export default class Schema {
 
     return schema.columns;
   }
-  static getColumnFromSchema(Class: typeof Model, columnName: string): ColumnDefinition {
-    return this.getColumnsFromSchema(Class)[columnName];
+  static getColumnMetadata(Class: typeof Model, columnName: string): ColumnDefinition {
+    return this.getColumnsMetadataFrom(Class)[columnName];
   }
-  static assignColumnForSchema(
+  static assignColumnMetadata(
     Class: typeof Model,
     columnName: string,
     columnMetadata: ColumnDefinition
   ): ColumnSchemaDefinition {
-    let columns = this.getColumnsFromSchema(Class);
+    let columns = this.getColumnsMetadataFrom(Class);
 
     columns[columnName] = { ...columns[columnName], ...columnMetadata };
 
@@ -101,13 +103,13 @@ export default class Schema {
   static _columnNames: ModuleDatabase<Set<string>> = new Map();
   static getColumnNames(Class: typeof Model): Set<string> {
     if (!this._columnNames.has(Class.name)) {
-      this._columnNames.set(Class.name, new Set(Object.keys(this.getColumnsFromSchema(Class))));
+      this._columnNames.set(Class.name, new Set(Object.keys(this.getColumnsMetadataFrom(Class))));
     }
 
     return this._columnNames.get(Class.name) as Set<string>;
   }
 
-  static async resetSchemas(Class: typeof Model): Promise<Schema> {
+  static async resetSchemas(Class?: typeof Model): Promise<Schema> {
     await Promise.all(this.Adapters.map((Adapter) => Adapter.resetSchemas(this, Class)));
 
     return this;

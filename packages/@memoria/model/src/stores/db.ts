@@ -63,7 +63,7 @@ export default class DB {
       return defaultValues[operationType];
     }
 
-    let columns = Schema.getColumnsFromSchema(Class) as ColumnSchemaDefinition;
+    let columns = Schema.getColumnsMetadataFrom(Class) as ColumnSchemaDefinition;
     let target = Object.keys(columns).reduce(
       (result, columnName: string) => {
         let column = columns[columnName] as ColumnDefinition;

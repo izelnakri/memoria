@@ -101,36 +101,57 @@ module("@memoria/model | $Model.relationships", function (hooks) {
   test("can query hasOne relationships correctly on model class", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(User.hasOneRelationships, {});
-    assert.propEqual(Photo.hasOneRelationships, {});
-    assert.propEqual(PhotoComment.hasOneRelationships, {});
-    assert.propEqual(Group.hasOneRelationships, { photo: Photo });
+    assert.propEqual(RelationshipSchema.getRelationshipTable(User, "OneToOne"), {});
+    assert.propEqual(RelationshipSchema.getRelationshipTable(Photo, "OneToOne"), {});
+    assert.propEqual(RelationshipSchema.getRelationshipTable(PhotoComment, "OneToOne"), {});
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Group, "OneToOne")), [
+      "photo",
+    ]);
   });
 
   test("can query belongsTo relationships correctly on model class", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(User.belongsToRelationships, {});
-    assert.propEqual(Photo.belongsToRelationships, { owner: User, group: Group });
-    assert.propEqual(PhotoComment.belongsToRelationships, { user: User, photo: Photo });
-    assert.propEqual(Group.belongsToRelationships, { owner: User });
+    assert.propEqual(RelationshipSchema.getRelationshipTable(User, "BelongsTo"), {});
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Photo, "BelongsTo")), [
+      "owner",
+      "group",
+    ]);
+    assert.propEqual(
+      Object.keys(RelationshipSchema.getRelationshipTable(PhotoComment, "BelongsTo")),
+      ["user", "photo"]
+    );
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Group, "BelongsTo")), [
+      "owner",
+    ]);
   });
 
   test("can query hasMany relationships correctly on model class", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(User.hasManyRelationships, { photos: Photo, photoComments: PhotoComment });
-    assert.propEqual(Photo.hasManyRelationships, { comments: PhotoComment });
-    assert.propEqual(PhotoComment.hasManyRelationships, {});
-    assert.propEqual(Group.hasManyRelationships, { photoComments: PhotoComment });
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(User, "HasMany")), [
+      "photos",
+      "photoComments",
+    ]);
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Photo, "HasMany")), [
+      "comments",
+    ]);
+    assert.propEqual(RelationshipSchema.getRelationshipTable(PhotoComment, "HasMany"), {});
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Group, "HasMany")), [
+      "photoComments",
+    ]);
   });
 
   test("can query manyToMany correctly on model class", async function (assert) {
     const { Photo, PhotoComment, Group, User } = generateModels();
 
-    assert.propEqual(User.manyToManyRelationships, { groups: Group });
-    assert.propEqual(Photo.manyToManyRelationships, {});
-    assert.propEqual(PhotoComment.manyToManyRelationships, {});
-    assert.propEqual(Group.manyToManyRelationships, { users: User });
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(User, "ManyToMany")), [
+      "groups",
+    ]);
+    assert.propEqual(RelationshipSchema.getRelationshipTable(Photo, "ManyToMany"), {});
+    assert.propEqual(RelationshipSchema.getRelationshipTable(PhotoComment, "ManyToMany"), {});
+    assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Group, "ManyToMany")), [
+      "users",
+    ]);
   });
 });

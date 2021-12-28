@@ -5,7 +5,7 @@
 // NOTE: Not implemented for ManyToMany which will be important, also HasMany not correctly implemented on .cache() and .delete()
 import Model from "../../model.js";
 import RelationshipSchema from "./schema.js";
-import type { RelationshipType } from "./schema.js";
+import type { ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
 // Types:
@@ -75,11 +75,7 @@ export default class RelationshipDB {
       null | BelongsToPrimaryKey
     >;
   }
-  static findInstanceRelationshipRecordsFor(
-    model,
-    relationshipName: string,
-    relationshipType?: string
-  ) {
+  static findInstanceRelationshipFor(model, relationshipName: string, relationshipType?: string) {
     let Class = model.constructor as typeof Model;
     let targetReverseRelationshipType =
       relationshipType ||
@@ -97,7 +93,7 @@ export default class RelationshipDB {
 
     return this.instanceReferences.get(Class.name) as Map<PrimaryKey, Set<Model>>;
   }
-  static findModelReferences(Class: typeof Model, primaryKey: PrimaryKey): Set<Model> {
+  static getModelReferenceFor(Class: typeof Model, primaryKey: PrimaryKey): Set<Model> {
     let references = this.getModelReferences(Class);
 
     if (!references.has(primaryKey)) {
@@ -152,12 +148,13 @@ export default class RelationshipDB {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
     let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly
+    let belongsToRelationshipNames = Object.keys(belongsToRelationshipTable);
     let generatedRelationships = {};
 
-    this.findModelReferences(Class, primaryKey).forEach((modelReference) => {
+    this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
       this.updateExistingReference(modelReference, model);
 
-      Object.keys(belongsToRelationshipTable).forEach((relationshipName) => {
+      belongsToRelationshipNames.forEach((relationshipName) => {
         let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipTable[
           relationshipName
         ];
@@ -169,24 +166,33 @@ export default class RelationshipDB {
           generatedRelationships[relationshipName] =
             foreignKeyValue === null ? null : RelationshipClass.peek(foreignKeyValue);
 
-          // NOTE: change persistedRecordsBelongsToCache once for belongsToRelationship
+          // NOTE: this does settgin persistedRecordsBelongsToCache once for belongsToRelationship
           this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
             primaryKey,
             model[foreignKeyColumnName as string]
           );
         }
 
-        let instanceCache = this.findInstanceRelationshipRecordsFor(
+        let instanceCache = this.findInstanceRelationshipFor(
           modelReference,
           relationshipName,
           "BelongsTo"
         ).get(modelReference);
-        if (instanceCache || instanceCache === null) {
-          RelationshipClass.columnNames.forEach((columnName) => {
-            if (instanceCache[columnName] !== generatedRelationships[relationshipName]) {
-              instanceCache[columnName] = generatedRelationships[relationshipName]; // NOTE: maybe I need to make them not tracked for revision!
-            }
-          });
+        if (instanceCache) {
+          let generatedRelationship = generatedRelationships[relationshipName];
+          if (generatedRelationship === null) {
+            this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo").set(
+              modelReference,
+              null
+            );
+          } else if (generatedRelationship) {
+            RelationshipClass.columnNames.forEach((columnName) => {
+              if (instanceCache[columnName] !== generatedRelationships[relationshipName]) {
+                instanceCache[columnName] = generatedRelationships[relationshipName]; // NOTE: maybe I need to make them not tracked for revision!
+              }
+            });
+            // NOTE: do I need to set one more time(?)
+          }
         }
       });
     });
@@ -201,12 +207,13 @@ export default class RelationshipDB {
       // let user; -> change it
       // let change all instance references
       // comments -> comment.photo
-      let reverseRelationships = RelationshipSchema.getReverseRelationshipTable(Class);
-      Object.keys(reverseRelationships).forEach((tableKey) => {
+      let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
+
+      Object.keys(reverseRelationships).forEach((relationshipModelName) => {
         this.updateInstanceCacheReferencesForModelRelationship(
-          tableKey,
-          reverseRelationships[tableKey].relationshipType,
-          model
+          model,
+          relationshipModelName,
+          reverseRelationships[relationshipModelName]
         );
       });
     }
@@ -226,65 +233,69 @@ export default class RelationshipDB {
 
   // TODO: this can be optimized by batching RelationshipTableKey[] PER ReferenceClass type
   static updateInstanceCacheReferencesForModelRelationship(
-    tableKey: RelationshipTableKey,
-    relationshipType: RelationshipType,
-    targetModel: Model
+    targetModel: Model,
+    relationshipClassName: ModelName,
+    reverseRelationshipMetadatas: ReverseRelationshipMetadata[] // NOTE: maybe ReverseRelationshipMetadata[]
   ) {
-    let referenceClassName = tableKey.split(":")[0] as string;
-    let tableKeyReferenceMap = this.instanceReferences.get(referenceClassName) as Map<
+    let Class = targetModel.constructor as typeof Model;
+    let possibleReferences = this.instanceReferences.get(relationshipClassName) as Map<
       PrimaryKey,
       Set<Model>
     >;
-    let Class = targetModel.constructor as typeof Model;
-
-    for (let referenceSet of tableKeyReferenceMap.values()) {
+    for (let referenceSet of possibleReferences.values()) {
       referenceSet.forEach((reference) => {
-        // TODO: DO it differently for hasMany and ManyToMany handling
-        let relationshipReference = this.getInstanceRecordsCacheForTableKey(
-          tableKey,
-          relationshipType
-        ).get(reference);
-        if (
-          relationshipReference &&
-          relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
-        ) {
-          this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).set(
-            reference,
-            targetModel
-          );
-        }
+        reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
+          let { TargetClass, relationshipName, relationshipType } = relationshipMetadata;
+          let tableKey = `${TargetClass.name}:${relationshipName}`;
+          let relationshipReference = this.getInstanceRecordsCacheForTableKey(
+            tableKey,
+            relationshipType
+          ).get(reference);
+
+          if (
+            relationshipReference &&
+            relationshipReference[TargetClass.primaryKeyName] === targetModel[Class.primaryKeyName]
+          ) {
+            this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).set(
+              reference,
+              targetModel
+            );
+          }
+        });
       });
     }
   }
 
   // TODO: this can be optimized by batching RelationshipTableKey[] PER ReferenceClass type
   static deleteInstanceCacheReferencesForModel(
-    tableKey: RelationshipTableKey,
-    relationshipType: RelationshipType,
-    targetModel: Model
+    targetModel: Model,
+    relationshipClassName: ModelName,
+    reverseRelationshipMetadatas: ReverseRelationshipMetadata[] // NOTE: maybe ReverseRelationshipMetadata[]
   ) {
-    let referenceClassName = tableKey.split(":")[0] as string;
-    let tableKeyReferenceMap = this.instanceReferences.get(referenceClassName) as Map<
+    let Class = targetModel.constructor as typeof Model;
+    let possibleReferences = this.instanceReferences.get(relationshipClassName) as Map<
       PrimaryKey,
       Set<Model>
     >;
-    let Class = targetModel.constructor as typeof Model;
-
-    for (let referenceSet of tableKeyReferenceMap.values()) {
+    for (let referenceSet of possibleReferences.values()) {
       referenceSet.forEach((reference) => {
-        // TODO: DO it differently for hasMany and ManyToMany handling
-        let relationshipReference = this.getInstanceRecordsCacheForTableKey(
-          tableKey,
-          relationshipType
-        ).get(reference);
-        if (
-          relationshipReference &&
-          relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
-        ) {
-          this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).delete(
-            relationshipReference
-          );
-        }
+        reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
+          let { TargetClass, relationshipName, relationshipType } = relationshipMetadata;
+          let tableKey = `${TargetClass.name}:${relationshipName}`;
+          // TODO: DO it differently for hasMany and ManyToMany handling
+          let relationshipReference = this.getInstanceRecordsCacheForTableKey(
+            tableKey,
+            relationshipType
+          ).get(reference);
+          if (
+            relationshipReference &&
+            relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
+          ) {
+            this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).delete(
+              relationshipReference
+            );
+          }
+        });
       });
     }
   }
@@ -304,27 +315,25 @@ export default class RelationshipDB {
       );
     });
 
-    this.findModelReferences(Class, primaryKey).forEach((modelReference) => {
+    this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
       belongsToRelationshipKeys.forEach((relationshipName) => {
-        this.findInstanceRelationshipRecordsFor(
-          modelReference,
-          relationshipName,
-          "BelongsTo"
-        ).delete(modelReference);
+        this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo").delete(
+          modelReference
+        );
       });
     });
 
-    let reverseRelationships = RelationshipSchema.getReverseRelationshipTable(Class);
-    Object.keys(reverseRelationships).forEach((tableKey) => {
+    let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
+    Object.keys(reverseRelationships).forEach((relationshipModelName) => {
       this.deleteInstanceCacheReferencesForModel(
-        tableKey,
-        reverseRelationships[tableKey].relationshipType,
-        model
+        model,
+        relationshipModelName,
+        reverseRelationships[relationshipModelName]
       );
     });
 
     if (primaryKey) {
-      this.findModelReferences(Class, primaryKey).clear();
+      this.getModelReferenceFor(Class, primaryKey).clear();
     }
 
     return model;
@@ -428,7 +437,7 @@ function buildReferenceFromPersistedCache(model: Model, relationshipName: string
   if (relationshipType === "BelongsTo" || relationshipType === "OneToOne") {
     foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName);
   } else if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
-    foundValue = RelationshipDB.findInstanceRelationshipRecordsFor(
+    foundValue = RelationshipDB.findInstanceRelationshipFor(
       model,
       relationshipName,
       relationshipType

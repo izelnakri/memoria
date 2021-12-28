@@ -93,7 +93,7 @@ export default {
 
 function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) {
   return function (target: any, propertyName: string, descriptor: any) {
-    Schema.assignColumnForSchema(target.constructor, propertyName, options);
+    Schema.assignColumnMetadata(target.constructor, propertyName, options);
 
     if (options.unique) {
       Schema.getSchema(target.constructor).uniques.push({

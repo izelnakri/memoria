@@ -3,7 +3,7 @@ import Schema from "../stores/schema.js";
 // NOTE: maybe remove target: references if it bloats memory
 export function Generated(generateFunction) {
   return function (target: any, propertyName: string, descriptor: any) {
-    Schema.assignColumnForSchema(target.constructor, propertyName, {
+    Schema.assignColumnMetadata(target.constructor, propertyName, {
       generated: generateFunction || true,
     });
 

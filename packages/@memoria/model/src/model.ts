@@ -64,7 +64,7 @@ export default class Model {
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Schema.getColumnsFromSchema(this)[this.primaryKeyName].generated === "uuid"
+    return Schema.getColumnsMetadataFrom(this)[this.primaryKeyName].generated === "uuid"
       ? "uuid"
       : "id";
   }
@@ -107,8 +107,9 @@ export default class Model {
         model.changes[key] = buildObject.changes[key];
       });
     }
+
     if (model[this.primaryKeyName]) {
-      RelationshipDB.findModelReferences(this, model[this.primaryKeyName]).add(model);
+      RelationshipDB.getModelReferenceFor(this, model[this.primaryKeyName]).add(model);
     }
 
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
@@ -116,14 +117,6 @@ export default class Model {
     Object.keys(RelationshipSchema.getRelationshipTable(this)).forEach((relationshipName) => {
       if (buildObject && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-      } else if (belongsToColumnNames.has(relationshipName)) {
-        RelationshipDB.getInstanceRecordsCacheForTableKey(
-          `${this.name}:${relationshipName}`,
-          "BelongsTo"
-        ).set(
-          model,
-          model[RelationshipSchema.getForeignKeyColumnName(this, relationshipName) as string]
-        );
       }
 
       Object.defineProperty(model, relationshipName, {
