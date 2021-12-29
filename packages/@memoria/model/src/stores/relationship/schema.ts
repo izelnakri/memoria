@@ -23,8 +23,6 @@ export interface ReverseRelationshipMetadata {
   foreignKeyColumnName: null | string;
 }
 
-type ReverseRelationshipsTables = ModuleDatabase<ReverseRelationshipsTable>;
-
 export interface ReverseRelationshipsTable {
   ModelName: ReverseRelationshipMetadata[];
 }
@@ -54,7 +52,6 @@ const REVERSE_RELATIONSHIP_LOOKUPS = {
   ManyToMany: "ManyToMany",
 };
 
-// NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
 export default class RelationshipSchema {
   static _relationshipTable: Map<ModelName, RelationshipTable> = new Map();
   static getRelationshipTable(
@@ -110,7 +107,7 @@ export default class RelationshipSchema {
     return this._relationshipTable.get(Class.name) as RelationshipTable;
   }
 
-  static _reverseRelationshipTables: ReverseRelationshipsTables = new Map();
+  static _reverseRelationshipTables: ModuleDatabase<ReverseRelationshipsTable> = new Map();
   static getReverseRelationshipsTable(Class: typeof Model): ReverseRelationshipsTable {
     if (!this._reverseRelationshipTables.has(Class.name)) {
       this._reverseRelationshipTables.set(
@@ -161,7 +158,7 @@ export default class RelationshipSchema {
     if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class);
 
-      debugger;
+      // debugger;
       let targetReverseRelationship =
         reverseRelationshipMetadatas[currentMetadata.RelationshipClass.name].find(
           (reverseRelationship) => {
@@ -185,13 +182,13 @@ export default class RelationshipSchema {
           }
         ) || null;
 
-      debugger;
+      // debugger;
       if (targetReverseRelationship) {
         currentMetadata.reverseRelationshipName = targetReverseRelationship.relationshipName;
         currentMetadata.reverseRelationshipForeignKeyColumnName =
           targetReverseRelationship.foreignKeyColumnName;
       }
-      debugger;
+      // debugger;
     }
 
     return currentMetadata;
@@ -234,20 +231,19 @@ export default class RelationshipSchema {
   static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
     let summary = {};
     for (let modelName of Schema.Models.keys()) {
-      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
-
-      summary[modelName] = Object.keys(modelRelationTable).reduce(
-        (result, relationshipName) => {
-          let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
-
-          result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.includes(relationshipType)
-            ? [RelationshipClass]
-            : RelationshipClass;
-
-          return result;
-        },
-        {}
+      let modelRelationTable = this.getRelationshipTable(
+        Schema.Models.get(modelName) as typeof Model
       );
+
+      summary[modelName] = Object.keys(modelRelationTable).reduce((result, relationshipName) => {
+        let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
+
+        result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.includes(relationshipType)
+          ? [RelationshipClass]
+          : RelationshipClass;
+
+        return result;
+      }, {});
     }
 
     return summary as ModuleDatabase<RelationshipSummary>;

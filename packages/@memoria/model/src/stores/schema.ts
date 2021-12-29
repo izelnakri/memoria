@@ -1,8 +1,6 @@
 // NOTE: investigate connection.entityMetadatas;
 // TRUNCATE TABLE my_table RESTART IDENTITY;
-// TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate what CASCADE does
-// TODO: rewrite this file as store.ts and utilize WeakMap, Map, WeakSet
-// TODO: turn _DB into a Map<InstanceWithoutRelationship(?)> -> WeakSet to include the relationships(?) or a WeakMap with WeakSet(?)
+// TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate CASCADE
 import Model from "../model.js";
 import type {
   ModuleDatabase,
@@ -11,18 +9,6 @@ import type {
   ColumnDefinition,
 } from "../types";
 import type { MemoryAdapter } from "@memoria/adapters";
-
-// NOTE: WeakMap not implemented so far because:
-// 1- Adapters need to iterate over each schema.target.Adapter (can be done with getSchema() and push to array during insert)
-// 2- Cannot produce relationshipSummary -> big limitation
-// 3- resetCache and resetRecords gets the target tables/models from Schema.Schema
-// 4- resetSchemas iterate through all the Adapters [possible]
-// 5- Decorators directly push to the schema getting it via getSchema() [possible]
-
-// Maybe move objects to Map for easy clearing for Schema
-// Clear nothing architucture -> Never clear Schema by utilizing a WeakMap
-// relationshipSummary inject and the mutate maybe from decorator
-// TODO: make arrays into classes(?)
 
 export default class Schema {
   static get Adapters() {

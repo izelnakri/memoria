@@ -110,7 +110,6 @@ export default class DB {
   }
 }
 
-// TODO: turn this into a sequence so no need for sorting, faster inserts
 function incrementId(DB: Map<PrimaryKey, Model>) {
   if (!DB || DB.size === 0) {
     return 1;

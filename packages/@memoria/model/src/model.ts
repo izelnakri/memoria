@@ -86,6 +86,7 @@ export default class Model {
   // TODO: test also passing new Model() instance
   // TODO: setPersistedRecords should be done here, (maybe optimize it for multiple calls in one)
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
+    // TODO: should also copy all the instanceCaches, if buildObject is an instance, (or has it in references?)
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
         throw new Error(
@@ -97,15 +98,20 @@ export default class Model {
     }
 
     let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
-    if (buildObject && buildObject.revisionHistory) {
-      buildObject.revisionHistory.forEach((revision) => {
-        model.revisionHistory.push({ ...revision });
-      });
-    }
-    if (buildObject && buildObject.changes) {
-      Object.keys(buildObject.changes).forEach((key) => {
-        model.changes[key] = buildObject.changes[key];
-      });
+    if (buildObject) {
+      if (buildObject.revisionHistory) {
+        buildObject.revisionHistory.forEach((revision) => {
+          model.revisionHistory.push({ ...revision });
+        });
+      }
+      if (buildObject.changes) {
+        Object.keys(buildObject.changes).forEach((key) => {
+          model.changes[key] = buildObject.changes[key];
+        });
+      }
+      if (buildObject instanceof this) {
+        // copyInstanceCaches
+      }
     }
 
     if (model[this.primaryKeyName]) {
@@ -270,11 +276,12 @@ export default class Model {
       record.#_isNew = false;
 
       // TODO: these relationship syncs needs to change for insert, update, delete:
-      this.relationshipNames.forEach((relationshipName) => {
-        // TODO: maybe all except hasMany as model has no hasMany at the beginning
-        record[relationshipName] = model[relationshipName];
-        // model can have the same relationship as record
-      });
+      // TODO: OPTIMIZE THIS, it makes redundant getter and setter calls due to inserts with fetchedRelationships
+      // this.relationshipNames.forEach((relationshipName) => {
+      //   // TODO: maybe all except hasMany as model has no hasMany at the beginning
+      //   record[relationshipName] = model[relationshipName];
+      //   // model can have the same relationship as record
+      // });
 
       clearObject(record.changes);
 
@@ -300,9 +307,10 @@ export default class Model {
     let model = await this.Adapter.update(this, record, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        model[relationshipName] = record[relationshipName];
-      });
+      // TODO: record[relationshipName] does gett for ALL, change it:
+      // this.relationshipNames.forEach((relationshipName) => {
+      //   model[relationshipName] = record[relationshipName];
+      // });
       this.unsetRecordInTransit(record);
 
       clearObject(record.changes);
@@ -350,9 +358,10 @@ export default class Model {
     let result = await this.Adapter.delete(this, record, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        result[relationshipName] = record[relationshipName];
-      });
+      // TODO: record[relationshipName] does gett for ALL, change it:
+      // this.relationshipNames.forEach((relationshipName) => {
+      //   result[relationshipName] = record[relationshipName];
+      // });
       record.#_inTransit = false;
       record.#_isDeleted = true;
     }
@@ -403,11 +412,12 @@ export default class Model {
 
     let models = await this.Adapter.insertAll(this, records, options);
 
-    records.forEach((record, index) => {
+    records.forEach((record, _index) => {
       if (record instanceof this) {
-        this.relationshipNames.forEach((relationshipName) => {
-          models[index][relationshipName] = record[relationshipName];
-        });
+        // TODO: record[relationshipName] does gett for ALL, change it:
+        // this.relationshipNames.forEach((relationshipName) => {
+        //   models[index][relationshipName] = record[relationshipName];
+        // });
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
 
@@ -426,7 +436,7 @@ export default class Model {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
 
-    records.forEach((record, index) => {
+    records.forEach((record, _index) => {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
@@ -435,9 +445,10 @@ export default class Model {
       }
       primaryKeyTypeSafetyCheck(record, this);
 
-      this.relationshipNames.forEach((relationshipName) => {
-        models[index][relationshipName] = record[relationshipName];
-      });
+      // TODO: record[relationshipName] does gett for ALL, change it:
+      // this.relationshipNames.forEach((relationshipName) => {
+      //   models[index][relationshipName] = record[relationshipName];
+      // });
       this.setRecordInTransit(record);
     });
 
@@ -481,11 +492,12 @@ export default class Model {
 
     let models = await this.Adapter.deleteAll(this, records, options);
 
-    records.forEach((record, index) => {
+    records.forEach((record, _index) => {
       if (record instanceof this) {
-        this.relationshipNames.forEach((relationshipName) => {
-          models[index][relationshipName] = record[relationshipName];
-        });
+        // TODO: record[relationshipName] does gett for ALL, change it:
+        // this.relationshipNames.forEach((relationshipName) => {
+        //   models[index][relationshipName] = record[relationshipName];
+        // });
         this.unsetRecordInTransit(record);
         record.isDeleted = true;
       }
