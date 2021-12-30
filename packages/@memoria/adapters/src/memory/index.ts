@@ -462,7 +462,7 @@ function tryToRevision(model: MemoriaModel, options) {
   if (Object.keys(model.changes).length > 0) {
     clearObject(model.changes);
 
-    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
+    revisionEnabled(options) && model.revisionHistory.add(model);
   }
 
   return model;

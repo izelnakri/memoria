@@ -9,8 +9,9 @@ import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 import Changeset from "./changeset.js";
 import Serializer, { transformValue } from "./serializer.js";
+import RevisionHistory from "./revision-history.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type { ModelReference, ModelReferenceShape, RelationshipType } from "./index.js";
+import type { ModelReference, RelationshipType } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -109,9 +110,6 @@ export default class Model {
           model.changes[key] = buildObject.changes[key];
         });
       }
-      if (buildObject instanceof this) {
-        // copyInstanceCaches
-      }
     }
 
     if (model[this.primaryKeyName]) {
@@ -121,9 +119,9 @@ export default class Model {
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
 
     Object.keys(RelationshipSchema.getRelationshipTable(this)).forEach((relationshipName) => {
-      if (buildObject && relationshipName in buildObject) {
+      if (buildObject && !(buildObject instanceof Model) && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-      }
+      } // TODO: maybe copy instance caches here if buildObject instanceof Model
 
       Object.defineProperty(model, relationshipName, {
         configurable: false,
@@ -285,7 +283,7 @@ export default class Model {
 
       clearObject(record.changes);
 
-      revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, record));
+      revisionEnabled(options) && model.revisionHistory.add(record);
     }
 
     return model;
@@ -315,7 +313,7 @@ export default class Model {
 
       clearObject(record.changes);
 
-      revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+      revisionEnabled(options) && record.revisionHistory.add(record);
     }
 
     return model;
@@ -421,7 +419,7 @@ export default class Model {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
 
-        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+        revisionEnabled(options) && record.revisionHistory.add(record);
       }
     });
 
@@ -458,7 +456,7 @@ export default class Model {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
-        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+        revisionEnabled(options) && record.revisionHistory.add(record);
       }
     });
 
@@ -553,7 +551,7 @@ export default class Model {
   }
 
   changes: QueryObject = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
-  revisionHistory: ModelReferenceShape[] = [];
+  revisionHistory = new RevisionHistory();
 
   get revision() {
     return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);
@@ -780,7 +778,7 @@ function getTransformedValue(model: Model, keyName: string, buildObject?: QueryO
 function revisionAndLockModel(model, options?, buildObject?) {
   revisionEnabled(options) &&
     !(buildObject instanceof Model && buildObject.isBuilt) &&
-    model.revisionHistory.push(Object.assign({}, model));
+    model.revisionHistory.add(model);
 
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }
