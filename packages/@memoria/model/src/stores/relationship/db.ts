@@ -1,7 +1,5 @@
 // TODO: separating Schema.cache() to insert() and update() might be an good optimization when iterating already referenced relationships
-// NOTE: I could use WeakRef abstractions but then could be inconsistent, and hard to mutate on changes(it changes in both places)
 // Caches refresh/mutate on CCUD: create, cache(fetch), update, delete
-// NOTE: Not implemented for ManyToMany which will be important, also HasMany not correctly implemented on .cache() and .delete()
 // NOTE: in future try to optimize instanceCache(s) with symbol references instead of full instance variables(?)[each symbol refer to a modelReference]
 // NOTE: Two approaches: Update similar instances on CRUD, 2- NOT update similar instances on CRUD, only persistedRecordsBelongsToCache, and have timeStamp for each revision(?)
 // NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
@@ -12,6 +10,7 @@
 // References(Only For Records with PrimaryKey)
 import Model from "../../model.js";
 import RelationshipSchema from "./schema.js";
+import LazyPromise from "../../promises/lazy.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
@@ -25,7 +24,7 @@ export default class RelationshipDB {
     Map<PrimaryKey, null | BelongsToPrimaryKey>
   > = new Map();
 
-  // NOTE: these instance caches are kept for user changes on relatioshops that are done prior any CRUD:
+  // NOTE: these instance caches are kept for user changes on relationships that are done prior any CRUD:
   static instanceRecordsBelongsToCache: Map<
     RelationshipTableKey,
     WeakMap<Model, null | Model>
@@ -139,55 +138,21 @@ export default class RelationshipDB {
   }
 
   // TODO: this should also be done for Model.cache() ? RelationshipDB.insert(model) : RelationshipDB.update(model)
-  static cache(model: Model, type: "insert" | "update") {
+  static cache(model: Model, type: "insert" | "update", sourceModel?: Model) {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
     let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
     let belongsToRelationshipNames = Object.keys(belongsToRelationshipTable);
-    let generatedRelationships = {};
+
+    belongsToRelationshipNames.forEach((relationshipName) => {
+      this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
+        primaryKey,
+        model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string]
+      );
+    });
 
     this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
       this.updateExistingReference(modelReference, model);
-
-      belongsToRelationshipNames.forEach((relationshipName) => {
-        let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipTable[
-          relationshipName
-        ];
-
-        if (!(relationshipName in generatedRelationships)) {
-          let foreignKeyValue =
-            model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
-
-          generatedRelationships[relationshipName] =
-            foreignKeyValue === null ? null : RelationshipClass.peek(foreignKeyValue);
-
-          this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
-            primaryKey,
-            model[foreignKeyColumnName as string]
-          );
-        }
-
-        let instanceCache = this.findInstanceRelationshipFor(
-          modelReference,
-          relationshipName,
-          "BelongsTo"
-        ).get(modelReference);
-        if (instanceCache) {
-          let generatedRelationship = generatedRelationships[relationshipName];
-          if (generatedRelationship === null) {
-            this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo").set(
-              modelReference,
-              null
-            );
-          } else if (generatedRelationship) {
-            RelationshipClass.columnNames.forEach((columnName) => {
-              if (instanceCache[columnName] !== generatedRelationships[columnName]) {
-                instanceCache[columnName] = generatedRelationships[columnName]; // NOTE: maybe I need to make them not tracked for revision!
-              }
-            });
-          }
-        }
-      });
     });
 
     if (type === "update") {
@@ -354,6 +319,16 @@ export default class RelationshipDB {
     this.instanceRecordsHasManyCache.clear();
   }
 
+  static has(model: Model, relationshipName: string, metadata?: RelationshipMetadata) {
+    let Class = model.constructor as typeof Model;
+    let { relationshipType } =
+      metadata || RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+
+    return RelationshipDB[`instanceRecords${relationshipType}Cache`]
+      .get(`${Class.name}:${relationshipName}`)
+      ?.has(model);
+  }
+
   static get(model: Model, relationshipName: string) {
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
@@ -363,9 +338,14 @@ export default class RelationshipDB {
     );
     let reference = map.get(model);
     if (reference === undefined) {
-      reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
+      reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // this checks persistedCache
       if (reference instanceof Promise) {
-        reference.then((relationshipModel) => map.set(model, relationshipModel));
+        return new LazyPromise(async (resolve) => {
+          let relationship = await reference;
+          map.set(model, relationship);
+
+          resolve(relationship);
+        });
       } else if (reference) {
         map.set(model, reference);
       }
@@ -458,3 +438,52 @@ function buildReferenceFromPersistedCacheOrFetch(
 
   return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
 }
+
+// NOTE: Old implementation to test:
+// static cache(model: Model, type: "insert" | "update") {
+//   let Class = model.constructor as typeof Model;
+//   let primaryKey = model[Class.primaryKeyName];
+//   let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
+//   let belongsToRelationshipNames = Object.keys(belongsToRelationshipTable);
+//   let generatedRelationships = {};
+
+//   this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
+//     this.updateExistingReference(modelReference, model);
+
+//     belongsToRelationshipNames.forEach((relationshipName) => {
+//       let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipTable[
+//         relationshipName
+//       ];
+
+//       if (!(relationshipName in generatedRelationships)) {
+//         let foreignKeyValue =
+//           model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
+
+//         generatedRelationships[relationshipName] =
+//           foreignKeyValue === null ? null : RelationshipClass.peek(foreignKeyValue);
+
+//         this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
+//           primaryKey,
+//           model[foreignKeyColumnName as string]
+//         );
+//       }
+
+//       // TODO: this could be problematic because model relationship is not resetted
+//       // let map = this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo");
+//       // let generatedRelationship = generatedRelationships[relationshipName];
+//       // if (generatedRelationship === null || generatedRelationship) {
+//       //   //   RelationshipClass.columnNames.forEach((columnName) => {
+//       //   //     if (instanceCache[columnName] !== generatedRelationships[columnName]) {
+//       //   //       instanceCache[columnName] = generatedRelationships[columnName]; // NOTE: maybe I need to make them not tracked for revision!
+//       //   //     }
+//       //   //   });
+//       //   debugger;
+//       //   map.set(modelReference, generatedRelationship);
+//       // } else if (this.has(model, relationshipName)) { // TODO: this is problematic because the source might have a not build relationship that needs to be added here
+//       //   map.set(modelReference, map.get(model));
+//       // }
+
+//       // NOTE: update belongsTo references of the related same models:
+//       // TODO: this could be problematic when reference has a not persisted reference(?) it gets overwritten by generatedRelationship only
+//     });
+//   });
