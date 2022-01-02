@@ -1,41 +1,35 @@
 export default class LazyPromise<ValueType> extends Promise<ValueType> {
-  _promise: void | Promise<ValueType>;
-  _executor: void | ValueType;
+  _promise: undefined | Promise<ValueType>;
+  _executor: ((resolve: any, reject: any) => ValueType);
 
-  constructor(executor: ValueType) {
-    super((resolve) => {
-      resolve();
-    });
+  constructor(executor: ((resolve: any, reject: any) => ValueType)) {
+    super((resolve) => resolve(new Promise(() => {})));
 
     this._executor = executor;
   }
 
-  static from(function_) {
-    return new LazyPromise((resolve) => {
-      resolve(function_());
-    });
+  static from(function_: any) {
+    return new this((resolve) => resolve(function_()));
   }
 
-  static resolve(value) {
-    return new LazyPromise((resolve) => {
-      resolve(value);
-    });
+  static resolve(value: any) {
+    return new this((resolve) => resolve(value));
   }
 
-  static reject(error) {
-    return new LazyPromise((_resolve, reject) => {
-      reject(error);
-    });
+  static reject(error: any) {
+    return new this((_resolve, reject) => reject(error));
   }
 
-  then(onFulfilled, onRejected) {
+  // @ts-ignore
+  then<A, B>(onFulfilled?: any, onRejected?: any) {
     this._promise = this._promise || new Promise(this._executor);
-    // eslint-disable-next-line promise/prefer-await-to-then
+
     return this._promise.then(onFulfilled, onRejected);
   }
 
-  catch(onRejected) {
+  catch(onRejected: any) {
     this._promise = this._promise || new Promise(this._executor);
+
     return this._promise.catch(onRejected);
   }
 }
