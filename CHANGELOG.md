@@ -2,7 +2,31 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.23](https://github.com/izelnakri/memoria/compare/0.0.23...0.0.23)
+#### [0.0.24](https://github.com/izelnakri/memoria/compare/0.0.24...0.0.24)
+
+- Implement advanced relationship references/caches [`#32`](https://github.com/izelnakri/memoria/pull/32)
+- major refactor: Config modules refactord to Schema [`ba7433b`](https://github.com/izelnakri/memoria/commit/ba7433b6fd10dced1c628a0d0de85b678a5c19b4)
+- made new RelationshipDB compile [`47e346f`](https://github.com/izelnakri/memoria/commit/47e346fbbf04450d76a777d666447b6d8d85a17d)
+- RelationshipDB.get(relationship) based adjustments [`c3e1034`](https://github.com/izelnakri/memoria/commit/c3e1034c72c83576a337f28b84c3d193e579ae23)
+- Introduce first optimized RelationshipDB mutations [`c2bce14`](https://github.com/izelnakri/memoria/commit/c2bce1490caa17b5cd1f346dc00a858edff54ca5)
+- major changes to relationship assignment and gets [`6a02525`](https://github.com/izelnakri/memoria/commit/6a02525f94b54a73eec4de3841e046bc3f6cc103)
+- RelationshipDB initial skeleton! [`0e94561`](https://github.com/izelnakri/memoria/commit/0e94561e9c34d451ef8e9b0b28b90433c7fe93ab)
+- Clean up @memoria/model store abstractions to test [`d52ab60`](https://github.com/izelnakri/memoria/commit/d52ab6078e2f598a5ad0ca47ba58e998520436ee)
+- new advanced relationship tracking tests now pass [`7cc738d`](https://github.com/izelnakri/memoria/commit/7cc738d87fb6448f384e6cdaf119d06c5a40e514)
+- RelationshipDB gets ready for tests, first changes [`f3079f6`](https://github.com/izelnakri/memoria/commit/f3079f6f43ce24814d0c07bceec8c63aac07602c)
+- RelationshipDB update with hasMany & other caches [`e84701b`](https://github.com/izelnakri/memoria/commit/e84701b70862a98414cd8c6468df40cc22aa1e24)
+- MemoryAdapter logic cleanups before refactor [`23d30b6`](https://github.com/izelnakri/memoria/commit/23d30b678079f8e8bf0c6ff533fbbec16d6828f2)
+- RelationshipSchema ready for RelationshipDB [`fa22ed2`](https://github.com/izelnakri/memoria/commit/fa22ed2642ae22b8ea358f2637a98ac1d63badd3)
+- cleanup relationship tracking code for release [`810635f`](https://github.com/izelnakri/memoria/commit/810635f21eda54dffb86f167d660483a136e0646)
+- SQLAdapter is now correctly relationship aware [`189a0c5`](https://github.com/izelnakri/memoria/commit/189a0c5b6c665c254093a8772b8ca3b9ee356d71)
+- introduce $Model.relationshipsSummary caching [`43274f1`](https://github.com/izelnakri/memoria/commit/43274f13532487553db4e2be1028060187295b14)
+- RevisionHistory class and .add(): no model getters [`c1dd243`](https://github.com/izelnakri/memoria/commit/c1dd243ef0d4d4054cb9c8cc9aad33cf0bac38b8)
+- Correct type annotations for LazyPromise [`90e69ca`](https://github.com/izelnakri/memoria/commit/90e69ca928312c1ea1551a2eb227156f3cf8e244)
+- RelationConfig.getForeignKeyFromBelongsTo rename [`b1ced31`](https://github.com/izelnakri/memoria/commit/b1ced31e71aad21917176ff24c65f6c00bca361c)
+
+#### [0.0.24](https://github.com/izelnakri/memoria/compare/0.0.23...0.0.24)
+
+> 15 December 2021
 
 - DB.resetForTests method removed for DB.resetRecords [`#28`](https://github.com/izelnakri/memoria/pull/28)
 - Bump actions/checkout from 2.3.5 to 2.4.0 [`#19`](https://github.com/izelnakri/memoria/pull/19)
@@ -16,6 +40,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - move model instance relationship cache to a module [`4615234`](https://github.com/izelnakri/memoria/commit/4615234d4028c0d93b852f7693ab7e3cc810dfff)
 - rename ModelStore to DB [`40229a5`](https://github.com/izelnakri/memoria/commit/40229a530994dd299d7acab9b510e8b66eb668ae)
 - make correct relationship casting on instance CRUD [`971e12e`](https://github.com/izelnakri/memoria/commit/971e12eb164494cf1569ac90135299e2cfd68765)
+- Release 0.0.24 [`1c38234`](https://github.com/izelnakri/memoria/commit/1c382340cbc439958d67ef2229b370bcb0d9d2d8)
 - improve/fix RESTAdapter modelKeyNameForPayload [`76aae1e`](https://github.com/izelnakri/memoria/commit/76aae1eb85df45459d5d750bf218f7ca30bb7393)
 
 #### [0.0.23](https://github.com/izelnakri/memoria/compare/0.0.22...0.0.23)
