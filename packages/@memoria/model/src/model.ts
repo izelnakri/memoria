@@ -196,9 +196,6 @@ export default class Model {
       }
     });
 
-    // TODO: For SQL inputs do this way:
-    // Also do: Class.cache(Object.assign(insertReference(!!), transformedPayload)) now its named synchronizeModelFromPayload
-
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
       if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
@@ -456,7 +453,7 @@ export default class Model {
 
     let models = await this.Adapter.insertAll(this, records, options);
 
-    records.forEach((record, _index) => {
+    records.forEach((record) => {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
@@ -476,7 +473,7 @@ export default class Model {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
 
-    records.forEach((record, _index) => {
+    records.forEach((record) => {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
@@ -528,7 +525,7 @@ export default class Model {
 
     let models = await this.Adapter.deleteAll(this, records, options);
 
-    records.forEach((record, _index) => {
+    records.forEach((record) => {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         record.isDeleted = true;

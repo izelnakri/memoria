@@ -137,7 +137,7 @@ export default class RelationshipSchema {
           }
 
           reverseRelationshipTable[TargetClass.name].push({
-            TargetClass: Schema.Models.get(modelName) as typeof Class, // TODO: get reverseTargetClass! // Schema.Models.get(modelName) as typeof Class,
+            TargetClass: Schema.Models.get(modelName) as typeof Class,
             relationshipName,
             relationshipType,
             foreignKeyColumnName,
@@ -149,16 +149,13 @@ export default class RelationshipSchema {
     return this._reverseRelationshipTables.get(Class.name) as ReverseRelationshipsTable;
   }
 
-  // User, photos
-  // => TargetClass: Photo, relationshipName: user,
+  // Example: getRelationshipMetadataFor(User, 'photos') => { TargetClass: Photo, relationshipName: 'user' }
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
 
     if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class);
-
-      // debugger;
       let targetReverseRelationship =
         reverseRelationshipMetadatas[currentMetadata.RelationshipClass.name].find(
           (reverseRelationship) => {
@@ -182,13 +179,11 @@ export default class RelationshipSchema {
           }
         ) || null;
 
-      // debugger;
       if (targetReverseRelationship) {
         currentMetadata.reverseRelationshipName = targetReverseRelationship.relationshipName;
         currentMetadata.reverseRelationshipForeignKeyColumnName =
           targetReverseRelationship.foreignKeyColumnName;
       }
-      // debugger;
     }
 
     return currentMetadata;

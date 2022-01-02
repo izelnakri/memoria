@@ -443,7 +443,7 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
   return false;
 }
 
-// TODO: maybe move to DB(?)
+// NOTE: maybe move to DB(?)
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
 

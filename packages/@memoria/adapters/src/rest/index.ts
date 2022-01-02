@@ -245,7 +245,6 @@ export default class RESTAdapter extends MemoryAdapter {
     return this.unloadAll(Model, records);
   }
 
-  // NOTE: make this work in REST
   static fetchRelationship(
     model: MemoriaModel,
     relationshipName: string,
@@ -254,7 +253,7 @@ export default class RESTAdapter extends MemoryAdapter {
     let Model = model.constructor as typeof MemoriaModel;
     let metadata =
       relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
@@ -287,6 +286,8 @@ export default class RESTAdapter extends MemoryAdapter {
 
         return reject();
       }
+
+      return reject("ManyToMany fetchRelationship not implemented yet");
     });
   }
 }

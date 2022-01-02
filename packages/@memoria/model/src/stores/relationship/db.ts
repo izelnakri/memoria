@@ -138,7 +138,7 @@ export default class RelationshipDB {
   }
 
   // TODO: this should also be done for Model.cache() ? RelationshipDB.insert(model) : RelationshipDB.update(model)
-  static cache(model: Model, type: "insert" | "update", sourceModel?: Model) {
+  static cache(model: Model, type: "insert" | "update") {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
     let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
@@ -262,8 +262,7 @@ export default class RelationshipDB {
     }
   }
 
-  // NOTE: Deletes persisted to references, from references to instances from instances to relationship change
-  // NOTE: maybe implement a reverseRelationships
+  // NOTE: Deletes persisted to references, from references to instances, from instances to relationship changes
   static delete(model: Model) {
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
@@ -338,7 +337,7 @@ export default class RelationshipDB {
     );
     let reference = cache.get(model);
     if (reference === undefined) {
-      reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // this checks persistedCache
+      reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
       if (reference instanceof Promise) {
         return new LazyPromise(async (resolve) => {
           let relationship = await reference;
@@ -436,52 +435,3 @@ function buildReferenceFromPersistedCacheOrFetch(
 
   return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
 }
-
-// NOTE: Old implementation to test:
-// static cache(model: Model, type: "insert" | "update") {
-//   let Class = model.constructor as typeof Model;
-//   let primaryKey = model[Class.primaryKeyName];
-//   let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
-//   let belongsToRelationshipNames = Object.keys(belongsToRelationshipTable);
-//   let generatedRelationships = {};
-
-//   this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
-//     this.updateExistingReference(modelReference, model);
-
-//     belongsToRelationshipNames.forEach((relationshipName) => {
-//       let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipTable[
-//         relationshipName
-//       ];
-
-//       if (!(relationshipName in generatedRelationships)) {
-//         let foreignKeyValue =
-//           model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
-
-//         generatedRelationships[relationshipName] =
-//           foreignKeyValue === null ? null : RelationshipClass.peek(foreignKeyValue);
-
-//         this.getPersistedRecordsCacheForTableKey(`${Class.name}:${relationshipName}`).set(
-//           primaryKey,
-//           model[foreignKeyColumnName as string]
-//         );
-//       }
-
-//       // TODO: this could be problematic because model relationship is not resetted
-//       // let map = this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo");
-//       // let generatedRelationship = generatedRelationships[relationshipName];
-//       // if (generatedRelationship === null || generatedRelationship) {
-//       //   //   RelationshipClass.columnNames.forEach((columnName) => {
-//       //   //     if (instanceCache[columnName] !== generatedRelationships[columnName]) {
-//       //   //       instanceCache[columnName] = generatedRelationships[columnName]; // NOTE: maybe I need to make them not tracked for revision!
-//       //   //     }
-//       //   //   });
-//       //   debugger;
-//       //   map.set(modelReference, generatedRelationship);
-//       // } else if (this.has(model, relationshipName)) { // TODO: this is problematic because the source might have a not build relationship that needs to be added here
-//       //   map.set(modelReference, map.get(model));
-//       // }
-
-//       // NOTE: update belongsTo references of the related same models:
-//       // TODO: this could be problematic when reference has a not persisted reference(?) it gets overwritten by generatedRelationship only
-//     });
-//   });

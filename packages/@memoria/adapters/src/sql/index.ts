@@ -286,7 +286,7 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.update(Model, Model.assign(record, result), options); // NOTE: this could be problematic
+        return await super.update(Model, Model.assign(record, result), options);
       }
 
       return this.cache(
@@ -331,7 +331,7 @@ export default class SQLAdapter extends MemoryAdapter {
           Model,
           Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,
           options
-        ); // NOTE: this could be problematic
+        );
       }
 
       return Model.build(
@@ -343,7 +343,7 @@ export default class SQLAdapter extends MemoryAdapter {
     }
   }
 
-  // TODO: check this:
+  // TODO: check/test this:
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
@@ -439,7 +439,6 @@ export default class SQLAdapter extends MemoryAdapter {
     );
   }
 
-  // TODO: make this work in SQL
   static fetchRelationship(
     model: MemoriaModel,
     relationshipName: string,
@@ -448,7 +447,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Model = model.constructor as typeof MemoriaModel;
     let metadata =
       relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
@@ -481,6 +480,8 @@ export default class SQLAdapter extends MemoryAdapter {
 
         return reject();
       }
+
+      return reject("ManyToMany fetchRelationship not implemented yet");
     });
   }
 }
