@@ -1,4 +1,4 @@
-import Config from "../stores/config.js";
+import Schema from "../stores/schema.js";
 import type { ColumnDefinition } from "../types.js";
 import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
@@ -93,10 +93,10 @@ export default {
 
 function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) {
   return function (target: any, propertyName: string, descriptor: any) {
-    Config.assignColumnMetadata(target.constructor, propertyName, options);
+    Schema.assignColumnMetadata(target.constructor, propertyName, options);
 
     if (options.unique) {
-      Config.getSchema(target.constructor).uniques.push({
+      Schema.getSchema(target.constructor).uniques.push({
         target: target.constructor,
         columns: [propertyName],
       });

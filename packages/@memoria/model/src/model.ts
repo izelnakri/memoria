@@ -1,34 +1,27 @@
-// TODO: make Model.build() throw error if model.isBuilt is provided
-// TODO: should I change the data structure to allow for better revision storage(?)
-// |> store successful build, insert, update, delete actions as revision
-// |> make revision data structure like a changeset(?)
-// Add errors:[] to the revisionList(?) then could be problematic how the template model.errors work(?) - no maybe not(?) -> this is the question
+// NOTE: verdict, previous reference relationship assignment should be done on build() AND global insert(), update(), delete() Because cache() accepts only pure objects
+// TODO: also make sure relationship setting undefined values behave properly. Important because belongsToColumn change should impact relationship reference
+
+// NOTE: put a warning about extending insert() with not persisted model instances for $Model.insert(), $Model.cache()[probably disallow extending], update, delete, insertAll, updateAll, deleteAll
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Config, DB, RelationshipConfig } from "./stores/index.js";
+import { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 import Changeset from "./changeset.js";
-import Serializer from "./serializer.js";
+import Serializer, { transformValue } from "./serializer.js";
+import RevisionHistory from "./revision-history.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
-import type {
-  ModelReference,
-  ModelReferenceShape,
-  RelationshipDefinitionStore,
-  RelationshipSummary,
-} from "./index.js";
+import type { ModelReference, RelationshipType } from "./index.js";
 
 type primaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
-interface ModelRelationships {
-  [relationshipName: string]: typeof Model;
-}
-
 interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
 }
+
+const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   freeze?: boolean;
@@ -58,6 +51,7 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
+  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB };
 
   static get Cache() {
     return DB.getDB(this);
@@ -68,48 +62,188 @@ export default class Model {
   }
 
   static get primaryKeyName(): string {
-    return Config.getPrimaryKeyName(this);
+    return Schema.getPrimaryKeyName(this);
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Config.getColumnsMetadata(this)[this.primaryKeyName].generated === "uuid"
+    return Schema.getColumnsMetadataFrom(this)[this.primaryKeyName].generated === "uuid"
       ? "uuid"
       : "id";
   }
 
   static get columnNames(): Set<string> {
-    return Config.getColumnNames(this);
+    return Schema.getColumnNames(this);
   }
 
-  static get belongsToColumnNames(): Set<string> {
-    return RelationshipConfig.getBelongsToColumnNames(this);
-  }
-
-  // NOTE: currently this is costly, optimize it in future:
   static get relationshipNames(): Set<string> {
-    return new Set(Object.keys(this.relationshipSummary));
+    return new Set(Object.keys(RelationshipSchema.getRelationshipTable(this)));
   }
 
-  static get relationshipSummary(): RelationshipSummary {
-    return RelationshipConfig.relationshipsSummary[this.name] as RelationshipSummary;
+  static getRelationshipTable(relationshipType?: RelationshipType) {
+    return RelationshipSchema.getRelationshipTable(this, relationshipType);
   }
 
-  static get belongsToRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "many-to-one");
+  // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
+  // NOTE: could do attribute tracking
+  // NOTE: in future test also passing new Model() instances
+  static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
+    if (buildObject instanceof this) {
+      if (!buildObject.isBuilt) {
+        throw new Error(
+          "You should not provide an instantiated but not built model to $Model.build(model)"
+        );
+      } else if (options && options.copy === false) {
+        return buildObject;
+      }
+    }
+
+    let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
+    let primaryKey = model[this.primaryKeyName];
+    if (buildObject) {
+      if (buildObject.revisionHistory) {
+        buildObject.revisionHistory.forEach((revision) => {
+          model.revisionHistory.push({ ...revision });
+        });
+      }
+      if (buildObject.changes) {
+        Object.keys(buildObject.changes).forEach((key) => {
+          model.changes[key] = buildObject.changes[key];
+        });
+      }
+    }
+
+    if (primaryKey) {
+      RelationshipDB.getModelReferenceFor(this, primaryKey).add(model);
+    }
+
+    let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
+    let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
+    let attributeTrackingEnabledForModel = attributeTrackingEnabled(options);
+
+    Array.from(this.columnNames).forEach((columnName) => {
+      let cache = getTransformedValue(model, columnName, buildObject);
+
+      if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
+        Object.defineProperty(model, columnName, {
+          configurable: false,
+          enumerable: true,
+          get() {
+            return cache;
+          },
+          set(value) {
+            if (this[columnName] === value) {
+              return;
+            } else if (
+              value instanceof Date &&
+              this[columnName] &&
+              this[columnName].toJSON() === value.toJSON()
+            ) {
+              return;
+            }
+
+            cache = value === undefined ? null : value;
+
+            if (attributeTrackingEnabledForModel) {
+              if (this.revision[columnName] === cache) {
+                delete this.changes[columnName];
+              } else {
+                this.changes[columnName] = cache;
+              }
+
+              this.errors.forEach((error, errorIndex) => {
+                if (error.attribute === columnName) {
+                  this.errors.splice(errorIndex, 1);
+                }
+              });
+            }
+
+            if (belongsToColumnNames.has(columnName)) {
+              let { RelationshipClass, relationshipName } = belongsToTable[columnName];
+
+              if (
+                this[relationshipName] &&
+                !this[relationshipName][RelationshipClass.primaryKeyName]
+              ) {
+                return;
+              }
+
+              let relationshipCache = RelationshipDB.getInstanceRecordsCacheForTableKey(
+                `${(this.constructor as typeof Model).name}:${relationshipName}`,
+                "BelongsTo"
+              );
+              let relationshipModel = relationshipCache.get(this);
+              if (
+                cache === null &&
+                relationshipModel &&
+                relationshipModel[RelationshipClass.primaryKeyName]
+              ) {
+                relationshipCache.delete(this);
+              } else if (cache === null && !relationshipModel) {
+                this[relationshipName] = null;
+              } else if (cache && relationshipModel) {
+                let relationship = RelationshipClass.peek(cache);
+                if (relationship) {
+                  relationshipCache.set(this, relationship);
+                } else {
+                  relationshipCache.delete(this);
+                }
+              }
+            }
+          },
+        });
+      } else {
+        model[columnName] = getTransformedValue(model, columnName, buildObject);
+      }
+    });
+
+    let relationshipTable = RelationshipSchema.getRelationshipTable(this);
+    Object.keys(relationshipTable).forEach((relationshipName) => {
+      if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+      } else if (
+        buildObject &&
+        buildObject instanceof this &&
+        !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise)
+      ) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+      } else if (
+        primaryKey &&
+        ARRAY_ASKING_RELATIONSHIPS.includes(relationshipTable[relationshipName].relationshipType)
+      ) {
+        let lastReference = getLastElement(RelationshipDB.getModelReferenceFor(this, primaryKey));
+        if (lastReference && RelationshipDB.has(lastReference, relationshipName)) {
+          RelationshipDB.set(model, relationshipName, lastReference[relationshipName]);
+        }
+      }
+
+      Object.defineProperty(model, relationshipName, {
+        configurable: false,
+        enumerable: true,
+        get() {
+          return RelationshipDB.get(model, relationshipName);
+        },
+        set(value) {
+          return RelationshipDB.set(model, relationshipName, value);
+        },
+      });
+    });
+
+    return revisionAndLockModel(model, options, buildObject);
   }
 
-  static get hasOneRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "one-to-one");
+  static assign(
+    model: Model | ModelRefOrInstance | QueryObject,
+    objectToAssign: ModelRefOrInstance | QueryObject
+  ): Model | ModelRefOrInstance | QueryObject {
+    this.columnNames.forEach((columnName) => {
+      model[columnName] = transformValue(this, columnName, objectToAssign[columnName]);
+    });
+
+    return model; // NOTE: maybe also clear sourceModel.changes;
   }
 
-  static get hasManyRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "one-to-many");
-  }
-
-  static get manyToManyRelationships(): ModelRelationships {
-    return filterRelationsFromEntity(this, "many-to-many");
-  }
-
+  // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
+  // That payload parsing can happen in the Adapter.cache() the method can recursively call itself & handle payloads in 2nd arg
   static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model {
     if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
@@ -123,6 +257,7 @@ export default class Model {
     primaryKeyTypeSafetyCheck(model, this);
 
     // NOTE: this creates revision only for update and if model is not an instance, maybe it shouldnt create on every update when no change is there
+
     return this.Adapter.cache(this, model, options);
   }
 
@@ -197,15 +332,12 @@ export default class Model {
     let model = await this.Adapter.insert(this, record || {}, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        model[relationshipName] = record[relationshipName];
-      });
-
       record.#_inTransit = false;
       record.#_isNew = false;
+
       clearObject(record.changes);
 
-      revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, record));
+      revisionEnabled(options) && model.revisionHistory.add(record);
     }
 
     return model;
@@ -227,14 +359,11 @@ export default class Model {
     let model = await this.Adapter.update(this, record, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        model[relationshipName] = record[relationshipName];
-      });
       this.unsetRecordInTransit(record);
 
       clearObject(record.changes);
 
-      revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+      revisionEnabled(options) && record.revisionHistory.add(record);
     }
 
     return model;
@@ -277,15 +406,9 @@ export default class Model {
     let result = await this.Adapter.delete(this, record, options);
 
     if (record instanceof this) {
-      this.relationshipNames.forEach((relationshipName) => {
-        result[relationshipName] = record[relationshipName];
-      });
       record.#_inTransit = false;
       record.#_isDeleted = true;
     }
-
-    // hasOne, hasMany, oneToOne, ManyToMany
-    // TODO: reset model instance cache of the related records
 
     return result;
   }
@@ -330,15 +453,12 @@ export default class Model {
 
     let models = await this.Adapter.insertAll(this, records, options);
 
-    records.forEach((record, index) => {
+    records.forEach((record) => {
       if (record instanceof this) {
-        this.relationshipNames.forEach((relationshipName) => {
-          models[index][relationshipName] = record[relationshipName];
-        });
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
 
-        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+        revisionEnabled(options) && record.revisionHistory.add(record);
       }
     });
 
@@ -353,7 +473,7 @@ export default class Model {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
 
-    records.forEach((record, index) => {
+    records.forEach((record) => {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
@@ -362,9 +482,6 @@ export default class Model {
       }
       primaryKeyTypeSafetyCheck(record, this);
 
-      this.relationshipNames.forEach((relationshipName) => {
-        models[index][relationshipName] = record[relationshipName];
-      });
       this.setRecordInTransit(record);
     });
 
@@ -374,7 +491,7 @@ export default class Model {
       if (record instanceof this) {
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
-        revisionEnabled(options) && record.revisionHistory.push(Object.assign({}, record));
+        revisionEnabled(options) && record.revisionHistory.add(record);
       }
     });
 
@@ -408,11 +525,8 @@ export default class Model {
 
     let models = await this.Adapter.deleteAll(this, records, options);
 
-    records.forEach((record, index) => {
+    records.forEach((record) => {
       if (record instanceof this) {
-        this.relationshipNames.forEach((relationshipName) => {
-          models[index][relationshipName] = record[relationshipName];
-        });
         this.unsetRecordInTransit(record);
         record.isDeleted = true;
       }
@@ -423,19 +537,6 @@ export default class Model {
 
   static async count(options: QueryObject): Promise<number> {
     return await this.Adapter.count(this, options);
-  }
-
-  // transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
-  // could do attribute tracking
-  // TODO: test also passing new Model() instance
-  static build(buildObject?: QueryObject | Model, options?: ModelBuildOptions): Model {
-    let model = this.Adapter.build(this, buildObject, options);
-
-    revisionEnabled(options) &&
-      !(buildObject instanceof Model && buildObject.isBuilt) &&
-      model.revisionHistory.push(Object.assign({}, model));
-
-    return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
   }
 
   static serializer(objectOrArray: Model | Model[]) {
@@ -481,7 +582,7 @@ export default class Model {
   }
 
   changes: QueryObject = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
-  revisionHistory: ModelReferenceShape[] = [];
+  revisionHistory = new RevisionHistory();
 
   get revision() {
     return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);
@@ -527,6 +628,16 @@ export default class Model {
 
   get changeset() {
     return new Changeset(this, this.changes);
+  }
+
+  get fetchedRelationships() {
+    let Class = this.constructor as typeof Model;
+    let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
+
+    // TODO: should I need to include persistedCache(?)
+    return Object.keys(relationshipTable).filter((relationshipName) => {
+      return RelationshipDB.has(this, relationshipName);
+    });
   }
 
   changedAttributes() {
@@ -621,26 +732,27 @@ function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) 
   }
 }
 
-type relationshipType = "many-to-one" | "one-to-many" | "one-to-one" | "many-to-many";
+function attributeTrackingEnabled(options?: ModelBuildOptions) {
+  return !options || options.revision !== false;
+}
 
-function filterRelationsFromEntity(
-  Class: typeof Model,
-  relationshipType: relationshipType
-): ModelRelationships {
-  let relationshipSchema = RelationshipConfig.getRelationshipSchemaDefinitions(
-    Class
-  ) as RelationshipDefinitionStore;
+function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {
+  return buildObject && keyName in buildObject
+    ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
+    : model[keyName] || null;
+}
 
-  return relationshipSchema
-    ? Object.keys(relationshipSchema).reduce((result, relationshipPropertyName) => {
-        let schema = relationshipSchema[relationshipPropertyName];
+function getLastElement<T>(set: Set<T>) {
+  // NOTE: I can use an ExtendedSet with .last on each .add() to optimize time and space of this:
+  let value;
+  for (value of set);
+  return value;
+}
 
-        if (schema.type === relationshipType) {
-          result[relationshipPropertyName] =
-            typeof schema.target === "function" ? schema.target() : schema.target;
-        }
+function revisionAndLockModel(model, options?, buildObject?) {
+  revisionEnabled(options) &&
+    !(buildObject instanceof Model && buildObject.isBuilt) &&
+    model.revisionHistory.add(model);
 
-        return result;
-      }, {})
-    : {};
+  return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }

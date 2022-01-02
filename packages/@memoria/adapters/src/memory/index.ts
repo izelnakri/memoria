@@ -1,11 +1,10 @@
-// TODO: deleting a model should delete it from all possible relationships!!
-
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
-  Config,
+  Schema,
   DB,
-  RelationshipConfig,
+  RelationshipSchema,
   RelationshipDB,
+  RelationshipPromise,
   Changeset,
   DeleteError,
   InsertError,
@@ -16,10 +15,10 @@ import MemoriaModel, {
 } from "@memoria/model";
 import type {
   PrimaryKey,
-  RelationshipSummary,
   ModelReference,
   DecoratorBucket,
   ModelBuildOptions,
+  RelationshipMetadata,
 } from "@memoria/model";
 
 type QueryObject = { [key: string]: any };
@@ -29,43 +28,41 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
-  // TODO: make this directly Class not modelName
-  static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
+  static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
-      let targetSchemaIndex = Config.Schemas.findIndex(
+      let targetSchemaIndex = Schema.Schemas.findIndex(
         (schema) => schema.target.name === Model.name
       );
-      if (targetSchemaIndex >= 0) {
-        clearObject(Config.Schemas[targetSchemaIndex].target.Serializer.embeds);
-        Config.Schemas.splice(targetSchemaIndex, 1);
+      if (Schema.Models.get(Model)) {
         DB._DB.delete(Model.name);
         DB._defaultValuesCache.delete(Model.name);
-        Config._columnNames.delete(Model.name);
-        Config._primaryKeyNameCache.delete(Model.name);
-        RelationshipConfig._belongsToColumnNames.delete(Model.name);
-        RelationshipConfig._belongsToPointers.delete(Model.name);
-        // TODO: this is problematic, doesnt clear other relationship embeds
+        Schema.Models.delete(Model.name);
+        Schema.Schemas.splice(targetSchemaIndex, 1);
+        Schema._primaryKeyNameCache.delete(Model.name);
+        Schema._columnNames.delete(Model.name);
+        clearObject(Schema.Schemas[targetSchemaIndex].target.Serializer.embeds);
+        RelationshipDB.clear(Model);
+        RelationshipSchema.resetSchema(Model);
       }
 
-      return Config;
+      return Schema;
     }
 
     DB._DB.clear();
     DB._defaultValuesCache.clear();
-    Config._columnNames.clear();
-    Config._primaryKeyNameCache.clear();
-    RelationshipConfig._belongsToColumnNames.clear();
-    RelationshipConfig._belongsToPointers.clear();
-
-    for (let schema of Config.Schemas) {
+    Schema.Models.clear();
+    Schema._primaryKeyNameCache.clear();
+    Schema._columnNames.clear();
+    for (let schema of Schema.Schemas) {
       // NOTE: this is complex because could hold cyclical references
       // TODO: this only cleans registered data!!
       clearObject(schema.target.Serializer.embeds);
     }
+    Schema.Schemas.length = 0;
+    RelationshipDB.clear();
+    RelationshipSchema.resetSchema();
 
-    Config.Schemas.length = 0;
-
-    return Config;
+    return Schema;
   }
 
   static resetCache(
@@ -75,11 +72,11 @@ export default class MemoryAdapter {
   ): MemoriaModel[] {
     Model.Cache.clear();
 
-    if (targetState) {
-      targetState.forEach((fixture) => this.cache(Model, fixture, options));
+    if (!targetState) {
+      return [];
     }
 
-    return Array.from(Model.Cache.values()); // NOTE: This is a shallow copy, could be problematic
+    return targetState.map((fixture) => this.cache(Model, fixture, options));
   }
 
   static async resetRecords(
@@ -104,122 +101,17 @@ export default class MemoryAdapter {
     return [];
   }
 
-  static build(
-    Model: typeof MemoriaModel,
-    buildObject?: QueryObject | MemoriaModel,
-    options?: ModelBuildOptions
-  ) {
-    if (buildObject instanceof Model) {
-      if (!buildObject.isBuilt) {
-        throw new Error(
-          "You should not provide an instantiated but not built model to $Model.build(model)"
-        );
-      } else if (options && options.copy === false) {
-        return buildObject;
-      }
-    }
-
-    let model = new Model(options); // NOTE: this could be change to only on { copy: true } and make it mutate on other cases
-    if (buildObject && buildObject.revisionHistory) {
-      buildObject.revisionHistory.forEach((revision) => {
-        model.revisionHistory.push({ ...revision });
-      });
-    }
-    if (buildObject && buildObject.changes) {
-      Object.keys(buildObject.changes).forEach((key) => {
-        model.changes[key] = buildObject.changes[key];
-      });
-    }
-
-    let relationshipSummary = Model.relationshipSummary;
-
-    Object.keys(relationshipSummary).forEach((relationshipName) => {
-      RelationshipConfig.getBelongsToColumnNames(Model); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
-      // NOTE: do here runtime checks maybe!
-      // TODO: do I need castRelationship anymore(?) yes for : 1- getting the relationship still when null
-
-      RelationshipDB.set(
-        model,
-        relationshipName,
-        buildObject && relationshipName in buildObject
-          ? // if relationshipProvided just leave it there
-            castRelationship(model, relationshipName, Model.relationshipSummary, buildObject)
-          : model[relationshipName] || null
-      );
-
-      Object.defineProperty(model, relationshipName, {
-        configurable: false,
-        enumerable: true,
-        get() {
-          return RelationshipDB.get(model, relationshipName);
-        },
-        set(value) {
-          return RelationshipDB.set(
-            model,
-            relationshipName,
-            value instanceof MemoriaModel ? value : null
-          );
-        },
-      });
-    });
-
-    if (attributeTrackingEnabled(options)) {
-      return rewriteColumnPropertyDescriptorsAndAddProvidedValues(model, buildObject);
-    }
-
-    let belongsToColumnNames = Model.belongsToColumnNames;
-    let belongsToPointers = RelationshipConfig.getBelongsToPointers(Model);
-
-    return Array.from(Model.columnNames).reduce((result, columnName) => {
-      if (belongsToColumnNames.has(columnName)) {
-        let cache = transformModelForBuild(model, columnName, buildObject);
-        let belongsToPointer = belongsToPointers[columnName];
-
-        Object.defineProperty(model, columnName, {
-          configurable: false,
-          enumerable: true,
-          get() {
-            return cache;
-          },
-          set(value) {
-            if (this[columnName] === value) {
-              return;
-            }
-
-            cache = value === undefined ? null : value;
-
-            if (belongsToColumnNames.has(columnName)) {
-              let relationship = this[belongsToPointer.relationshipName];
-              if (
-                relationship &&
-                !relationship[belongsToPointer.relationshipClass.primaryKeyName]
-              ) {
-                return;
-              }
-
-              this[belongsToPointer.relationshipName] =
-                value === null
-                  ? null
-                  : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, value);
-            }
-          },
-        });
-
-        return result;
-      }
-
-      result[columnName] = transformModelForBuild(result, columnName, buildObject);
-
-      return result;
-    }, model);
-  }
-
+  // TODO: should be used for setPersistedRecords also does instanceRelationship updates(to direct relationships)
+  // and reflexive(due to instance cache) updates single record traverses the ENTIRE instanceCaches(scoped to relationships) to update its copies
+  // same for insert and update
+  // delete deletes it
+  // even hasMany diffs could be based on this(when fetched as hasMany it will update all inserts) and deletes on hasMany would be irrelevant(?)
+  // along with oneToOne after CCUD
   static cache(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
     options?: ModelBuildOptions
   ): MemoriaModel {
-    // TODO: make this work better, should check relationships and push to relationships if they exist
     let targetOptions = Object.assign(options || {}, { isNew: false });
     let existingModelInCache = this.peek(
       Model,
@@ -240,12 +132,23 @@ export default class MemoryAdapter {
         targetOptions
       );
 
-      return this.returnWithCacheEviction(tryToRevision(model, options), options);
+      if (record instanceof MemoriaModel) {
+        // NOTE: this is needed because record and existingModelInCache different instances, record's null primaryKey association like owner gets lost!! RESTPhoto.update(record)
+        record.fetchedRelationships.forEach((relationshipName) => {
+          model[relationshipName] = record[relationshipName];
+        });
+      }
+
+      return this.returnWithCacheEviction(
+        RelationshipDB.cache(tryToRevision(model, options), "update"),
+        options
+      );
     }
 
     let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
     Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
+    RelationshipDB.cache(target, "insert");
 
     return this.returnWithCacheEviction(target, options); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
   }
@@ -357,6 +260,7 @@ export default class MemoryAdapter {
     let target = Model.build(assignDefaultValuesForInsert(model, Model), buildOptions);
 
     Model.Cache.set(target[Model.primaryKeyName], Model.build(target, buildOptions));
+    RelationshipDB.cache(target, "insert");
 
     return this.returnWithCacheEviction(target, options);
   }
@@ -408,8 +312,14 @@ export default class MemoryAdapter {
       });
     }
 
+    if (record instanceof MemoriaModel) {
+      record.fetchedRelationships.forEach((relationshipName) => {
+        targetRecord[relationshipName] = record[relationshipName];
+      });
+    }
+
     Model.Cache.delete(targetRecord[Model.primaryKeyName]);
-    // RelationshipDB.delete(targetRecord);
+    RelationshipDB.delete(targetRecord);
 
     targetRecord.isDeleted = true;
 
@@ -472,10 +382,52 @@ export default class MemoryAdapter {
 
     return model;
   }
-}
 
-function attributeTrackingEnabled(options?: ModelBuildOptions) {
-  return !options || options.revision !== false;
+  static fetchRelationship(
+    model: MemoriaModel,
+    relationshipName: string,
+    relationshipMetadata?: RelationshipMetadata
+  ) {
+    let Model = model.constructor as typeof MemoriaModel;
+    let metadata =
+      relationshipMetadata ||
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+
+    return new RelationshipPromise(async (resolve, reject) => {
+      if (relationshipType === "BelongsTo") {
+        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+        if (!model[foreignKeyColumnName]) {
+          return resolve(null);
+        }
+
+        return resolve(RelationshipClass.peek(model[foreignKeyColumnName]));
+      } else if (relationshipType === "OneToOne") {
+        if (reverseRelationshipName) {
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+
+          return resolve(
+            RelationshipClass.peekBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
+          );
+        }
+
+        return reject();
+      } else if (relationshipType === "HasMany") {
+        if (reverseRelationshipName) {
+          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+          return resolve(
+            RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+          );
+        }
+
+        return reject();
+      }
+
+      // TODO:
+    });
+  }
 }
 
 // NOTE: if records were ordered by ID after insert, then there could be performance benefit
@@ -491,116 +443,7 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
   return false;
 }
 
-function rewriteColumnPropertyDescriptorsAndAddProvidedValues(
-  model: MemoriaModel,
-  buildObject?: QueryObject | MemoriaModel
-) {
-  let Model = model.constructor as typeof MemoriaModel;
-  // buildObject iteration, or nullifying
-  // set relationships if provided
-  Array.from(Model.columnNames).forEach((columnName) => {
-    let cache = transformModelForBuild(model, columnName, buildObject);
-
-    Object.defineProperty(model, columnName, {
-      configurable: false,
-      enumerable: true,
-      get() {
-        return cache;
-      },
-      set(value) {
-        if (this[columnName] === value) {
-          return;
-        } else if (
-          value instanceof Date &&
-          this[columnName] &&
-          this[columnName].toJSON() === value.toJSON()
-        ) {
-          return;
-        }
-
-        cache = value === undefined ? null : value;
-
-        if (this.revision[columnName] === cache) {
-          delete this.changes[columnName];
-        } else {
-          Object.assign(this.changes, { [columnName]: cache });
-        }
-
-        this.errors.forEach((error, errorIndex) => {
-          if (error.attribute === columnName) {
-            this.errors.splice(errorIndex, 1);
-          }
-        });
-
-        if (Model.belongsToColumnNames.has(columnName)) {
-          let belongsToPointer = RelationshipConfig.getBelongsToPointers(Model)[columnName];
-          let relationship = this[belongsToPointer.relationshipName];
-          if (relationship && !relationship[belongsToPointer.relationshipClass.primaryKeyName]) {
-            return;
-          }
-
-          this[belongsToPointer.relationshipName] =
-            cache === null
-              ? null
-              : tryGettingRelationshipFromPrimaryKey(belongsToPointer.relationshipClass, cache);
-        }
-      },
-    });
-  });
-
-  return model;
-}
-
-function transformModelForBuild(
-  model: MemoriaModel,
-  keyName: string,
-  buildObject?: QueryObject | MemoriaModel
-) {
-  return buildObject && keyName in buildObject
-    ? transformValue(model.constructor as typeof MemoriaModel, keyName, buildObject[keyName])
-    : model[keyName] || null;
-}
-
-function castRelationship(
-  model: MemoriaModel,
-  relationshipName: string,
-  relationshipSummary: RelationshipSummary,
-  buildObject: QueryObject | MemoriaModel
-) {
-  // NOTE: MAKE this array or single object-aware
-  if (relationshipName in buildObject) {
-    return buildObject[relationshipName] || null;
-  } else if (Array.isArray(relationshipSummary[relationshipName])) {
-    return null;
-  }
-
-  let belongsToPointers = RelationshipConfig.getBelongsToPointers(
-    model.constructor as typeof MemoriaModel
-  );
-  let relationshipForeignKeyName = Object.keys(belongsToPointers).find(
-    (belongsToColumnName) =>
-      belongsToPointers[belongsToColumnName].relationshipName === relationshipName
-  ) as string;
-
-  return relationshipForeignKeyName
-    ? tryGettingRelationshipFromPrimaryKey(
-        belongsToPointers[relationshipForeignKeyName].relationshipClass,
-        model[relationshipForeignKeyName]
-      )
-    : null;
-}
-
-function tryGettingRelationshipFromPrimaryKey(
-  RelationshipClass: typeof MemoriaModel,
-  primaryKey: any
-) {
-  if (!primaryKey) {
-    return null;
-  }
-
-  return RelationshipClass.peek(primaryKey) || RelationshipClass.find(primaryKey);
-}
-
+// NOTE: maybe move to DB(?)
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
 
@@ -626,7 +469,7 @@ function tryToRevision(model: MemoriaModel, options) {
   if (Object.keys(model.changes).length > 0) {
     clearObject(model.changes);
 
-    revisionEnabled(options) && model.revisionHistory.push(Object.assign({}, model));
+    revisionEnabled(options) && model.revisionHistory.add(model);
   }
 
   return model;

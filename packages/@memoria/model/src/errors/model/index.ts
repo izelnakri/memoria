@@ -121,5 +121,6 @@ export default class ModelError extends Error {
 // Memoria.Error
 // Memoria.Adapter
 // Memoria.Serializer
-// Memoria.Config
+// Memoria.Schema
+// Memoria.DB
 // Memoria.Utils

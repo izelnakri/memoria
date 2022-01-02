@@ -2,7 +2,8 @@ import type Model from "./index.js";
 import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
 export type PrimaryKey = number | string;
-export type ModuleDatabase<Value> = Map<string, Value>;
+export type ModelName = string;
+export type ModuleDatabase<Value> = Map<ModelName, Value>;
 
 export interface DecoratorBucket {
   [decoratorKey: string]: any;

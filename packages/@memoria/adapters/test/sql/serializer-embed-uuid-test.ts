@@ -1,5 +1,5 @@
 import Model, {
-  Config,
+  Schema,
   DB,
   PrimaryGeneratedColumn,
   Column,
@@ -93,7 +93,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
   ];
 
   async function prepare() {
-    await Config.resetSchemas();
+    await Schema.resetSchemas();
 
     class User extends Model {
       static Adapter = SQLAdapter;

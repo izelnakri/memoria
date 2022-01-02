@@ -1,5 +1,5 @@
 import Model from "../model.js";
-import Config from "./config.js";
+import Schema from "./schema.js";
 import { generateUUID } from "../utils.js";
 import type {
   PrimaryKey,
@@ -63,7 +63,7 @@ export default class DB {
       return defaultValues[operationType];
     }
 
-    let columns = Config.getColumnsMetadata(Class) as ColumnSchemaDefinition;
+    let columns = Schema.getColumnsMetadataFrom(Class) as ColumnSchemaDefinition;
     let target = Object.keys(columns).reduce(
       (result, columnName: string) => {
         let column = columns[columnName] as ColumnDefinition;
@@ -95,14 +95,21 @@ export default class DB {
     return target[operationType];
   }
 
-  static async resetRecords(): Promise<Config> {
-    await Promise.all(Config.Adapters.map((Adapter) => Adapter.resetRecords()));
+  static async resetCache(): Promise<Schema> {
+    for (const map of this._DB.values()) {
+      map.clear();
+    }
+
+    return this;
+  }
+
+  static async resetRecords(): Promise<Schema> {
+    await Promise.all(Schema.Adapters.map((Adapter) => Adapter.resetRecords()));
 
     return this;
   }
 }
 
-// TODO: turn this into a sequence so no need for sorting, faster inserts
 function incrementId(DB: Map<PrimaryKey, Model>) {
   if (!DB || DB.size === 0) {
     return 1;

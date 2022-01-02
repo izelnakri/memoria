@@ -5,13 +5,20 @@ import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
   Changeset,
-  Config,
+  Schema,
   DeleteError,
   InsertError,
   UpdateError,
   RuntimeError,
+  RelationshipPromise,
+  RelationshipSchema,
 } from "@memoria/model";
-import type { PrimaryKey, ModelReference, ModelBuildOptions } from "@memoria/model";
+import type {
+  PrimaryKey,
+  ModelReference,
+  ModelBuildOptions,
+  RelationshipMetadata,
+} from "@memoria/model";
 
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
@@ -46,7 +53,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // @ts-ignore
     this._connection = (await createConnection({
       // @ts-ignore
-      entities: Config.Schemas.map((schema) => new EntitySchema(schema)),
+      entities: Schema.Schemas.map((schema) => new EntitySchema(schema)),
       ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
     })) as Connection;
 
@@ -58,7 +65,7 @@ export default class SQLAdapter extends MemoryAdapter {
     return connection.manager;
   }
 
-  static async resetSchemas(Config, Model?: typeof MemoriaModel): Promise<Config> {
+  static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
       throw new RuntimeError(
         "$Model.resetSchemas($Model) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
@@ -67,7 +74,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let connection = await this.getConnection();
 
     await connection.dropDatabase();
-    await super.resetSchemas(Config, Model);
+    await super.resetSchemas(Schema, Model);
 
     // TODO: check if this is needed to clear typeorm MetadataArgsStore:
     // NOTE: uncommenting this breaks test builds on static imports. Check if this is even needed, or there is another way:
@@ -78,7 +85,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await connection.close();
 
-    return Config;
+    return Schema;
   }
 
   static async resetRecords(
@@ -104,7 +111,7 @@ export default class SQLAdapter extends MemoryAdapter {
       return await this.resetCache(Model, [], options);
     }
 
-    let tableNames = Config.Schemas.map((schema) => `"${schema.target.tableName}"`);
+    let tableNames = Schema.Schemas.map((schema) => `"${schema.target.tableName}"`);
 
     await Manager.query(`TRUNCATE TABLE ${tableNames.join(", ")} RESTART IDENTITY`); // NOTE: investigate CASCADE case
 
@@ -211,7 +218,11 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.cache(Model, result.generatedMaps[0], options);
+      return this.cache(
+        Model,
+        Model.assign(record, result.generatedMaps[0]) as ModelRefOrInstance,
+        options
+      );
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -275,10 +286,14 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.update(Model, result, options); // NOTE: this could be problematic
+        return await super.update(Model, Model.assign(record, result), options);
       }
 
-      return this.cache(Model, result, options) as MemoriaModel;
+      return this.cache(
+        Model,
+        Model.assign(record, result) as ModelRefOrInstance,
+        options
+      ) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -312,16 +327,23 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.delete(Model, result, options); // NOTE: this could be problematic
+        return await super.delete(
+          Model,
+          Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,
+          options
+        );
       }
 
-      return Model.build(result, Object.assign(options || {}, { isNew: false, isDeleted: true }));
+      return Model.build(
+        Model.assign(result, resultRaw.raw[0]),
+        Object.assign(options || {}, { isNew: false, isDeleted: true })
+      );
     } catch (error) {
       throw error;
     }
   }
 
-  // TODO: check this:
+  // TODO: check/test this:
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
@@ -346,7 +368,9 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.cache(Model, rawResult, options));
+      return result.raw.map((rawResult, index) =>
+        this.cache(Model, Model.assign(records[index], rawResult) as ModelRefOrInstance, options)
+      );
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling
@@ -386,7 +410,9 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
-    return results.map((result) => this.cache(Model, result, options));
+    return results.map((result, index) =>
+      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options)
+    );
   }
 
   static async deleteAll(
@@ -405,9 +431,58 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await this.unloadAll(Model, this.peekAll(Model, targetPrimaryKeys) as MemoriaModel[]);
 
-    return result.raw.map((rawResult) =>
-      Model.build(rawResult, Object.assign(options || {}, { isNew: false, isDeleted: true }))
+    return result.raw.map((rawResult, index) =>
+      Model.build(
+        Model.assign(records[index], rawResult),
+        Object.assign(options || {}, { isNew: false, isDeleted: true })
+      )
     );
+  }
+
+  static fetchRelationship(
+    model: MemoriaModel,
+    relationshipName: string,
+    relationshipMetadata?: RelationshipMetadata
+  ) {
+    let Model = model.constructor as typeof MemoriaModel;
+    let metadata =
+      relationshipMetadata ||
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
+    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+
+    return new RelationshipPromise(async (resolve, reject) => {
+      if (relationshipType === "BelongsTo") {
+        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+        if (!model[foreignKeyColumnName]) {
+          return resolve(null);
+        }
+
+        return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
+      } else if (relationshipType === "OneToOne") {
+        if (reverseRelationshipName) {
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+
+          return resolve(
+            await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
+          );
+        }
+
+        return reject();
+      } else if (relationshipType === "HasMany") {
+        if (reverseRelationshipName) {
+          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+          return resolve(
+            await RelationshipClass.findAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+          );
+        }
+
+        return reject();
+      }
+
+      return reject("ManyToMany fetchRelationship not implemented yet");
+    });
   }
 }
 
