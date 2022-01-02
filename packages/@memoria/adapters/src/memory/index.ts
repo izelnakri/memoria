@@ -112,10 +112,6 @@ export default class MemoryAdapter {
     record: ModelRefOrInstance,
     options?: ModelBuildOptions
   ): MemoriaModel {
-    // TODO: add persistedRelationshipReferences(!)
-    // by checking record.isNew & instanceRecordsBelongsToCache adjustment(?)
-
-    // TODO: make this work better, should check relationships and push to relationships if they exist
     let targetOptions = Object.assign(options || {}, { isNew: false });
     let existingModelInCache = this.peek(
       Model,
@@ -135,6 +131,13 @@ export default class MemoryAdapter {
         ),
         targetOptions
       );
+
+      if (record instanceof MemoriaModel) {
+        // NOTE: this is needed because record and existingModelInCache different instances, record's null primaryKey association like owner gets lost!! RESTPhoto.update(record)
+        record.fetchedRelationships.forEach((relationshipName) => {
+          model[relationshipName] = record[relationshipName];
+        });
+      }
 
       return this.returnWithCacheEviction(
         RelationshipDB.cache(tryToRevision(model, options), "update"),
@@ -309,6 +312,12 @@ export default class MemoryAdapter {
       });
     }
 
+    if (record instanceof MemoriaModel) {
+      record.fetchedRelationships.forEach((relationshipName) => {
+        targetRecord[relationshipName] = record[relationshipName];
+      });
+    }
+
     Model.Cache.delete(targetRecord[Model.primaryKeyName]);
     RelationshipDB.delete(targetRecord);
 
@@ -404,7 +413,6 @@ export default class MemoryAdapter {
           );
         }
 
-        debugger;
         return reject();
       } else if (relationshipType === "HasMany") {
         if (reverseRelationshipName) {
@@ -414,7 +422,6 @@ export default class MemoryAdapter {
           );
         }
 
-        debugger;
         return reject();
       }
 

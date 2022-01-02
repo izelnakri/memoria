@@ -11,6 +11,7 @@ import MemoriaModel, {
   UpdateError,
   RuntimeError,
   RelationshipPromise,
+  RelationshipSchema,
 } from "@memoria/model";
 import type {
   PrimaryKey,
@@ -422,9 +423,42 @@ export default class SQLAdapter extends MemoryAdapter {
     relationshipName: string,
     relationshipMetadata?: RelationshipMetadata
   ) {
-    console.log(model, relationshipName, relationshipMetadata);
-    return new RelationshipPromise(async () => {
-      // TODO:
+    let Model = model.constructor as typeof MemoriaModel;
+    let metadata =
+      relationshipMetadata ||
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+
+    return new RelationshipPromise(async (resolve, reject) => {
+      if (relationshipType === "BelongsTo") {
+        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+        if (!model[foreignKeyColumnName]) {
+          return resolve(null);
+        }
+
+        return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
+      } else if (relationshipType === "OneToOne") {
+        if (reverseRelationshipName) {
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+
+          return resolve(
+            await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
+          );
+        }
+
+        return reject();
+      } else if (relationshipType === "HasMany") {
+        if (reverseRelationshipName) {
+          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+          return resolve(
+            await RelationshipClass.findAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+          );
+        }
+
+        return reject();
+      }
     });
   }
 }

@@ -167,7 +167,27 @@ export default class Model {
                 return;
               }
 
-              this[relationshipName] = cache === null ? null : RelationshipClass.peek(cache); // TODO: also make sure relationship setting undefined values behave properly
+              let relationshipCache = RelationshipDB.getInstanceRecordsCacheForTableKey(
+                `${(this.constructor as typeof Model).name}:${relationshipName}`,
+                "BelongsTo"
+              );
+              let relationshipModel = relationshipCache.get(this);
+              if (
+                cache === null &&
+                relationshipModel &&
+                relationshipModel[RelationshipClass.primaryKeyName]
+              ) {
+                relationshipCache.delete(this);
+              } else if (cache === null && !relationshipModel) {
+                this[relationshipName] = null;
+              } else if (cache && relationshipModel) {
+                let relationship = RelationshipClass.peek(cache);
+                if (relationship) {
+                  relationshipCache.set(this, relationship);
+                } else {
+                  relationshipCache.delete(this);
+                }
+              }
             }
           },
         });
@@ -176,17 +196,17 @@ export default class Model {
       }
     });
 
-    // TODO: For SQL and REST make inputs this way:
-    // Also do: Class.cache(Object.assign(insertReference(!!), transformedPayload))
+    // TODO: For SQL inputs do this way:
+    // Also do: Class.cache(Object.assign(insertReference(!!), transformedPayload)) now its named synchronizeModelFromPayload
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
-      let shouldTryLookingUpBuildObject = buildObject && relationshipName in buildObject;
-      if (shouldTryLookingUpBuildObject && !(buildObject instanceof this)) {
+      if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (
-        shouldTryLookingUpBuildObject &&
-        RelationshipDB.has(buildObject as Model, relationshipName)
+        buildObject &&
+        buildObject instanceof this &&
+        !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise)
       ) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (
@@ -203,17 +223,25 @@ export default class Model {
         configurable: false,
         enumerable: true,
         get() {
-          // debugger;
           return RelationshipDB.get(model, relationshipName);
         },
         set(value) {
-          // debugger;
           return RelationshipDB.set(model, relationshipName, value);
         },
       });
     });
 
     return revisionAndLockModel(model, options, buildObject);
+  }
+
+  static assign(model: Model, objectToAssign: ModelRefOrInstance): Model {
+    let Class = model.constructor as typeof Model;
+
+    Class.columnNames.forEach((columnName) => {
+      model[columnName] = transformValue(Class, columnName, objectToAssign[columnName]);
+    });
+
+    return model; // NOTE: maybe also clear sourceModel.changes;
   }
 
   // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
@@ -309,14 +337,6 @@ export default class Model {
       record.#_inTransit = false;
       record.#_isNew = false;
 
-      // TODO: these relationship syncs needs to change for insert, update, delete:
-      // TODO: OPTIMIZE THIS, it makes redundant getter and setter calls due to inserts with fetchedRelationships
-      // this.relationshipNames.forEach((relationshipName) => {
-      //   // TODO: maybe all except hasMany as model has no hasMany at the beginning
-      //   record[relationshipName] = model[relationshipName];
-      //   // model can have the same relationship as record
-      // });
-
       clearObject(record.changes);
 
       revisionEnabled(options) && model.revisionHistory.add(record);
@@ -341,10 +361,6 @@ export default class Model {
     let model = await this.Adapter.update(this, record, options);
 
     if (record instanceof this) {
-      // TODO: record[relationshipName] does gett for ALL, change it:
-      // this.relationshipNames.forEach((relationshipName) => {
-      //   model[relationshipName] = record[relationshipName];
-      // });
       this.unsetRecordInTransit(record);
 
       clearObject(record.changes);
@@ -392,18 +408,11 @@ export default class Model {
     let result = await this.Adapter.delete(this, record, options);
 
     if (record instanceof this) {
-      // TODO: record[relationshipName] does gett for ALL, change it:
-      // this.relationshipNames.forEach((relationshipName) => {
-      //   result[relationshipName] = record[relationshipName];
-      // });
       record.#_inTransit = false;
       record.#_isDeleted = true;
     }
 
-    // hasOne, hasMany, oneToOne, ManyToMany
-    // TODO: reset model instance cache of the related records
-
-    return RelationshipDB.delete(result);
+    return result;
   }
 
   static async saveAll(
@@ -448,10 +457,6 @@ export default class Model {
 
     records.forEach((record, _index) => {
       if (record instanceof this) {
-        // TODO: record[relationshipName] does gett for ALL, change it:
-        // this.relationshipNames.forEach((relationshipName) => {
-        //   models[index][relationshipName] = record[relationshipName];
-        // });
         this.unsetRecordInTransit(record);
         clearObject(record.changes);
 
@@ -479,10 +484,6 @@ export default class Model {
       }
       primaryKeyTypeSafetyCheck(record, this);
 
-      // TODO: record[relationshipName] does gett for ALL, change it:
-      // this.relationshipNames.forEach((relationshipName) => {
-      //   models[index][relationshipName] = record[relationshipName];
-      // });
       this.setRecordInTransit(record);
     });
 
@@ -528,10 +529,6 @@ export default class Model {
 
     records.forEach((record, _index) => {
       if (record instanceof this) {
-        // TODO: record[relationshipName] does gett for ALL, change it:
-        // this.relationshipNames.forEach((relationshipName) => {
-        //   models[index][relationshipName] = record[relationshipName];
-        // });
         this.unsetRecordInTransit(record);
         record.isDeleted = true;
       }
@@ -748,7 +745,7 @@ function getTransformedValue(model: Model, keyName: string, buildObject?: QueryO
 }
 
 function getLastElement<T>(set: Set<T>) {
-  // NOTE: I can use an ExtendedSet with .last on each .add() to optimize time and space
+  // NOTE: I can use an ExtendedSet with .last on each .add() to optimize time and space of this:
   let value;
   for (value of set);
   return value;

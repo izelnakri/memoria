@@ -165,26 +165,12 @@ export default class RESTAdapter extends MemoryAdapter {
     record: QueryObject | ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    // TODO: make this get the attributes from the result just like MemoryAdapter
-    let result = await this.http.post(
+    return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Object.assign({ Model }, options)
-    );
-
-    if (record instanceof MemoriaModel) {
-      Model.columnNames.forEach((columnName) => {
-        if (
-          result[columnName] ||
-          !RelationshipSchema.getBelongsToColumnNames(Model).has(columnName)
-        ) {
-          record[columnName] = result[columnName];
-        }
-      });
-    }
-
-    return result as MemoriaModel;
+    )) as MemoriaModel;
   }
 
   static async update(
@@ -192,25 +178,12 @@ export default class RESTAdapter extends MemoryAdapter {
     record: ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    let result = await this.http.put(
+    return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
       Object.assign({ Model }, options)
-    );
-
-    if (record instanceof MemoriaModel) {
-      Model.columnNames.forEach((columnName) => {
-        if (
-          result[columnName] ||
-          !RelationshipSchema.getBelongsToColumnNames(Model).has(columnName)
-        ) {
-          record[columnName] = result[columnName];
-        }
-      });
-    }
-
-    return result as MemoriaModel;
+    )) as MemoriaModel;
   }
 
   static async delete(
@@ -278,9 +251,42 @@ export default class RESTAdapter extends MemoryAdapter {
     relationshipName: string,
     relationshipMetadata?: RelationshipMetadata
   ) {
-    console.log(model, relationshipName, relationshipMetadata);
-    return new RelationshipPromise(async () => {
-      // TODO:
+    let Model = model.constructor as typeof MemoriaModel;
+    let metadata =
+      relationshipMetadata ||
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+
+    return new RelationshipPromise(async (resolve, reject) => {
+      if (relationshipType === "BelongsTo") {
+        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+        if (!model[foreignKeyColumnName]) {
+          return resolve(null);
+        }
+
+        return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
+      } else if (relationshipType === "OneToOne") {
+        if (reverseRelationshipName) {
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+
+          return resolve(
+            await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
+          );
+        }
+
+        return reject();
+      } else if (relationshipType === "HasMany") {
+        if (reverseRelationshipName) {
+          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+          return resolve(
+            await RelationshipClass.findAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+          );
+        }
+
+        return reject();
+      }
     });
   }
 }

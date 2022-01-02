@@ -1,13 +1,7 @@
-persistedRecordsBelongsToCache mutation on this.insert()(memory adapter), this.cache(), this.delete(model)
-
-set (can be proxied)
-delete (can be proxied)
+ONLY FAILING TEST: RESTAdapter: fetched model can request the relationship(without embed) and change the relationship before update (
+Then also do this to SQLAdapter
 
 email will not be reflexive to user until insert(?) if user also fetched email in this scenario:
-
-saved user then makes email assoc
-server says -> user gets inserted email gets inserted
-// it should change all email and then user relationship caches
 
 deleteInArray / change / addInArray (should be proxied correctly when reference diff different)
 

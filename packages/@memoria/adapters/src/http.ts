@@ -149,13 +149,14 @@ async function makeFetchRequest(
     },
     httpOptions.timeout ? httpOptions.timeout : DEFAULT_TIMEOUT_IN_MS
   );
+  let requestBody = httpOptions.body as JSObject;
 
   try {
     response = await fetch(httpOptions.url, {
       signal: timeoutController.signal,
       headers: buildHeaders(httpOptions.headers),
       method: httpOptions.method,
-      body: JSON.stringify(httpOptions.body),
+      body: JSON.stringify(requestBody),
     });
   } finally {
     clearTimeout(timeoutFunction);
@@ -191,17 +192,29 @@ async function makeFetchRequest(
 
     if (httpOptions.method !== "DELETE" && Model) {
       let Adapter = Model.Adapter;
-      let modelKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
-      let results = json[modelKeyName] || json[pluralize(modelKeyName)];
+      let modelResponseKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
+      let modelRequestKeyName = Model.Serializer.modelKeyNameForPayload(Model);
+      let results = json[modelResponseKeyName] || json[pluralize(modelResponseKeyName)];
+      let initialSource =
+        (requestBody && requestBody[modelRequestKeyName]) ||
+        (requestBody && requestBody[pluralize(modelRequestKeyName)]);
 
       // TODO: if result is empty throw an error
       if (Array.isArray(results)) {
-        return results.map((result) =>
-          Adapter.cache(Model as typeof MemoriaModel, result, options)
-        ) as MemoriaModel[];
+        return results.map((result, index) => {
+          return Adapter.cache(
+            Model as typeof MemoriaModel,
+            initialSource ? synchronizePayloadForBuild(initialSource[index], result) : result,
+            options
+          );
+        }) as MemoriaModel[];
       }
 
-      return Adapter.cache(Model, results, options) as MemoriaModel;
+      return Adapter.cache(
+        Model,
+        synchronizePayloadForBuild(initialSource, results),
+        options
+      ) as MemoriaModel;
     }
 
     return json;
@@ -291,4 +304,10 @@ function getErrorMessage(ErrorInterface, httpOptions) {
   } else if (ErrorInterface === ServerError) {
     return `Web server responds with an error for ${httpOptions.method} ${httpOptions.url}`;
   }
+}
+
+function synchronizePayloadForBuild(initialSource, payload) {
+  return initialSource && initialSource instanceof MemoriaModel
+    ? (initialSource.constructor as typeof MemoriaModel).assign(initialSource, payload)
+    : payload;
 }

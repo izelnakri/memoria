@@ -332,22 +332,20 @@ export default class RelationshipDB {
   static get(model: Model, relationshipName: string) {
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-    let map = this.getInstanceRecordsCacheForTableKey(
+    let cache = this.getInstanceRecordsCacheForTableKey(
       `${Class.name}:${relationshipName}`,
       metadata.relationshipType
     );
-    let reference = map.get(model);
+    let reference = cache.get(model);
     if (reference === undefined) {
       reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // this checks persistedCache
       if (reference instanceof Promise) {
         return new LazyPromise(async (resolve) => {
           let relationship = await reference;
-          map.set(model, relationship);
+          cache.set(model, relationship);
 
           resolve(relationship);
         });
-      } else if (reference) {
-        map.set(model, reference);
       }
     }
 
@@ -361,7 +359,7 @@ export default class RelationshipDB {
       foreignKeyColumnName,
       RelationshipClass,
     } = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-    let map = this.getInstanceRecordsCacheForTableKey(
+    let cache = this.getInstanceRecordsCacheForTableKey(
       `${Class.name}:${relationshipName}`,
       relationshipType
     );
@@ -369,18 +367,18 @@ export default class RelationshipDB {
     if (relationshipType === "BelongsTo") {
       let relationship = input instanceof Model ? input : null;
 
-      map.set(model, relationship);
+      cache.set(model, relationship);
       model[foreignKeyColumnName as string] = relationship
         ? relationship[RelationshipClass.primaryKeyName]
         : null;
     } else if (relationshipType === "OneToOne") {
-      map.set(model, input instanceof Model ? input : null);
+      cache.set(model, input instanceof Model ? input : null);
     } else {
       if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
         throw new Error(`Trying to set a non model instance to ${Class.name}.${relationshipName}!`);
       }
 
-      map.set(model, input ? input : null);
+      cache.set(model, input ? input : null);
     }
 
     return model;
