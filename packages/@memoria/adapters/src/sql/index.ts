@@ -218,7 +218,11 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return this.cache(Model, result.generatedMaps[0], options);
+      return this.cache(
+        Model,
+        Model.assign(record, result.generatedMaps[0]) as ModelRefOrInstance,
+        options
+      );
     } catch (error) {
       if (!error.code) {
         throw error;
@@ -282,10 +286,14 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.update(Model, result, options); // NOTE: this could be problematic
+        return await super.update(Model, Model.assign(record, result), options); // NOTE: this could be problematic
       }
 
-      return this.cache(Model, result, options) as MemoriaModel;
+      return this.cache(
+        Model,
+        Model.assign(record, result) as ModelRefOrInstance,
+        options
+      ) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -319,10 +327,17 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (this.peek(Model, result[Model.primaryKeyName])) {
-        return await super.delete(Model, result, options); // NOTE: this could be problematic
+        return await super.delete(
+          Model,
+          Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,
+          options
+        ); // NOTE: this could be problematic
       }
 
-      return Model.build(result, Object.assign(options || {}, { isNew: false, isDeleted: true }));
+      return Model.build(
+        Model.assign(result, resultRaw.raw[0]),
+        Object.assign(options || {}, { isNew: false, isDeleted: true })
+      );
     } catch (error) {
       throw error;
     }
@@ -353,7 +368,9 @@ export default class SQLAdapter extends MemoryAdapter {
         );
       }
 
-      return result.raw.map((rawResult) => this.cache(Model, rawResult, options));
+      return result.raw.map((rawResult, index) =>
+        this.cache(Model, Model.assign(records[index], rawResult) as ModelRefOrInstance, options)
+      );
     } catch (error) {
       console.log(error);
       // TODO: implement custom error handling
@@ -393,7 +410,9 @@ export default class SQLAdapter extends MemoryAdapter {
       records.map((model) => cleanRelationships(Model, Model.build(model)))
     );
 
-    return results.map((result) => this.cache(Model, result, options));
+    return results.map((result, index) =>
+      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options)
+    );
   }
 
   static async deleteAll(
@@ -412,8 +431,11 @@ export default class SQLAdapter extends MemoryAdapter {
 
     await this.unloadAll(Model, this.peekAll(Model, targetPrimaryKeys) as MemoriaModel[]);
 
-    return result.raw.map((rawResult) =>
-      Model.build(rawResult, Object.assign(options || {}, { isNew: false, isDeleted: true }))
+    return result.raw.map((rawResult, index) =>
+      Model.build(
+        Model.assign(records[index], rawResult),
+        Object.assign(options || {}, { isNew: false, isDeleted: true })
+      )
     );
   }
 

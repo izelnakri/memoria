@@ -1,6 +1,3 @@
-ONLY FAILING TEST: RESTAdapter: fetched model can request the relationship(without embed) and change the relationship before update (
-Then also do this to SQLAdapter
-
 email will not be reflexive to user until insert(?) if user also fetched email in this scenario:
 
 deleteInArray / change / addInArray (should be proxied correctly when reference diff different)

@@ -234,11 +234,12 @@ export default class Model {
     return revisionAndLockModel(model, options, buildObject);
   }
 
-  static assign(model: Model, objectToAssign: ModelRefOrInstance): Model {
-    let Class = model.constructor as typeof Model;
-
-    Class.columnNames.forEach((columnName) => {
-      model[columnName] = transformValue(Class, columnName, objectToAssign[columnName]);
+  static assign(
+    model: Model | ModelRefOrInstance | QueryObject,
+    objectToAssign: ModelRefOrInstance | QueryObject
+  ): Model | ModelRefOrInstance | QueryObject {
+    this.columnNames.forEach((columnName) => {
+      model[columnName] = transformValue(this, columnName, objectToAssign[columnName]);
     });
 
     return model; // NOTE: maybe also clear sourceModel.changes;
