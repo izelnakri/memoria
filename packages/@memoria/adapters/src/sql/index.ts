@@ -1,5 +1,3 @@
-// TODO: memory adapter also needs to handle relationships correctly
-// SQL updateAll is buggy because of relationship references
 import { Connection, createConnection, EntitySchema } from "typeorm";
 import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";

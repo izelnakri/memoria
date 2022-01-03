@@ -1,14 +1,11 @@
-// NOTE: verdict, previous reference relationship assignment should be done on build() AND global insert(), update(), delete() Because cache() accepts only pure objects
-// TODO: also make sure relationship setting undefined values behave properly. Important because belongsToColumn change should impact relationship reference
-
-// NOTE: put a warning about extending insert() with not persisted model instances for $Model.insert(), $Model.cache()[probably disallow extending], update, delete, insertAll, updateAll, deleteAll
+// NOTE: put a warning about extending $Model.insert() with not persisted model instances for $Model.insert(), $Model.cache(), update, delete, insertAll, updateAll, deleteAll. Extensions should care about relationships
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
+import Changeset from "./changeset.js";
+import RevisionHistory from "./revision-history.js";
+import Serializer, { transformValue } from "./serializer.js";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
 import { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
-import Changeset from "./changeset.js";
-import Serializer, { transformValue } from "./serializer.js";
-import RevisionHistory from "./revision-history.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
 import type { ModelReference, RelationshipType } from "./index.js";
 
@@ -33,8 +30,6 @@ export interface ModelBuildOptions extends ModelInstantiateOptions {
   // include?: // NOTE: would be a useful addition for JSONAPIAdapter & GraphQLAdapter
 }
 
-// NOTE: maybe add embed option? for CRUDOptions
-
 const LOCK_PROPERTY = {
   configurable: false,
   enumerable: false,
@@ -44,9 +39,8 @@ const LOCK_PROPERTY = {
 // NOTE: perhaps make peek and unload methods return a copied object so they can receive ModelBuildOptions,
 // also MemoryAdapter find methods call them. So check the performance impact of this change on test suites in future
 
-// cache replaces existing record!, doesnt have defaultValues
+// Document .cache() replaces existing record!, doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
-// there is also provided model and returned model on crud
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -85,7 +79,7 @@ export default class Model {
 
   // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
   // NOTE: could do attribute tracking
-  // NOTE: in future test also passing new Model() instances
+  // NOTE: test also passing new Model() instances
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
@@ -124,7 +118,7 @@ export default class Model {
       let cache = getTransformedValue(model, columnName, buildObject);
 
       if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
-        Object.defineProperty(model, columnName, {
+        return Object.defineProperty(model, columnName, {
           configurable: false,
           enumerable: true,
           get() {
@@ -184,16 +178,16 @@ export default class Model {
                 let relationship = RelationshipClass.peek(cache);
                 if (relationship) {
                   relationshipCache.set(this, relationship);
-                } else {
-                  relationshipCache.delete(this);
                 }
+
+                return relationshipCache.delete(this);
               }
             }
           },
         });
-      } else {
-        model[columnName] = getTransformedValue(model, columnName, buildObject);
       }
+
+      model[columnName] = getTransformedValue(model, columnName, buildObject);
     });
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
@@ -385,8 +379,6 @@ export default class Model {
         "unload() called without a valid record"
       );
     }
-
-    // TODO: reset model instance cache of the related records
 
     return this.Adapter.unload(this, record, options);
   }
@@ -606,7 +598,7 @@ export default class Model {
   }
 
   get isPersisted() {
-    return !this.isNew; // NOTE: change this to !this.isDirty && !this.isNew;
+    return !this.isDirty && !this.isNew;
   }
 
   #_isDeleted = false;

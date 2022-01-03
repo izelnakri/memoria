@@ -7,8 +7,8 @@ export type JSObject = { [key: string]: any };
 export type primaryKey = number | string;
 export interface ChangesetErrorItem {
   id?: primaryKey | null;
-  modelName?: string; // optional
-  attribute?: string; // optional
+  modelName?: string;
+  attribute?: string;
   message: string;
 }
 
@@ -33,7 +33,7 @@ export default class Changeset {
 
       // TODO: this could be problematic for relationship mutations
       let castedChanges = params
-        ? Object.keys(this.data).reduce((result, keyName) => {
+        ? Array.from((model.constructor as typeof Model).columnNames).reduce((result, keyName) => {
             if (keyName in params && this.data[keyName] !== params[keyName]) {
               result[keyName] = params[keyName];
             }

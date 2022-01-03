@@ -1,6 +1,5 @@
 // NOTE: investigate connection.entityMetadatas;
-// TRUNCATE TABLE my_table RESTART IDENTITY;
-// TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // NOTE: investigate CASCADE
+// TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // vs without CASCADE
 import Model from "../model.js";
 import type {
   ModuleDatabase,

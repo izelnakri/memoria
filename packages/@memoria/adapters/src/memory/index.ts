@@ -24,7 +24,7 @@ import type {
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
 
-// TODO: allow storeing bigint as string due to bigint!! Thats what SQLAdapter does
+// TODO: allow storing bigint as string due to bigint!! Thats what SQLAdapter does
 export default class MemoryAdapter {
   static Decorators: DecoratorBucket = Decorators;
 
@@ -101,12 +101,6 @@ export default class MemoryAdapter {
     return [];
   }
 
-  // TODO: should be used for setPersistedRecords also does instanceRelationship updates(to direct relationships)
-  // and reflexive(due to instance cache) updates single record traverses the ENTIRE instanceCaches(scoped to relationships) to update its copies
-  // same for insert and update
-  // delete deletes it
-  // even hasMany diffs could be based on this(when fetched as hasMany it will update all inserts) and deletes on hasMany would be irrelevant(?)
-  // along with oneToOne after CCUD
   static cache(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
@@ -391,7 +385,7 @@ export default class MemoryAdapter {
     let Model = model.constructor as typeof MemoriaModel;
     let metadata =
       relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName); // TODO: get with schema function instead(?)
+      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
@@ -430,7 +424,6 @@ export default class MemoryAdapter {
   }
 }
 
-// NOTE: if records were ordered by ID after insert, then there could be performance benefit
 function comparison(model: MemoriaModel, options: QueryObject, keys: string[], index = 0): boolean {
   const key = keys[index];
 

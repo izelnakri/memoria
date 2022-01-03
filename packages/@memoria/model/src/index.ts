@@ -89,6 +89,5 @@ export default Model;
 
 export { Changeset, Serializer };
 
-// relationship setting and fetching
 // User.getErrors(userInstance or Instances) // -> same array
 // pushRecord(json);
