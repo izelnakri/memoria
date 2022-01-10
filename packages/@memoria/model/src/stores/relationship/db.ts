@@ -1,8 +1,9 @@
-// TODO: separating Schema.cache() to insert() and update() might be an good optimization when iterating already referenced relationships
+// TODO: separating $Model.cache() to RelationshipDB.insert() and .update() might be an good optimization when iterating already referenced relationships
 // Caches refresh/mutate on CCUD: create, cache(fetch), update, delete
-// NOTE: in future try to optimize instanceCache(s) with symbol references instead of full instance variables(?)[each symbol refer to a modelReference]
-// NOTE: Two approaches: Update similar instances on CRUD, 2- NOT update similar instances on CRUD, only persistedRecordsBelongsToCache, and have timeStamp for each revision(?)
-// NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc)
+// NOTE: in future try to optimize instanceCache(s) with symbol references instead of full instances(?)[each symbol refer to a modelReference]
+// NOTE: Two approaches found for updating reference caches on new cache, the 1st one chosen for now for simplicity:
+// 1- Update similar instances on CRUD(multicore problematic), 2- DONT update similar instances on CRUD, only persistedRecordsBelongsToCache, and have timeStamp for each revision(?)
+// NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc), .lastElement
 
 // Types:
 // instanceRecord
