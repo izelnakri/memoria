@@ -10,6 +10,7 @@ import MemoriaModel, {
   RuntimeError,
   RelationshipPromise,
   RelationshipSchema,
+  RelationshipDB,
 } from "@memoria/model";
 import type {
   PrimaryKey,
@@ -485,9 +486,14 @@ export default class SQLAdapter extends MemoryAdapter {
 }
 
 function cleanRelationships(Model, instance) {
-  Model.relationshipNames.forEach((relationshipKey) => {
+  let relationshipTable = RelationshipSchema.getRelationshipTable(Model);
+  Object.keys(relationshipTable).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
-      instance[relationshipKey] = undefined;
+      let { relationshipType } = relationshipTable[relationshipKey];
+      RelationshipDB.getInstanceRecordsCacheForTableKey(
+        `${Model.name}:${relationshipKey}`,
+        relationshipType
+      ).set(instance, undefined);
     }
   });
 

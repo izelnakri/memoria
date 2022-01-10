@@ -335,17 +335,19 @@ export default class RelationshipDB {
       `${Class.name}:${relationshipName}`,
       metadata.relationshipType
     );
-    let reference = cache.get(model);
-    if (reference === undefined) {
-      reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
-      if (reference instanceof Promise) {
-        return new LazyPromise(async (resolve) => {
-          let relationship = await reference;
-          cache.set(model, relationship);
+    if (cache.has(model)) {
+      return cache.get(model);
+    }
 
-          resolve(relationship);
-        });
-      }
+    let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
+    if (reference instanceof Promise) {
+      return new LazyPromise(async (resolve) => {
+        // TODO: this should be the reference itself(?) gives LazyPromise instead of RelationshipPromise;
+        let relationship = await reference;
+        cache.set(model, relationship);
+
+        resolve(relationship);
+      });
     }
 
     return reference;
@@ -363,7 +365,9 @@ export default class RelationshipDB {
       relationshipType
     );
 
-    if (relationshipType === "BelongsTo") {
+    if (input === undefined) {
+      cache.delete(model);
+    } else if (relationshipType === "BelongsTo") {
       let relationship = input instanceof Model ? input : null;
 
       cache.set(model, relationship);
