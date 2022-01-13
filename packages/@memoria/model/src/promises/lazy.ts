@@ -1,15 +1,40 @@
-export default class LazyPromise<ValueType> extends Promise<ValueType> {
-  _promise: undefined | Promise<ValueType>;
-  _executor: ((resolve: any, reject: any) => ValueType);
+interface DeferredPromise {
+  promise: LazyPromise;
+  resolve: (value) => {};
+  reject: (value) => {};
+}
 
-  constructor(executor: ((resolve: any, reject: any) => ValueType)) {
-    super((resolve) => resolve(new Promise(() => {})));
+export default class LazyPromise extends Promise<void> {
+  // isSlow = false;
+  // isLoading = false;
+  // isLoaded = false;
+  // isError = false;
+  // get notStarted() {
+  //   return !this.isLoading || !this.isLoaded || !this.isError;
+  // }
 
-    this._executor = executor;
+  #promise: undefined | Promise<void>;
+  #executor: (resolve: any, reject: any) => void;
+
+  constructor(executor: (resolve: any, reject: any) => void) {
+    super((_resolve, _reject) => {});
+
+    this.#executor = executor;
   }
 
   static from(function_: any) {
     return new this((resolve) => resolve(function_()));
+  }
+
+  static defer() {
+    let deferred = {} as DeferredPromise;
+    let promise = new this(function (resolve, reject) {
+      deferred.resolve = resolve;
+      deferred.reject = reject;
+    });
+    deferred.promise = promise;
+
+    return deferred;
   }
 
   static resolve(value: any) {
@@ -21,15 +46,21 @@ export default class LazyPromise<ValueType> extends Promise<ValueType> {
   }
 
   // @ts-ignore
-  then<A, B>(onFulfilled?: any, onRejected?: any) {
-    this._promise = this._promise || new Promise(this._executor);
+  then(onFulfilled?: any, onRejected?: any) {
+    this.#promise = this.#promise || new Promise(this.#executor);
 
-    return this._promise.then(onFulfilled, onRejected);
+    return this.#promise.then(onFulfilled, onRejected);
   }
 
   catch(onRejected: any) {
-    this._promise = this._promise || new Promise(this._executor);
+    this.#promise = this.#promise || new Promise(this.#executor);
 
-    return this._promise.catch(onRejected);
+    return this.#promise.catch(onRejected);
+  }
+
+  reload() {
+    this.#promise = new Promise(this.#executor);
+
+    return this.#promise;
   }
 }
