@@ -93,5 +93,10 @@ export default function generateRESTModels() {
     RESTPhoto: generateRESTPhoto(),
     RESTPhotoComment: generateRESTPhotoComment(),
     RESTUser: generateRESTUser(),
+    MemoryGroup,
+    MemoryPhoto,
+    MemoryPhotoComment,
+    MemoryUser,
+    Server,
   };
 }

@@ -11,7 +11,7 @@
 // References(Only For Records with PrimaryKey)
 import Model from "../../model.js";
 import RelationshipSchema from "./schema.js";
-import LazyPromise from "../../promises/lazy.js";
+import { RelationshipPromise } from "../../promises/index.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
@@ -47,8 +47,9 @@ export default class RelationshipDB {
     WeakMap<Model, null | Model[]>
   > = new Map();
 
-  // NOTE: Only used for models with id on purpose! It is needed for updating instance hasMany Records
-  static instanceReferences: Map<ModelName, Map<PrimaryKey, Set<Model>>> = new Map();
+  // NOTE: Used for models with id AND no primaryKey on purpose!
+  // NOTE: It is needed for updating instance hasMany Records and deleting references of not persisted records which hold persisted deleted record
+  static instanceReferences: Map<ModelName, Map<PrimaryKey | undefined, Set<Model>>> = new Map();
 
   static getInstanceRecordsCacheForTableKey(
     relationshipTableKey: string,
@@ -86,11 +87,10 @@ export default class RelationshipDB {
       this.instanceReferences.set(Class.name, new Map());
     }
 
-    return this.instanceReferences.get(Class.name) as Map<PrimaryKey, Set<Model>>;
+    return this.instanceReferences.get(Class.name) as Map<PrimaryKey | undefined, Set<Model>>;
   }
-  static getModelReferenceFor(Class: typeof Model, primaryKey: PrimaryKey): Set<Model> {
+  static getModelReferenceFor(Class: typeof Model, primaryKey: PrimaryKey | undefined): Set<Model> {
     let references = this.getModelReferences(Class);
-
     if (!references.has(primaryKey)) {
       references.set(primaryKey, new Set());
     }
@@ -129,12 +129,14 @@ export default class RelationshipDB {
         RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey })
       );
     } else if (relationshipType === "HasMany") {
-      return filterInIterator(
-        this.persistedRecordsBelongsToCache.get(
+      let results = filterInIterator(
+        (this.persistedRecordsBelongsToCache.get(
           `${RelationshipClass.name}:${reverseRelationshipName}`
-        ),
-        (relatedModel) => relatedModel[Class.primaryKeyName] === primaryKey
+        ) as Map<PrimaryKey, null | BelongsToPrimaryKey>).entries(),
+        ([_, targetModelPrimaryKey]) => targetModelPrimaryKey === primaryKey
       );
+
+      return results.map((result) => RelationshipClass.peek(result[0]));
     }
   }
 
@@ -156,7 +158,13 @@ export default class RelationshipDB {
       this.updateExistingReference(modelReference, model);
     });
 
-    if (type === "update") {
+    if (type === "insert" && primaryKey) {
+      let nullReferences = this.getModelReferenceFor(Class, undefined);
+      if (nullReferences.has(model)) {
+        nullReferences.delete(model);
+        this.getModelReferenceFor(Class, primaryKey).add(model);
+      }
+    } else if (type === "update") {
       // NOTE: this changes all possible relationships where model could be the value relationship!
       // Example: when photo inserted or update (belongsTo gets updated)
       // User:photos should get updated
@@ -197,7 +205,7 @@ export default class RelationshipDB {
   ) {
     let Class = targetModel.constructor as typeof Model;
     let possibleReferences = this.instanceReferences.get(relationshipClassName) as Map<
-      PrimaryKey,
+      PrimaryKey | undefined,
       Set<Model>
     >;
     if (possibleReferences) {
@@ -211,7 +219,6 @@ export default class RelationshipDB {
               tableKey,
               relationshipType
             ).get(reference);
-
             if (
               relationshipReference &&
               relationshipReference[TargetClass.primaryKeyName] ===
@@ -228,6 +235,7 @@ export default class RelationshipDB {
     }
   }
 
+  // TODO: this currently only removes belongsTo, not an element from HasMany array!
   static deleteInstanceCacheReferencesForModel(
     targetModel: Model,
     relationshipClassName: ModelName,
@@ -235,7 +243,7 @@ export default class RelationshipDB {
   ) {
     let Class = targetModel.constructor as typeof Model;
     let possibleReferences = this.instanceReferences.get(relationshipClassName) as Map<
-      PrimaryKey,
+      PrimaryKey | undefined,
       Set<Model>
     >;
     if (possibleReferences) {
@@ -244,7 +252,6 @@ export default class RelationshipDB {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
             let { TargetClass, relationshipName, relationshipType } = relationshipMetadata;
             let tableKey = `${TargetClass.name}:${relationshipName}`;
-            // TODO: DO it differently for hasMany and ManyToMany handling
             let relationshipReference = this.getInstanceRecordsCacheForTableKey(
               tableKey,
               relationshipType
@@ -253,9 +260,7 @@ export default class RelationshipDB {
               relationshipReference &&
               relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
             ) {
-              this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).delete(
-                relationshipReference
-              );
+              RelationshipDB.set(reference, relationshipName, null);
             }
           });
         });
@@ -278,15 +283,19 @@ export default class RelationshipDB {
     });
 
     this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
+      // TODO: maybe this shouldnt be needed, instead getters should check if the instance exists in instanceReferences instead(?), maybe this is needed for correct @tracked implementation
+      // TODO: only removes BelongsTo, NOT HasMany Relationships YET
       belongsToRelationshipKeys.forEach((relationshipName) => {
-        this.findInstanceRelationshipFor(modelReference, relationshipName, "BelongsTo").delete(
-          modelReference
-        );
+        this.getInstanceRecordsCacheForTableKey(
+          `${Class.name}:${relationshipName}`,
+          "BelongsTo"
+        ).delete(modelReference);
       });
     });
 
     let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
     Object.keys(reverseRelationships).forEach((relationshipModelName) => {
+      // TODO: this removes only based on instanceReferences
       this.deleteInstanceCacheReferencesForModel(
         model,
         relationshipModelName,
@@ -295,6 +304,7 @@ export default class RelationshipDB {
     });
 
     if (primaryKey) {
+      // NOTE: This also gets called on $Model.build() so needed
       this.getModelReferenceFor(Class, primaryKey).clear();
     }
 
@@ -342,13 +352,19 @@ export default class RelationshipDB {
 
     let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
     if (reference instanceof Promise) {
-      return new LazyPromise(async (resolve) => {
-        // TODO: this should be the reference itself(?) gives LazyPromise instead of RelationshipPromise;
-        let relationship = await reference;
-        cache.set(model, relationship);
+      return new RelationshipPromise(async (resolve, reject) => {
+        try {
+          let relationship = await reference;
+          cache.set(model, relationship);
 
-        resolve(relationship);
+          resolve(relationship);
+        } catch (error) {
+          reject(error);
+        }
       });
+    } else {
+      // NOTE: Removing this is currently tricky but this could be a nice lazy optimization:
+      cache.set(model, reference);
     }
 
     return reference;

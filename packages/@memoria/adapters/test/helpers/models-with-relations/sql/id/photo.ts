@@ -5,7 +5,7 @@ import Model, {
   BelongsTo,
   HasMany,
 } from "@memoria/model";
-import { SQLAdapter } from "@memoria/adapter";
+import { SQLAdapter } from "@memoria/adapters";
 import User from "./user.js";
 import Group from "./group.js";
 import PhotoComment from "./photo-comment.js";

@@ -106,9 +106,7 @@ export default class Model {
       }
     }
 
-    if (primaryKey) {
-      RelationshipDB.getModelReferenceFor(this, primaryKey).add(model);
-    }
+    RelationshipDB.getModelReferenceFor(this, primaryKey).add(model); // NOTE: this should always add to instanceReferences including ones with null primaryKey
 
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
     let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
@@ -174,7 +172,7 @@ export default class Model {
                 relationshipCache.delete(this);
               } else if (cache === null && !relationshipModel) {
                 this[relationshipName] = null;
-              } else if (cache && relationshipModel) {
+              } else if (cache && relationshipCache.has(this)) {
                 let relationship = RelationshipClass.peek(cache);
                 if (relationship) {
                   relationshipCache.set(this, relationship);
@@ -225,6 +223,7 @@ export default class Model {
     return revisionAndLockModel(model, options, buildObject);
   }
 
+  // NOTE: assigns provided values when key is in Model.columnNames, ignores the rest
   static assign(
     model: Model | ModelRefOrInstance | QueryObject,
     objectToAssign: ModelRefOrInstance | QueryObject
@@ -238,8 +237,13 @@ export default class Model {
 
   // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
   // That payload parsing can happen in the Adapter.cache() the method can recursively call itself & handle payloads in 2nd arg
-  static cache(model: ModelRefOrInstance, options?: ModelBuildOptions): Model {
-    if (!model[this.primaryKeyName]) {
+  static cache(
+    model: ModelRefOrInstance | ModelRefOrInstance[],
+    options?: ModelBuildOptions
+  ): Model | Model[] {
+    if (Array.isArray(model)) {
+      return model.map((singleModel) => this.cache(singleModel, options)) as Model[];
+    } else if (!model[this.primaryKeyName]) {
       throw new RuntimeError(new Changeset(this.build(model, { isNew: false })), {
         id: null,
         modelName: this.name,

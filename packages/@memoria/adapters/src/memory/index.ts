@@ -312,8 +312,8 @@ export default class MemoryAdapter {
       });
     }
 
-    Model.Cache.delete(targetRecord[Model.primaryKeyName]);
     RelationshipDB.delete(targetRecord);
+    Model.Cache.delete(targetRecord[Model.primaryKeyName]);
 
     targetRecord.isDeleted = true;
 

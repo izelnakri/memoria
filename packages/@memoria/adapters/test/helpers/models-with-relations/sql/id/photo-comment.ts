@@ -1,5 +1,5 @@
 import Model, { PrimaryGeneratedColumn, Serializer, Column, BelongsTo } from "@memoria/model";
-import { SQLAdapter } from "@memoria/adapter";
+import { SQLAdapter } from "@memoria/adapters";
 import User from "./user.js";
 import Photo from "./photo.js";
 

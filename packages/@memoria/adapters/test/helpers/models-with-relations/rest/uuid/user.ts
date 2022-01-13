@@ -5,7 +5,7 @@ import Model, {
   HasMany,
   ManyToMany,
 } from "@memoria/model";
-import { RESTAdapter } from "@memoria/adapter";
+import { RESTAdapter } from "@memoria/adapters";
 import Group from "./group.js";
 import Photo from "./photo.js";
 import PhotoComment from "./photo-comment.js";
