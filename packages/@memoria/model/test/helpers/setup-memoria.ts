@@ -1,5 +1,5 @@
 import match from "match-json";
-import Qunit from "qunitx";
+import QUnit from "qunitx";
 import Model, { Schema, DB } from "@memoria/model";
 
 export default function (hooks) {
@@ -22,6 +22,44 @@ export default function (hooks) {
         actual,
         expected: filteredExpected,
         message,
+      });
+    };
+    QUnit.assert.propContains = function (actual, expected, message) {
+      [actual, expected] = Object.keys(expected).reduce(
+        (result, key) => {
+          result[0][key] = actual[key];
+          result[1][key] = expected[key];
+
+          return result;
+        },
+        [{}, {}]
+      );
+
+      this.pushResult({
+        result: QUnit.equiv(actual, expected),
+        actual,
+        expected,
+        message,
+      });
+    };
+
+    QUnit.assert.notPropContains = function (actual, expected, message) {
+      [actual, expected] = Object.keys(expected).reduce(
+        (result, key) => {
+          result[0][key] = actual[key];
+          result[1][key] = expected[key];
+
+          return result;
+        },
+        [{}, {}]
+      );
+
+      this.pushResult({
+        result: !QUnit.equiv(actual, expected),
+        actual,
+        expected,
+        message,
+        negative: true,
       });
     };
   });
