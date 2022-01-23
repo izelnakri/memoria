@@ -6,11 +6,23 @@ interface DeferredPromise {
   reject: (value) => {};
 }
 
+interface JSObject {
+  [key: string]: any;
+}
+
 // TODO: maybe add timeout option, shouldTakeInMs option(for .isSlow)
 // NOTE: isSlow = false; NOTE: instead it could have start time and finishTime and hooks onStart, onFinish, onError
 export default class LazyPromise extends Promise<void> {
   static from(function_: any) {
     return new this((resolve) => resolve(function_()));
+  }
+
+  static resolve(value: any) {
+    return new this((resolve) => resolve(value));
+  }
+
+  static reject(error: any) {
+    return new this((_resolve, reject) => reject(error));
   }
 
   static defer() {
@@ -24,12 +36,15 @@ export default class LazyPromise extends Promise<void> {
     return deferred;
   }
 
-  static resolve(value: any) {
-    return new this((resolve) => resolve(value));
-  }
+  static async hash(object: JSObject) {
+    let keys = Object.keys(object);
+    let values = await Promise.all(keys.map((key) => object[key]));
 
-  static reject(error: any) {
-    return new this((_resolve, reject) => reject(error));
+    return values.reduce((result, values, index) => {
+      result[keys[index]] = values;
+
+      return result;
+    }, {});
   }
 
   isStarted = false;
@@ -38,7 +53,7 @@ export default class LazyPromise extends Promise<void> {
   isError = false;
   isAborted = false;
 
-  #rejectHandlers = new Set();
+  #rejectHandlers: Array<() => void> = [];
   #abortMessage: Error;
   #abortController: AbortController;
   #promise?: Promise<void>;
@@ -48,11 +63,9 @@ export default class LazyPromise extends Promise<void> {
     this.isLoading = false;
 
     let result = Promise.all(
-      Array.from(this.#rejectHandlers).map((rejectHandler: (unknown) => void) =>
-        rejectHandler(error)
-      )
+      this.#rejectHandlers.map((rejectHandler: (unknown) => void) => rejectHandler(error))
     );
-    this.#rejectHandlers.clear();
+    this.#rejectHandlers.length = 0;
 
     return result;
   }
@@ -104,7 +117,7 @@ export default class LazyPromise extends Promise<void> {
 
   // @ts-ignore
   then(onFulfilled?: any, onRejected?: () => void) {
-    onRejected && this.#rejectHandlers.add(onRejected);
+    onRejected && this.#rejectHandlers.push(onRejected);
 
     if (this.isAborted) {
       return this.#runRejectHandlers(this.#abortMessage);
@@ -136,9 +149,17 @@ export default class LazyPromise extends Promise<void> {
 
   // @ts-ignore
   catch(onRejected) {
-    this.#rejectHandlers.add(onRejected);
+    this.#rejectHandlers.push(onRejected);
 
     return this;
+  }
+
+  debug(callback: (any) => any) {
+    return this.then((result) => {
+      return callback ? callback(result) : console.log(result);
+    }).catch((error) => {
+      return callback ? callback(error) : console.log(error);
+    });
   }
 
   reload() {

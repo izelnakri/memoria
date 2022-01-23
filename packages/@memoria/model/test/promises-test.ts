@@ -1,6 +1,9 @@
-import { LazyPromise, RuntimeError } from "@memoria/model";
+import { ServerError, hash, LazyPromise, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
+// TODO: this could create a build error
+import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
+import Response from "@memoria/response";
 
 const fixture = Symbol("fixture");
 
@@ -414,7 +417,9 @@ module("@memoria/model | LazyPromise", function (hooks) {
         assert.equal(error.message, "Tried to abort an already finished promise!");
       }
     });
+  });
 
+  module("Promise.defer() cases:", function () {
     test("deferred promise can be aborted before running", async function (assert) {
       assert.expect(5);
 
@@ -697,6 +702,65 @@ module("@memoria/model | LazyPromise", function (hooks) {
         isError: false,
         isAborted: false,
       });
+    });
+  });
+
+  module("Promise.hash() test cases", function () {
+    test("Promise.hash() can resolve correctly", async function (assert) {
+      let { RESTPhoto, RESTUser, MemoryPhoto, MemoryUser } = setupRESTModels();
+
+      let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
+      let photos = await MemoryPhoto.insertAll([
+        { name: "Family photo", owner: users[0] },
+        { name: "Trip photo", owner: users[1] },
+      ]);
+
+      try {
+        let result = await LazyPromise.hash({
+          photos: RESTPhoto.findAll(),
+          users: RESTUser.findAll(),
+        });
+
+        assert.propEqual(result, { users, photos });
+        assert.equal(photos.length, 2);
+        assert.equal(users.length, 2);
+        assert.propContains(users[0], { id: 1, first_name: "Izel" });
+        assert.propContains(users[1], { id: 2, first_name: "Moris" });
+        assert.propEqual(result.photos[0].owner, users[0]);
+        assert.propEqual(result.photos[1].owner, users[1]);
+      } catch (error) {
+        assert.ok(false);
+      }
+    });
+
+    test("Promise.hash() can catch the first error even if the first promise resolves", async function (assert) {
+      let { Server, RESTPhoto, RESTUser, MemoryPhoto, MemoryUser } = setupRESTModels();
+
+      let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
+      let photos = await MemoryPhoto.insertAll([
+        { name: "Family photo", owner: users[0] },
+        { name: "Trip photo", owner: users[1] },
+      ]);
+      let errors = [
+        { id: 1, modelName: "User", attribute: "name", message: "is missing" },
+        { id: 2, modelName: "User", attribute: "name", message: "is missing" },
+      ];
+
+      Server.get("/users", () => {
+        return Response(422, { errors });
+      });
+
+      try {
+        let result = await LazyPromise.hash({
+          photos: RESTPhoto.findAll(),
+          users: RESTUser.findAll(),
+        });
+
+        assert.ok(false);
+      } catch (error) {
+        assert.ok(error instanceof ServerError);
+        assert.propEqual(error.errors, errors);
+      }
     });
   });
 });
