@@ -307,7 +307,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
     });
   });
 
-  module(".abort() cases", async function (assert) {
+  module(".abort() cases", async function () {
     test("promise can be aborted before awaited", async function (assert) {
       assert.expect(7);
 
@@ -707,7 +707,8 @@ module("@memoria/model | LazyPromise", function (hooks) {
 
   module("Promise.hash() test cases", function () {
     test("Promise.hash() can resolve correctly", async function (assert) {
-      let { RESTPhoto, RESTUser, MemoryPhoto, MemoryUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser, MemoryPhoto, MemoryUser } = setupRESTModels();
+      this.Server = Server;
 
       let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
       let photos = await MemoryPhoto.insertAll([
@@ -735,6 +736,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
 
     test("Promise.hash() can catch the first error even if the first promise resolves", async function (assert) {
       let { Server, RESTPhoto, RESTUser, MemoryPhoto, MemoryUser } = setupRESTModels();
+      this.Server = Server;
 
       let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
       let photos = await MemoryPhoto.insertAll([
@@ -746,7 +748,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
         { id: 2, modelName: "User", attribute: "name", message: "is missing" },
       ];
 
-      Server.get("/users", () => {
+      this.Server.get("/users", () => {
         return Response(422, { errors });
       });
 

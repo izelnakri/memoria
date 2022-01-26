@@ -68,6 +68,10 @@ export default function (hooks) {
     await Schema.resetSchemas();
   });
   hooks.afterEach(async function () {
+    if (this.Server) {
+      this.Server.shutdown();
+    }
+
     await DB.resetRecords();
     await Schema.resetSchemas();
   });

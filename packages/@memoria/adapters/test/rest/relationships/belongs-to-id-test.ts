@@ -7,6 +7,7 @@ import Model, {
   NotFoundError,
   RelationshipPromise,
 } from "@memoria/model";
+import { HTTP } from "@memoria/adapters";
 import ServerResponse from "@memoria/response";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
@@ -19,7 +20,8 @@ module(
 
     // TODO: also add embed tests to the test cases correctly
     test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = RESTUser.build({ first_name: "Izel" });
       let photo = RESTPhoto.build({ name: "Dinner photo", owner: user });
@@ -56,7 +58,8 @@ module(
     });
 
     test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = RESTUser.build({ first_name: "Izel" });
       let photo = RESTPhoto.build({ name: "Dinner photo" });
@@ -90,7 +93,8 @@ module(
     });
 
     test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = await RESTUser.insert({ first_name: "Izel" });
       let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
@@ -124,7 +128,8 @@ module(
     });
 
     test("fetched model can remove the relationship before update", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = await RESTUser.insert({ first_name: "Izel" });
       let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
@@ -153,7 +158,8 @@ module(
     });
 
     test("fetched model can remove the relationship before delete", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = await RESTUser.insert({ first_name: "Izel" });
       let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
@@ -182,7 +188,8 @@ module(
     });
 
     test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let firstUser = await RESTUser.insert({ first_name: "Izel" });
       let secondUser = await RESTUser.insert({ first_name: "Moris" });
@@ -225,7 +232,8 @@ module(
     });
 
     test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
-      let { RESTPhoto, RESTUser, MemoryUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser, MemoryUser } = setupRESTModels();
+      this.Server = Server;
 
       await MemoryUser.insertAll([
         {
@@ -279,7 +287,8 @@ module(
     });
 
     test("a model can fetch its not loaded relationship", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let firstUser = await RESTUser.insert({ first_name: "Izel" });
       let secondUser = await RESTUser.insert({ first_name: "Moris" });
@@ -290,7 +299,8 @@ module(
     });
 
     test("a models relationship promise reference turns to null when relationship gets destroyed either way", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let firstUser = await RESTUser.insert({ first_name: "Izel" });
       let secondUser = await RESTUser.insert({ first_name: "Moris" });
@@ -304,7 +314,8 @@ module(
     });
 
     test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let firstUser = await RESTUser.insert({ first_name: "Izel" });
       let secondUser = await RESTUser.insert({ first_name: "Moris" });
@@ -320,7 +331,8 @@ module(
     });
 
     test("deleting a related model should delete the models relationship references", async function (assert) {
-      let { RESTPhoto, RESTUser } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+      this.Server = Server;
 
       let user = await RESTUser.insert({ id: 22, first_name: "Izel" });
       let photo = RESTPhoto.build({ name: "Dinner photo", owner: user });
@@ -337,11 +349,12 @@ module(
     test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
       assert.expect(13);
 
-      let { RESTPhoto, RESTUser, MemoryUser, Server } = setupRESTModels();
+      let { Server, RESTPhoto, RESTUser, MemoryUser } = setupRESTModels();
+      this.Server = Server;
 
       let photo = RESTPhoto.build({ name: "Dinner photo", owner_id: 44 });
 
-      Server.get("/users/:id", async ({ params }) => {
+      this.Server.get("/users/:id", async ({ params }) => {
         return ServerResponse(401, { message: "Not authorized" });
       });
 
@@ -351,7 +364,7 @@ module(
         assert.ok(error instanceof UnauthorizedError);
         assert.equal(
           error.message,
-          "Server responds with unauthorized access to GET http://localhost:1234/users/44"
+          `Server responds with unauthorized access to GET ${HTTP.host}/users/44`
         );
       }
 
@@ -359,7 +372,7 @@ module(
       assert.equal(photo.owner_id, 44);
       assert.deepEqual(photo.errors, []);
 
-      Server.get("/users/:id", async ({ params }) => {
+      this.Server.get("/users/:id", async ({ params }) => {
         return ServerResponse(404, { message: "Not found this record" });
       });
 
@@ -369,7 +382,7 @@ module(
         assert.ok(error instanceof NotFoundError);
         assert.equal(
           error.message,
-          "Server responded with not found for GET http://localhost:1234/users/44"
+          `Server responded with not found for GET ${HTTP.host}/users/44`
         );
       }
 
@@ -379,7 +392,7 @@ module(
 
       await MemoryUser.insert({ id: 44, first_name: "Izel" });
 
-      Server.get("/users/:id", async ({ params }) => {
+      this.Server.get("/users/:id", async ({ params }) => {
         let user = await MemoryUser.find(params.id);
 
         return { user: MemoryUser.serializer(user) };

@@ -89,14 +89,16 @@ export default function generateRESTModels() {
   });
 
   return {
-    RESTGroup: generateRESTGroup(),
-    RESTPhoto: generateRESTPhoto(),
-    RESTPhotoComment: generateRESTPhotoComment(),
-    RESTUser: generateRESTUser(),
     MemoryGroup,
     MemoryPhoto,
+    MemoryMessage: MemoryPhoto,
     MemoryPhotoComment,
     MemoryUser,
+    RESTGroup: generateRESTGroup(),
+    RESTPhoto: generateRESTPhoto(),
+    RESTMessage: generateRESTPhoto(),
+    RESTPhotoComment: generateRESTPhotoComment(),
+    RESTUser: generateRESTUser(),
     Server,
   };
 }
