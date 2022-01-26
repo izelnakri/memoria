@@ -1,6 +1,7 @@
 import MemoryAdapter from "./memory/index.js";
 import RESTAdapter from "./rest/index.js";
 import SQLAdapter from "./sql/index.js";
+import HTTP from "./http.js";
 
 export type { HTTPOptions } from "./http.js";
 
@@ -45,4 +46,4 @@ export interface QueryObject {
 //   // hasDirtyAttributes, dirtyType, fields, errors
 // }
 
-export { MemoryAdapter, RESTAdapter, SQLAdapter };
+export { HTTP, MemoryAdapter, RESTAdapter, SQLAdapter };
