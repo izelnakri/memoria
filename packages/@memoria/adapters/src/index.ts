@@ -11,6 +11,10 @@ export interface QueryObject {
   [propName: string]: any;
 }
 
+export interface JSObject {
+  [propName: string]: any;
+}
+
 // export abstract class Adapter {
 //   abstract resetCache(targetState: ModelRef[]): ModelRef[];
 //   abstract resetRecords(targetState: ModelRef[]): Promise<ModelRef[]>;

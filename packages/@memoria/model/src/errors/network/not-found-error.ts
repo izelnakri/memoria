@@ -1,13 +1,14 @@
 import NetworkError from "./index.js";
-import type { HTTPOptions } from "@memoria/adapters";
+import type { HTTPOptions, JSObject } from "@memoria/adapters";
 
 export default class NotFoundError extends NetworkError {
-  constructor(httpOptions: HTTPOptions) {
-    let message = `Server responded with not found for ${httpOptions.method} ${httpOptions.url}`;
+  constructor(httpOptions: HTTPOptions | JSObject, message?: string) {
+    let errorMessage =
+      message || `Server responded with not found for ${httpOptions.method} ${httpOptions.url}`;
 
-    super(httpOptions, message);
+    super(httpOptions, errorMessage);
 
-    this.message = message;
+    this.message = errorMessage;
     this.name = "Memoria.NotFoundError";
   }
 }
