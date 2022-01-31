@@ -127,7 +127,6 @@ export default class MemoryAdapter {
       );
 
       if (record instanceof MemoriaModel) {
-        // NOTE: this is needed because record and existingModelInCache different instances, record's null primaryKey association like owner gets lost!! RESTPhoto.update(record)
         record.fetchedRelationships.forEach((relationshipName) => {
           model[relationshipName] = record[relationshipName];
         });
@@ -418,8 +417,6 @@ export default class MemoryAdapter {
 
         return reject();
       }
-
-      // TODO:
     });
   }
 }

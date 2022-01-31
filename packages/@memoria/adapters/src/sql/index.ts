@@ -463,8 +463,6 @@ export default class SQLAdapter extends MemoryAdapter {
           }
 
           let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
-          console.log("model[foreignKeyColumnName] is");
-          console.log(relationshipModel);
           if (!relationshipModel) {
             throw new NotFoundError(
               {},

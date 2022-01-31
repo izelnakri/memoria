@@ -1,7 +1,6 @@
 import { ServerError, hash, LazyPromise, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
-// TODO: this could create a build error
 import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
 import Response from "@memoria/response";
 

@@ -91,12 +91,10 @@ export default function generateRESTModels() {
   return {
     MemoryGroup,
     MemoryPhoto,
-    MemoryMessage: MemoryPhoto,
     MemoryPhotoComment,
     MemoryUser,
     RESTGroup: generateRESTGroup(),
     RESTPhoto: generateRESTPhoto(),
-    RESTMessage: generateRESTPhoto(),
     RESTPhotoComment: generateRESTPhotoComment(),
     RESTUser: generateRESTUser(),
     Server,
