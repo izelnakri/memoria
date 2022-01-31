@@ -18,19 +18,19 @@ export default function generatePhoto() {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     name: string;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     href: string;
 
-    @Column("boolean")
+    @Column("boolean", { nullable: true })
     is_public: boolean;
 
-    @Column("int")
+    @Column("int", { nullable: true })
     owner_id: number;
 
-    @Column("int")
+    @Column("int", { nullable: true })
     group_id: number;
 
     @BelongsTo(User)

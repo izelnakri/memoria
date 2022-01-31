@@ -20,7 +20,7 @@ export default function generateGroup() {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     name: string;
 
     @ManyToMany(User)

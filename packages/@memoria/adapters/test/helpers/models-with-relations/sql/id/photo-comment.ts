@@ -11,13 +11,13 @@ export default function generatePhotoComment() {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     content: string;
 
-    @Column("int")
+    @Column("int", { nullable: true })
     photo_id: number;
 
-    @Column("int")
+    @Column("int", { nullable: true })
     user_id: number;
 
     @BelongsTo(User)

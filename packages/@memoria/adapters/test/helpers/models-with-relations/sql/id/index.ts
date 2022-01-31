@@ -1,7 +1,7 @@
-// import generateGroup from "./group.js";
-// import generatePhotoComment from "./photo-comment.js";
-// import generatePhoto from "./photo.js";
-// import generateUser from "./user.js";
+import generateGroup from "./group.js";
+import generatePhotoComment from "./photo-comment.js";
+import generatePhoto from "./photo.js";
+import generateUser from "./user.js";
 import Model, {
   Serializer,
   PrimaryGeneratedColumn,
@@ -14,118 +14,10 @@ import Model, {
 import { SQLAdapter } from "@memoria/adapters";
 
 export default function generateModels() {
-  class SQLGroup extends Model {
-    static Adapter = SQLAdapter;
-    static Serializer = class GroupSerializer extends Serializer {};
-
-    @PrimaryGeneratedColumn()
-    id: number;
-
-    @Column("varchar", { nullable: true })
-    name: string;
-
-    @ManyToMany(() => SQLUser)
-    users;
-
-    @BelongsTo(() => SQLUser)
-    owner;
-
-    @HasOne(() => SQLPhoto)
-    photo;
-
-    @HasMany(() => SQLPhotoComment)
-    photoComments;
-  }
-
-  class SQLPhotoComment extends Model {
-    static Adapter = SQLAdapter;
-    static Serializer = class PhotoCommentSerializer extends Serializer {};
-
-    @PrimaryGeneratedColumn()
-    id: number;
-
-    @Column("text", { nullable: true })
-    content: string;
-
-    @Column("int", { nullable: true })
-    photo_id: number;
-
-    @Column("int", { nullable: true })
-    user_id: number;
-
-    @BelongsTo(() => SQLUser)
-    user;
-
-    @BelongsTo(() => SQLPhoto)
-    photo;
-  }
-
-  class SQLPhoto extends Model {
-    static Adapter = SQLAdapter;
-    static Serializer = class PhotoSerializer extends Serializer {};
-
-    @PrimaryGeneratedColumn()
-    id: number;
-
-    @Column("varchar", { nullable: true })
-    name: string;
-
-    @Column("varchar", { nullable: true })
-    href: string;
-
-    @Column("boolean", { nullable: true })
-    is_public: boolean;
-
-    @Column("int", { nullable: true })
-    owner_id: number;
-
-    @Column("int", { nullable: true })
-    group_id: number;
-
-    @BelongsTo(() => SQLUser)
-    owner;
-
-    @BelongsTo(() => SQLGroup)
-    group;
-
-    @HasMany(() => SQLPhotoComment)
-    comments;
-  }
-
-  class SQLUser extends Model {
-    static Adapter = SQLAdapter;
-    static Serializer = class UserSerializer extends Serializer {};
-
-    @PrimaryGeneratedColumn()
-    id: number;
-
-    @Column("varchar", { nullable: true })
-    first_name: string;
-
-    @Column("varchar", { nullable: true })
-    last_name: string;
-
-    @HasMany(() => SQLPhoto)
-    photos;
-
-    @HasMany(() => SQLPhotoComment)
-    photoComments;
-
-    @ManyToMany(() => SQLGroup)
-    groups;
-  }
-
   return {
-    SQLGroup,
-    SQLPhoto,
-    SQLPhotoComment,
-    SQLUser,
+    SQLGroup: generateGroup(),
+    SQLPhoto: generatePhoto(),
+    SQLPhotoComment: generatePhotoComment(),
+    SQLUser: generateUser(),
   };
-
-  // return {
-  //   SQLGroup: generateGroup(),
-  //   SQLPhoto: generatePhoto(),
-  //   SQLPhotoComment: generatePhotoComment(),
-  //   SQLUser: generateUser(),
-  // };
 }

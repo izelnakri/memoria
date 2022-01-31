@@ -18,10 +18,10 @@ export default function generateUser() {
     @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     first_name: string;
 
-    @Column()
+    @Column("varchar", { nullable: true })
     last_name: string;
 
     @HasMany(Photo)
