@@ -324,9 +324,7 @@ module("@memoria/adapters | RESTAdapter | Serializer UUID for UUID(string)", fun
 
         this.get("/photos", async (request) => {
           if (request.queryParams) {
-            debugger;
             let photos = await ServerPhoto.findAll(request.queryParams);
-            debugger;
 
             return { photos: ServerPhoto.serializer(photos) };
           }

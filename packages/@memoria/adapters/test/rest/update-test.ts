@@ -173,7 +173,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
             return { photo: ServerPhoto.serializer(photo) };
           } catch (changeset) {
-            return changeset;
+            return { errors: Changeset.serializer(changeset) };
           }
         });
 
