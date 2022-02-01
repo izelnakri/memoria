@@ -7,7 +7,7 @@ import Model, {
   HasOne,
   ManyToMany,
 } from "@memoria/model";
-import { SQLAdapter } from "@memoria/adapters";
+import SQLAdapter from "../../../../helpers/sql-adapter.js";
 
 export default function generateModels() {
   class SQLGroup extends Model {

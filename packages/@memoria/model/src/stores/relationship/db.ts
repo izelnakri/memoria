@@ -350,9 +350,10 @@ export default class RelationshipDB {
       return cache.get(model);
     }
 
-    let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata);
+    let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: optimize this
     if (reference instanceof Promise) {
       return new RelationshipPromise(async (resolve, reject) => {
+        let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: necessary for .reload() otherwise references finalized promise
         try {
           let relationship = await reference;
           cache.set(model, relationship);
@@ -365,9 +366,9 @@ export default class RelationshipDB {
     } else {
       // NOTE: Removing this is currently tricky but this could be a nice lazy optimization:
       cache.set(model, reference);
-    }
 
-    return reference;
+      return reference;
+    }
   }
 
   static set(model: Model, relationshipName: string, input: null | Model) {

@@ -195,6 +195,7 @@ export default class Model {
       } else if (
         buildObject &&
         buildObject instanceof this &&
+        RelationshipDB.has(buildObject, relationshipName) &&
         !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise)
       ) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);

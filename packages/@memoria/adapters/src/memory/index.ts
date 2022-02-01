@@ -417,6 +417,8 @@ export default class MemoryAdapter {
 
         return reject();
       }
+
+      return null; // TODO: ManyToMany not implemented because of this, implement this
     });
   }
 }

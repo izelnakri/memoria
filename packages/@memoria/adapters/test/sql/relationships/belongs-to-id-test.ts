@@ -334,7 +334,7 @@ module(
     });
 
     test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
-      assert.expect(10);
+      assert.expect(11);
 
       let { SQLPhoto, SQLUser } = setupSQLModels();
 
@@ -362,9 +362,9 @@ module(
 
       assert.ok(reloadPromise instanceof RelationshipPromise);
 
-      // let result = await reloadPromise; // TODO: this fails make it pass!! LazyPromise .catch() immediately gets called
+      let result = await reloadPromise;
 
-      // assert.deepEqual(result, SQLUser.peek(44));
+      assert.deepEqual(result, SQLUser.peek(44));
       assert.equal(photo.owner.first_name, "Izel");
       assert.equal(photo.owner_id, 44);
     });

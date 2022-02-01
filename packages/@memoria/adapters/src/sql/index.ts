@@ -12,6 +12,7 @@ import MemoriaModel, {
   RelationshipSchema,
   RelationshipDB,
   NotFoundError,
+  LazyPromise,
 } from "@memoria/model";
 import type {
   PrimaryKey,
@@ -474,23 +475,28 @@ export default class SQLAdapter extends MemoryAdapter {
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+            let relationshipModel = await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            });
+            if (!relationshipModel) {
+              throw new NotFoundError(
+                {},
+                `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
+              );
+            }
 
-            return resolve(
-              await RelationshipClass.findBy({
-                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-              })
-            );
+            return resolve(relationshipModel);
           }
 
-          return reject();
+          return reject("OneToOne edge case!");
         } else if (relationshipType === "HasMany") {
           if (reverseRelationshipName) {
             let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-            return resolve(
-              await RelationshipClass.findAll({
-                [foreignKeyColumnName]: model[Model.primaryKeyName],
-              })
-            );
+            let relationshipModels = await RelationshipClass.findAll({
+              [foreignKeyColumnName]: model[Model.primaryKeyName],
+            });
+
+            return resolve(relationshipModels);
           }
 
           return reject();
