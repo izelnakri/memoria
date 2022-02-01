@@ -168,11 +168,10 @@ export default class LazyPromise extends Promise<void> {
     this.isLoaded = false;
     this.isError = false;
     this.#promise = new Promise(this.#executor);
-    this.then(
+
+    return this.then(
       () => {},
       () => {}
     );
-
-    return this;
   }
 }

@@ -1,4 +1,5 @@
 import Model, {
+  Schema,
   PrimaryGeneratedColumn,
   RelationshipDB,
   Column,
@@ -381,7 +382,7 @@ module(
 
       let result = await reloadPromise; // TODO: this fails make it pass!! LazyPromise .catch() immediately gets called
 
-      assert.deepEqual(result, SQLUser.peek(44));
+      assert.deepEqual(result, SQLUser.peek("374c7f4a-85d6-429a-bf2a-0719525f5f29"));
       assert.equal(photo.owner.first_name, "Izel");
       assert.equal(photo.owner_uuid, "374c7f4a-85d6-429a-bf2a-0719525f5f29"); // TODO
     });

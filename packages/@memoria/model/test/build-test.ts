@@ -1,3 +1,4 @@
+import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
 import Model, { Changeset, PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
@@ -482,5 +483,38 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     assert.deepEqual(model.changedAttributes(), {
       name: ["Imported photo", "some new name"],
     });
+  });
+
+  test("$Model.build(modelInstance) copies instance with relationships and failed relationships fetches correctly", async function (assert) {
+    let { Server, RESTPhoto, MemoryPhoto, RESTUser } = setupRESTModels();
+    this.Server = Server;
+
+    this.Server.get("/users/:id", async (request) => {
+      return {
+        errors: [
+          {
+            id: 44,
+            modelName: "MemoryPhoto",
+            attribute: "id",
+            message: "not found",
+          },
+        ],
+      };
+    });
+
+    let photo = RESTPhoto.build({ name: "Dinner photo", owner_id: 44 });
+    let ownerPromise = photo.owner;
+    try {
+      await ownerPromise;
+    } catch (error) {
+      assert.ok(error.message.includes(`Web server responds with an error for GET`));
+      assert.ok(error.message.includes('/users/44'));
+    }
+
+    assert.ok(RESTPhoto.build(photo));
+    let insertedUser = await RESTUser.insert({ id: 44, first_name: "Izel", last_name: "Nakri" });
+
+    assert.propContains(insertedUser, { id: 44, first_name: "Izel", last_name: "Nakri" });
+    assert.propEqual(photo.owner, insertedUser);
   });
 });
