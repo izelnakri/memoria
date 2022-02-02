@@ -407,7 +407,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       await Photo.insert({ id: 1 });
     } catch (changeset) {
       assert.ok(changeset instanceof InsertError);
-      assert.propEqual(changeset.errors, [
+      assert.propContains(changeset.errors[0],
         {
           attribute: "id",
           id: 1,
@@ -415,13 +415,13 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
           modelName: "Photo",
           name: "ModelError",
         },
-      ]);
+      );
     }
     try {
       await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
     } catch (changeset) {
       assert.ok(changeset instanceof InsertError);
-      assert.propEqual(changeset.errors, [
+      assert.propContains(changeset.errors[0],
         {
           attribute: "uuid",
           id: "d351963d-e725-4092-a37c-1ca1823b57d3",
@@ -429,7 +429,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
           modelName: "PhotoComment",
           name: "ModelError",
         },
-      ]);
+      );
     }
   });
 

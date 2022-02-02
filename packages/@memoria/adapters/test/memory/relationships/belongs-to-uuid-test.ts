@@ -170,12 +170,65 @@ module(
       assert.equal(deletedPhoto.owner_uuid, null);
     });
 
-    // NOTE: this could be more advanced test if new record wasnt created in-memory for CRUD from input
     test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let firstUser = await MemoryUser.insert({ first_name: "Izel" });
       let secondUser = await MemoryUser.insert({ first_name: "Moris" });
+      let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
+
+      assert.ok(photo.isNew);
+      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner_uuid, secondUser.uuid);
+
+      photo.owner = firstUser;
+
+      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner_uuid, firstUser.uuid);
+
+      let insertedPhoto = await MemoryPhoto.insert(photo);
+
+      assert.propEqual(insertedPhoto.owner, firstUser);
+      assert.propEqual(photo.owner, insertedPhoto.owner);
+
+      insertedPhoto.owner = secondUser;
+
+      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner_uuid, secondUser.uuid);
+
+      let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
+
+      assert.propEqual(updatedPhoto.owner, secondUser);
+      assert.propEqual(insertedPhoto.owner, secondUser);
+
+      updatedPhoto.owner = null;
+
+      assert.equal(updatedPhoto.owner, null);
+      assert.equal(updatedPhoto.owner_uuid, null);
+
+      let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
+
+      assert.equal(updatedPhoto.owner, null);
+      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner_uuid, null);
+    });
+
+    test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
+      let { MemoryPhoto, MemoryUser } = generateModels();
+
+      MemoryUser.cache([
+        {
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          first_name: "Izel",
+        },
+        {
+          uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
+          first_name: "Moris",
+        },
+      ]);
+
+      let firstUser = await MemoryUser.find("499ec646-493f-4eea-b92e-e383d94182f4");
+      let secondUser = await MemoryUser.find("77653ad3-47e4-4ec2-b49f-57ea36a627e7");
       let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);

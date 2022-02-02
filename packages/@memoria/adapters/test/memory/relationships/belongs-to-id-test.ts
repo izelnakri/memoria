@@ -9,7 +9,6 @@ module(
     setupMemoria(hooks);
 
     // TODO: also add embed + serializer tests to the test cases correctly
-    // TODO: check every relationship from reverse as well
     test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
@@ -172,12 +171,65 @@ module(
       assert.equal(deletedPhoto.owner_id, null);
     });
 
-    // NOTE: this could be more advanced test if new record wasnt created in-memory for CRUD from input
     test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let firstUser = await MemoryUser.insert({ first_name: "Izel" });
       let secondUser = await MemoryUser.insert({ first_name: "Moris" });
+      let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
+
+      assert.ok(photo.isNew);
+      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner_id, secondUser.id);
+
+      photo.owner = firstUser;
+
+      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner_id, firstUser.id);
+
+      let insertedPhoto = await MemoryPhoto.insert(photo);
+
+      assert.propEqual(insertedPhoto.owner, firstUser);
+      assert.propEqual(photo.owner, insertedPhoto.owner);
+
+      insertedPhoto.owner = secondUser;
+
+      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner_id, secondUser.id);
+
+      let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
+
+      assert.propEqual(updatedPhoto.owner, secondUser);
+      assert.propEqual(insertedPhoto.owner, secondUser);
+
+      updatedPhoto.owner = null;
+
+      assert.equal(updatedPhoto.owner, null);
+      assert.equal(updatedPhoto.owner_id, null);
+
+      let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
+
+      assert.equal(updatedPhoto.owner, null);
+      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner_id, null);
+    });
+
+    test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
+      let { MemoryPhoto, MemoryUser } = generateModels();
+
+      MemoryUser.cache([
+        {
+          id: 1,
+          first_name: "Izel",
+        },
+        {
+          id: 2,
+          first_name: "Moris",
+        },
+      ]);
+
+      let firstUser = await MemoryUser.find(1);
+      let secondUser = await MemoryUser.find(2);
       let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
@@ -227,7 +279,7 @@ module(
       assert.equal(photo.owner_id, secondUser.id);
     });
 
-    test("a models relationship promise reference turns to null when relationship gets destroyed either way", async function (assert) {
+    test("a models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let firstUser = await MemoryUser.insert({ first_name: "Izel" });

@@ -8,14 +8,14 @@ import Model, {
   HasMany,
   CreateDateColumn,
 } from "@memoria/model";
-// import { SQLAdapter } from "@memoria/adapters"; // NOTE: this has to come AFTER @memoria/model import
+import { SQLAdapter } from "@memoria/adapters"; // NOTE: this has to come AFTER @memoria/model import
 
-// class CustomSQLAdapter extends SQLAdapter {
-//   static logging = false;
-// }
+class CustomSQLAdapter extends SQLAdapter {
+  static logging = false;
+}
 
 class Photo extends Model {
-  // static Adapter = CustomSQLAdapter;
+  static Adapter = CustomSQLAdapter;
 
   @PrimaryGeneratedColumn()
   id: number;
@@ -34,7 +34,7 @@ class Photo extends Model {
 }
 
 class User extends Model {
-  // static Adapter = CustomSQLAdapter;
+  static Adapter = CustomSQLAdapter;
 
   @PrimaryGeneratedColumn("increment")
   id: number;
@@ -58,7 +58,7 @@ class User extends Model {
 
 let a = new User();
 console.log("new User() output:");
-console.log(a);
+console.table(a);
 
 async function main() {
   try {
@@ -66,28 +66,28 @@ async function main() {
     // console.log(Schema.Schemas[1].relations);
     let user = await User.insert({ first_name: "Izel", last_name: "Nakri" });
     console.log("User insert:");
-    console.log(user.toObject());
+    console.table(user.toObject());
 
     let updatedUser = await User.update({ id: user.id, first_name: "Moris" });
 
     console.log("User update:");
-    console.log(updatedUser.toJSON());
+    console.table(updatedUser.toJSON());
 
     let savedUser = await User.update({ id: user.id, first_name: "Mo" });
     console.log("User save:");
-    console.log(savedUser);
+    console.table(savedUser);
 
     let foundUser = await User.find(user.id);
 
     console.log("foundUser:");
-    console.log(foundUser);
+    console.table(foundUser);
 
     console.log("User.count:", await User.count());
 
     let deletedUser = await User.delete(user);
 
     console.log("deletedUser:");
-    console.log(deletedUser);
+    console.table(deletedUser);
     console.log("User.count:", await User.count());
 
     let insertedUsers = await User.insertAll([
@@ -95,13 +95,13 @@ async function main() {
       { first_name: "Yehuda", last_name: "Katz" },
     ]);
     console.log("insertedUsers:");
-    console.log(insertedUsers);
+    console.table(insertedUsers);
 
     console.log("User.count:", await User.count());
 
     let foundUsers = await User.findAll();
     console.log("foundUsers:");
-    console.log(foundUsers);
+    console.table(foundUsers);
 
     let changedUsers = await User.updateAll(
       foundUsers.map((foundUser) => {
@@ -110,7 +110,7 @@ async function main() {
       })
     );
     console.log("changedUsers:");
-    console.log(changedUsers);
+    console.table(changedUsers);
 
     let savedUsers = await User.saveAll(
       foundUsers.map((foundUser) => {
@@ -119,13 +119,13 @@ async function main() {
       })
     );
     console.log("savedUsers:");
-    console.log(savedUsers);
+    console.table(savedUsers);
 
     console.log("User.count:", await User.count());
 
     let allDeletedUsers = await User.deleteAll(changedUsers);
     console.log("allDeletedUsers:");
-    console.log(allDeletedUsers);
+    console.table(allDeletedUsers);
     console.log("User.count:", await User.count());
   } catch (error) {
     console.log("error:");

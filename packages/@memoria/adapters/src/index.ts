@@ -1,12 +1,17 @@
 import MemoryAdapter from "./memory/index.js";
 import RESTAdapter from "./rest/index.js";
 import SQLAdapter from "./sql/index.js";
+import HTTP from "./http.js";
 
 export type { HTTPOptions } from "./http.js";
 
 export type primaryKey = number | string;
 
 export interface QueryObject {
+  [propName: string]: any;
+}
+
+export interface JSObject {
   [propName: string]: any;
 }
 
@@ -45,4 +50,4 @@ export interface QueryObject {
 //   // hasDirtyAttributes, dirtyType, fields, errors
 // }
 
-export { MemoryAdapter, RESTAdapter, SQLAdapter };
+export { HTTP, MemoryAdapter, RESTAdapter, SQLAdapter };

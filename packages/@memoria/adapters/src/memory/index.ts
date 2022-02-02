@@ -127,7 +127,6 @@ export default class MemoryAdapter {
       );
 
       if (record instanceof MemoriaModel) {
-        // NOTE: this is needed because record and existingModelInCache different instances, record's null primaryKey association like owner gets lost!! RESTPhoto.update(record)
         record.fetchedRelationships.forEach((relationshipName) => {
           model[relationshipName] = record[relationshipName];
         });
@@ -312,8 +311,8 @@ export default class MemoryAdapter {
       });
     }
 
-    Model.Cache.delete(targetRecord[Model.primaryKeyName]);
     RelationshipDB.delete(targetRecord);
+    Model.Cache.delete(targetRecord[Model.primaryKeyName]);
 
     targetRecord.isDeleted = true;
 
@@ -419,7 +418,7 @@ export default class MemoryAdapter {
         return reject();
       }
 
-      // TODO:
+      return null; // TODO: ManyToMany not implemented because of this, implement this
     });
   }
 }

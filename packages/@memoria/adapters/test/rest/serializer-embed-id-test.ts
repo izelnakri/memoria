@@ -287,7 +287,6 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
 
             return { activity: ServerActivity.serializer(activity) };
           } catch (changeset) {
-            debugger;
             return { errors: Changeset.serializer(changeset) };
           }
         });
@@ -314,7 +313,6 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
 
             return { photo: ServerPhoto.serializer(photo) };
           } catch (changeset) {
-            debugger;
             return { errors: Changeset.serializer(changeset) };
           }
         });
@@ -369,7 +367,6 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
 
-    debugger;
     let activity = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       Photo.peek(1),
@@ -388,7 +385,6 @@ module("jmemoria/adapters | RESTAdapter | Serializer API for ID(integer)", funct
       Activity
     );
 
-    debugger;
     assert.deepEqual(activity, activityLookupWithoutModel);
     assert.deepEqual(activity, activityLookupWithDifferentReferenceName);
     assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });

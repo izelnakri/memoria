@@ -257,34 +257,40 @@ export default class RESTAdapter extends MemoryAdapter {
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
-      if (relationshipType === "BelongsTo") {
-        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-        if (!model[foreignKeyColumnName]) {
-          return resolve(null);
-        }
-
-        return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
-      } else if (relationshipType === "OneToOne") {
-        if (reverseRelationshipName) {
-          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-
-          return resolve(
-            await RelationshipClass.findBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            })
-          );
-        }
-
-        return reject();
-      } else if (relationshipType === "HasMany") {
-        if (reverseRelationshipName) {
+      try {
+        if (relationshipType === "BelongsTo") {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-          return resolve(
-            await RelationshipClass.findAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
-          );
-        }
+          if (!model[foreignKeyColumnName]) {
+            return resolve(null);
+          }
 
-        return reject();
+          return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
+        } else if (relationshipType === "OneToOne") {
+          if (reverseRelationshipName) {
+            let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+
+            return resolve(
+              await RelationshipClass.findBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+            );
+          }
+
+          return reject();
+        } else if (relationshipType === "HasMany") {
+          if (reverseRelationshipName) {
+            let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+            return resolve(
+              await RelationshipClass.findAll({
+                [foreignKeyColumnName]: model[Model.primaryKeyName],
+              })
+            );
+          }
+
+          return reject();
+        }
+      } catch (error) {
+        return reject(error);
       }
 
       return reject("ManyToMany fetchRelationship not implemented yet");

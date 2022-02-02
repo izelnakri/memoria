@@ -36,7 +36,7 @@ export {
   ConflictError,
   ServerError,
 } from "./errors/index.js";
-export { RelationshipPromise } from "./promises/relationship/index.js";
+export { LazyPromise, hash, RelationshipPromise } from "./promises/index.js";
 import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
 export {

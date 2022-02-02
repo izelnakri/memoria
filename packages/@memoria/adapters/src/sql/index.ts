@@ -10,6 +10,9 @@ import MemoriaModel, {
   RuntimeError,
   RelationshipPromise,
   RelationshipSchema,
+  RelationshipDB,
+  NotFoundError,
+  LazyPromise,
 } from "@memoria/model";
 import type {
   PrimaryKey,
@@ -122,6 +125,7 @@ export default class SQLAdapter extends MemoryAdapter {
     return query ? await Manager.count(Model, query) : await Manager.count(Model);
   }
 
+  // TODO: handle when one of the ids dont exist!
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
@@ -135,10 +139,11 @@ export default class SQLAdapter extends MemoryAdapter {
         let foundModels = await Manager.findByIds(Model, primaryKey, {
           order: { [Model.primaryKeyName]: "ASC" },
         });
+        // TODO: this might be problematic with null models!!
         return foundModels.map((model) => this.cache(Model, model, options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return this.cache(Model, foundModel, options);
+        return foundModel && this.cache(Model, foundModel, options);
       }
     } catch (error) {
       if (!error.code) {
@@ -190,7 +195,9 @@ export default class SQLAdapter extends MemoryAdapter {
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
-      if (Model.columnNames.has(columnName)) {
+      if (columnName !== Model.primaryKeyName && Model.columnNames.has(columnName)) {
+        return Object.assign(result, { [columnName]: record[columnName] });
+      } else if (columnName === Model.primaryKeyName && record[columnName]) {
         return Object.assign(result, { [columnName]: record[columnName] });
       }
 
@@ -449,34 +456,53 @@ export default class SQLAdapter extends MemoryAdapter {
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
-      if (relationshipType === "BelongsTo") {
-        let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-        if (!model[foreignKeyColumnName]) {
-          return resolve(null);
-        }
-
-        return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
-      } else if (relationshipType === "OneToOne") {
-        if (reverseRelationshipName) {
-          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-
-          return resolve(
-            await RelationshipClass.findBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            })
-          );
-        }
-
-        return reject();
-      } else if (relationshipType === "HasMany") {
-        if (reverseRelationshipName) {
+      try {
+        if (relationshipType === "BelongsTo") {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-          return resolve(
-            await RelationshipClass.findAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
-          );
-        }
+          if (!model[foreignKeyColumnName]) {
+            return resolve(null);
+          }
 
-        return reject();
+          let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
+          if (!relationshipModel) {
+            throw new NotFoundError(
+              {},
+              `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[foreignKeyColumnName]} not found`
+            );
+          }
+
+          return resolve(relationshipModel);
+        } else if (relationshipType === "OneToOne") {
+          if (reverseRelationshipName) {
+            let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+            let relationshipModel = await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            });
+            if (!relationshipModel) {
+              throw new NotFoundError(
+                {},
+                `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
+              );
+            }
+
+            return resolve(relationshipModel);
+          }
+
+          return reject("OneToOne edge case!");
+        } else if (relationshipType === "HasMany") {
+          if (reverseRelationshipName) {
+            let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+            let relationshipModels = await RelationshipClass.findAll({
+              [foreignKeyColumnName]: model[Model.primaryKeyName],
+            });
+
+            return resolve(relationshipModels);
+          }
+
+          return reject();
+        }
+      } catch (error) {
+        return reject(error);
       }
 
       return reject("ManyToMany fetchRelationship not implemented yet");
@@ -485,9 +511,14 @@ export default class SQLAdapter extends MemoryAdapter {
 }
 
 function cleanRelationships(Model, instance) {
-  Model.relationshipNames.forEach((relationshipKey) => {
+  let relationshipTable = RelationshipSchema.getRelationshipTable(Model);
+  Object.keys(relationshipTable).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
-      instance[relationshipKey] = undefined;
+      let { relationshipType } = relationshipTable[relationshipKey];
+      RelationshipDB.getInstanceRecordsCacheForTableKey(
+        `${Model.name}:${relationshipKey}`,
+        relationshipType
+      ).set(instance, undefined);
     }
   });
 
