@@ -2,12 +2,24 @@
 [![codecov](https://codecov.io/gh/izelnakri/memoria/branch/main/graph/badge.svg?token=I416U3QJL7)](https://codecov.io/gh/izelnakri/memoria)
 [![npm version](https://badge.fury.io/js/@memoria%2Fmodel.svg)](https://badge.fury.io/js/@memoria%2Fmodel)
 
-# What is Memoria?
+# Memoria: Elegant, simple & very flexible ORM for JavaScript/TypeScript
+
 Memoria is an in-memory/off-memory state management solution for JavaScript apps on client and/or server side. It is a
 very flexible typeorm-like entity definition API that just use JS classes and decorators to define or generate the
-schema. In other words it is a data library and http mock server you can run in-browser and node environments.
-Extremely useful library for fast frontend tests that can use MemoryAdapter models and in-browser http server,
-rapid prototyping, single-file SPA demo deployments, frontend SPA data store or backend HTTP Server ORMs.
+schema. You can choose different adapters and use the same CRUD interface: `MemoryAdapter`, `RESTAdapter` or
+`SQLAdapter`. In other words it is a general purpose data library for JavaScript. It is also extremely useful library
+for making frontend e2e tests extremely fast by utilizing an in-browser http server and in-memory MemoryAdapter models
+in the mock server.
+
+You can also use it for rapid prototyping frontends for a demo: one can also use the library for single-file SPA demo
+deployments, as a frontend SPA data store or as a backend HTTP Server ORM. The http mock server(@memoria/server) can be
+run in-browser and node environments, thus allows for running your in-memory test suite in SSR(server-side rendering)
+environment if it is needed.
+
+In summary, this is an extremely flexible and complete data management solution for JS based applications. It tries to
+be as intuitive as it could be, without introducing new JS concepts or much boilerplates for any mutation. It is also
+very easy to write automated tests on this framework, introspect any part of the state so it doesn't compromise on
+stability, development speed, extensibility, runtime performance & debuggability.
 
 It is based on these principles:
 
