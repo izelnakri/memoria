@@ -2,7 +2,32 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.24](https://github.com/izelnakri/memoria/compare/0.0.24...0.0.24)
+#### [0.0.25](https://github.com/izelnakri/memoria/compare/0.0.25...0.0.25)
+
+- Bump docker/login-action from 1.10.0 to 1.12.0 [`#30`](https://github.com/izelnakri/memoria/pull/30)
+- Bump docker/build-push-action from 2.7.0 to 2.9.0 [`#35`](https://github.com/izelnakri/memoria/pull/35)
+- @BelongsTo tests complete [`#33`](https://github.com/izelnakri/memoria/pull/33)
+- RESTAdapter belongsTo test and relation adjustment [`5deb896`](https://github.com/izelnakri/memoria/commit/5deb89686c955bd8d8545b975ae75f15d2bbb681)
+- belongsTo tests roughly complete for SQLAdapter [`ff1e193`](https://github.com/izelnakri/memoria/commit/ff1e1932e4180e636bf88524ea7ae6116aa76ba0)
+- Tested/Durable LazyPromise abstraction [`b41ea24`](https://github.com/izelnakri/memoria/commit/b41ea240011baeda3ceaa73e8740660ebb344094)
+- fix sql belongs-to tests [`f95afc0`](https://github.com/izelnakri/memoria/commit/f95afc052255462366334b81458fa0f6dc3be0f2)
+- adjust helper models for SQL tests [`de777eb`](https://github.com/izelnakri/memoria/commit/de777ebc77716c2ae850761a2a86e42bfae2f998)
+- upgrade LazyPromise interface [`4f0d2ac`](https://github.com/izelnakri/memoria/commit/4f0d2ac5ce6b89243cadc0227d367152cc1b91ca)
+- fix pretender instance shutdowns for new tests [`bcab739`](https://github.com/izelnakri/memoria/commit/bcab739767731adfc4af633fbf2f7599509dc75a)
+- LazyPromise.hash() tests & module improvements [`4dd1991`](https://github.com/izelnakri/memoria/commit/4dd1991b8eae288571859f0d17454d2ce7b16883)
+- BUGFIX: internal cleanRelationships() for typeorm [`aed43ca`](https://github.com/izelnakri/memoria/commit/aed43ca3f629d1ac422647f8b0b570f2f4aef52f)
+- removed comments & small code adjustments [`b2bc01c`](https://github.com/izelnakri/memoria/commit/b2bc01c12d4ec8cc83da27c80878166a6928526f)
+- MAJOR BUGFIX: relationship fetching reload works [`4143fbd`](https://github.com/izelnakri/memoria/commit/4143fbd99699b2819d0c33014e984b5c02ade84a)
+- add advanced Model.build(instance) test for assoc [`8d1ae01`](https://github.com/izelnakri/memoria/commit/8d1ae0112b46c97f100274fc37ef4ea283944b32)
+- improve Memoria description [`a3ebfc4`](https://github.com/izelnakri/memoria/commit/a3ebfc4f608fe7f6eb5f93457a656961cf296ef7)
+- tests fix for weird v8 bug [`edb3b96`](https://github.com/izelnakri/memoria/commit/edb3b96009297f8329bc37bcd31c296a4fe71d62)
+- RelationshipDB notes update [`37752cf`](https://github.com/izelnakri/memoria/commit/37752cf7c06008e59bd8ea774a690e202d00c6c0)
+- cleanup redundant code and comments for release [`a2f9839`](https://github.com/izelnakri/memoria/commit/a2f9839f647c2da28ab1f159e3335a775070a087)
+- add LazyPromise hash and HTTP export [`45b22ab`](https://github.com/izelnakri/memoria/commit/45b22abfa53ec5d6ad76034f8d11535fcc977a92)
+
+#### [0.0.25](https://github.com/izelnakri/memoria/compare/0.0.24...0.0.25)
+
+> 2 January 2022
 
 - Implement advanced relationship references/caches [`#32`](https://github.com/izelnakri/memoria/pull/32)
 - major refactor: Config modules refactord to Schema [`ba7433b`](https://github.com/izelnakri/memoria/commit/ba7433b6fd10dced1c628a0d0de85b678a5c19b4)
@@ -20,6 +45,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - cleanup relationship tracking code for release [`810635f`](https://github.com/izelnakri/memoria/commit/810635f21eda54dffb86f167d660483a136e0646)
 - SQLAdapter is now correctly relationship aware [`189a0c5`](https://github.com/izelnakri/memoria/commit/189a0c5b6c665c254093a8772b8ca3b9ee356d71)
 - introduce $Model.relationshipsSummary caching [`43274f1`](https://github.com/izelnakri/memoria/commit/43274f13532487553db4e2be1028060187295b14)
+- Release 0.0.25 [`1c19b56`](https://github.com/izelnakri/memoria/commit/1c19b564627bf956f67e03fbfe77ce2772762778)
 - RevisionHistory class and .add(): no model getters [`c1dd243`](https://github.com/izelnakri/memoria/commit/c1dd243ef0d4d4054cb9c8cc9aad33cf0bac38b8)
 - Correct type annotations for LazyPromise [`90e69ca`](https://github.com/izelnakri/memoria/commit/90e69ca928312c1ea1551a2eb227156f3cf8e244)
 - RelationConfig.getForeignKeyFromBelongsTo rename [`b1ced31`](https://github.com/izelnakri/memoria/commit/b1ced31e71aad21917176ff24c65f6c00bca361c)
