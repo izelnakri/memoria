@@ -12,7 +12,6 @@ import MemoriaModel, {
   RelationshipSchema,
   RelationshipDB,
   NotFoundError,
-  LazyPromise,
 } from "@memoria/model";
 import type {
   PrimaryKey,

@@ -310,28 +310,3 @@ module(
     });
   }
 );
-
-// test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {});
-// });
-// this.Server.post("/photos", async ({ params }) => {
-//   assert.deepEqual(photo.serialize(), params.photo);
-
-//   try {
-//     let photo = await ServerMemoryPhoto.insert(request.params.photo);
-
-//     return { photo: ServerMemoryPhoto.serializer(photo) };
-//   } catch (changeset) {
-//     return { errors: Changeset.serializer(changeset) };
-//   }
-// });
-// function generateModels() {
-//   let { Group, PhotoComment, Photo, User } = generateModels();
-
-//   let ServerPhoto = Object.assign(Object.create({}), Photo);
-//   Object.setPrototypeOf(ServerPhoto, Photo);
-
-//   // NOTE: change the adapter maybe(?)
-
-//   return { Group, PhotoComment, Photo, User, ServerPhoto };
-// }
-// Post /photos(should not have owner embedded by default on REST) but after post should still keep the reference
