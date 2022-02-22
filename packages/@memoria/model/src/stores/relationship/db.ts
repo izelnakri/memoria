@@ -15,7 +15,7 @@ import { RelationshipPromise } from "../../promises/index.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
-type RelationshipTableKey = string;
+type RelationshipTableKey = string; // Example: "MemoryUser:comments"
 type ModelName = string;
 type BelongsToPrimaryKey = PrimaryKey;
 
@@ -155,7 +155,7 @@ export default class RelationshipDB {
     });
 
     this.getModelReferenceFor(Class, primaryKey).forEach((modelReference) => {
-      this.updateExistingReference(modelReference, model);
+      this.updateExistingReferenceAttributes(modelReference, model);
     });
 
     if (type === "insert" && primaryKey) {
@@ -164,31 +164,28 @@ export default class RelationshipDB {
         nullReferences.delete(model);
         this.getModelReferenceFor(Class, primaryKey).add(model);
       }
-    } else if (type === "update") {
-      // NOTE: this changes all possible relationships where model could be the value relationship!
-      // Example: when photo inserted or update (belongsTo gets updated)
-      // User:photos should get updated
-      // Post:photo should get update
-      // photo references get updated
-
-      // let user; -> change it
-      // let change all instance references
-      // comments -> comment.photo
-      let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
-
-      Object.keys(reverseRelationships).forEach((relationshipModelName) => {
-        this.updateInstanceCacheReferencesForModelRelationship(
-          model,
-          relationshipModelName,
-          reverseRelationships[relationshipModelName]
-        );
-      });
     }
+
+    // NOTE: this changes all possible relationships where model could be the value relationship!
+    // Example: when photo inserted or update (belongsTo gets updated)
+    // User:photos should get updated
+    // Post:photo should get update
+    // photo references get updated
+    // Reflexive BelongsTo reference gets updated!!
+
+    let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
+    Object.keys(reverseRelationships).forEach((relationshipClassName) => {
+      this.updateInstanceCacheReferencesForModelRelationship(
+        model,
+        relationshipClassName,
+        reverseRelationships[relationshipClassName]
+      );
+    });
 
     return model;
   }
 
-  static updateExistingReference(referenceModel: Model, targetModel: Model) {
+  static updateExistingReferenceAttributes(referenceModel: Model, targetModel: Model) {
     (targetModel.constructor as typeof Model).columnNames.forEach((columnName) => {
       if (referenceModel[columnName] !== targetModel[columnName]) {
         referenceModel[columnName] = targetModel[columnName]; // NOTE: maybe I need to make them not tracked for revision!
@@ -212,26 +209,69 @@ export default class RelationshipDB {
       for (let referenceSet of possibleReferences.values()) {
         referenceSet.forEach((reference) => {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
-            let { TargetClass, relationshipName, relationshipType } = relationshipMetadata;
-            let tableKey = `${TargetClass.name}:${relationshipName}`;
-            // TODO: DO it differently for hasMany and ManyToMany handling
-            let relationshipReference = this.getInstanceRecordsCacheForTableKey(
-              tableKey,
-              relationshipType
-            ).get(reference);
-            if (
-              relationshipReference &&
-              relationshipReference[TargetClass.primaryKeyName] ===
-                targetModel[Class.primaryKeyName]
-            ) {
-              this.getInstanceRecordsCacheForTableKey(tableKey, relationshipType).set(
-                reference,
-                targetModel
-              );
+            if (this.referenceRelatedTo(targetModel, reference, relationshipMetadata)) {
+              let {
+                TargetClass,
+                relationshipName,
+                foreignKeyColumnName,
+                relationshipType,
+              } = relationshipMetadata;
+
+              if (relationshipType === "BelongsTo") {
+                reference[foreignKeyColumnName as string] = targetModel[Class.primaryKeyName];
+                this.getInstanceRecordsCacheForTableKey(
+                  `${TargetClass.name}:${relationshipName}`,
+                  relationshipType
+                ).set(reference, targetModel);
+              } else if (relationshipType === "OneToOne") {
+                this.getInstanceRecordsCacheForTableKey(
+                  `${TargetClass.name}:${relationshipName}`,
+                  relationshipType
+                ).set(reference, targetModel);
+              }
+
+              // TODO: if instance array exists in the cache(for HasMany or ManyToMany) then change the specific element in the array
             }
           });
         });
       }
+    }
+  }
+
+  // TODO: this needs to be extremely fast
+  static referenceRelatedTo(
+    targetModel: Model,
+    reference: Model,
+    {
+      TargetClass,
+      relationshipName,
+      relationshipType,
+      reverseRelationshipName,
+    }: ReverseRelationshipMetadata
+  ): void | boolean {
+    return (
+      this.modelIsInRelationshipResponse(
+        this.getInstanceRecordsCacheForTableKey(
+          `${TargetClass.name}:${relationshipName}`,
+          relationshipType
+        ).get(reference),
+        targetModel
+      ) ||
+      this.modelIsInRelationshipResponse(targetModel[reverseRelationshipName as string], reference)
+    );
+  }
+
+  static modelIsInRelationshipResponse(relationshipResponse, modelToSearch: Model) {
+    if (relationshipResponse && !(relationshipResponse instanceof Promise)) {
+      let primaryKeyName = (modelToSearch.constructor as typeof Model).primaryKeyName;
+
+      if (Array.isArray(relationshipResponse)) {
+        return (relationshipResponse as Model[]).some(
+          (relationshipModel) => relationshipModel[primaryKeyName] === modelToSearch[primaryKeyName]
+        );
+      }
+
+      return relationshipResponse[primaryKeyName] === modelToSearch[primaryKeyName];
     }
   }
 
@@ -294,12 +334,12 @@ export default class RelationshipDB {
     });
 
     let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
-    Object.keys(reverseRelationships).forEach((relationshipModelName) => {
+    Object.keys(reverseRelationships).forEach((relationshipClassName) => {
       // TODO: this removes only based on instanceReferences
       this.deleteInstanceCacheReferencesForModel(
         model,
-        relationshipModelName,
-        reverseRelationships[relationshipModelName]
+        relationshipClassName,
+        reverseRelationships[relationshipClassName]
       );
     });
 
@@ -373,33 +413,29 @@ export default class RelationshipDB {
 
   static set(model: Model, relationshipName: string, input: null | Model) {
     let Class = model.constructor as typeof Model;
-    let {
-      relationshipType,
-      foreignKeyColumnName,
-      RelationshipClass,
-    } = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+    let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
     let cache = this.getInstanceRecordsCacheForTableKey(
       `${Class.name}:${relationshipName}`,
-      relationshipType
+      metadata.relationshipType
     );
 
     if (input === undefined) {
       cache.delete(model);
-    } else if (relationshipType === "BelongsTo") {
+    } else if (metadata.relationshipType === "BelongsTo") {
       let relationship = input instanceof Model ? input : null;
 
       cache.set(model, relationship);
-      model[foreignKeyColumnName as string] = relationship
-        ? relationship[RelationshipClass.primaryKeyName]
+      model[metadata.foreignKeyColumnName as string] = relationship
+        ? relationship[metadata.RelationshipClass.primaryKeyName]
         : null;
-    } else if (relationshipType === "OneToOne") {
+    } else if (metadata.relationshipType === "OneToOne") {
       cache.set(model, input instanceof Model ? input : null);
     } else {
       if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
         throw new Error(`Trying to set a non model instance to ${Class.name}.${relationshipName}!`);
       }
 
-      cache.set(model, input ? input : null);
+      cache.set(model, Array.isArray(input) ? input : null);
     }
 
     return model;

@@ -6,6 +6,7 @@ export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMan
 
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
+  relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
   reverseRelationshipForeignKeyColumnName: null | string;
@@ -21,6 +22,7 @@ export interface ReverseRelationshipMetadata {
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
+  reverseRelationshipName: null | string;
 }
 
 export interface ReverseRelationshipsTable {
@@ -74,6 +76,7 @@ export default class RelationshipSchema {
             return Object.assign(result, {
               [relationName]: {
                 RelationshipClass,
+                relationshipName: relationName,
                 relationshipType,
                 foreignKeyColumnName:
                   relationshipType === "BelongsTo"
@@ -112,14 +115,17 @@ export default class RelationshipSchema {
     if (!this._reverseRelationshipTables.has(Class.name)) {
       this._reverseRelationshipTables.set(
         Class.name,
-        {} as { ModelName: ReverseRelationshipMetadata[] }
+        {} as { ModelName: ReverseRelationshipMetadata[] } // NOTE: should this include all the relationships here(?)
       );
 
       for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
         Object.keys(relationshipTable).forEach((relationshipName) => {
-          let { RelationshipClass, relationshipType, foreignKeyColumnName } = relationshipTable[
-            relationshipName
-          ];
+          let {
+            RelationshipClass,
+            relationshipType,
+            foreignKeyColumnName,
+            reverseRelationshipName,
+          } = relationshipTable[relationshipName];
 
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
             this._reverseRelationshipTables.set(
@@ -141,6 +147,7 @@ export default class RelationshipSchema {
             relationshipName,
             relationshipType,
             foreignKeyColumnName,
+            reverseRelationshipName,
           });
         });
       }
@@ -155,32 +162,30 @@ export default class RelationshipSchema {
     let currentMetadata = relationshipTable[relationshipName];
 
     if (!currentMetadata.reverseRelationshipName) {
-      let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class);
+      let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class)[
+        currentMetadata.RelationshipClass.name
+      ];
       let targetReverseRelationship =
-        reverseRelationshipMetadatas[currentMetadata.RelationshipClass.name].find(
-          (reverseRelationship) => {
-            if (
-              currentMetadata.relationshipType === "BelongsTo" &&
-              ["OneToOne", "HasMany"].includes(reverseRelationship.relationshipType)
-            ) {
-              return (
-                reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name
-              );
-            } else if (
-              reverseRelationship.relationshipType ===
-              REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
-            ) {
-              return (
-                reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name
-              );
-            }
-
-            return false;
+        reverseRelationshipMetadatas &&
+        reverseRelationshipMetadatas.find((reverseRelationship) => {
+          if (
+            currentMetadata.relationshipType === "BelongsTo" &&
+            ["OneToOne", "HasMany"].includes(reverseRelationship.relationshipType)
+          ) {
+            return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
+          } else if (
+            reverseRelationship.relationshipType ===
+            REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
+          ) {
+            return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
           }
-        ) || null;
+
+          return false;
+        });
 
       if (targetReverseRelationship) {
         currentMetadata.reverseRelationshipName = targetReverseRelationship.relationshipName;
+        targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
         currentMetadata.reverseRelationshipForeignKeyColumnName =
           targetReverseRelationship.foreignKeyColumnName;
       }
