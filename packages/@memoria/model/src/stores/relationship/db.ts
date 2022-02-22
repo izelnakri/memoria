@@ -200,7 +200,6 @@ export default class RelationshipDB {
     relationshipClassName: ModelName,
     reverseRelationshipMetadatas: ReverseRelationshipMetadata[]
   ) {
-    let Class = targetModel.constructor as typeof Model;
     let possibleReferences = this.instanceReferences.get(relationshipClassName) as Map<
       PrimaryKey | undefined,
       Set<Model>
@@ -216,8 +215,9 @@ export default class RelationshipDB {
                 foreignKeyColumnName,
                 relationshipType,
               } = relationshipMetadata;
-
               if (relationshipType === "BelongsTo") {
+                let Class = targetModel.constructor as typeof Model;
+
                 reference[foreignKeyColumnName as string] = targetModel[Class.primaryKeyName];
                 this.getInstanceRecordsCacheForTableKey(
                   `${TargetClass.name}:${relationshipName}`,
@@ -238,7 +238,7 @@ export default class RelationshipDB {
     }
   }
 
-  // TODO: this needs to be extremely fast
+  // NOTE: this runs on every instance of a model during relation cache refreshes, needs to be fast
   static referenceRelatedTo(
     targetModel: Model,
     reference: Model,
@@ -257,7 +257,10 @@ export default class RelationshipDB {
         ).get(reference),
         targetModel
       ) ||
-      this.modelIsInRelationshipResponse(targetModel[reverseRelationshipName as string], reference)
+      this.modelIsInRelationshipResponse(
+        this.get(targetModel, reverseRelationshipName as string, false),
+        reference
+      )
     );
   }
 
@@ -379,7 +382,7 @@ export default class RelationshipDB {
       ?.has(model);
   }
 
-  static get(model: Model, relationshipName: string) {
+  static get(model: Model, relationshipName: string, asyncLookup = true) {
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
     let cache = this.getInstanceRecordsCacheForTableKey(
@@ -388,6 +391,8 @@ export default class RelationshipDB {
     );
     if (cache.has(model)) {
       return cache.get(model);
+    } else if (!asyncLookup) {
+      return null;
     }
 
     let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: optimize this

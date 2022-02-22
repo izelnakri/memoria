@@ -10,13 +10,10 @@ module(
 
     // TODO: also add embed + serializer tests to the test cases correctly
     test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
-      window.Model = Model;
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "Some photo" });
       let group = MemoryGroup.build({ name: "Hacker Log", photo: photo });
-      window.TARGET_PHOTO = photo;
-      debugger;
 
       assert.ok(photo instanceof MemoryPhoto);
       assert.ok(photo.isNew);
@@ -24,7 +21,6 @@ module(
       assert.deepEqual(group.photo, photo);
       assert.equal(photo.group_id, null);
 
-      console.log("DOING INSERT");
       let insertedGroup = await MemoryGroup.insert(group);
 
       assert.ok(photo.isNew);
@@ -34,10 +30,8 @@ module(
       assert.deepEqual(group.photo, photo);
       assert.deepEqual(insertedGroup.photo, photo);
 
-      // NOTE:
-      assert.equal(photo.group_id, insertedGroup.id); // TODO: this should be fixed
-      // TODO: photo.group is not reflexive
-      // assert.equal(photo.group.id, insertedGroup.id); // TODO: this should be fixed
+      assert.equal(photo.group_id, insertedGroup.id);
+      assert.equal(photo.group.id, insertedGroup.id);
 
       assert.ok(insertedGroup.photo.isNew, true);
 
