@@ -126,7 +126,7 @@ export default class MemoryAdapter {
         targetOptions
       );
 
-      if (record instanceof MemoriaModel) {
+      if (record instanceof Model) {
         record.fetchedRelationships.forEach((relationshipName) => {
           model[relationshipName] = record[relationshipName];
         });
@@ -274,20 +274,24 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
+    let updateTarget = Array.from(Model.columnNames).reduce((result, attribute: string) => {
+      if (record.hasOwnProperty(attribute)) {
+        result[attribute] = record[attribute];
+      } else if (typeof defaultColumnsForUpdate[attribute] === "function") {
+        result[attribute] = defaultColumnsForUpdate[attribute](Model);
+      }
 
-    return this.cache(
-      Model,
-      Array.from(Model.columnNames).reduce((result, attribute: string) => {
-        if (record.hasOwnProperty(attribute)) {
-          result[attribute] = record[attribute];
-        } else if (typeof defaultColumnsForUpdate[attribute] === "function") {
-          result[attribute] = defaultColumnsForUpdate[attribute](Model);
-        }
+      return result as ModelRefOrInstance;
+    }, {} as ModelRefOrInstance);
 
-        return result as ModelRefOrInstance;
-      }, {} as ModelRefOrInstance),
-      options
-    );
+    if (record instanceof Model) {
+      updateTarget = Model.build(updateTarget);
+      record.fetchedRelationships.forEach((relationshipName) => {
+        updateTarget[relationshipName] = record[relationshipName];
+      });
+    }
+
+    return this.cache(Model, updateTarget, options);
   }
 
   static unload(
