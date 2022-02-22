@@ -434,7 +434,23 @@ export default class RelationshipDB {
         ? relationship[metadata.RelationshipClass.primaryKeyName]
         : null;
     } else if (metadata.relationshipType === "OneToOne") {
-      cache.set(model, input instanceof Model ? input : null);
+      let previousRelationship = model[relationshipName];
+      let validPreviousRelationship =
+        !(previousRelationship instanceof Promise) && previousRelationship;
+      let relationship = input instanceof Model ? input : null;
+
+      if (validPreviousRelationship) {
+        validPreviousRelationship[
+          metadata.reverseRelationshipForeignKeyColumnName as string
+        ] = null;
+      }
+
+      cache.set(model, relationship);
+
+      if (relationship) {
+        relationship[metadata.reverseRelationshipForeignKeyColumnName as string] =
+          model[Class.primaryKeyName];
+      }
     } else {
       if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
         throw new Error(`Trying to set a non model instance to ${Class.name}.${relationshipName}!`);
