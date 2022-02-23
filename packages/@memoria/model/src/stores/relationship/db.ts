@@ -293,17 +293,28 @@ export default class RelationshipDB {
       for (let referenceSet of possibleReferences.values()) {
         referenceSet.forEach((reference) => {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
-            let { TargetClass, relationshipName, relationshipType } = relationshipMetadata;
-            let tableKey = `${TargetClass.name}:${relationshipName}`;
-            let relationshipReference = this.getInstanceRecordsCacheForTableKey(
-              tableKey,
-              relationshipType
-            ).get(reference);
-            if (
-              relationshipReference &&
-              relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
-            ) {
-              RelationshipDB.set(reference, relationshipName, null);
+            if (this.referenceRelatedTo(targetModel, reference, relationshipMetadata)) {
+              let {
+                TargetClass,
+                relationshipName,
+                relationshipType,
+                foreignKeyColumnName,
+              } = relationshipMetadata;
+              let relationshipCache = this.getInstanceRecordsCacheForTableKey(
+                `${TargetClass.name}:${relationshipName}`,
+                relationshipType
+              );
+              let relationshipReference = relationshipCache.get(reference);
+              if (
+                relationshipReference &&
+                relationshipReference[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
+              ) {
+                relationshipCache.set(reference, null);
+
+                if (relationshipType === "BelongsTo" && foreignKeyColumnName) {
+                  reference[foreignKeyColumnName] = null;
+                }
+              }
             }
           });
         });
