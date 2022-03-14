@@ -2,6 +2,8 @@ import Model from "../../model.js";
 import Schema from "../schema.js";
 import type { ModelName, ModuleDatabase } from "../../types.js";
 
+export const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
+
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 
 export interface RelationshipMetadata {
@@ -41,7 +43,6 @@ interface BelongsToColumnTable {
   };
 }
 
-const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 const MEMORIA_RELATIONSHIP_CONVERSIONS = {
   "one-to-one": "OneToOne",
   "many-to-one": "BelongsTo",

@@ -27,11 +27,10 @@ export default class LazyPromise extends Promise<void> {
 
   static defer() {
     let deferred = {} as DeferredPromise;
-    let promise = new this(function (resolve, reject) {
+    deferred.promise = new this(function (resolve, reject) {
       deferred.resolve = resolve;
       deferred.reject = reject;
     });
-    deferred.promise = promise;
 
     return deferred;
   }
