@@ -1,6 +1,6 @@
 import Model from "../model.js";
 import Schema from "./schema.js";
-import { generateUUID } from "../utils.js";
+import { generateUUID } from "../utils/index.js";
 import type {
   PrimaryKey,
   ModuleDatabase,

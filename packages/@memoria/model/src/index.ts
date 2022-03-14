@@ -47,7 +47,7 @@ export {
   set,
   getProperties,
   setProperties,
-} from "./utils.js";
+} from "./utils/index.js";
 export {
   Column,
   CreateDateColumn,
