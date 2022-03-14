@@ -2,6 +2,7 @@ import Schema from "./schema.js";
 import DB from "./db.js";
 import RelationshipSchema from "./relationship/schema.js";
 import RelationshipDB from "./relationship/db.js";
+import InstanceDB from "./instance/db.js";
 
 export type {
   RelationshipType,
@@ -10,4 +11,4 @@ export type {
   RelationshipMetadata,
 } from "./relationship/schema.js";
 
-export { Schema, DB, RelationshipSchema, RelationshipDB };
+export { Schema, DB, RelationshipSchema, RelationshipDB, InstanceDB };
