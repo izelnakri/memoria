@@ -5,11 +5,12 @@ import Changeset from "./changeset.js";
 import RevisionHistory from "./revision-history.js";
 import Serializer, { transformValue } from "./serializer.js";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
-import { clearObject, primaryKeyTypeSafetyCheck } from "./utils.js";
+import { Schema, DB, RelationshipSchema, RelationshipDB, InstanceDB } from "./stores/index.js";
+import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
+// import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
 
-type primaryKey = number | string;
+type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
@@ -36,11 +37,9 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
-// NOTE: perhaps make peek and unload methods return a copied object so they can receive ModelBuildOptions,
-// also MemoryAdapter find methods call them. So check the performance impact of this change on test suites in future
-
-// Document .cache() replaces existing record!, doesnt have defaultValues
+// Document .cache() replaces existing record! doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
+// TODO: it can also be that InstanceDB null primaryKey instances need to be moved over on isNew when building or setting.
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -80,6 +79,8 @@ export default class Model {
   // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
   // NOTE: could do attribute tracking
   // NOTE: test also passing new Model() instances
+  // TODO: also invalidate the unpersistedReferenceGroup for RelationshipDB.cache() and delete
+  // TODO: in future build tests and assertion throw for changing existing primaryKey to smt else and handle null to smt-else(throw if target primarykey exists)
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
@@ -92,7 +93,10 @@ export default class Model {
     }
 
     let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
-    let primaryKey = model[this.primaryKeyName];
+    let primaryKeyName = this.primaryKeyName;
+    let primaryKey = buildObject[primaryKeyName] || null;
+    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, primaryKey);
+
     if (buildObject) {
       if (buildObject.revisionHistory) {
         buildObject.revisionHistory.forEach((revision) => {
@@ -106,16 +110,44 @@ export default class Model {
       }
     }
 
-    RelationshipDB.getModelReferenceFor(this, primaryKey).add(model); // NOTE: this should always add to instanceReferences including ones with null primaryKey
-
+    let Class = this;
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
     let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
     let attributeTrackingEnabledForModel = attributeTrackingEnabled(options);
 
     Array.from(this.columnNames).forEach((columnName) => {
-      let cache = getTransformedValue(model, columnName, buildObject);
+      if (columnName === primaryKeyName) {
+        Object.defineProperty(model, columnName, {
+          configurable: false,
+          enumerable: true,
+          get() {
+            return primaryKey;
+          },
+          set(value) {
+            let targetValue = value === undefined ? null : value;
+            if (this[columnName] === targetValue) {
+              return;
+            } else if (primaryKey && !(columnName in this.changes)) {
+              console.warn(`You are changing the ${Class.name} instance ${primaryKeyName}:${primaryKey} to ${primaryKeyName}:${targetValue}. This is not tested!`);
+              throw new Error(`You are changing the ${Class.name} instance ${primaryKeyName}:${primaryKey} to ${primaryKeyName}:${targetValue}. This is not tested!`);
+            }
 
-      if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
+            primaryKey = targetValue;
+
+            if (attributeTrackingEnabledForModel) {
+              dirtyTrackAttribute(this, columnName, targetValue);
+            }
+
+            let unknownInstances = InstanceDB.getAllUnknownInstances(Class);
+            if (unknownInstances.includes(existingInstances)) {
+              removeFromArray(unknownInstances, existingInstances);
+              InstanceDB.getAllKnownReferences(Class).set(targetValue, existingInstances as Set<Model>);
+            }
+          }
+        });
+      } else if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
+        let cache = getTransformedValue(model, columnName, buildObject);
+
         return Object.defineProperty(model, columnName, {
           configurable: false,
           enumerable: true,
@@ -136,17 +168,7 @@ export default class Model {
             cache = value === undefined ? null : value;
 
             if (attributeTrackingEnabledForModel) {
-              if (this.revision[columnName] === cache) {
-                delete this.changes[columnName];
-              } else {
-                this.changes[columnName] = cache;
-              }
-
-              this.errors.forEach((error, errorIndex) => {
-                if (error.attribute === columnName) {
-                  this.errors.splice(errorIndex, 1);
-                }
-              });
+              dirtyTrackAttribute(this, columnName, cache);
             }
 
             if (belongsToColumnNames.has(columnName)) {
@@ -159,6 +181,7 @@ export default class Model {
                 return;
               }
 
+              // TODO: this is not reflexive MAKE IT REFLEXIVE
               let relationshipCache = RelationshipDB.getInstanceRecordsCacheForTableKey(
                 `${(this.constructor as typeof Model).name}:${relationshipName}`,
                 "BelongsTo"
@@ -173,7 +196,8 @@ export default class Model {
               } else if (cache === null && !relationshipModel) {
                 this[relationshipName] = null;
               } else if (cache && relationshipCache.has(this)) {
-                let relationship = RelationshipClass.peek(cache);
+                // TODO: this needs to change for reflexiveness(?)
+                let relationship = RelationshipClass.peek(cache); // since it is a column its always a primaryKey
                 if (relationship) {
                   relationshipCache.set(this, relationship);
                 }
@@ -189,7 +213,7 @@ export default class Model {
     });
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
-    Object.keys(relationshipTable).forEach((relationshipName) => {
+    Object.keys(relationshipTable).reduce((lastPersistedInstance, relationshipName) => {
       if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (
@@ -198,14 +222,18 @@ export default class Model {
         RelationshipDB.has(buildObject, relationshipName) &&
         !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise)
       ) {
-        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
       } else if (
         primaryKey &&
         ARRAY_ASKING_RELATIONSHIPS.includes(relationshipTable[relationshipName].relationshipType)
       ) {
-        let lastReference = getLastElement(RelationshipDB.getModelReferenceFor(this, primaryKey));
-        if (lastReference && RelationshipDB.has(lastReference, relationshipName)) {
-          RelationshipDB.set(model, relationshipName, lastReference[relationshipName]);
+        // NOTE: maybe do it for has one as well(?) get it from related id instance relationship // TODO: write test case for it!!
+        if (lastPersistedInstance === undefined && existingInstances.size > 0) {
+          lastPersistedInstance = InstanceDB.getLastPersistedInstance(existingInstances, primaryKey) || null;
+        }
+
+        if (lastPersistedInstance && RelationshipDB.has(lastPersistedInstance, relationshipName)) {
+          RelationshipDB.set(model, relationshipName, lastPersistedInstance[relationshipName]);
         }
       }
 
@@ -219,7 +247,11 @@ export default class Model {
           return RelationshipDB.set(model, relationshipName, value);
         },
       });
-    });
+
+      return lastPersistedInstance;
+    }, undefined as any);
+
+    existingInstances.add(model);
 
     return revisionAndLockModel(model, options, buildObject);
   }
@@ -276,7 +308,7 @@ export default class Model {
   }
 
   static peek(
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Model | Model[] | void {
     if (!primaryKey) {
@@ -298,7 +330,7 @@ export default class Model {
 
   // TODO: this can perhaps extend the cache time(?) and might still have revision control
   static async find(
-    primaryKey: primaryKey | primaryKey[],
+    primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Promise<Model | Model[] | void> {
     return await this.Adapter.find(this, primaryKey, options);
@@ -429,7 +461,7 @@ export default class Model {
         if (record[this.primaryKeyName]) {
           primaryKeyTypeSafetyCheck(record, this);
 
-          let primaryKey = record[this.primaryKeyName] as primaryKey;
+          let primaryKey = record[this.primaryKeyName] as PrimaryKey;
           if (primaryKey && result.includes(primaryKey)) {
             throw new RuntimeError(
               `${this.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
@@ -707,7 +739,7 @@ function shouldInsertOrUpdateARecord(
 
 function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) {
   if (Array.isArray(fixtureArray)) {
-    fixtureArray.reduce((primaryKeys: Set<primaryKey>, targetFixture) => {
+    fixtureArray.reduce((primaryKeys: Set<PrimaryKey>, targetFixture) => {
       primaryKeyTypeSafetyCheck(targetFixture, Class);
 
       let primaryKey = targetFixture[Class.primaryKeyName];
@@ -733,17 +765,24 @@ function attributeTrackingEnabled(options?: ModelBuildOptions) {
   return !options || options.revision !== false;
 }
 
+function dirtyTrackAttribute(model: Model, columnName: string, value: any) {
+  if (model.revision[columnName] === value) {
+    delete model.changes[columnName];
+  } else {
+    model.changes[columnName] = value;
+  }
+
+  model.errors.forEach((error, errorIndex) => {
+    if (error.attribute === columnName) {
+      model.errors.splice(errorIndex, 1);
+    }
+  });
+}
+
 function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {
   return buildObject && keyName in buildObject
     ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
     : model[keyName] || null;
-}
-
-function getLastElement<T>(set: Set<T>) {
-  // NOTE: I can use an ExtendedSet with .last on each .add() to optimize time and space of this:
-  let value;
-  for (value of set);
-  return value;
 }
 
 function revisionAndLockModel(model, options?, buildObject?) {
@@ -753,3 +792,4 @@ function revisionAndLockModel(model, options?, buildObject?) {
 
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }
+

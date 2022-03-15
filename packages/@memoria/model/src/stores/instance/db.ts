@@ -1,16 +1,14 @@
 import Model from "../../model.js";
+import ArrayIterator from "../../utils/array-iterator.js";
 import type { PrimaryKey } from "../../types.js";
 
 type ModelName = string;
-// type BelongsToPrimaryKey = PrimaryKey;
-type QueryObject = { [key: string]: any };
-
-// TODO: two things: build({ id: 5 }) could be isNew BUT may have id: 5 persisted in database
+type JSObject = { [key: string]: any };
 
 export default class InstanceDB {
   // NOTE: It is needed for updating instance hasMany Records and deleting references of not persisted records which hold persisted deleted record
   static knownInstances: Map<ModelName, Map<PrimaryKey, Set<Model>>> = new Map();
-  static unknownInstances: Map<ModelName, Array<Set<Model>>> = new Map(); // NOTE: also do primaryKey setting handling(!!) there needs to be a warning on this, this needs to be clear
+  static unknownInstances: Map<ModelName, Array<Set<Model>>> = new Map();
 
   static getAllKnownReferences(Class: typeof Model) {
     if (!this.knownInstances.has(Class.name)) {
@@ -39,5 +37,49 @@ export default class InstanceDB {
     return model[Class.primaryKeyName] ?
       this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) :
       this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model));
+  }
+
+  static getOrCreateExistingInstancesSet(model: Model, buildObject: JSObject, primaryKey?: PrimaryKey) {
+    let Class = model.constructor as typeof Model;
+
+    if (primaryKey) {
+      let references = this.getAllKnownReferences(Class);
+      let foundInstanceSet = references.get(primaryKey);
+      if (!foundInstanceSet) {
+        foundInstanceSet = new Set();
+        references.set(primaryKey, foundInstanceSet);
+      }
+
+      return foundInstanceSet;
+    } else if (buildObject instanceof Model) {
+      let references = this.getAllUnknownInstances(Class);
+      let foundInstanceSet = references.find((modelSet) => modelSet.has(buildObject as Model));
+      if (!foundInstanceSet) {
+        foundInstanceSet = new Set();
+        references.push(foundInstanceSet);
+      }
+
+      return foundInstanceSet;
+    }
+
+    let foundInstanceSet: Set<Model> = new Set();
+
+    this.getAllUnknownInstances(Class).push(foundInstanceSet);
+
+    return foundInstanceSet;
+  }
+
+  static getLastPersistedInstance(existingInstances: Set<Model>, primaryKey: PrimaryKey) {
+    if (!existingInstances) {
+      return null;
+    } else if (!primaryKey) {
+      return ArrayIterator.last(existingInstances.values());
+    }
+
+    // NOTE: maybe do this findLast for perf improvement(?)
+    let existingInstancedByLastAdded = Array.from(existingInstances.values())
+      .reverse();
+
+    return existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) || existingInstancedByLastAdded[0];
   }
 }
