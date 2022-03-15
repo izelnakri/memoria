@@ -18,7 +18,7 @@ export default class InstanceDB {
     return this.knownInstances.get(Class.name) as Map<PrimaryKey, Set<Model>>;
   }
 
-  static getAllUnknownInstances(Class: typeof Model) {
+  static getAllUnknownInstances(Class: typeof Model): Array<Set<Model>> {
     if (!this.unknownInstances.has(Class.name)) {
       this.unknownInstances.set(Class.name, []);
     }
@@ -31,12 +31,12 @@ export default class InstanceDB {
       .concat(this.getAllUnknownInstances(Class));
   }
 
-  static getReferences(model: Model) : Set<Model> | void { // NOTE: this includes the model itself
+  static getReferences(model: Model): Set<Model> { // NOTE: this includes the model itself
     let Class = model.constructor as typeof Model;
 
     return model[Class.primaryKeyName] ?
-      this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) :
-      this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model));
+      this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model> :
+      this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) as Set<Model>;
   }
 
   static getOrCreateExistingInstancesSet(model: Model, buildObject: JSObject, primaryKey?: PrimaryKey) {

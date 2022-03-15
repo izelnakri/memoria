@@ -182,10 +182,7 @@ export default class Model {
               }
 
               // TODO: this is not reflexive MAKE IT REFLEXIVE
-              let relationshipCache = RelationshipDB.getInstanceRecordsCacheForTableKey(
-                `${(this.constructor as typeof Model).name}:${relationshipName}`,
-                "BelongsTo"
-              );
+              let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
               let relationshipModel = relationshipCache.get(this);
               if (
                 cache === null &&

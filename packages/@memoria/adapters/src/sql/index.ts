@@ -514,10 +514,8 @@ function cleanRelationships(Model, instance) {
   Object.keys(relationshipTable).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
       let { relationshipType } = relationshipTable[relationshipKey];
-      RelationshipDB.getInstanceRecordsCacheForTableKey(
-        `${Model.name}:${relationshipKey}`,
-        relationshipType
-      ).set(instance, undefined);
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipKey, relationshipType)
+        .set(instance, undefined);
     }
   });
 
