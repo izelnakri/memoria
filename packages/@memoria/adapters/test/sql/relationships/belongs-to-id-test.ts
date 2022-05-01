@@ -118,7 +118,7 @@ module(
       let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
 
       assert.deepEqual(fetchedPhoto.owner, newOwner);
-      assert.propEqual(updatedPhoto.owner, null);
+      assert.propEqual(updatedPhoto.owner, newOwner); // NOTE: should be newOwner
       assert.equal(updatedPhoto.owner_id, null);
     });
 

@@ -170,7 +170,7 @@ module(
       assert.equal(deletedPhoto.owner_uuid, null);
     });
 
-    test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
+    test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let firstUser = await MemoryUser.insert({ first_name: "Izel" });
@@ -213,7 +213,7 @@ module(
       assert.equal(deletedPhoto.owner_uuid, null);
     });
 
-    test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
+    test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       MemoryUser.cache([

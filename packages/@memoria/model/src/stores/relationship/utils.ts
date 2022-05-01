@@ -70,11 +70,11 @@ export default class RelationshipUtils {
   }
 
   static cleanAndSetOneToOneRelationshipFor(model, targetRelationship, metadata, cache) {
-    // let previousRelationship = cache.get(model);
+    let previousRelationship = cache.get(model, targetRelationship);
     let Class = model.constructor as typeof Model;
-    let { RelationshipClass, foreignKeyColumnName, reverseRelationshipName, reverseRelationshipForeignKeyColumnName } = metadata;
-    console.log('reverseRelationshipName IS');
-    console.log(reverseRelationshipName);
+    let {
+      RelationshipClass, foreignKeyColumnName, reverseRelationshipName, reverseRelationshipForeignKeyColumnName
+    } = metadata;
     let reflexiveSideCache =
       reverseRelationshipName &&
       RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, "BelongsTo");
@@ -93,6 +93,10 @@ export default class RelationshipUtils {
         cache,
         targetRelationship as Model
       );
+    }
+
+    if (previousRelationship && (!targetRelationship || targetRelationship !== previousRelationship)) {
+      previousRelationship[reverseRelationshipForeignKeyColumnName] = null;
     }
 
     cache.set(model, targetRelationship);
