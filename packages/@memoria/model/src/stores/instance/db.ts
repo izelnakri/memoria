@@ -69,6 +69,7 @@ export default class InstanceDB {
     return foundInstanceSet;
   }
 
+  // TODO: this shouldn't be problematic because its used only in smart relationship assignment to copied values, CRUD creates more instances currently
   static getLastPersistedInstance(existingInstances: Set<Model>, primaryKey: PrimaryKey) {
     if (!existingInstances) {
       return null;

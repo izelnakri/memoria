@@ -44,7 +44,7 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
-  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB };
+  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB, InstanceDB };
 
   static get Cache() {
     return DB.getDB(this);
@@ -181,25 +181,21 @@ export default class Model {
                 return;
               }
 
-              // TODO: this is not reflexive MAKE IT REFLEXIVE
               let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
-              let relationshipModel = relationshipCache.get(this);
-              if (
-                cache === null &&
-                relationshipModel &&
-                relationshipModel[RelationshipClass.primaryKeyName]
-              ) {
-                relationshipCache.delete(this);
-              } else if (cache === null && !relationshipModel) {
-                this[relationshipName] = null;
-              } else if (cache && relationshipCache.has(this)) {
-                // TODO: this needs to change for reflexiveness(?)
-                let relationship = RelationshipClass.peek(cache); // since it is a column its always a primaryKey
+              let existingRelationship = relationshipCache.get(this);
+              let existingRelationshipPrimaryKey = existingRelationship &&
+                existingRelationship[RelationshipClass.primaryKeyName];
+              if (!existingRelationship) {
+                if (cache === null) {
+                  return relationshipCache.set(this, null);
+                }
+
+                let relationship = RelationshipClass.peek(cache);
                 if (relationship) {
                   relationshipCache.set(this, relationship);
                 }
-
-                return relationshipCache.delete(this);
+              } else if (existingRelationshipPrimaryKey !== cache) {
+                relationshipCache.delete(this);
               }
             }
           },
