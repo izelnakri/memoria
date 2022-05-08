@@ -5,7 +5,7 @@ import Changeset from "./changeset.js";
 import RevisionHistory from "./revision-history.js";
 import Serializer, { transformValue } from "./serializer.js";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Schema, DB, RelationshipSchema, RelationshipDB, InstanceDB } from "./stores/index.js";
+import { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipUtils, InstanceDB } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
@@ -195,7 +195,18 @@ export default class Model {
                   relationshipCache.set(this, relationship);
                 }
               } else if (existingRelationshipPrimaryKey !== cache) {
-                relationshipCache.delete(this);
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
+                let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasOne")
+                  || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
+
+                RelationshipUtils.cleanRelationshipsOn(
+                  existingRelationship,
+                  this,
+                  metadata,
+                  relationshipCache,
+                  reflectionCache
+                );
+                relationshipCache.delete(this); // NOTE: could this be problematic(?) in the sense the reflection doesnt exists actually so foreignKey cant be cleared
               }
             }
           },

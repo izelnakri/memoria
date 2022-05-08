@@ -15,7 +15,7 @@ import RelationshipUtils from "./utils.js";
 import { RelationshipPromise } from "../../promises/index.js";
 import InstanceDB from "../instance/db.js";
 import ArrayIterator from "../../utils/array-iterator.js";
-import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
+import type { RelationshipMetadata, RelationshipType, ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
 type RelationshipTableKey = string; // Example: "MemoryUser:comments"
@@ -71,11 +71,14 @@ export default class RelationshipDB {
     relationshipType: string,
     relationshipTableKey: string
   ) {
-    if (!this[`instanceRecords${relationshipType}Cache`].has(relationshipTableKey)) {
-      this[`instanceRecords${relationshipType}Cache`].set(relationshipTableKey, new WeakMap());
-    }
+    let relationshipCache = this[`instanceRecords${relationshipType}Cache`];
+    if (relationshipCache) {
+      if (!relationshipCache.has(relationshipTableKey)) {
+        relationshipCache.set(relationshipTableKey, new WeakMap());
+      }
 
-    return this[`instanceRecords${relationshipType}Cache`].get(relationshipTableKey);
+      return relationshipCache.get(relationshipTableKey);
+    }
   }
 
   static findRelationshipCacheFor(Class: typeof Model, relationshipName: string, relationshipType?: string) {
@@ -92,11 +95,9 @@ export default class RelationshipDB {
     this.findRelationshipCacheFor(Class, relationshipName, relationshipType).get(model);
   }
 
-  // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos') #=> Photo[]
-  // Example: Relationship.generateRelationshipFromPersistence(user, 'email'); #=> Email // looks both sides
   // used deciding whether record should be fetched for BelongsTo, OneToOne
-  // used for diffing on HasMany, BelongsTo & OneToOne(provided to CCUD and compare with newly obtained)
-  static generateRelationshipFromPersistence(model: Model, relationshipName: string) {
+  // used for diffing on HasMany, BelongsTo & OneToOne(when done on CCUD and compare with newly obtained)
+  static generateRelationshipFromPersistence(model: Model, relationshipName: string) { // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos') #=> Photo[]
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];
     if (!primaryKey) {
@@ -403,7 +404,7 @@ export default class RelationshipDB {
     let cache = this.findRelationshipCacheFor(Class, relationshipName, metadata.relationshipType);
 
     if (input === undefined) {
-      cache.delete(model);
+      cache.delete(model); // TODO: add reflection cleanup to existing relationship if exists
 
       return model;
     }
@@ -413,6 +414,14 @@ export default class RelationshipDB {
     // TODO: for reflexive clear previous reference(2 sides), add cache, add new reference
     let targetRelationship = formatInput(input, metadata.relationshipType);
     if (cache.get(model) === targetRelationship) {
+      let { RelationshipClass, reverseRelationshipName, reverseRelationshipType } = metadata;
+
+      if (targetRelationship && reverseRelationshipName) {
+        let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType as string);
+
+        RelationshipUtils.setReflectiveRelationship(targetRelationship as Model, model, reverseRelationshipType as RelationshipType, reverseRelationshipCache);
+      }
+
       return model;
     } else if (metadata.relationshipType === "BelongsTo") {
       return RelationshipUtils.cleanAndSetBelongsToRelationshipFor(model, targetRelationship, metadata, cache);

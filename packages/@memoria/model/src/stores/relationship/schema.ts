@@ -5,14 +5,16 @@ import type { ModelName, ModuleDatabase } from "../../types.js";
 export const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
+export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
-  reverseRelationshipForeignKeyColumnName: null | string;
   reverseRelationshipName: null | string;
+  reverseRelationshipType: null | RelationshipType;
+  reverseRelationshipForeignKeyColumnName: null | string;
 }
 
 export interface RelationshipTable {
@@ -89,6 +91,7 @@ export default class RelationshipSchema {
                     : null,
                 reverseRelationshipForeignKeyColumnName: null,
                 reverseRelationshipName: null,
+                reverseRelationshipType: null
               },
             });
           }, {})
@@ -185,10 +188,13 @@ export default class RelationshipSchema {
         });
 
       if (targetReverseRelationship) {
-        currentMetadata.reverseRelationshipName = targetReverseRelationship.relationshipName;
+        Object.assign(currentMetadata, {
+          reverseRelationshipName: targetReverseRelationship.relationshipName,
+          reverseRelationshipForeignKeyColumnName: targetReverseRelationship.foreignKeyColumnName,
+          reverseRelationshipType: targetReverseRelationship.relationshipType
+        });
+
         targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
-        currentMetadata.reverseRelationshipForeignKeyColumnName =
-          targetReverseRelationship.foreignKeyColumnName;
       }
     }
 

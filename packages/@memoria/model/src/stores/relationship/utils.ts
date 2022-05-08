@@ -1,97 +1,92 @@
 import Model from "../../model.js";
 import RelationshipDB from "./db.js";
 import InstanceDB from "../instance/db.js";
-import type { PrimaryKey } from "../../types.js";
+import type { RelationshipType } from "./schema.js";
+// import type { PrimaryKey } from "../../types.js";
 
+export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
 // NOTE: maybe rename to RelationshipReflection.
+// pass the args as { relationshipCache: , reflectionCache } to metadata
 export default class RelationshipUtils {
-  static cleanAndSetBelongsToRelationshipFor(model, targetRelationship, metadata, cache) { // metadata
+  // TODO: warn if an existing instance in cache has different relationship
+  // NOTE: two cases when building(transfer/copy without removal), setting on demand
+  static cleanAndSetBelongsToRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
     let Class = model.constructor as typeof Model;
-    let { RelationshipClass, reverseRelationshipName } = metadata;
-    // NOTE: this creates a weakmap for a "possible relationship", do we want this(?)
+    let { RelationshipClass, reverseRelationshipName } = metadata; // reverseRelationshipType
+    // NOTE: this creates a weakmap for a "possible relationship"(?), do we want this(?)
     let oneToOneReflexiveCache =
       reverseRelationshipName &&
       RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, "OneToOne");
-    let hasManyReflexiveCache =
+    let reverseRelationshipType: RelationshipType = oneToOneReflexiveCache ? 'OneToOne' : 'HasMany';
+    let reverseRelationshipCache =
       oneToOneReflexiveCache ||
       (reverseRelationshipName &&
-         RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, "HasMany"));
-
-    // RelationshipClass contrary to the targetRelationship
-    // cache is RelationshipClass cache
-    if (oneToOneReflexiveCache) {
-      // NOTE: two cases when building(transfer/copy without removal), setting on demand
-      // NOTE: right now it removes all relationships, it should only remove related relationships which are non-primary key possibilities on build() and runtime()
-      // NOTE: also how to know which arent(?)
-      debugger; // before cache exists
-      this.cleanRelationshipFromOneSideMetadata( // TODO: research this
+         RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType));
+    let previousRelationship = relationshipCache.get(model);
+    if (previousRelationship) {
+      this.cleanRelationshipsOn(
+        previousRelationship,
         model,
         metadata,
-        cache,
-        oneToOneReflexiveCache,
-        model
+        relationshipCache,
+        reverseRelationshipCache
       );
-      debugger; // cache cleans
-
-      if (targetRelationship) { // TODO: change this to if reflection exists
-        // TODO: this should clean both sides!!
-        // NOTE: finder finds the first occurance but we dont want that when building
-        this.cleanRelationshipFromOneSideMetadata(
-          model,
-          {
-            RelationshipClass: Class,
-            reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
-            relationshipType: "OneToOne",
-          },
-          oneToOneReflexiveCache,
-          cache,
-          targetRelationship as Model
-        );
-      }
-    } else if (hasManyReflexiveCache) {
-      // TODO: here remove the element from the array
     }
 
-    cache.set(model, targetRelationship);
+    if (targetRelationship) {
+      this.cleanRelationshipsOn(
+        targetRelationship as Model,
+        model,
+        {
+          RelationshipClass: Class,
+          relationshipType: reverseRelationshipType,
+          reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
+        },
+        reverseRelationshipCache,
+        relationshipCache,
+      );
+    }
+
+    relationshipCache.set(model, targetRelationship);
 
     model[metadata.foreignKeyColumnName as string] = targetRelationship
       ? targetRelationship[metadata.RelationshipClass.primaryKeyName]
       : null;
 
-    if (targetRelationship) {
-      if (oneToOneReflexiveCache) {
-        oneToOneReflexiveCache.set(targetRelationship, model);
-      } else if (hasManyReflexiveCache) {
-        // TODO: add to array or create array with one element:
-        // hasManyReflexiveCache.get(relationship).add(model);
-      }
+    if (reverseRelationshipCache) {
+      this.setReflectiveRelationship(targetRelationship, model, reverseRelationshipType, reverseRelationshipCache);
     }
   }
 
-  static cleanAndSetOneToOneRelationshipFor(model, targetRelationship, metadata, cache) {
-    let previousRelationship = cache.get(model, targetRelationship);
+  // TODO: warn if an existing instance in cache has different relationship during setting from one side
+  static cleanAndSetOneToOneRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
     let Class = model.constructor as typeof Model;
     let {
       RelationshipClass, foreignKeyColumnName, reverseRelationshipName, reverseRelationshipForeignKeyColumnName
     } = metadata;
-    let reflexiveSideCache =
+    let reverseRelationshipType: RelationshipType = 'BelongsTo';
+    let reverseRelationshipCache =
       reverseRelationshipName &&
-      RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, "BelongsTo");
+      RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType);
+    let previousRelationship = relationshipCache.get(model);
+    if (previousRelationship) {
+      this.cleanRelationshipsOn(previousRelationship, model, metadata, relationshipCache, reverseRelationshipCache);
+    }
 
-    this.cleanRelationshipFromOneSideMetadata(model, metadata, cache, reflexiveSideCache, model);
+    console.log('previousRelationship cleanup', previousRelationship, model[metadata.relationshipName]);
 
     if (targetRelationship) {
-      this.cleanRelationshipFromOneSideMetadata(
+      this.cleanRelationshipsOn(
+        targetRelationship as Model,
         model,
         {
           RelationshipClass: Class,
+          relationshipType: reverseRelationshipType,
           reverseRelationshipForeignKeyColumnName: foreignKeyColumnName,
-          relationshipType: "BelongsTo",
         },
-        reflexiveSideCache,
-        cache,
-        targetRelationship as Model
+        reverseRelationshipCache,
+        relationshipCache,
       );
     }
 
@@ -99,35 +94,42 @@ export default class RelationshipUtils {
       previousRelationship[reverseRelationshipForeignKeyColumnName] = null;
     }
 
-    cache.set(model, targetRelationship);
+    relationshipCache.set(model, targetRelationship);
 
     if (targetRelationship instanceof Model) {
       if (reverseRelationshipForeignKeyColumnName) {
         targetRelationship[reverseRelationshipForeignKeyColumnName] = model[Class.primaryKeyName];
       }
-
-      reflexiveSideCache && reflexiveSideCache.set(targetRelationship, model);
     }
+
+    this.setReflectiveRelationship(targetRelationship, model, reverseRelationshipType, reverseRelationshipCache);
   }
 
-  // TODO: REFACTOR THIS
-  // NOTE: implement this in implementation
-  static cleanRelationshipFromOneSideMetadata(
+  static cleanRelationshipsOn( // NOTE: FOR SUCCESFUL CRUD
+    targetRelationship: Model,
     source: Model,
     { RelationshipClass, reverseRelationshipForeignKeyColumnName, relationshipType },
     cache,
     reflectionCache,
-    targetRelationship: Model
   ) {
+    // TODO: ForHasMany here remove the element from the array
+    console.log('cleanRelationshipsOn', targetRelationship.constructor.name, source.constructor.name);
+    // Deletes all reflections
+    // if reverseRelationshipForeignKeyColumnName then make targetRelationship[reverseRelationshipForeignKeyColumnName] = null
+    // does it on the other side, same idea but does costly findRelationships() twice!
+
     // TODO: this should be aware of primaryKey
     // NOTE: dont find itself(and all instances with same primaryKey)
 
+    // TODO: this needs additional filter
+    // TODO: this intentionally removes all the caches(?)
     let existingReflections = findRelationships(
-      RelationshipClass,
-      reflectionCache,
       targetRelationship,
-      source instanceof RelationshipClass ? source : null
+      RelationshipClass,
+      cache,
+      source
     );
+    // when source is secondPhoto, existingReflections gets the firstPhoto for secondPhoto.group = insertedGroup, IT SHOULDN'T
     let foreignKeyRemoved = false;
     existingReflections.forEach((existingReflection) => {
       reflectionCache.delete(existingReflection);
@@ -141,12 +143,12 @@ export default class RelationshipUtils {
         targetRelationship[reverseRelationshipForeignKeyColumnName] = null;
       }
 
-      let TargetRelationshipClass = targetRelationship.constructor as typeof Model;
+      // let TargetRelationshipClass = targetRelationship.constructor as typeof Model;
       let foundOtherSideRelationships = findRelationships(
-        targetRelationship.constructor,
-        cache,
         existingReflection,
-        source instanceof TargetRelationshipClass ? source : null
+        targetRelationship.constructor,
+        reflectionCache,
+        source
       );
       foundOtherSideRelationships.forEach((foundOtherSideRelationship) => {
         cache.delete(foundOtherSideRelationship);
@@ -162,34 +164,42 @@ export default class RelationshipUtils {
       });
     });
   }
+
+  static setReflectiveRelationship(targetRelationship: Model | void, model: Model, _relationshipType: RelationshipType, reflectionCache: RelationshipCache) {
+    if (targetRelationship) {
+      if (!reflectionCache) {
+        throw Error(`BUG ReflectionCache could not be found!: relationshipCache could not be found on ${model.constructor.name}:${targetRelationship.constructor.name} ${_relationshipType}`);
+      }
+
+      reflectionCache.set(targetRelationship, model);
+    }
+
+    // TODO: different handle for hasMany cases
+    // TODO: add to array or create array with one element:
+    // hasManyReflexiveCache.get(relationship).add(model);
+  }
 }
 
 // NOTE: make it performant in the future by doing the filter here(result should not include for the same primaryKey as the primaryKey)
+// NOTE: this needs metadata so it can remove stuff
 function findRelationships(
+  targetModel,
   RelationshipClass,
   relationshipCache,
-  targetModel,
-  source?: Model | null
+  source: Model
 ) {
-  // NOTE: ignore should be a primaryKey if instance exists or the instance itself(null build case)
   let result: Model[] = [];
   let possibleReferences = InstanceDB.getAllReferences(RelationshipClass);
+
   for (let referenceSet of possibleReferences) {
     for (let reference of referenceSet) {
-      if (referenceIsNotSource(source, reference[RelationshipClass.primaryKeyName])) {
-        if (relationshipCache.get(reference) === targetModel) {
+      // if (source[(source.constructor as typeof Model).primaryKeyName] !== reference[RelationshipClass.primaryKeyName]) {
+        if (relationshipCache.get(source) === targetModel) {
           result.push(reference);
         }
-      }
+      // }
     }
   }
 
   return result;
-}
-
-function referenceIsNotSource(
-  source: undefined | null | Model,
-  referencePrimaryKey: void | PrimaryKey
-) {
-  return source ? source[(source.constructor as typeof Model).primaryKeyName] !== referencePrimaryKey : true;
 }
