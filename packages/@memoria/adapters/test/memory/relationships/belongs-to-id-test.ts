@@ -107,7 +107,7 @@ module(
 
       let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
 
-      assert.propEqual(fetchedPhoto, updatedPhoto);
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.deepEqual(updatedPhoto.owner, newOwner);
       assert.equal(updatedPhoto.owner_id, null);
@@ -199,8 +199,8 @@ module(
 
       let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.deepEqual(updatedPhoto.owner, secondUser);
+      assert.deepEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -210,11 +210,88 @@ module(
       let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_id, null);
     });
 
-    test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
+    // TODO: insert() generates 3 instances when instance is provided, make it 2
+    test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
+      let { MemoryGroup, MemoryPhoto } = generateModels();
+
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
+      let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, group.id);
+
+      firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+
+      assert.deepEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.deepEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, group.id);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      let insertedGroup = await MemoryGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.equal(group.photo, insertedGroup.photo);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.equal(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+
+      secondPhoto.group = insertedGroup;
+
+      assert.deepEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+
+      let updatedGroup = await MemoryGroup.update(insertedGroup);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_id, updatedGroup.id);
+      assert.deepEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+
+      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+
+      assert.equal(updatedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
+
+      let deletedGroup = await MemoryGroup.delete(updatedGroup);
+
+      assert.equal(updatedGroup.photo, null);
+      assert.propEqual(deletedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
+    });
+
+    test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       MemoryUser.cache([

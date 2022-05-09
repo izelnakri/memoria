@@ -86,13 +86,13 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.propEqual(photo.owner, user);
+      assert.deepEqual(photo.owner, user);
       assert.equal(photo.owner_uuid, user.uuid);
 
       let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.propEqual(fetchedPhoto.owner, user);
+      assert.deepEqual(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_uuid, user.uuid);
 
       let newOwner = MemoryUser.build({ first_name: "Moris" });
@@ -106,7 +106,7 @@ module(
 
       let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
 
-      assert.propEqual(fetchedPhoto, updatedPhoto);
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.deepEqual(updatedPhoto.owner, newOwner);
       assert.equal(updatedPhoto.owner_uuid, null);

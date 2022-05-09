@@ -36,11 +36,12 @@ export default class RelationshipUtils {
 
     if (targetRelationship) {
       this.cleanRelationshipsOn(
-        targetRelationship as Model,
         model,
+        targetRelationship as Model,
         {
           RelationshipClass: Class,
           relationshipType: reverseRelationshipType,
+          foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
           reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
         },
         reverseRelationshipCache,
@@ -74,16 +75,15 @@ export default class RelationshipUtils {
       this.cleanRelationshipsOn(previousRelationship, model, metadata, relationshipCache, reverseRelationshipCache);
     }
 
-    console.log('previousRelationship cleanup', previousRelationship, model[metadata.relationshipName]);
-
     if (targetRelationship) {
       this.cleanRelationshipsOn(
-        targetRelationship as Model,
         model,
+        targetRelationship as Model,
         {
           RelationshipClass: Class,
           relationshipType: reverseRelationshipType,
-          reverseRelationshipForeignKeyColumnName: foreignKeyColumnName,
+          foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
+          reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
         },
         reverseRelationshipCache,
         relationshipCache,
@@ -108,42 +108,26 @@ export default class RelationshipUtils {
   static cleanRelationshipsOn( // NOTE: FOR SUCCESFUL CRUD
     targetRelationship: Model,
     source: Model,
-    { RelationshipClass, reverseRelationshipForeignKeyColumnName, relationshipType },
+    { RelationshipClass, foreignKeyColumnName, reverseRelationshipForeignKeyColumnName, relationshipType },
     cache,
     reflectionCache,
   ) {
+    // TODO: this whole shit needs to clean up because not fully correct
     // TODO: ForHasMany here remove the element from the array
-    console.log('cleanRelationshipsOn', targetRelationship.constructor.name, source.constructor.name);
-    // Deletes all reflections
-    // if reverseRelationshipForeignKeyColumnName then make targetRelationship[reverseRelationshipForeignKeyColumnName] = null
-    // does it on the other side, same idea but does costly findRelationships() twice!
 
-    // TODO: this should be aware of primaryKey
-    // NOTE: dont find itself(and all instances with same primaryKey)
-
-    // TODO: this needs additional filter
-    // TODO: this intentionally removes all the caches(?)
     let existingReflections = findRelationships(
       targetRelationship,
       RelationshipClass,
       cache,
       source
     );
-    // when source is secondPhoto, existingReflections gets the firstPhoto for secondPhoto.group = insertedGroup, IT SHOULDN'T
-    let foreignKeyRemoved = false;
     existingReflections.forEach((existingReflection) => {
       reflectionCache.delete(existingReflection);
 
-      if (
-        !foreignKeyRemoved &&
-        relationshipType === "BelongsTo" &&
-        reverseRelationshipForeignKeyColumnName
-      ) {
-        foreignKeyRemoved = true;
-        targetRelationship[reverseRelationshipForeignKeyColumnName] = null;
+      if (reverseRelationshipForeignKeyColumnName) {
+        existingReflection[reverseRelationshipForeignKeyColumnName] = null;
       }
 
-      // let TargetRelationshipClass = targetRelationship.constructor as typeof Model;
       let foundOtherSideRelationships = findRelationships(
         existingReflection,
         targetRelationship.constructor,
@@ -153,13 +137,8 @@ export default class RelationshipUtils {
       foundOtherSideRelationships.forEach((foundOtherSideRelationship) => {
         cache.delete(foundOtherSideRelationship);
 
-        if (
-          !foreignKeyRemoved &&
-          ["HasMany", "OneToOne"].includes(relationshipType) &&
-          reverseRelationshipForeignKeyColumnName
-        ) {
-          foreignKeyRemoved = true;
-          existingReflection[reverseRelationshipForeignKeyColumnName] = null;
+        if (foreignKeyColumnName) {
+          foundOtherSideRelationship[foreignKeyColumnName] = null;
         }
       });
     });

@@ -151,7 +151,8 @@ module(
       assert.propEqual(fetchedGroup, updatedGroup);
       assert.equal(fetchedGroup.photo, null);
       assert.equal(updatedGroup.photo, null);
-      assert.equal(photo.group_id, null);
+      assert.equal(photo.group, updatedGroup);
+      assert.equal(photo.group_id, updatedGroup.id);
     });
 
     test("fetched model can remove the relationship before delete", async function (assert) {
@@ -187,5 +188,162 @@ module(
       assert.equal(deletedGroup.photo, null);
       assert.equal(photo.group_id, null);
     });
+
+    // TODO: move this test also to belongs-to id for belongsTo version
+    test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // TODO: all photos will be groups, all users will be photo
+      // TODO: should be group.photo = photo; there is photo.group_id
+      // intention is to really see if photo.group_id changes
+
+      window.DEBUG = Model.DEBUG;
+      let { MemoryGroup, MemoryPhoto } = generateModels();
+
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
+      let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, group.id);
+
+      group.photo = firstPhoto; // should clear secondPhoto.group
+
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(secondPhoto.group, null);
+
+      let insertedGroup = await MemoryGroup.insert(group);
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.deepEqual(group.photo, insertedGroup.photo);
+
+      debugger;
+
+      insertedGroup.photo = secondPhoto;
+
+      debugger;
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.equal(firstPhoto.group_id, null); // TODO: this fails
+
+      // let updatedGroup = await MemoryGroup.update(insertedGroup);
+
+      // assert.deepEqual(insertedGroup.photo, secondPhoto);
+      // assert.deepEqual(updatedGroup.photo, secondPhoto);
+
+      // updatedGroup.photo = null;
+
+      // assert.equal(updatedGroup.photo, null);
+      // assert.equal(secondPhoto.group_id, null);
+      // assert.equal(firstPhoto.group_id, null);
+
+      // debugger;
+
+      // let deletedGroup = await MemoryGroup.delete(updatedGroup);
+      // // cache keeps it then get finds it
+
+      // debugger;
+      // assert.equal(updatedGroup.photo, null);
+      // assert.propEqual(deletedGroup.photo, null);
+      // assert.equal(secondPhoto.group_id, null);
+      // assert.equal(firstPhoto.group_id, null);
+    });
+
+    // test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+    //   let { MemoryPhoto, MemoryUser } = generateModels();
+
+    //   MemoryUser.cache([
+    //     {
+    //       id: 1,
+    //       first_name: "Izel",
+    //     },
+    //     {
+    //       id: 2,
+    //       first_name: "Moris",
+    //     },
+    //   ]);
+
+    //   let firstUser = await MemoryUser.find(1);
+    //   let secondUser = await MemoryUser.find(2);
+    //   let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
+
+    //   assert.ok(photo.isNew);
+    //   assert.propEqual(photo.owner, secondUser);
+    //   assert.equal(photo.owner_id, secondUser.id);
+
+    //   photo.owner = firstUser;
+
+    //   assert.propEqual(photo.owner, firstUser);
+    //   assert.equal(photo.owner_id, firstUser.id);
+
+    //   let insertedPhoto = await MemoryPhoto.insert(photo);
+
+    //   assert.propEqual(insertedPhoto.owner, firstUser);
+    //   assert.propEqual(photo.owner, insertedPhoto.owner);
+
+    //   insertedPhoto.owner = secondUser;
+
+    //   assert.propEqual(insertedPhoto.owner, secondUser);
+    //   assert.equal(insertedPhoto.owner_id, secondUser.id);
+
+    //   let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
+
+    //   assert.propEqual(updatedPhoto.owner, secondUser);
+    //   assert.propEqual(insertedPhoto.owner, secondUser);
+
+    //   updatedPhoto.owner = null;
+
+    //   assert.equal(updatedPhoto.owner, null);
+    //   assert.equal(updatedPhoto.owner_id, null);
+
+    //   let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
+
+    //   assert.equal(updatedPhoto.owner, null);
+    //   assert.propEqual(deletedPhoto.owner, null);
+    //   assert.equal(deletedPhoto.owner_id, null);
+    // });
+
+    // test("a model can fetch its not loaded relationship", async function (assert) {
+    //   let { MemoryPhoto, MemoryUser } = generateModels();
+
+    //   let firstUser = await MemoryUser.insert({ first_name: "Izel" });
+    //   let secondUser = await MemoryUser.insert({ first_name: "Moris" });
+    //   let photo = MemoryPhoto.build({ name: "Dinner photo", owner_id: secondUser.id });
+
+    //   assert.deepEqual(photo.owner, secondUser);
+    //   assert.equal(photo.owner_id, secondUser.id);
+    // });
+
+    // test("a models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
+    //   let { MemoryPhoto, MemoryUser } = generateModels();
+
+    //   let firstUser = await MemoryUser.insert({ first_name: "Izel" });
+    //   let secondUser = await MemoryUser.insert({ first_name: "Moris" });
+    //   let photo = MemoryPhoto.build({ name: "Dinner photo", owner_id: secondUser.id });
+
+    //   assert.deepEqual(photo.owner, secondUser);
+
+    //   photo.owner_id = null;
+
+    //   assert.equal(photo.owner, null);
+    // });
+
+    // test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+    //   let { MemoryPhoto, MemoryUser } = generateModels();
+
+    //   let firstUser = await MemoryUser.insert({ first_name: "Izel" });
+    //   let secondUser = await MemoryUser.insert({ first_name: "Moris" });
+    //   let photo = MemoryPhoto.build({ name: "Dinner photo" });
+
+    //   assert.equal(photo.owner, null);
+    //   assert.equal(photo.owner_id, null);
+
+    //   photo.owner_id = secondUser.id;
+
+    //   assert.deepEqual(photo.owner, secondUser);
+    //   assert.equal(photo.owner_id, secondUser.id);
+    // });
   }
 );
