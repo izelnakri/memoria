@@ -181,10 +181,15 @@ export default class Model {
                 return;
               }
 
+              // TODO: BUGFIX: these settings are not reflective, make them reflective(!!)
               let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
               let existingRelationship = relationshipCache.get(this);
               let existingRelationshipPrimaryKey = existingRelationship &&
                 existingRelationship[RelationshipClass.primaryKeyName];
+              let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
+              let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "OneToOne")
+                || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
+
               if (!existingRelationship) {
                 if (cache === null) {
                   return relationshipCache.set(this, null);
@@ -193,20 +198,29 @@ export default class Model {
                 let relationship = RelationshipClass.peek(cache);
                 if (relationship) {
                   relationshipCache.set(this, relationship);
+                  reflectionCache.set(relationship, this);
                 }
               } else if (existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
-                let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasOne")
-                  || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
-
+                debugger;
                 RelationshipUtils.cleanRelationshipsOn(
                   existingRelationship,
                   this,
                   metadata,
                   relationshipCache,
-                  reflectionCache
+                  reflectionCache,
                 );
-                relationshipCache.delete(this); // NOTE: could this be problematic(?) in the sense the reflection doesnt exists actually so foreignKey cant be cleared
+                debugger;
+
+                if (cache) {
+                  let relationship = RelationshipClass.peek(cache);
+                  if (relationship) {
+                    relationshipCache.set(this, relationship);
+                    reflectionCache.set(relationship, this);
+                  }
+                } else if (existingRelationshipPrimaryKey) {
+                  relationshipCache.delete(this);
+                  return reflectionCache.delete(existingRelationship); // NOTE: this maybe not needed(?)
+                }
               }
             }
           },

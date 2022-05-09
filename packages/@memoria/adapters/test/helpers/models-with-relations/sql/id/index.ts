@@ -20,6 +20,9 @@ export default function generateModels() {
     @Column("varchar", { nullable: true })
     name: string;
 
+    @Column("int", { nullable: true })
+    owner_id: number;
+
     @ManyToMany(() => SQLUser)
     users;
 

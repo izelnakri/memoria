@@ -85,6 +85,46 @@ export default function generateRESTModels() {
           return { errors: Changeset.serializer(changeset) };
         }
       });
+
+      this.post("/groups", async (request) => {
+        try {
+          let group = await Group.insert(request.params.group);
+
+          return { group: Group.serializer(group) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
+      this.get("/groups", async () => {
+        let groups = await Group.findAll();
+
+        return { groups: Group.serializer(groups) };
+      });
+
+      this.get("/groups/:id", async (request) => {
+        let group = await Group.find(request.params.id);
+
+        return { group: Group.serializer(group) };
+      });
+
+      this.put("/groups/:id", async (request) => {
+        try {
+          let group = await Group.update(request.params.group);
+
+          return { group: Group.serializer(group) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
+      this.delete("/groups/:id", async (request) => {
+        try {
+          await Group.delete(request.params.group);
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
     },
   });
 

@@ -266,11 +266,11 @@ module(
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
 
-      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+      secondPhoto.group = null;
 
-      assert.equal(updatedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
+      assert.equal(await updatedGroup.photo, null);
 
       assert.deepEqual(insertedGroup.photo, secondPhoto);
       assert.deepEqual(group.photo, firstPhoto);
@@ -278,13 +278,13 @@ module(
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
 
-      assert.equal(firstPhoto.group, null);
-      assert.equal(firstPhoto.group_id, null);
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
       assert.equal(updatedGroup.photo, null);
-      assert.propEqual(deletedGroup.photo, null);
+      assert.propEqual(await deletedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
       assert.equal(firstPhoto.group, null);
@@ -310,28 +310,28 @@ module(
       let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
-      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner, secondUser);
       assert.equal(photo.owner_id, secondUser.id);
 
       photo.owner = firstUser;
 
-      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner, firstUser);
       assert.equal(photo.owner_id, firstUser.id);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
-      assert.propEqual(insertedPhoto.owner, firstUser);
-      assert.propEqual(photo.owner, insertedPhoto.owner);
+      assert.equal(insertedPhoto.owner, firstUser);
+      assert.equal(photo.owner, insertedPhoto.owner);
 
       insertedPhoto.owner = secondUser;
 
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
       assert.equal(insertedPhoto.owner_id, secondUser.id);
 
       let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(updatedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -341,7 +341,7 @@ module(
       let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_id, null);
     });
 

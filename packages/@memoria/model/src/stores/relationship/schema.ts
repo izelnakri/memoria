@@ -27,6 +27,7 @@ export interface ReverseRelationshipMetadata {
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
   reverseRelationshipName: null | string;
+  reverseRelationshipType: null | RelationshipType;
 }
 
 export interface ReverseRelationshipsTable {
@@ -129,6 +130,7 @@ export default class RelationshipSchema {
             relationshipType,
             foreignKeyColumnName,
             reverseRelationshipName,
+            reverseRelationshipType
           } = relationshipTable[relationshipName];
 
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
@@ -152,6 +154,7 @@ export default class RelationshipSchema {
             relationshipType,
             foreignKeyColumnName,
             reverseRelationshipName,
+            reverseRelationshipType
           });
         });
       }
@@ -195,6 +198,7 @@ export default class RelationshipSchema {
         });
 
         targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
+        targetReverseRelationship.reverseRelationshipType = currentMetadata.relationshipType;
       }
     }
 

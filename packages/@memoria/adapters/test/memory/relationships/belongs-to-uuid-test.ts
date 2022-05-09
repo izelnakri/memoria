@@ -8,6 +8,7 @@ module(
   function (hooks) {
     setupMemoria(hooks);
 
+    // TODO: also add embed + serializer tests to the test cases correctly
     test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
@@ -86,13 +87,13 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.deepEqual(photo.owner, user);
+      assert.propEqual(photo.owner, user);
       assert.equal(photo.owner_uuid, user.uuid);
 
       let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.deepEqual(fetchedPhoto.owner, user);
+      assert.propEqual(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_uuid, user.uuid);
 
       let newOwner = MemoryUser.build({ first_name: "Moris" });
@@ -198,8 +199,8 @@ module(
 
       let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.deepEqual(updatedPhoto.owner, secondUser);
+      assert.deepEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -209,8 +210,85 @@ module(
       let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_uuid, null);
+    });
+
+    // TODO: insert() generates 3 instances when instance is provided, make it 2
+    test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
+      let { MemoryGroup, MemoryPhoto } = generateModels();
+
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
+      let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
+
+      firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+
+      assert.deepEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_uuid, group.uuid);
+      assert.deepEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      let insertedGroup = await MemoryGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.equal(group.photo, insertedGroup.photo);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+      assert.equal(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+
+      secondPhoto.group = insertedGroup;
+
+      assert.deepEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+
+      let updatedGroup = await MemoryGroup.update(insertedGroup);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
+      assert.deepEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+
+      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+
+      assert.equal(updatedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+
+      let deletedGroup = await MemoryGroup.delete(updatedGroup);
+
+      assert.equal(updatedGroup.photo, null);
+      assert.propEqual(deletedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_uuid, null);
     });
 
     test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
@@ -232,28 +310,28 @@ module(
       let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
-      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner, secondUser);
       assert.equal(photo.owner_uuid, secondUser.uuid);
 
       photo.owner = firstUser;
 
-      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner, firstUser);
       assert.equal(photo.owner_uuid, firstUser.uuid);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
-      assert.propEqual(insertedPhoto.owner, firstUser);
-      assert.propEqual(photo.owner, insertedPhoto.owner);
+      assert.equal(insertedPhoto.owner, firstUser);
+      assert.equal(photo.owner, insertedPhoto.owner);
 
       insertedPhoto.owner = secondUser;
 
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
       assert.equal(insertedPhoto.owner_uuid, secondUser.uuid);
 
       let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(updatedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -263,7 +341,7 @@ module(
       let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_uuid, null);
     });
 
@@ -278,7 +356,7 @@ module(
       assert.equal(photo.owner_uuid, secondUser.uuid);
     });
 
-    test("a models relationship promise reference turns to null when relationship gets destroyed either way", async function (assert) {
+    test("a models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let firstUser = await MemoryUser.insert({ first_name: "Izel" });
@@ -309,28 +387,3 @@ module(
     });
   }
 );
-
-// test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {});
-// });
-// this.Server.post("/photos", async ({ params }) => {
-//   assert.deepEqual(photo.serialize(), params.photo);
-
-//   try {
-//     let photo = await ServerMemoryPhoto.insert(request.params.photo);
-
-//     return { photo: ServerMemoryPhoto.serializer(photo) };
-//   } catch (changeset) {
-//     return { errors: Changeset.serializer(changeset) };
-//   }
-// });
-// function generateModels() {
-//   let { Group, PhotoComment, Photo, User } = generateModels();
-
-//   let ServerPhoto = Object.assign(Object.create({}), Photo);
-//   Object.setPrototypeOf(ServerPhoto, Photo);
-
-//   // NOTE: change the adapter maybe(?)
-
-//   return { Group, PhotoComment, Photo, User, ServerPhoto };
-// }
-// Post /photos(should not have owner embedded by default on REST) but after post should still keep the reference

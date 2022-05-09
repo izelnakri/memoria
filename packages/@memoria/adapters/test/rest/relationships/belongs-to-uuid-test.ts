@@ -39,8 +39,7 @@ module(
       assert.notOk(insertedPhoto.isNew);
 
       assert.deepEqual(photo.owner, user);
-
-      assert.propEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
       assert.equal(insertedPhoto.owner_uuid, user.uuid);
       assert.ok(insertedPhoto.owner.isNew, true);
 
@@ -50,9 +49,9 @@ module(
       assert.notOk(insertedUser.isNew);
       assert.notOk(insertedPhoto.owner.isNew);
 
-      assert.propEqual(photo.owner, user);
-      assert.propEqual(insertedPhoto.owner, user);
-      assert.propEqual(insertedPhoto.owner, insertedUser);
+      assert.deepEqual(photo.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, insertedUser);
 
       assert.ok(user !== insertedUser);
     });
@@ -121,7 +120,7 @@ module(
 
       let updatedPhoto = await RESTPhoto.update(fetchedPhoto);
 
-      assert.propEqual(fetchedPhoto, updatedPhoto);
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.deepEqual(updatedPhoto.owner, newOwner);
       assert.equal(updatedPhoto.owner_uuid, null);
@@ -216,8 +215,8 @@ module(
 
       let updatedPhoto = await RESTPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.deepEqual(updatedPhoto.owner, secondUser);
+      assert.deepEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -227,8 +226,86 @@ module(
       let deletedPhoto = await RESTPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_uuid, null);
+    });
+
+    // TODO: insert() generates 3 instances when instance is provided, make it 2
+    test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
+      let { Server, RESTPhoto, RESTUser, RESTGroup } = setupRESTModels();
+      this.Server = Server;
+
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
+      let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
+
+      firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+
+      assert.deepEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_uuid, group.uuid);
+      assert.deepEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      let insertedGroup = await RESTGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.equal(group.photo, insertedGroup.photo);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+      assert.equal(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+
+      secondPhoto.group = insertedGroup;
+
+      assert.deepEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+
+      let updatedGroup = await RESTGroup.update(insertedGroup);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
+      assert.deepEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+
+      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+
+      assert.equal(updatedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+
+      let deletedGroup = await RESTGroup.delete(updatedGroup);
+
+      assert.equal(updatedGroup.photo, null);
+      assert.propEqual(deletedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_uuid, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_uuid, null);
     });
 
     test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {

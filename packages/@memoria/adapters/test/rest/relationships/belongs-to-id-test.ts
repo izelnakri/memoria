@@ -6,6 +6,7 @@ import Model, {
   UnauthorizedError,
   NotFoundError,
   RelationshipPromise,
+  LazyPromise
 } from "@memoria/model";
 import { HTTP } from "@memoria/adapters";
 import ServerResponse from "@memoria/response";
@@ -39,8 +40,7 @@ module(
       assert.notOk(insertedPhoto.isNew);
 
       assert.deepEqual(photo.owner, user);
-
-      assert.propEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
       assert.equal(insertedPhoto.owner_id, user.id);
       assert.ok(insertedPhoto.owner.isNew, true);
 
@@ -50,9 +50,9 @@ module(
       assert.notOk(insertedUser.isNew);
       assert.notOk(insertedPhoto.owner.isNew);
 
-      assert.propEqual(photo.owner, user);
-      assert.propEqual(insertedPhoto.owner, user);
-      assert.propEqual(insertedPhoto.owner, insertedUser);
+      assert.deepEqual(photo.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, insertedUser);
 
       assert.ok(user !== insertedUser);
     });
@@ -121,7 +121,7 @@ module(
 
       let updatedPhoto = await RESTPhoto.update(fetchedPhoto);
 
-      assert.propEqual(fetchedPhoto, updatedPhoto);
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.deepEqual(updatedPhoto.owner, newOwner);
       assert.equal(updatedPhoto.owner_id, null);
@@ -216,8 +216,8 @@ module(
 
       let updatedPhoto = await RESTPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.deepEqual(updatedPhoto.owner, secondUser);
+      assert.deepEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -227,8 +227,85 @@ module(
       let deletedPhoto = await RESTPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner, null);
       assert.equal(deletedPhoto.owner_id, null);
+    });
+
+    // TODO: insert() generates 3 instances when instance is provided, make it 2
+    test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
+      let { Server, RESTPhoto, RESTUser, RESTGroup } = setupRESTModels();
+      this.Server = Server;
+
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
+      let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, group.id);
+
+      firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+
+      assert.deepEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.deepEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, group.id);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      let insertedGroup = await RESTGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.equal(group.photo, insertedGroup.photo);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.equal(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+
+      secondPhoto.group = insertedGroup;
+
+      assert.deepEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+
+      let updatedGroup = await RESTGroup.update(insertedGroup);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_id, updatedGroup.id);
+      assert.deepEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+
+      secondPhoto.group = null; // firstPhoto.group null doesnt happen
+
+      assert.ok(updatedGroup.photo instanceof LazyPromise);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+
+      let deletedGroup = await RESTGroup.delete(updatedGroup);
+
+      assert.ok(updatedGroup.photo instanceof LazyPromise);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
     });
 
     test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {

@@ -6,7 +6,7 @@ import Model, {
   Serializer,
   UnauthorizedError,
   NotFoundError,
-  RelationshipPromise,
+  DB
 } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
@@ -37,8 +37,7 @@ module(
       assert.notOk(insertedPhoto.isNew);
 
       assert.deepEqual(photo.owner, user);
-
-      assert.propEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
       assert.equal(insertedPhoto.owner_id, user.id);
       assert.ok(insertedPhoto.owner.isNew, true);
 
@@ -48,9 +47,9 @@ module(
       assert.notOk(insertedUser.isNew);
       assert.notOk(insertedPhoto.owner.isNew);
 
-      assert.propEqual(photo.owner, user);
-      assert.propEqual(insertedPhoto.owner, user);
-      assert.propEqual(insertedPhoto.owner, insertedUser);
+      assert.deepEqual(photo.owner, user);
+      assert.deepEqual(insertedPhoto.owner, user);
+      assert.deepEqual(insertedPhoto.owner, insertedUser);
 
       assert.ok(user !== insertedUser);
     });
@@ -97,13 +96,14 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.propEqual(photo.owner, user);
+
+      assert.deepEqual(photo.owner, user);
       assert.equal(photo.owner_id, user.id);
 
       let fetchedPhoto = await SQLPhoto.find(photo.id);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.propEqual(fetchedPhoto.owner, user);
+      assert.deepEqual(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_id, user.id);
 
       let newOwner = SQLUser.build({ first_name: "Moris" });
@@ -112,13 +112,14 @@ module(
 
       fetchedPhoto.owner = newOwner;
 
-      assert.deepEqual(fetchedPhoto.owner, newOwner);
+      assert.equal(fetchedPhoto.owner, newOwner);
       assert.equal(fetchedPhoto.owner_id, null);
 
       let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
 
-      assert.deepEqual(fetchedPhoto.owner, newOwner);
-      assert.propEqual(updatedPhoto.owner, newOwner); // NOTE: should be newOwner
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
+      assert.equal(fetchedPhoto.owner, newOwner);
+      assert.equal(updatedPhoto.owner, newOwner);
       assert.equal(updatedPhoto.owner_id, null);
     });
 
@@ -130,12 +131,12 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.propEqual(photo.owner, user);
+      assert.deepEqual(photo.owner, user);
 
       let fetchedPhoto = await SQLPhoto.find(photo.id);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.propEqual(fetchedPhoto.owner, user);
+      assert.deepEqual(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_id, user.id);
 
       fetchedPhoto.owner = null;
@@ -145,7 +146,7 @@ module(
 
       let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
 
-      assert.propEqual(fetchedPhoto, updatedPhoto);
+      assert.deepEqual(fetchedPhoto, updatedPhoto);
       assert.equal(fetchedPhoto.owner, null);
       assert.equal(updatedPhoto.owner, null);
       assert.equal(updatedPhoto.owner_id, null);
@@ -159,12 +160,12 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.propEqual(photo.owner, user);
+      assert.deepEqual(photo.owner, user);
 
       let fetchedPhoto = await SQLPhoto.find(photo.id);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.propEqual(fetchedPhoto.owner, user);
+      assert.deepEqual(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_id, user.id);
 
       fetchedPhoto.owner = null;
@@ -172,15 +173,15 @@ module(
       assert.equal(fetchedPhoto.owner, null);
       assert.equal(fetchedPhoto.owner_id, null);
 
-      let deletedPhoto = await SQLPhoto.delete(fetchedPhoto);
+      let deletedPhoto = await SQLPhoto.delete(fetchedPhoto); // NOTE: it is true because sql server returns owner_id: 1
 
-      assert.notPropEqual(fetchedPhoto, deletedPhoto);
+      assert.deepEqual(Object.assign(fetchedPhoto.toJSON(), { owner_id: user.id }), deletedPhoto.toJSON());
       assert.equal(fetchedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, user);
+      assert.deepEqual(deletedPhoto.owner, user);
       assert.equal(deletedPhoto.owner_id, user.id);
     });
 
-    test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
+    test("a model can create, update, delete with correct changing relationships without SELECT in one flow", async function (assert) {
       let { SQLPhoto, SQLUser } = setupSQLModels();
 
       let firstUser = await SQLUser.insert({ first_name: "Izel" });
@@ -188,28 +189,29 @@ module(
       let photo = SQLPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
-      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner, secondUser);
       assert.equal(photo.owner_id, secondUser.id);
 
       photo.owner = firstUser;
 
-      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner, firstUser);
       assert.equal(photo.owner_id, firstUser.id);
 
       let insertedPhoto = await SQLPhoto.insert(photo);
 
-      assert.propEqual(insertedPhoto.owner, firstUser);
-      assert.propEqual(photo.owner, insertedPhoto.owner);
+      assert.equal(insertedPhoto.owner, firstUser);
+      assert.equal(photo.owner, insertedPhoto.owner);
 
       insertedPhoto.owner = secondUser;
 
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
       assert.equal(insertedPhoto.owner_id, secondUser.id);
 
       let updatedPhoto = await SQLPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.deepEqual(updatedPhoto.owner, secondUser);
+      assert.equal(updatedPhoto.owner_id, secondUser.id);
+      assert.deepEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -219,8 +221,84 @@ module(
       let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, secondUser);
-      assert.equal(deletedPhoto.owner_id, secondUser.id);
+      assert.equal(deletedPhoto.owner_id, null);
+      assert.equal(deletedPhoto.owner, null);
+    });
+
+    test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
+      let { SQLGroup, SQLPhoto } = setupSQLModels();
+
+      let firstPhoto = await SQLPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let secondPhoto = await SQLPhoto.insert({ name: "Second photo" });
+      let group = SQLGroup.build({ name: "Dinner group", photo: secondPhoto });
+
+      assert.ok(group.isNew);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, group.id);
+
+      firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+
+      assert.deepEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.deepEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, group.id);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      let insertedGroup = await SQLGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+
+      assert.deepEqual(insertedGroup.photo, firstPhoto);
+      assert.equal(insertedGroup.photo, group.photo);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.deepEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+
+      secondPhoto.group = insertedGroup;
+
+      assert.equal(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+      assert.deepEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+
+      let updatedGroup = await SQLGroup.update(insertedGroup);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_id, updatedGroup.id);
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+
+      secondPhoto.group = null;
+
+      assert.notEqual(updatedGroup.photo, secondPhoto);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
+
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+
+      assert.equal(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, group.id);
+
+      let deletedGroup = await SQLGroup.delete(updatedGroup);
+
+      assert.notEqual(updatedGroup.photo, secondPhoto);
+      assert.notEqual(deletedGroup.photo, secondPhoto);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
     });
 
     test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
@@ -242,28 +320,28 @@ module(
       let photo = SQLPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
-      assert.propEqual(photo.owner, secondUser);
+      assert.equal(photo.owner, secondUser);
       assert.equal(photo.owner_id, secondUser.id);
 
       photo.owner = firstUser;
 
-      assert.propEqual(photo.owner, firstUser);
+      assert.equal(photo.owner, firstUser);
       assert.equal(photo.owner_id, firstUser.id);
 
       let insertedPhoto = await SQLPhoto.insert(photo);
 
-      assert.propEqual(insertedPhoto.owner, firstUser);
-      assert.propEqual(photo.owner, insertedPhoto.owner);
+      assert.equal(insertedPhoto.owner, firstUser);
+      assert.equal(photo.owner, insertedPhoto.owner);
 
       insertedPhoto.owner = secondUser;
 
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
       assert.equal(insertedPhoto.owner_id, secondUser.id);
 
       let updatedPhoto = await SQLPhoto.update(insertedPhoto);
 
-      assert.propEqual(updatedPhoto.owner, secondUser);
-      assert.propEqual(insertedPhoto.owner, secondUser);
+      assert.equal(updatedPhoto.owner, secondUser);
+      assert.equal(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 
@@ -273,8 +351,8 @@ module(
       let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
 
       assert.equal(updatedPhoto.owner, null);
-      assert.propEqual(deletedPhoto.owner, secondUser);
-      assert.equal(deletedPhoto.owner_id, secondUser.id); // NOTE: RESTAdapter isn't like this it serves the provided model relationship reference with .null primaryKey if its null
+      assert.equal(deletedPhoto.owner_id, null);
+      assert.equal(deletedPhoto.owner, null);
     });
 
     test("a model can fetch its not loaded relationship", async function (assert) {
@@ -324,7 +402,7 @@ module(
       let user = await SQLUser.insert({ id: 22, first_name: "Izel" });
       let photo = SQLPhoto.build({ name: "Dinner photo", owner: user });
 
-      assert.deepEqual(photo.owner, user);
+      assert.equal(photo.owner, user);
       assert.equal(photo.owner_id, user.id);
 
       await SQLUser.delete(user);
@@ -350,13 +428,13 @@ module(
       let insertedUser = await SQLUser.insert({ id: 44, first_name: "Izel", last_name: "Nakri" });
 
       assert.propContains(insertedUser, { id: 44, first_name: "Izel", last_name: "Nakri" });
-      assert.propEqual(photo.owner, insertedUser);
+      assert.deepEqual(photo.owner, insertedUser);
       assert.equal(photo.owner_id, 44);
       assert.deepEqual(photo.errors, []);
 
       let foundUser = await photo.owner;
 
-      assert.propEqual(insertedUser, foundUser);
+      assert.deepEqual(insertedUser, foundUser);
 
       let reloadPromise = ownerPromise.reload();
 
