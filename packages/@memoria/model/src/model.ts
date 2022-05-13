@@ -17,12 +17,12 @@ type ModelRefOrInstance = ModelReference | Model;
 interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
+  freeze?: boolean;
 }
 
 const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 
 export interface ModelBuildOptions extends ModelInstantiateOptions {
-  freeze?: boolean;
   revision?: boolean;
   cache?: number;
   copy?: boolean; // NOTE: it copies by default
@@ -138,6 +138,7 @@ export default class Model {
               dirtyTrackAttribute(this, columnName, targetValue);
             }
 
+            // NOTE: this is not tested
             let unknownInstances = InstanceDB.getAllUnknownInstances(Class);
             if (unknownInstances.includes(existingInstances)) {
               removeFromArray(unknownInstances, existingInstances);
@@ -201,7 +202,7 @@ export default class Model {
                   reflectionCache.set(relationship, this);
                 }
               } else if (existingRelationshipPrimaryKey !== cache) {
-                debugger;
+                // debugger;
                 RelationshipUtils.cleanRelationshipsOn(
                   existingRelationship,
                   this,
@@ -209,7 +210,7 @@ export default class Model {
                   relationshipCache,
                   reflectionCache,
                 );
-                debugger;
+                // debugger;
 
                 if (cache) {
                   let relationship = RelationshipClass.peek(cache);
@@ -625,6 +626,9 @@ export default class Model {
       if ("isDeleted" in options) {
         this.#_isDeleted = options.isDeleted as boolean;
       }
+      if ("freeze" in options) {
+        this.#_isFrozen = options.freeze as boolean;
+      }
     }
   }
 
@@ -650,6 +654,11 @@ export default class Model {
 
   get isBuilt() {
     return Object.isSealed(this);
+  }
+
+  #_isFrozen = false;
+  get isFrozen() {
+    return this.#_isFrozen;
   }
 
   get isPersisted() {
@@ -810,4 +819,3 @@ function revisionAndLockModel(model, options?, buildObject?) {
 
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }
-

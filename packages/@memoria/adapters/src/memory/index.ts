@@ -13,6 +13,7 @@ import MemoriaModel, {
   transformValue,
   clearObject,
 } from "@memoria/model";
+import { prepareTargetObjectFromInstance } from "../utils.js";
 import type {
   PrimaryKey,
   ModelReference,
@@ -86,9 +87,8 @@ export default class MemoryAdapter {
   ): Promise<MemoriaModel[]> {
     if (Model) {
       if (targetState && targetState.length > 0) {
-        let newTargetState = targetState.map((model: ModelRefOrInstance) =>
-          assignDefaultValuesForInsert(model, Model)
-        );
+        let newTargetState =
+          targetState.map((model: ModelRefOrInstance) => assignDefaultValuesForInsert(model, Model));
 
         return this.resetCache(Model, newTargetState, options);
       }
@@ -111,7 +111,9 @@ export default class MemoryAdapter {
       Model,
       record[Model.primaryKeyName]
     ) as MemoriaModel | void;
+    // TODO: this one is dangerous for relationship tracking(?)
     if (existingModelInCache) {
+      // TODO: this needs to be special handling for peek
       let model = Model.build(
         Object.assign(
           existingModelInCache,
@@ -442,7 +444,6 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
 // NOTE: maybe move to DB(?)
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
-
   return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {
     if (attribute === Model.primaryKeyName) {
       result[attribute] = model[attribute] || defaultValues[attribute](Model);
@@ -458,7 +459,7 @@ function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
     }
 
     return result;
-  }, model);
+  }, prepareTargetObjectFromInstance(model, Model));
 }
 
 function tryToRevision(model: MemoriaModel, options) {

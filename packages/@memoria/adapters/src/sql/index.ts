@@ -13,6 +13,7 @@ import MemoriaModel, {
   RelationshipDB,
   NotFoundError,
 } from "@memoria/model";
+import { prepareTargetObjectFromInstance } from "../utils.js";
 import type {
   PrimaryKey,
   ModelReference,
@@ -224,7 +225,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return this.cache(
         Model,
-        Model.assign(record, result.generatedMaps[0]) as ModelRefOrInstance,
+        Model.assign(prepareTargetObjectFromInstance(record, Model), result.generatedMaps[0]) as ModelRefOrInstance,
         options
       );
     } catch (error) {
