@@ -45,6 +45,9 @@ export default function generateModels() {
     @Column("varchar", { nullable: true })
     content: string;
 
+    @Column("boolean", { default: true })
+    is_important: boolean;
+
     @Column("int", { nullable: true })
     photo_id: number;
 

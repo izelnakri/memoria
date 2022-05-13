@@ -164,7 +164,7 @@ export default class SQLAdapter extends MemoryAdapter {
     options?: ModelBuildOptions
   ): Promise<MemoriaModel | void> {
     let Manager = await this.getEntityManager();
-    let foundModel = await Manager.findOne(Model, queryObject);
+    let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
     return this.cache(Model, foundModel, options);
   }
@@ -181,7 +181,8 @@ export default class SQLAdapter extends MemoryAdapter {
     );
 
     if (queryObject) {
-      query.where(buildWhereSQLQueryFromObject(Model.tableName, queryObject), queryObject);
+      let objectToQuery = getTargetKeysFromInstance(queryObject);
+      query.where(buildWhereSQLQueryFromObject(Model.tableName, objectToQuery), objectToQuery);
     }
 
     let result = await query.getMany();
@@ -531,4 +532,18 @@ function buildWhereSQLQueryFromObject(aliasName: string, query: QueryObject) {
 
     return `${result} AND ${aliasName}.${keyName} = :${keyName}`;
   }, "");
+}
+
+function getTargetKeysFromInstance(query: QueryObject) {
+  let Class = query.constructor as typeof MemoriaModel;
+
+  if (Class.columnNames) {
+    return Array.from(Class.columnNames).reduce((result: QueryObject, columnName) => {
+      result[columnName] = query[columnName];
+
+      return result;
+    }, {});
+  }
+
+  return query;
 }

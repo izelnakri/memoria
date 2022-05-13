@@ -12,7 +12,7 @@ export default function generatePhotoComment() {
     };
     static Serializer = class PhotoCommentSerializer extends Serializer {
       static modelKeyNameFromPayload(_Model: typeof Model) {
-        return "photo-comment";
+        return "photoComment";
       }
     };
 
@@ -21,6 +21,9 @@ export default function generatePhotoComment() {
 
     @Column()
     content: string;
+
+    @Column("boolean", { default: true })
+    is_important: boolean;
 
     @Column("int")
     photo_id: number;

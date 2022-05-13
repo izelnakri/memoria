@@ -49,16 +49,3 @@ export default Object.freeze({
   PHOTOS: Object.freeze(PHOTOS.map((x) => Object.freeze(x))),
   PHOTO_COMMENTS: Object.freeze(PHOTO_COMMENTS.map((x) => Object.freeze(x)))
 });
-
-
-
-
-
-
-
-
-
-
-
-
-

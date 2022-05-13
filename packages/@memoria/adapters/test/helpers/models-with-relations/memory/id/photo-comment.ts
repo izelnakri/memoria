@@ -12,6 +12,9 @@ export default function generatePhotoComment() {
     @Column()
     content: string;
 
+    @Column("boolean", { default: true })
+    is_important: boolean;
+
     @Column("int")
     photo_id: number;
 

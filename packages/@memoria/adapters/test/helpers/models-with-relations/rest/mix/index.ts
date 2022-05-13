@@ -36,8 +36,16 @@ export default function generateRESTModels() {
         }
       });
 
-      this.get("/photos", async () => {
-        let photos = await Photo.findAll();
+      this.get("/photos", async ({ queryParams }) => {
+        if (queryParams) {
+          let photos = queryParams.ids
+            ? await Photo.find(queryParams.ids)
+            : await Photo.findAll(queryParams);
+
+          return { photos: Photo.serializer(photos) };
+        }
+
+        let photos = await Photo.findAll(queryParams);
 
         return { photos: Photo.serializer(photos) };
       });
@@ -54,6 +62,12 @@ export default function generateRESTModels() {
         } catch (changeset) {
           return { errors: Changeset.serializer(changeset) };
         }
+      });
+
+      this.get("/photos/count", async (request) => {
+        let photos = await Photo.findAll();
+
+        return { count: photos.length };
       });
 
       this.post("/users", async (request) => {
@@ -124,6 +138,54 @@ export default function generateRESTModels() {
         } catch (changeset) {
           return { errors: Changeset.serializer(changeset) };
         }
+      });
+
+      this.post("/photo-comments", async (request) => {
+        try {
+          let photoComment = await PhotoComment.insert(request.params.photoComment);
+
+          return { photoComment: PhotoComment.serializer(photoComment) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
+      this.get("/photo-comments", async (request) => {
+        if (request.queryParams) {
+          let photoComments = request.queryParams.ids
+            ? await PhotoComment.find(request.queryParams.ids)
+            : await PhotoComment.findAll(request.queryParams);
+
+          return { photoComments: PhotoComment.serializer(photoComments) };
+        }
+
+        let photoComment = await PhotoComment.findAll();
+
+        return { photoComments: PhotoComment.serializer(photoComment) };
+      });
+
+      this.get("/photo-comments/:uuid", async (request) => {
+        let photoComment = (await PhotoComment.find(
+          request.params.uuid
+        )) as PhotoComment;
+
+        return { photoComment: PhotoComment.serializer(photoComment) };
+      });
+
+      this.put("/photo-comments/:uuid", async (request) => {
+        try {
+          let photoComment = await PhotoComment.update(request.params.photoComment);
+
+          return { photoComment: PhotoComment.serializer(photoComment) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
+      this.get("/photo-comments/count", async (request) => {
+        let photoComment = await PhotoComment.findAll();
+
+        return { count: photoComment.length };
       });
     },
   });

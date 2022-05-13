@@ -10,7 +10,7 @@ export function prepareTargetObjectFromInstance(model, Model: typeof MemoriaMode
   let target = {}
   Model.columnNames.forEach((columnName) => {
     target[columnName] = model[columnName];
-  }, {});
+  });
   model.fetchedRelationships.forEach((relationshipName) => {
     target[relationshipName] = model[relationshipName];
   });

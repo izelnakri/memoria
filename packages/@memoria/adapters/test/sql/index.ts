@@ -3,7 +3,7 @@ import "./relationships/belongs-to-uuid-test.js";
 import "./default-attributes-test.js";
 import "./delete-test.js";
 import "./insert-test.js";
-import "./query-test.js";
+import "./find-test.js";
 import "./reset-records-fixtures-test.js";
 import "./serializer-embed-id-test.js";
 import "./serializer-embed-uuid-test.js";

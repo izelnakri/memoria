@@ -18,6 +18,9 @@ export default function generatePhotoComment() {
     @Column("int")
     user_id: number;
 
+    @Column("boolean", { default: true })
+    is_important: boolean;
+
     @BelongsTo(User)
     user;
 
