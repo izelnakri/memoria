@@ -29,10 +29,7 @@ module(
 
       assert.deepEqual(group.photo, photo);
       assert.deepEqual(insertedGroup.photo, photo);
-
       assert.equal(photo.group_id, insertedGroup.id);
-      assert.equal(photo.group.id, insertedGroup.id);
-
       assert.ok(insertedGroup.photo.isNew, true);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
@@ -65,7 +62,7 @@ module(
       assert.notOk(group.isNew);
       assert.notOk(insertedGroup.isNew);
       assert.ok(insertedGroup !== group);
-      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
       assert.equal(await insertedGroup.photo, null);
 
       secondGroup.photo = photo;
@@ -93,8 +90,8 @@ module(
 
       assert.equal(photo.name, "Cover photo");
       assert.notOk(group.isNew);
-      assert.deepEqual(group.photo, photo);
-      assert.equal(photo.group_id, group.id); // NOTE: should this be assert.equal(photo.group_id, null); ??
+      assert.equal(group.photo, photo);
+      assert.equal(photo.group_id, group.id);
       assert.deepEqual(photo.changes, { group_id: 1 });
 
       let fetchedGroup = await MemoryGroup.find(group.id);

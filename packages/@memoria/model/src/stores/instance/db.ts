@@ -55,15 +55,15 @@ export default class InstanceDB {
       let references = this.getAllUnknownInstances(Class);
       let foundInstanceSet = references.find((modelSet) => modelSet.has(buildObject as Model));
       if (!foundInstanceSet) {
-        foundInstanceSet = new Set();
+        foundInstanceSet = new Set([model]);
+        foundInstanceSet.add(model);
         references.push(foundInstanceSet);
       }
 
       return foundInstanceSet;
     }
 
-    let foundInstanceSet: Set<Model> = new Set();
-
+    let foundInstanceSet: Set<Model> = new Set([model]);
     this.getAllUnknownInstances(Class).push(foundInstanceSet);
 
     return foundInstanceSet;

@@ -1,5 +1,6 @@
 import Model from "../../model.js";
 import RelationshipDB from "./db.js";
+import InstanceDB from "../instance/db.js";
 import type { RelationshipType } from "./schema.js";
 // import type { PrimaryKey } from "../../types.js";
 
@@ -66,7 +67,9 @@ export default class RelationshipUtils {
       RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType);
     let previousRelationship = relationshipCache.get(model);
     if (previousRelationship) {
-      this.cleanRelationshipsOn(previousRelationship, model, metadata, relationshipCache, reverseRelationshipCache);
+      InstanceDB.getReferences(model).forEach((modelInstance) => {
+        this.cleanRelationshipsOn(previousRelationship, modelInstance, metadata, relationshipCache, reverseRelationshipCache);
+      });
     }
 
     if (targetRelationship) {
@@ -143,16 +146,16 @@ function cleanFromSide(
   cache,
   reflectionCache
 ) {
-  let existingTargetRelationshipReferences = findRelationships(
+  let existingTargetRelationshipReferences = findRelationshipsFor(
     targetRelationship,
-    cache,
-    source
+    source,
+    cache
   );
   existingTargetRelationshipReferences.forEach((existingTargetRelationship) => { // targetRelationshipInstance
-    let foundOtherSideRelationships = findRelationships(
+    let foundOtherSideRelationships = findRelationshipsFor(
       source,
-      reflectionCache,
-      existingTargetRelationship
+      existingTargetRelationship,
+      reflectionCache
     );
     foundOtherSideRelationships.forEach((foundOtherSideRelationship) => { // sourceInstance
       cache.delete(foundOtherSideRelationship);
@@ -174,11 +177,16 @@ function cleanFromSide(
   });
 }
 
-function findRelationships(
-  targetModel,
-  relationshipCache,
-  source: Model
+function findRelationshipsFor(
+  targetModel: Model,
+  source: Model,
+  relationshipCache
 ) {
+  // if (metadata && metadata.relationshipType === 'OneToOne') {
+  //   debugger;
+  //   return Array.from(InstanceDB.getReferences(source)).filter((x) => relationshipCache.get(x) === targetModel)
+  // }
+
   if (relationshipCache.get(source) === targetModel) {
     return Array.isArray(targetModel) ? targetModel : [targetModel];
   } else {

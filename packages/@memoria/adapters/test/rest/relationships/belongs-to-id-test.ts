@@ -6,7 +6,6 @@ import Model, {
   UnauthorizedError,
   NotFoundError,
   RelationshipPromise,
-  LazyPromise
 } from "@memoria/model";
 import { HTTP } from "@memoria/adapters";
 import ServerResponse from "@memoria/response";
@@ -286,7 +285,7 @@ module(
 
       secondPhoto.group = null; // firstPhoto.group null doesnt happen
 
-      assert.ok(updatedGroup.photo instanceof LazyPromise);
+      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
 
@@ -301,7 +300,7 @@ module(
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
 
-      assert.ok(updatedGroup.photo instanceof LazyPromise);
+      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
       assert.equal(firstPhoto.group, null);

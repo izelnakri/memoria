@@ -6,7 +6,8 @@ import Model, {
   Serializer,
   UnauthorizedError,
   NotFoundError,
-  DB
+  DB,
+  RelationshipPromise
 } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";

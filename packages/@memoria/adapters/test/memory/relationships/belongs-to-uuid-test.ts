@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, RelationshipPromise } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/uuid/index.js";
@@ -284,7 +284,7 @@ module(
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
       assert.equal(updatedGroup.photo, null);
-      assert.propEqual(deletedGroup.photo, null);
+      assert.equal(deletedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
       assert.equal(firstPhoto.group, null);

@@ -83,7 +83,7 @@ module(
       let { MemoryPhoto, MemoryUser } = generateModels();
 
       let user = await MemoryUser.insert({ first_name: "Izel" });
-      let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+      let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner: user });
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
@@ -93,7 +93,7 @@ module(
       let fetchedPhoto = await MemoryPhoto.find(photo.id);
 
       assert.notOk(fetchedPhoto.isNew);
-      assert.propEqual(fetchedPhoto.owner, user);
+      assert.equal(fetchedPhoto.owner, user);
       assert.equal(fetchedPhoto.owner_id, user.id);
 
       let newOwner = MemoryUser.build({ first_name: "Moris" });
@@ -104,6 +104,8 @@ module(
 
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.equal(fetchedPhoto.owner_id, null);
+      assert.equal(photo.owner, user);
+      assert.equal(photo.owner_id, user.id);
 
       let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
 
@@ -284,7 +286,7 @@ module(
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
       assert.equal(updatedGroup.photo, null);
-      assert.propEqual(await deletedGroup.photo, null);
+      assert.equal(await deletedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
       assert.equal(firstPhoto.group, null);
