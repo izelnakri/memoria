@@ -162,11 +162,11 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: QueryObject,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel | void> {
+  ): Promise<MemoriaModel | null> {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
-    return this.cache(Model, foundModel, options);
+    return foundModel ? this.cache(Model, foundModel, options) : null;
   }
 
   static async findAll(

@@ -757,7 +757,7 @@ function shouldInsertOrUpdateARecord(
     return "insert";
   } else if (record instanceof Class) {
     return record.isNew ? "insert" : "update";
-  } else if (Class.peek(record[Class.primaryKeyName])) {
+  } else if (Class.Cache.get(record[Class.primaryKeyName])) {
     return "update";
   }
 

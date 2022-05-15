@@ -136,7 +136,7 @@ export default class RelationshipDB {
 
   // TODO: this should move related references to certain id cache
   // NOTE: in future relationshipChanges could be tracked and passed in here for optional optimization
-  static cache(model: Model) {
+  static cache(model: Model, _type: "insert" | "update") {
     // TODO: this should try to add to References if it doesnt exist(delete removes even the built ones from cache)
     let Class = model.constructor as typeof Model;
     let primaryKey = model[Class.primaryKeyName];

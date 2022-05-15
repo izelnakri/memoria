@@ -1,3 +1,4 @@
+// TODO: also check for isBuilt, isNew, isPersisted
 import Model, { Column, PrimaryGeneratedColumn, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
@@ -57,6 +58,43 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
       });
     });
 
+    test("$Model.find(id) gets a new instance each time", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+
+      let firstModel = await MemoryPhoto.find(1);
+      assert.propEqual(firstModel, MemoryPhoto.build({
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }));
+      assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
+
+      let secondModel = await MemoryPhoto.find(1);
+      assert.notEqual(firstModel, secondModel);
+      assert.deepEqual([secondModel.isNew, secondModel.isPersisted], [false, true]);
+
+      secondModel.name = 'Some name';
+
+      let thirdModel = await MemoryPhoto.find(1);
+      assert.propEqual(thirdModel, MemoryPhoto.build({
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }));
+      assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
+      assert.propEqual(secondModel, MemoryPhoto.build({
+        id: 1,
+        name: "Some name",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }));
+      assert.notEqual(secondModel, thirdModel);
+    });
+
     test("$Model.find(ids) works for multiple ids", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
@@ -71,6 +109,44 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
         MemoryPhoto.build({ id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true }),
         MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
       ]);
+    });
+
+    test("$Model.find(ids) get a new instances each time", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+
+      let firstModels = await MemoryPhoto.find([1, 3]);
+      assert.deepEqual(firstModels, [
+        MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+      ]);
+      assert.deepEqual([firstModels[0].isNew, firstModels[0].isPersisted], [false, true]);
+      assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
+
+      let secondModels = await MemoryPhoto.find([1, 3]);
+      assert.notEqual(firstModels, secondModels);
+      assert.propEqual(secondModels, [
+        MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+      ]);
+      assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
+      assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
+
+      secondModels[0].name = 'Some name';
+
+      let thirdModels = await MemoryPhoto.find([1, 3]);
+      assert.deepEqual(secondModels, [
+        MemoryPhoto.build({ id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false }),
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+      ]);
+      assert.deepEqual(thirdModels, [
+        MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+      ]);
+      assert.notDeepEqual(secondModels, thirdModels);
+      assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
+      assert.deepEqual([thirdModels[1].isNew, thirdModels[1].isPersisted], [false, true]);
     });
   });
 
@@ -106,6 +182,40 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
         photo_id: 1,
         user_id: 1,
       });
+    });
+
+    test("$Model.findBy(attributes) returns a new instance from the actual cache each time", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      const firstPhoto = MemoryPhoto.build({
+        id: 1,
+        name: "Ski trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+        owner_id: null,
+        group_uuid: null
+      });
+
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+
+      let firstResponse = await MemoryPhoto.findBy({ name: "Ski trip" });
+      assert.propContains(firstResponse, firstPhoto);
+      assert.deepEqual([firstResponse.isNew, firstResponse.isPersisted], [false, true]);
+
+      let secondResponse = await MemoryPhoto.findBy({ name: "Ski trip" });
+      assert.notEqual(firstResponse, secondResponse);
+      assert.propContains(secondResponse, firstPhoto);
+      assert.deepEqual([secondResponse.isNew, secondResponse.isPersisted], [false, true]);
+
+      secondResponse.name = 'Some unique name';
+
+      assert.equal(await MemoryPhoto.findBy({ name: "Some unique name" }), null);
+
+      let thirdResponse = await MemoryPhoto.findBy({ name: "Ski trip" });
+      assert.notEqual(thirdResponse, firstPhoto);
+      assert.propContains(thirdResponse, firstPhoto);
+      assert.propContains(thirdResponse, firstResponse);
+      assert.deepEqual([thirdResponse.isNew, thirdResponse.isPersisted], [false, true]);
     });
   });
 
@@ -231,6 +341,92 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           user_id: 1,
         }),
       ]);
+    });
+
+    test("$Model.findAll(attributes) returns a new instance from the actual cache each time", async function (assert) {
+      const { MemoryPhotoComment } = generateModels();
+
+      await Promise.all(PHOTO_COMMENTS.map((photo) => MemoryPhotoComment.insert(photo)));
+
+      let firstModels = await MemoryPhotoComment.findAll({ photo_id: 1, user_id: 1 });
+      assert.deepEqual(firstModels, [
+        MemoryPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "What a nice photo!",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        }),
+        MemoryPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        }),
+      ]);
+      assert.deepEqual([firstModels[0].isNew, firstModels[0].isPersisted], [false, true]);
+      assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
+
+      let secondModels = await MemoryPhotoComment.findAll({ photo_id: 1, user_id: 1 });
+      assert.notEqual(firstModels, secondModels);
+      assert.propEqual(secondModels, [
+        MemoryPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "What a nice photo!",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        }),
+        MemoryPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        })
+      ]);
+      assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
+      assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
+
+      secondModels[0].content = 'Whatever';
+
+      let thirdModels = await MemoryPhotoComment.findAll({ photo_id: 1, user_id: 1 });
+      assert.deepEqual(secondModels, [
+        MemoryPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "Whatever",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        }),
+        MemoryPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        })
+      ]);
+      assert.deepEqual(thirdModels, [
+        MemoryPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "What a nice photo!",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        }),
+        MemoryPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        })
+      ]);
+      assert.notDeepEqual(secondModels, thirdModels);
+      assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
+      assert.deepEqual([thirdModels[1].isNew, thirdModels[1].isPersisted], [false, true]);
     });
   });
 });

@@ -224,7 +224,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
     assert.equal(firstComment.inserted_at, comment.inserted_at);
-    assert.equal(firstComment.updated_at, comment.updated_at);
+    assert.notEqual(firstComment.updated_at, comment.updated_at);
+    assert.propEqual({ ...firstComment, updated_at: comment.updated_at, content: "Coolie" }, comment);
   });
 
   test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
