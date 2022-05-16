@@ -358,10 +358,11 @@ export default class SQLAdapter extends MemoryAdapter {
     let primaryKey = records.find((record) => record[Model.primaryKeyName]);
     try {
       let Manager = await this.getEntityManager();
+      let targetRecords = records.map((record) => ({ ...record }));
       let result = await Manager.createQueryBuilder()
         .insert()
         .into(Model, Model.columnNames)
-        .values(records) // NOTE: probably doent need relationships filter as it is
+        .values(targetRecords) // NOTE: probably doent need relationships filter as it is
         .returning("*")
         .execute();
 
@@ -375,7 +376,7 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       return result.raw.map((rawResult, index) =>
-        this.cache(Model, Model.assign(records[index], rawResult) as ModelRefOrInstance, options)
+        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options)
       );
     } catch (error) {
       console.log(error);
