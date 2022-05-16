@@ -11,56 +11,12 @@ import Model, {
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import Memoria from "@memoria/server";
+import FIXTURES from "../helpers/fixtures/mix/index.js";
+
+const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
-
-  const PHOTO_FIXTURES = [
-    {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    },
-    {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    },
-    {
-      id: 3,
-      name: "Selfie",
-      href: "selfie.jpeg",
-      is_public: false,
-    },
-  ];
-  const PHOTO_COMMENT_FIXTURES = [
-    {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      content: "I agree",
-      photo_id: 1,
-      user_id: 2,
-    },
-    {
-      uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-      content: "I was kidding",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1,
-    },
-  ];
 
   async function prepare() {
     class User extends Model {
@@ -191,9 +147,9 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
-    let initialPhotos = await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    let initialPhotos = await Promise.all(PHOTOS.map((photo) => Photo.insert(photo)));
 
-    assert.propEqual(initialPhotos, PHOTO_FIXTURES);
+    assert.propEqual(initialPhotos, PHOTOS);
     assert.ok(
       initialPhotos.every(
         (photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted
@@ -201,7 +157,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     );
 
     let initialPhotoComments = await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+      PHOTO_COMMENTS.map((photoComment) => PhotoComment.insert(photoComment))
     );
 
     assert.ok(
@@ -226,7 +182,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
     assert.equal(await Photo.count(), 5);
     assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
+      ...PHOTOS,
       {
         id: 4,
         is_public: true,
@@ -265,10 +221,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTOS.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTO_COMMENTS.map((photoComment) => PhotoComment.insert(photoComment)));
 
     await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
     let model = await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
@@ -294,7 +248,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
 
     assert.equal(await Photo.count(), 5);
     assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
+      ...PHOTOS,
       {
         id: 99,
         is_public: false,
@@ -398,10 +352,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTOS.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTO_COMMENTS.map((photoComment) => PhotoComment.insert(photoComment)));
 
     try {
       await Photo.insert({ id: 1 });
@@ -437,10 +389,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     const { Photo, PhotoComment } = await prepare();
     this.Server = await prepareServer();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTOS.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTO_COMMENTS.map((photoComment) => PhotoComment.insert(photoComment)));
 
     try {
       await Photo.insert({ id: "99" });
@@ -459,10 +409,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     this.Server = await prepareServer();
 
     await Promise.all([Photo, PhotoComment].map((model) => model.resetCache()));
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTOS.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTO_COMMENTS.map((photoComment) => PhotoComment.insert(photoComment)));
 
     await Photo.insert({
       published_at: new Date("2017-10-10").toJSON(),
@@ -475,7 +423,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
     assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important"]);
     assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
+      ...PHOTOS,
       {
         id: 4,
         is_public: true,

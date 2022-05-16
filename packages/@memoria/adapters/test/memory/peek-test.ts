@@ -175,12 +175,14 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         owner_id: null,
         group_uuid: null
       });
-      assert.propContains(MemoryPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), {
+      assert.propContains(MemoryPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), MemoryPhotoComment.build({
         uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
         content: "I was kidding",
+        inserted_at: "2015-10-25T20:54:04.447Z",
+        is_important: true,
         photo_id: 1,
         user_id: 1,
-      });
+      }));
     });
 
     test("$Model.peekBy(attributes) returns a new instance from the actual cache each time", async function (assert) {
@@ -251,6 +253,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -258,6 +261,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
           content: "I agree",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 2,
         }),
@@ -265,6 +269,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -272,6 +277,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
           content: "Interesting indeed",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 2,
           user_id: 1,
         }),
@@ -307,6 +313,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -314,6 +321,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -323,6 +331,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -330,6 +339,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -337,6 +347,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
           content: "Interesting indeed",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 2,
           user_id: 1,
         }),
@@ -354,6 +365,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -361,6 +373,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -375,6 +388,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -382,6 +396,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         })
@@ -397,6 +412,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "Whatever",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -404,6 +420,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         })
@@ -413,6 +430,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
           content: "What a nice photo!",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         }),
@@ -420,6 +438,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
           content: "I was kidding",
           is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
         })

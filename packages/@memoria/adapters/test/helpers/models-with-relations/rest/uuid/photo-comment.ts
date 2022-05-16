@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Serializer, Column, BelongsTo } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Serializer, Column, CreateDateColumn, BelongsTo } from "@memoria/model";
 import { RESTAdapter } from "@memoria/adapters";
 import User from "./user.js";
 import Photo from "./photo.js";
@@ -25,11 +25,14 @@ export default function generatePhotoComment() {
     @Column("boolean", { default: true })
     is_important: boolean;
 
-    @Column()
-    photo_uuid: string;
+    @CreateDateColumn()
+    inserted_at: Date;
 
     @Column()
     user_uuid: string;
+
+    @Column()
+    photo_uuid: string;
 
     @BelongsTo(User)
     user;

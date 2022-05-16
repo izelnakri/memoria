@@ -2,6 +2,7 @@ import Model, {
   Serializer,
   PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
   BelongsTo,
   HasMany,
   HasOne,
@@ -48,11 +49,14 @@ export default function generateModels() {
     @Column("boolean", { default: true })
     is_important: boolean;
 
-    @Column("varchar", { nullable: true })
-    photo_uuid: string;
+    @CreateDateColumn()
+    inserted_at: Date;
 
     @Column("varchar", { nullable: true })
     user_uuid: string;
+
+    @Column("varchar", { nullable: true })
+    photo_uuid: string;
 
     @BelongsTo(() => SQLUser)
     user;
