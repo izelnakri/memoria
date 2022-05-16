@@ -71,14 +71,12 @@ export default class RelationshipDB {
     relationshipType: string,
     relationshipTableKey: string
   ) {
-    let relationshipCache = this[`instanceRecords${relationshipType}Cache`];
-    if (relationshipCache) {
-      if (!relationshipCache.has(relationshipTableKey)) {
-        relationshipCache.set(relationshipTableKey, new WeakMap());
-      }
-
-      return relationshipCache.get(relationshipTableKey);
+    // NOTE: remove this, now relationship caches are eagerly created!
+    if (!this[`instanceRecords${relationshipType}Cache`].has(relationshipTableKey)) {
+      this[`instanceRecords${relationshipType}Cache`].set(relationshipTableKey, new WeakMap());
     }
+
+    return this[`instanceRecords${relationshipType}Cache`].get(relationshipTableKey);
   }
 
   static findRelationshipCacheFor(Class: typeof Model, relationshipName: string, relationshipType?: string) {

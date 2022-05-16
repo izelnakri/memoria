@@ -2,6 +2,7 @@
 // NOTE: study lazy relation
 import Schema from "../stores/schema.js";
 import Model from "../model.js";
+import { RelationshipDB } from "../stores/index.js";
 import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../types.js";
 
 type ObjectType<T> = { new (): T } | Function;
@@ -63,6 +64,8 @@ export function OneToOne<T>(
       orphanedRowAction: options.orphanedRowAction,
     });
 
+    RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
+
     return Class.Adapter.Decorators.OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
@@ -105,10 +108,11 @@ export function ManyToOne<T>(
 
     let Class = target.constructor as typeof Model;
     let foundRelation = Schema.getSchema(Class).relations[propertyName];
+    let targetType = type || "many-to-one";
 
     Schema.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
       target: typeFunctionOrTarget,
-      type: type || "many-to-one",
+      type: targetType,
       // @ts-ignore
       inverseSide: inverseSideProperty,
       lazy: isLazy,
@@ -127,6 +131,12 @@ export function ManyToOne<T>(
       deferrable: options.deferrable,
       orphanedRowAction: options.orphanedRowAction,
     });
+
+    if (targetType === 'many-to-one') {
+      RelationshipDB.instanceRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new WeakMap());
+    } else if (targetType === 'one-to-one') {
+      RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
+    }
 
     return Class.Adapter.Decorators.ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
@@ -182,6 +192,8 @@ export function OneToMany<T>(
       deferrable: options.deferrable,
       orphanedRowAction: options.orphanedRowAction,
     });
+
+    RelationshipDB.instanceRecordsHasManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
 
     return Class.Adapter.Decorators.OneToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
@@ -246,6 +258,8 @@ export function ManyToMany<T>(
       deferrable: options.deferrable,
       orphanedRowAction: options.orphanedRowAction,
     });
+
+    RelationshipDB.instanceRecordsManyToManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
 
     return Class.Adapter.Decorators.ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
