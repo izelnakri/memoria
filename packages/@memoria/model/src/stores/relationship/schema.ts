@@ -167,7 +167,6 @@ export default class RelationshipSchema {
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
-
     if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class)[
         currentMetadata.RelationshipClass.name

@@ -66,7 +66,9 @@ export default class RelationshipUtils {
       reverseRelationshipName &&
       RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType);
     let previousRelationship = relationshipCache.get(model);
+
     if (previousRelationship) {
+      // TODO: this could be dangerous(?)
       InstanceDB.getReferences(model).forEach((modelInstance) => {
         this.cleanRelationshipsOn(previousRelationship, modelInstance, metadata, relationshipCache, reverseRelationshipCache);
       });
@@ -120,13 +122,9 @@ export default class RelationshipUtils {
     );
   }
 
-  static setReflectiveSideRelationship(targetRelationship: null | Model, model: Model, { relationshipType, reverseRelationshipForeignKeyColumnName }, reverseRelationshipCache: RelationshipCache) {
+  static setReflectiveSideRelationship(targetRelationship: null | Model, model: Model, { relationshipType, reverseRelationshipForeignKeyColumnName, reverseRelationshipType }, reverseRelationshipCache: RelationshipCache) {
     // TODO: make this work for HasMany Arrays in future
-    if (targetRelationship) {
-      if (!reverseRelationshipCache) {
-        throw Error(`BUG ReflectionCache could not be found!: relationshipCache could not be found on ${model.constructor.name}:${targetRelationship.constructor.name} ${relationshipType}`);
-      }
-
+    if (reverseRelationshipCache && targetRelationship) {
       reverseRelationshipCache.set(targetRelationship, model);
 
       if (reverseRelationshipForeignKeyColumnName && NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
@@ -186,8 +184,9 @@ function findRelationshipsFor(
   //   debugger;
   //   return Array.from(InstanceDB.getReferences(source)).filter((x) => relationshipCache.get(x) === targetModel)
   // }
-
-  if (relationshipCache.get(source) === targetModel) {
+  if (!relationshipCache) {
+    return [];
+  } else if (relationshipCache.get(source) === targetModel) {
     return Array.isArray(targetModel) ? targetModel : [targetModel];
   } else {
     return [];

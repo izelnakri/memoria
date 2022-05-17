@@ -29,6 +29,8 @@ export interface ModelBuildOptions extends ModelInstantiateOptions {
   // debug?:
   // tracer?:
   // include?: // NOTE: would be a useful addition for JSONAPIAdapter & GraphQLAdapter
+  // source: // build reason
+  // builtAt: // build timestamp
 }
 
 const LOCK_PROPERTY = {
@@ -347,26 +349,37 @@ export default class Model {
     return this.Adapter.peekAll(this, queryObject, options);
   }
 
-  // TODO: this can perhaps extend the cache time(?) and might still have revision control
+  // TODO this might need improved revision control
   static async find(
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
   ): Promise<Model | Model[] | void> {
-    return await this.Adapter.find(this, primaryKey, options);
+    let result = await this.Adapter.find(this, primaryKey, options);
+    if (result) {
+      return Array.isArray(result)
+        ? result.map((model) => RelationshipDB.cache(model, "update"))
+        : RelationshipDB.cache(result, "update");
+    }
   }
 
   static async findBy(
     queryObject: QueryObject,
     options?: ModelBuildOptions
   ): Promise<Model | void> {
-    return await this.Adapter.findBy(this, queryObject, options);
+    let result = await this.Adapter.findBy(this, queryObject, options);
+    if (result) {
+      return RelationshipDB.cache(result, "update");
+    }
   }
 
   static async findAll(
     queryObject: QueryObject = {},
     options?: ModelBuildOptions
   ): Promise<Model[] | void> {
-    return await this.Adapter.findAll(this, queryObject, options);
+    let result = await this.Adapter.findAll(this, queryObject, options);
+    if (result) {
+      return result.map((model) => RelationshipDB.cache(model, "update"));
+    }
   }
 
   static async insert(

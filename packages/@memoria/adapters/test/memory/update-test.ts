@@ -176,6 +176,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         !secondPhoto.isDeleted
     );
 
+    let firstCommentInitialUpdatedAt = firstComment.updated_at;
+
     let comment = await PhotoComment.update({
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       content: "Coolie",
@@ -224,7 +226,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
     assert.equal(firstComment.inserted_at, comment.inserted_at);
-    assert.notEqual(firstComment.updated_at, comment.updated_at);
+    assert.equal(firstComment.updated_at, comment.updated_at);
+    assert.notEqual(firstCommentInitialUpdatedAt, comment.updated_at);
     assert.propEqual({ ...firstComment, updated_at: comment.updated_at, content: "Coolie" }, comment);
   });
 

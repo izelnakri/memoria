@@ -1,3 +1,5 @@
+// NOTE: Decision, never store relationshipReferences for .insert() and .update() [especially]
+// NOTE: maybe move part of the insert, update, cache reference logic to model.js instead of MemoryAdapter:
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Schema,
@@ -88,7 +90,7 @@ export default class MemoryAdapter {
     if (Model) {
       if (targetState && targetState.length > 0) {
         let newTargetState =
-          targetState.map((model: ModelRefOrInstance) => assignDefaultValuesForInsert(model, Model));
+          targetState.map((model: ModelRefOrInstance) => assignDefaultValuesForInsert(model || {}, Model));
 
         return this.resetCache(Model, newTargetState, options);
       }
@@ -108,7 +110,6 @@ export default class MemoryAdapter {
   ): MemoriaModel {
     let targetOptions = { ...options, isNew: false };
     let existingModelInCache = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel | void;
-    // TODO: this one is dangerous for relationship tracking(?)
     if (existingModelInCache) {
       let model = Model.build(
         Object.assign(
@@ -124,24 +125,23 @@ export default class MemoryAdapter {
         targetOptions
       );
 
-      if (record instanceof Model) {
-        record.fetchedRelationships.forEach((relationshipName) => {
-          model[relationshipName] = record[relationshipName];
-        });
-      }
-
-      return this.returnWithCacheEviction(
-        RelationshipDB.cache(tryToRevision(model, options), "update"),
-        targetOptions
+      return RelationshipDB.cache(
+        this.returnWithCacheEviction(tryToRevision(model, targetOptions), targetOptions),
+        "update"
       );
     }
 
-    let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
+    let cachedRecord = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
-    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
-    RelationshipDB.cache(target, "insert");
+    Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    return this.returnWithCacheEviction(target, targetOptions); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
+    let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
+
+    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
+    });
+
+    return RelationshipDB.cache(result, "insert");
   }
 
   static peek(
@@ -235,25 +235,32 @@ export default class MemoryAdapter {
 
   static async insert(
     Model: typeof MemoriaModel,
-    record: QueryObject | ModelRefOrInstance,
+    record?: QueryObject | ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
     let targetOptions = { ...options, isNew: false };
-    if (record[Model.primaryKeyName] && Model.Cache.get(record[Model.primaryKeyName])) {
-      throw new InsertError(new Changeset(Model.build(record, targetOptions)), {
-        id: record[Model.primaryKeyName],
+    let targetRecord = record || {};
+    if (targetRecord[Model.primaryKeyName] && Model.Cache.get(targetRecord[Model.primaryKeyName])) {
+      throw new InsertError(new Changeset(Model.Cache.get(targetRecord[Model.primaryKeyName])), {
+        id: targetRecord[Model.primaryKeyName],
         modelName: Model.name,
         attribute: Model.primaryKeyName,
         message: "already exists",
       });
     }
 
-    let target = Model.build(assignDefaultValuesForInsert(record, Model), targetOptions);
+    // NOTE: maybe move part of the following logic to model instead of MemoryAdapter:
+    let cachedRecord = Model.build(assignDefaultValuesForInsert(targetRecord, Model), targetOptions);
 
-    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
-    RelationshipDB.cache(target, "insert");
+    Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    return this.returnWithCacheEviction(target, targetOptions);
+    let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
+
+    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
+    });
+
+    return RelationshipDB.cache(result, "insert");
   }
 
   static async update(
@@ -281,15 +288,6 @@ export default class MemoryAdapter {
 
       return result as ModelRefOrInstance;
     }, {} as ModelRefOrInstance);
-
-    // TODO: this is probably redundant because cache already does this
-    if (record instanceof Model) {
-      let targetOptions = { ...options, isNew: false };
-      updateTarget = Model.build(updateTarget, targetOptions);
-      record.fetchedRelationships.forEach((relationshipName) => {
-        updateTarget[relationshipName] = record[relationshipName];
-      });
-    }
 
     return this.cache(Model, updateTarget, options);
   }
@@ -406,7 +404,7 @@ export default class MemoryAdapter {
           return resolve(
             RelationshipClass.peekBy({
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            })
+            }) || null
           );
         }
 

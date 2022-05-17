@@ -78,17 +78,19 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
 
       secondModel.name = 'Some name';
 
+      assert.equal(secondModel.name, 'Some name');
+
       let thirdModel = await MemoryPhoto.find(1);
+      assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
       assert.propEqual(thirdModel, MemoryPhoto.build({
         id: 1,
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
       }));
-      assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
-      assert.propEqual(secondModel, MemoryPhoto.build({
+      assert.deepEqual(secondModel, MemoryPhoto.build({
         id: 1,
-        name: "Some name",
+        name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
       }));
@@ -134,17 +136,20 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
       secondModels[0].name = 'Some name';
+      assert.deepEqual(secondModels[0], MemoryPhoto.build({
+        id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false
+      }));
 
       let thirdModels = await MemoryPhoto.find([1, 3]);
       assert.deepEqual(secondModels, [
-        MemoryPhoto.build({ id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false }),
+        MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
         MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
       ]);
       assert.deepEqual(thirdModels, [
         MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
         MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
       ]);
-      assert.notDeepEqual(secondModels, thirdModels);
+      assert.notEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
       assert.deepEqual([thirdModels[1].isNew, thirdModels[1].isPersisted], [false, true]);
     });
@@ -203,6 +208,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
       assert.deepEqual([firstResponse.isNew, firstResponse.isPersisted], [false, true]);
 
       let secondResponse = await MemoryPhoto.findBy({ name: "Ski trip" });
+
       assert.notEqual(firstResponse, secondResponse);
       assert.propContains(secondResponse, firstPhoto);
       assert.deepEqual([secondResponse.isNew, secondResponse.isPersisted], [false, true]);
@@ -212,9 +218,10 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
       assert.equal(await MemoryPhoto.findBy({ name: "Some unique name" }), null);
 
       let thirdResponse = await MemoryPhoto.findBy({ name: "Ski trip" });
+
       assert.notEqual(thirdResponse, firstPhoto);
-      assert.propContains(thirdResponse, firstPhoto);
-      assert.propContains(thirdResponse, firstResponse);
+      assert.deepEqual(thirdResponse, firstPhoto);
+      assert.deepEqual(thirdResponse, firstResponse);
       assert.deepEqual([thirdResponse.isNew, thirdResponse.isPersisted], [false, true]);
     });
   });
@@ -404,11 +411,13 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
 
       secondModels[0].content = 'Whatever';
 
+      assert.equal(secondModels[0].content, 'Whatever');
+
       let thirdModels = await MemoryPhotoComment.findAll({ photo_id: 1, user_id: 1 });
       assert.deepEqual(secondModels, [
         MemoryPhotoComment.build({
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-          content: "Whatever",
+          content: "What a nice photo!",
           is_important: true,
           inserted_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
@@ -441,7 +450,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           user_id: 1,
         })
       ]);
-      assert.notDeepEqual(secondModels, thirdModels);
+      assert.deepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
       assert.deepEqual([thirdModels[1].isNew, thirdModels[1].isPersisted], [false, true]);
     });
