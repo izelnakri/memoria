@@ -1,10 +1,11 @@
-// TODO: write tests for instance difference AND relationship storage difference tests
 import Model, {
   Column,
   CreateDateColumn,
+  InstanceDB,
   PrimaryGeneratedColumn,
   InsertError,
   RuntimeError,
+  RelationshipDB
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
@@ -74,9 +75,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       },
     ].map((photo) => MemoryPhoto.build(photo)));
 
-    const initialCommentUUIDs = (await MemoryPhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
+    const initialCommentUUIDs = (await MemoryPhotoComment.findAll()).map((photoComment) => photoComment.uuid);
 
     assert.deepEqual(initialCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -91,7 +90,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
 
     assert.equal(await MemoryPhotoComment.count(), 5);
-    assert.ok(!initialCommentUUIDs[lastPhotoComment.uuid], "inserted comment has a unique uuid");
+    assert.ok(allPhotoComments[4].uuid, "inserted comment has a unique uuid");
   });
 
   test("$Model.insert(attributes) will insert a model with overriden default attributes", async function (assert) {
@@ -101,6 +100,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
     await MemoryPhoto.insert({ id: 99, href: "/izel.html", is_public: false });
+
     let model = await MemoryPhoto.insert({ name: "Baby photo", href: "/baby.jpg" });
     assert.notOk(model.isNew);
     assert.ok(model.isPersisted);
@@ -220,8 +220,17 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       name: "some name",
     }));
 
+    assert.equal(InstanceDB.getReferences(photo).size, 1);
+
     let insertedPhoto = await MemoryPhoto.insert(photo);
 
+    assert.notEqual(insertedPhoto, photo);
+    assert.propEqual(insertedPhoto, MemoryPhoto.build({
+      href: null,
+      id: 1,
+      is_public: null,
+      name: "some name",
+    }));
     assert.propEqual(photo, MemoryPhoto.build({
       href: null,
       id: 1,
@@ -229,12 +238,95 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       name: "some name",
     }));
     assert.deepEqual(MemoryPhoto.peek(insertedPhoto.id), insertedPhoto);
+    assert.equal(InstanceDB.getReferences(photo).size, 6);
+    assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
     insertedPhoto.name = "testing store just holds a copy";
 
     assert.equal(insertedPhoto.name, "testing store just holds a copy");
     assert.notEqual(photo.name, insertedPhoto.name);
     assert.notPropEqual(MemoryPhoto.peek(photo.id), insertedPhoto);
+  });
+
+  test("$Model.insert($model) copies relationships but not for stored instance, also update references", async function (assert) {
+    const { MemoryGroup, MemoryUser, MemoryPhoto } = generateModels();
+
+    let izel = MemoryUser.build({ first_name: "Izel", last_name: "Nakri" });
+    let groupPhoto = MemoryPhoto.build();
+    let group = MemoryGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
+
+    assert.equal(group.owner, izel);
+    assert.equal(group.photo, groupPhoto);
+
+    let insertedGroup = await MemoryGroup.insert(group);
+    let existingGroupReferences = InstanceDB.getReferences(group);
+
+    assert.notEqual(insertedGroup, group);
+    assert.equal(insertedGroup.photo, groupPhoto);
+    assert.equal(groupPhoto.group, insertedGroup);
+    assert.equal(existingGroupReferences.size, 3);
+
+    let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
+    assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+    assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+    InstanceDB.getReferences(group).forEach((reference) => {
+      if (reference !== cachedReference) {
+        assert.equal(reference.owner, izel);
+        assert.equal(reference.photo, groupPhoto);
+      }
+    });
+
+    let somePeekedModel = await MemoryGroup.peek(group.uuid);
+
+    assert.equal(groupPhoto.group, insertedGroup);
+
+    let newBuiltReference = MemoryGroup.build({
+      uuid: group.uuid,
+      name: "Hacker Log",
+      owner: izel,
+      photo: groupPhoto
+    });
+
+    assert.deepEqual(insertedGroup, newBuiltReference);
+    assert.equal(insertedGroup.owner, izel);
+    assert.equal(insertedGroup.photo, groupPhoto);
+
+    assert.equal(InstanceDB.getReferences(group).size, 5);
+    assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+    assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+    InstanceDB.getReferences(group).forEach((reference) => {
+      if (![somePeekedModel, cachedReference].includes(reference)) {
+        assert.equal(reference.owner, izel);
+        assert.equal(reference.photo, groupPhoto);
+      }
+    });
+
+    assert.notEqual(groupPhoto.group, insertedGroup);
+
+    let peekedGroup = await MemoryGroup.peek(group.uuid);
+
+    assert.notEqual(peekedGroup, insertedGroup);
+    assert.notEqual(peekedGroup, group);
+    assert.equal(InstanceDB.getReferences(group).size, 6);
+    assert.equal(groupPhoto.group, newBuiltReference);
+
+    let fetchedGroup = await MemoryGroup.find(group.uuid);
+
+    assert.notEqual(fetchedGroup, insertedGroup);
+    assert.notEqual(fetchedGroup, group);
+    assert.notEqual(fetchedGroup, peekedGroup);
+    assert.equal(InstanceDB.getReferences(group).size, 7);
+
+    InstanceDB.getReferences(group).forEach((reference) => {
+      if (![somePeekedModel, peekedGroup, cachedReference, fetchedGroup].includes(reference)) {
+        assert.equal(reference.owner, izel);
+        assert.equal(reference.photo, groupPhoto);
+      }
+    });
+
+    assert.equal(groupPhoto.group, fetchedGroup);
   });
 
   test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
