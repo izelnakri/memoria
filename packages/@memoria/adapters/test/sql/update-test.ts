@@ -9,117 +9,30 @@ import Model, {
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
+import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
+import FIXTURES from "../helpers/fixtures/mix/index.js"
+
+const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
   setupMemoria(hooks);
 
-  const PHOTO_FIXTURES = [
-    {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    },
-    {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    },
-    {
-      id: 3,
-      name: "Selfie",
-      href: "selfie.jpeg",
-      is_public: false,
-    },
-  ];
-  const PHOTO_COMMENT_FIXTURES = [
-    {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      content: "I agree",
-      photo_id: 1,
-      user_id: 2,
-    },
-    {
-      uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-      content: "I was kidding",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1,
-    },
-  ];
-
-  async function prepare() {
-    class Photo extends Model {
-      static Adapter = SQLAdapter;
-
-      @PrimaryGeneratedColumn()
-      id: number;
-
-      @Column("varchar", { default: "Some default name" })
-      name: string;
-
-      @Column("varchar")
-      href: string;
-
-      @Column("boolean", { default: true })
-      is_public: boolean;
-    }
-    class PhotoComment extends Model {
-      static Adapter = SQLAdapter;
-
-      @PrimaryGeneratedColumn("uuid")
-      uuid: string;
-
-      @CreateDateColumn()
-      inserted_at: Date;
-
-      @UpdateDateColumn()
-      updated_at: Date;
-
-      @Column("boolean", { default: true })
-      is_important: boolean;
-
-      @Column()
-      content: string;
-    }
-    class User extends Model {
-      static Adapter = SQLAdapter;
-
-      @PrimaryGeneratedColumn()
-      id: number;
-    }
+  test("$Model.update(attributes) can update models", async function (assert) {
+    const { SQLPhoto, SQLPhotoComment } = generateModels();
     await DB.resetRecords();
 
-    return { Photo, PhotoComment, User };
-  }
+    await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
+    await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
-  test("$Model.update(attributes) can update models", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
-
-    let firstComment = await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+    let firstComment = await SQLPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
     assert.matchJson(firstComment, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       inserted_at: String,
       updated_at: String,
       is_important: true,
       content: "Interesting indeed",
+      photo_id: 2,
+      user_id: 1
     });
     assert.ok(firstComment.inserted_at instanceof Date);
     assert.ok(firstComment.updated_at instanceof Date);
@@ -129,19 +42,19 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
     assert.notOk(firstComment.isDirty);
     assert.deepEqual(firstComment.changes, {});
 
-    let firstPhoto = await Photo.update({
+    let firstPhoto = await SQLPhoto.update({
       id: 1,
       name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
     });
-    assert.propEqual(firstPhoto, {
+    assert.propEqual(firstPhoto, SQLPhoto.build({
       id: 1,
       name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
-    });
-    assert.propEqual(firstPhoto, Object.assign(await Photo.find(1), { name: "S trip" }));
+    }));
+    assert.propEqual(firstPhoto, Object.assign(await SQLPhoto.find(1), { name: "S trip" }));
     assert.notOk(firstPhoto.isNew);
     assert.ok(firstPhoto.isPersisted);
     assert.notOk(firstPhoto.isDeleted);
@@ -152,6 +65,8 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       name: "S trip",
       href: "ski-trip.jpeg",
       is_public: false,
+      group_uuid: null,
+      owner_id: null
     });
     assert.deepEqual(firstPhoto.revisionHistory, [
       {
@@ -159,31 +74,35 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
+        group_uuid: null,
+        owner_id: null
       },
       {
         id: 1,
         name: "S trip",
         href: "ski-trip.jpeg",
         is_public: false,
+        group_uuid: null,
+        owner_id: null
       },
     ]);
 
-    let secondPhoto = await Photo.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
+    let secondPhoto = await SQLPhoto.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
     assert.ok(
       !secondPhoto.isNew &&
         !secondPhoto.isDirty &&
         secondPhoto.isPersisted &&
         !secondPhoto.isDeleted
     );
-    assert.propEqual(secondPhoto, {
+    assert.propEqual(secondPhoto, SQLPhoto.build({
       id: 2,
       name: "Family photo",
       href: "family-photo-2.jpeg",
       is_public: false,
-    });
-    assert.propEqual(secondPhoto, await Photo.find(2));
+    }));
+    assert.propEqual(secondPhoto, await SQLPhoto.find(2));
 
-    let comment = await PhotoComment.update({
+    let comment = await SQLPhotoComment.update({
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       content: "Cool",
     });
@@ -194,12 +113,14 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       updated_at: String,
       is_important: true,
       content: "Cool",
+      photo_id: 2,
+      user_id: 1
     });
     assert.ok(comment.inserted_at instanceof Date);
     assert.ok(comment.updated_at instanceof Date);
     assert.propEqual(
       comment,
-      await PhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
+      await SQLPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
     );
 
     assert.propEqual(firstComment.inserted_at, comment.inserted_at);
@@ -207,44 +128,48 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
   });
 
   test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
+    const { SQLPhoto, SQLPhotoComment } = generateModels();
+    await DB.resetRecords();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
     await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+      PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment))
     );
 
     try {
-      await Photo.update({ id: 99, href: "family-photo-2.jpeg" });
+      await SQLPhoto.update({ id: 99, href: "family-photo-2.jpeg" });
     } catch (error) {
       assert.ok(error instanceof UpdateError);
     }
 
     try {
-      await PhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
+      await SQLPhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
     } catch (error) {
       assert.ok(error instanceof UpdateError);
     }
   });
 
   test("$Model.update(attributes) does not throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
+    const { SQLPhoto, SQLPhotoComment } = generateModels();
+    await DB.resetRecords();
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+    await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
     await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
+      PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment))
     );
 
-    let photo = await Photo.update({ id: 1, name: "ME", is_verified: false });
+    let photo = await SQLPhoto.update({ id: 1, name: "ME", is_verified: false });
 
     assert.matchJson(photo, {
       id: 1,
       name: "ME",
       href: "ski-trip.jpeg",
       is_public: false,
+      group_uuid: null,
+      owner_id: null
     });
 
-    let photoComment = await PhotoComment.update({
+    let photoComment = await SQLPhotoComment.update({
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       location: "Amsterdam",
     });
@@ -255,6 +180,8 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       updated_at: String,
       is_important: true,
       content: "Interesting indeed",
+      photo_id: 2,
+      user_id: 1
     });
   });
 });
