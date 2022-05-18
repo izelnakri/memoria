@@ -111,18 +111,15 @@ export default class MemoryAdapter {
     let targetOptions = { ...options, isNew: false };
     let existingModelInCache = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel | void;
     if (existingModelInCache) {
-      let model = Model.build(
-        Object.assign(
-          existingModelInCache,
-          Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
-            if (record.hasOwnProperty(attribute)) {
-              result[attribute] = transformValue(Model, attribute, record[attribute]);
-            }
+      let model = Object.assign(
+        existingModelInCache,
+        Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+          if (record.hasOwnProperty(attribute)) {
+            result[attribute] = transformValue(Model, attribute, record[attribute]);
+          }
 
-            return result;
-          }, {})
-        ),
-        targetOptions
+          return result;
+        }, {})
       );
 
       return RelationshipDB.cache(

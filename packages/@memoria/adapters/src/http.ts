@@ -149,14 +149,14 @@ async function makeFetchRequest(
     },
     httpOptions.timeout ? httpOptions.timeout : DEFAULT_TIMEOUT_IN_MS
   );
-  let requestBody = httpOptions.body as JSObject;
+  let inputBody = httpOptions.body as JSObject;
 
   try {
     response = await fetch(httpOptions.url, {
       signal: timeoutController.signal,
       headers: buildHeaders(httpOptions.headers),
       method: httpOptions.method,
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(inputBody),
     });
   } finally {
     clearTimeout(timeoutFunction);
@@ -192,19 +192,20 @@ async function makeFetchRequest(
 
     if (httpOptions.method !== "DELETE" && Model) {
       let Adapter = Model.Adapter;
-      let modelResponseKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
       let modelRequestKeyName = Model.Serializer.modelKeyNameForPayload(Model);
+      let input = inputBody
+        ? inputBody[modelRequestKeyName] || inputBody[pluralize(modelRequestKeyName)]
+        : inputBody;
+      let modelResponseKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
       let results = json[modelResponseKeyName] || json[pluralize(modelResponseKeyName)];
-      let initialSource =
-        (requestBody && requestBody[modelRequestKeyName]) ||
-        (requestBody && requestBody[pluralize(modelRequestKeyName)]);
+      let deserializedResponse = deserializeModel(Model, input, results);
 
       // TODO: if result is empty throw an error
       if (Array.isArray(results)) {
-        return results.map((result, index) => {
+        return deserializedResponse.map((result) => {
           return Adapter.cache(
             Model as typeof MemoriaModel,
-            initialSource ? synchronizePayloadForBuild(initialSource[index], result) : result,
+            result,
             options
           );
         }) as MemoriaModel[];
@@ -212,7 +213,7 @@ async function makeFetchRequest(
 
       return Adapter.cache(
         Model,
-        synchronizePayloadForBuild(initialSource, results),
+        deserializedResponse,
         options
       ) as MemoriaModel;
     }
@@ -306,8 +307,15 @@ function getErrorMessage(ErrorInterface, httpOptions) {
   }
 }
 
-function synchronizePayloadForBuild(initialSource, payload) {
-  return initialSource && initialSource instanceof MemoriaModel
-    ? (initialSource.constructor as typeof MemoriaModel).assign(initialSource, payload)
-    : payload;
+function deserializeModel(Model, input, results) {
+  return Array.isArray(results)
+    ? results.map((result, index) => synchronizePayloadForBuild(Model, input ? input[index] : input, result))
+    : synchronizePayloadForBuild(Model, input, results);
+}
+
+function synchronizePayloadForBuild(Model, input, result) {
+  debugger;
+  return Model && result && input instanceof Model
+    ? Model.assign(input, result)
+    : result;
 }

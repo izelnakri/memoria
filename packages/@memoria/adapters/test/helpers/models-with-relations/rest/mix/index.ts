@@ -117,7 +117,7 @@ export default function generateRESTModels() {
       });
 
       this.get("/groups/:uuid", async (request) => {
-        let group = await Group.find(request.params.id);
+        let group = await Group.find(request.params.uuid);
 
         return { group: Group.serializer(group) };
       });

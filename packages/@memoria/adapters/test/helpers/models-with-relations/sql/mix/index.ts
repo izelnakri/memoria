@@ -71,13 +71,13 @@ export default function generateModels() {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column("varchar", { nullable: true })
+    @Column("varchar", { nullable: true, default: "Photo default name" })
     name: string;
 
     @Column("varchar", { nullable: true })
     href: string;
 
-    @Column("boolean", { nullable: true })
+    @Column("boolean", { nullable: true, default: true })
     is_public: boolean;
 
     @Column("int", { nullable: true })

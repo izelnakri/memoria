@@ -16,7 +16,7 @@ export default function generatePhoto() {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column("varchar", { default: "Default photo name" })
+    @Column("varchar", { default: "Photo default name" })
     name: string;
 
     @Column()
