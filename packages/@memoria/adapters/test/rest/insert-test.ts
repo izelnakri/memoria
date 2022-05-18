@@ -206,6 +206,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       const commentOne = await RESTPhotoComment.insert({
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         photo_id: 1,
       });
       assert.notOk(commentOne.isNew);
@@ -216,6 +217,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       assert.deepEqual(commentOne.revision, {
         content: null,
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         photo_id: 1,
@@ -225,6 +227,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         {
           content: null,
           inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+          updated_at: new Date("2015-10-25T20:54:04.447Z"),
           is_important: true,
           uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
           photo_id: 1,
@@ -251,10 +254,12 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       );
 
       assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
+      assert.deepEqual(commentOne.updated_at, new Date("2015-10-25T20:54:04.447Z"));
       assert.equal(commentOne.photo_id, 1);
       assert.equal(commentOne.is_important, true);
       assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
       assert.ok(new Date() - commentTwo.inserted_at < 10000);
+      assert.ok(new Date() - commentTwo.updated_at < 10000);
       assert.equal(commentTwo.photo_id, null);
       assert.equal(commentTwo.is_important, false);
 
@@ -280,7 +285,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       await RESTPhotoComment.insert({ reply_id: 1 });
 
       assert.deepEqual(Array.from(RESTPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
-      assert.deepEqual(Array.from(RESTPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "user_id", "photo_id"]);
+      assert.deepEqual(Array.from(RESTPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "updated_at", "user_id", "photo_id"]);
       assert.deepEqual(await RESTPhoto.findAll(), [
         ...PHOTOS,
         {

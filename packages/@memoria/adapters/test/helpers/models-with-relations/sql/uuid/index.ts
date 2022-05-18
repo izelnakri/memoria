@@ -3,6 +3,7 @@ import Model, {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   BelongsTo,
   HasMany,
   HasOne,
@@ -51,6 +52,9 @@ export default function generateModels() {
 
     @CreateDateColumn()
     inserted_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
 
     @Column("varchar", { nullable: true })
     user_uuid: string;

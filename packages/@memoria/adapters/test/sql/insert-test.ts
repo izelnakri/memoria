@@ -187,6 +187,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       const commentOne = await SQLPhotoComment.insert({
         uuid: "63538a3b-911b-430f-bcf4-4f60d41fca27",
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         photo_id: 1,
       });
       assert.notOk(commentOne.isNew);
@@ -196,6 +197,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       assert.deepEqual(commentOne.changes, {});
       assert.deepEqual(commentOne.revision, {
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         content: null,
         is_important: true,
         photo_id: 1,
@@ -205,6 +207,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       assert.deepEqual(commentOne.revisionHistory, [
         {
           inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+          updated_at: new Date("2015-10-25T20:54:04.447Z"),
           content: null,
           is_important: true,
           photo_id: 1,
@@ -234,10 +237,12 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       );
 
       assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
+      assert.deepEqual(commentOne.updated_at, new Date("2015-10-25T20:54:04.447Z"));
       assert.equal(commentOne.photo_id, 1);
       assert.equal(commentOne.is_important, true);
       assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
       assert.ok(new Date() - commentTwo.inserted_at < 10000);
+      assert.ok(new Date() - commentTwo.updated_at < 10000);
       assert.equal(commentTwo.photo_id, null);
       assert.equal(commentTwo.is_important, false);
       assert.equal(lastInsertedComments.length, 2);
@@ -265,6 +270,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
         "content",
         "is_important",
         "inserted_at",
+        "updated_at",
         "user_id",
         "photo_id",
       ]);

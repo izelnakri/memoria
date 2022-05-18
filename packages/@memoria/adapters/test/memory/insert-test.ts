@@ -132,40 +132,6 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   });
 
   module('Attribute tests', function () {
-    test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
-      const { MemoryPhoto, MemoryPhotoComment } = generateModels();
-
-      await Promise.all([MemoryPhoto, MemoryPhotoComment].map((model) => model.resetCache()));
-      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
-      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
-
-      await MemoryPhoto.insert({
-        published_at: new Date("2017-10-10").toJSON(),
-        description: "Some description",
-      });
-      await MemoryPhoto.insert({ location: "Istanbul", is_public: false });
-      await MemoryPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-      await MemoryPhotoComment.insert({ reply_id: 1 });
-
-      assert.deepEqual(Array.from(MemoryPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
-      assert.deepEqual(Array.from(MemoryPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "user_id", "photo_id"]);
-      assert.propEqual(await MemoryPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 4,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-        },
-        {
-          id: 5,
-          is_public: false,
-          name: "Photo default name",
-          href: null,
-        },
-      ].map((photo) => MemoryPhoto.build(photo)));
-    });
-
     test("$Model.insert(attributes) will insert a model with overriden default attributes", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -220,6 +186,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       const commentOne = await MemoryPhotoComment.insert({
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         content: null,
         user_id: null
       });
@@ -231,6 +198,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.deepEqual(commentOne.revision, {
         content: null,
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         photo_id: null,
@@ -239,6 +207,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.deepEqual(commentOne.revisionHistory, [
         {
           inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+          updated_at: new Date("2015-10-25T20:54:04.447Z"),
           is_important: true,
           uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
           content: null,
@@ -269,16 +238,52 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       );
 
       assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
+      assert.deepEqual(commentOne.updated_at, new Date("2015-10-25T20:54:04.447Z"));
       assert.equal(commentOne.photo_id, undefined);
       assert.equal(commentOne.is_important, true);
       assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
       assert.ok(new Date() - commentTwo.inserted_at < 10000);
+      assert.ok(new Date() - commentTwo.updated_at < 10000);
       assert.equal(commentTwo.photo_id, null);
       assert.equal(commentTwo.is_important, false);
 
       lastInsertedComments.forEach((comment) => {
         assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
       });
+    });
+
+    test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
+      const { MemoryPhoto, MemoryPhotoComment } = generateModels();
+
+      await Promise.all([MemoryPhoto, MemoryPhotoComment].map((model) => model.resetCache()));
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
+
+      await MemoryPhoto.insert({
+        published_at: new Date("2017-10-10").toJSON(),
+        description: "Some description",
+      });
+      await MemoryPhoto.insert({ location: "Istanbul", is_public: false });
+      await MemoryPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+      await MemoryPhotoComment.insert({ reply_id: 1 });
+
+      assert.deepEqual(Array.from(MemoryPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
+      assert.deepEqual(Array.from(MemoryPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "updated_at", "user_id", "photo_id"]);
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        ...PHOTOS,
+        {
+          id: 4,
+          is_public: true,
+          name: "Photo default name",
+          href: null,
+        },
+        {
+          id: 5,
+          is_public: false,
+          name: "Photo default name",
+          href: null,
+        },
+      ].map((photo) => MemoryPhoto.build(photo)));
     });
   });
 

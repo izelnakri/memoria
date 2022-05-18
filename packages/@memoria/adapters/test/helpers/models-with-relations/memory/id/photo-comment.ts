@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Serializer, Column, CreateDateColumn, BelongsTo } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Serializer, Column, CreateDateColumn, UpdateDateColumn, BelongsTo } from "@memoria/model";
 import User from "./user.js";
 import Photo from "./photo.js";
 
@@ -17,6 +17,9 @@ export default function generatePhotoComment() {
 
     @CreateDateColumn()
     inserted_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
 
     @Column("int")
     user_id: number;
