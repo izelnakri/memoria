@@ -291,7 +291,7 @@ export default class SQLAdapter extends MemoryAdapter {
         });
       }
 
-      if (this.peek(Model, result[Model.primaryKeyName])) {
+      if (Model.Cache.get(result[Model.primaryKeyName])) {
         return await super.update(Model, Model.assign(record, result), options);
       }
 

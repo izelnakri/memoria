@@ -121,11 +121,15 @@ export default class MemoryAdapter {
           return result;
         }, {})
       );
+      let target = this.returnWithCacheEviction(tryToRevision(model, targetOptions), targetOptions);
 
-      return RelationshipDB.cache(
-        this.returnWithCacheEviction(tryToRevision(model, targetOptions), targetOptions),
-        "update"
-      );
+      if (record instanceof Model) {
+        record.fetchedRelationships.forEach((relationshipName) => {
+          target[relationshipName] = record[relationshipName];
+        });
+      }
+
+      return RelationshipDB.cache(target, "update");
     }
 
     let cachedRecord = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
@@ -276,17 +280,29 @@ export default class MemoryAdapter {
     }
 
     let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
-    let updateTarget = Array.from(Model.columnNames).reduce((result, attribute: string) => {
-      if (record.hasOwnProperty(attribute)) {
-        result[attribute] = record[attribute];
-      } else if (typeof defaultColumnsForUpdate[attribute] === "function") {
+
+    if (record instanceof Model) {
+      let target = Object.keys(defaultColumnsForUpdate).reduce((result, attributeName) => {
+        record[attributeName] = defaultColumnsForUpdate[attributeName](Model);
+
+        return result;
+      }, record.isFrozen ? Model.build(record) : record);
+
+      debugger;
+      return this.cache(Model, target, options);
+    }
+
+    let target = Array.from(Model.columnNames).reduce((result, attribute: string) => {
+      if (defaultColumnsForUpdate.hasOwnProperty(attribute)) {
         result[attribute] = defaultColumnsForUpdate[attribute](Model);
+      } else if (record.hasOwnProperty(attribute)) {
+        result[attribute] = record[attribute];
       }
 
-      return result as ModelRefOrInstance;
-    }, {} as ModelRefOrInstance);
+      return result;
+    }, { ...record }) as ModelRefOrInstance;
 
-    return this.cache(Model, updateTarget, options);
+    return this.cache(Model, target, options);
   }
 
   static unload(

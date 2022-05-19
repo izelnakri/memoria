@@ -5,6 +5,8 @@ import Model, {
   UpdateDateColumn,
   UpdateError,
   RuntimeError,
+  InstanceDB,
+  RelationshipDB
 } from "@memoria/model";
 import wait from "@memoria/model/test/helpers/wait.js";
 import { module, test } from "qunitx";
@@ -17,136 +19,126 @@ const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
   setupMemoria(hooks);
 
-  test("$Model.update(attributes) can update models", async function (assert) {
-    const { MemoryPhoto, MemoryPhotoComment } = generateModels();
+  module('Success cases', function () {
+    test("$Model.update(attributes) can update models", async function (assert) {
+      const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
-    await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
-    await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
-    let firstComment = await MemoryPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
-    assert.matchJson(firstComment, {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: String,
-      updated_at: String,
-      is_important: true,
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1
-    });
-    assert.ok(firstComment.inserted_at instanceof Date);
-    assert.ok(firstComment.updated_at instanceof Date);
-    assert.notOk(firstComment.isNew);
-    assert.ok(firstComment.isPersisted);
-    assert.notOk(firstComment.isDeleted);
-    assert.notOk(firstComment.isDirty);
-    assert.deepEqual(firstComment.changes, {});
+      let firstComment = await MemoryPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+      assert.matchJson(firstComment, {
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        inserted_at: String,
+        updated_at: String,
+        is_important: true,
+        content: "Interesting indeed",
+        photo_id: 2,
+        user_id: 1
+      });
+      assert.ok(firstComment.inserted_at instanceof Date);
+      assert.ok(firstComment.updated_at instanceof Date);
+      assert.notOk(firstComment.isNew);
+      assert.ok(firstComment.isPersisted);
+      assert.notOk(firstComment.isDeleted);
+      assert.notOk(firstComment.isDirty);
+      assert.deepEqual(firstComment.changes, {});
 
-    let firstPhoto = await MemoryPhoto.update({
-      id: 1,
-      name: "S trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    });
-    assert.propEqual(firstPhoto, MemoryPhoto.build({
-      id: 1,
-      name: "S trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    }));
-    assert.propEqual(firstPhoto, Object.assign(await MemoryPhoto.find(1), { name: "S trip" }));
-    assert.notOk(firstPhoto.isNew);
-    assert.ok(firstPhoto.isPersisted);
-    assert.notOk(firstPhoto.isDeleted);
-    assert.notOk(firstPhoto.isDirty);
-    assert.deepEqual(firstPhoto.changes, {});
-    assert.deepEqual(firstPhoto.revision, {
-      id: 1,
-      name: "S trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-      group_uuid: null,
-      owner_id: null
-    });
-    assert.deepEqual(firstPhoto.revisionHistory, [
-      {
+      let photo = await MemoryPhoto.find(1);
+      assert.propEqual(photo, MemoryPhoto.build({
         id: 1,
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-        group_uuid: null,
-        owner_id: null
-      },
-      {
+      }));
+
+      let firstPhoto = await MemoryPhoto.update({
+        id: 1,
+        name: "S trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      });
+      assert.propEqual(firstPhoto, MemoryPhoto.build({
+        id: 1,
+        name: "S trip",
+        href: "ski-trip.jpeg",
+        is_public: false,
+      }));
+      assert.propEqual(firstPhoto, Object.assign(await MemoryPhoto.find(1), { name: "S trip" }));
+      assert.notOk(firstPhoto.isNew);
+      assert.ok(firstPhoto.isPersisted);
+      assert.notOk(firstPhoto.isDeleted);
+      assert.notOk(firstPhoto.isDirty);
+      assert.deepEqual(firstPhoto.changes, {});
+      assert.deepEqual(firstPhoto.revision, {
         id: 1,
         name: "S trip",
         href: "ski-trip.jpeg",
         is_public: false,
         group_uuid: null,
         owner_id: null
-      },
-    ]);
+      });
+      assert.deepEqual(firstPhoto.revisionHistory, [
+        {
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+          group_uuid: null,
+          owner_id: null
+        },
+        {
+          id: 1,
+          name: "S trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+          group_uuid: null,
+          owner_id: null
+        },
+      ]);
 
-    let secondPhoto = await MemoryPhoto.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-    assert.propEqual(secondPhoto, MemoryPhoto.build({
-      id: 2,
-      name: "Family photo",
-      href: "family-photo-2.jpeg",
-      is_public: false,
-    }));
-    assert.propEqual(secondPhoto, await MemoryPhoto.find(2));
-    assert.ok(
-      !secondPhoto.isNew &&
-        secondPhoto.isPersisted &&
-        !secondPhoto.isDirty &&
-        !secondPhoto.isDeleted
-    );
+      let secondPhoto = await MemoryPhoto.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
+      assert.propEqual(secondPhoto, MemoryPhoto.build({
+        id: 2,
+        name: "Family photo",
+        href: "family-photo-2.jpeg",
+        is_public: false,
+      }));
+      assert.propEqual(secondPhoto, await MemoryPhoto.find(2));
+      assert.ok(
+        !secondPhoto.isNew &&
+          secondPhoto.isPersisted &&
+          !secondPhoto.isDirty &&
+          !secondPhoto.isDeleted
+      );
 
-    let firstCommentInitialUpdatedAt = firstComment.updated_at;
+      let firstCommentInitialUpdatedAt = firstComment.updated_at;
 
-    let comment = await MemoryPhotoComment.update({
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Coolie",
-    });
-    assert.matchJson(comment, {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      inserted_at: String,
-      updated_at: String,
-      is_important: true,
-      content: "Coolie",
-      user_id: 1,
-      photo_id: 2,
-    });
-    assert.propEqual(
-      comment,
-      Object.assign(await MemoryPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }), {
-        content: "Coolie",
-      })
-    );
-    assert.notOk(comment.isNew);
-    assert.ok(comment.isPersisted);
-    assert.notOk(comment.isDeleted);
-    assert.notOk(comment.isDirty);
-    assert.deepEqual(comment.changes, {});
-    assert.deepEqual(comment.revision, {
-      content: "Coolie",
-      inserted_at: comment.inserted_at,
-      is_important: true,
-      updated_at: comment.updated_at,
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      user_id: 1,
-      photo_id: 2,
-    });
-    assert.deepEqual(comment.revisionHistory, [
-      {
-        content: "Interesting indeed",
-        inserted_at: comment.inserted_at,
-        is_important: true,
-        updated_at: comment.inserted_at,
+      let comment = await MemoryPhotoComment.update({
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        content: "Coolie",
+      });
+      assert.matchJson(comment, {
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        inserted_at: String,
+        updated_at: String,
+        is_important: true,
+        content: "Coolie",
         user_id: 1,
         photo_id: 2,
-      },
-      {
+      });
+      assert.propEqual(
+        comment,
+        Object.assign(await MemoryPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }), {
+          content: "Coolie",
+        })
+      );
+      assert.notOk(comment.isNew);
+      assert.ok(comment.isPersisted);
+      assert.notOk(comment.isDeleted);
+      assert.notOk(comment.isDirty);
+      assert.deepEqual(comment.changes, {});
+      assert.deepEqual(comment.revision, {
         content: "Coolie",
         inserted_at: comment.inserted_at,
         is_important: true,
@@ -154,195 +146,347 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         user_id: 1,
         photo_id: 2,
-      },
-    ]);
-    assert.ok(comment.inserted_at instanceof Date);
-    assert.ok(comment.updated_at instanceof Date);
-    assert.equal(firstComment.inserted_at, comment.inserted_at);
-    assert.equal(firstComment.updated_at, comment.updated_at);
-    assert.notEqual(firstCommentInitialUpdatedAt, comment.updated_at);
-    assert.propEqual({ ...firstComment, updated_at: comment.updated_at, content: "Coolie" }, comment);
-  });
-
-  test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
-    const { MemoryPhoto, MemoryPhotoComment } = generateModels();
-
-    await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
-    await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
-
-    try {
-      await MemoryPhoto.update({ id: 99, href: "family-photo-2.jpeg" });
-    } catch (error) {
-      assert.ok(error instanceof UpdateError);
-    }
-
-    try {
-      await MemoryPhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
-    } catch (error) {
-      assert.ok(error instanceof UpdateError);
-    }
-  });
-
-  test("$Model.update(attributes) doesnt throw an exception when a model gets updated with an unknown attribute", async function (assert) {
-    const { MemoryPhoto, MemoryPhotoComment } = generateModels();
-
-    await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
-    await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
-
-    let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
-
-    assert.matchJson(photo, {
-      href: "ski-trip.jpeg",
-      id: 1,
-      is_public: false,
-      name: "ME",
-      group_uuid: null,
-      owner_id: null
+      });
+      assert.deepEqual(comment.revisionHistory, [
+        {
+          content: "Interesting indeed",
+          inserted_at: comment.inserted_at,
+          is_important: true,
+          updated_at: comment.inserted_at,
+          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          user_id: 1,
+          photo_id: 2,
+        },
+        {
+          content: "Coolie",
+          inserted_at: comment.inserted_at,
+          is_important: true,
+          updated_at: comment.updated_at,
+          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          user_id: 1,
+          photo_id: 2,
+        },
+      ]);
+      assert.ok(comment.inserted_at instanceof Date);
+      assert.ok(comment.updated_at instanceof Date);
+      assert.equal(firstComment.inserted_at, comment.inserted_at);
+      assert.equal(firstComment.updated_at, comment.updated_at);
+      assert.notEqual(firstCommentInitialUpdatedAt, comment.updated_at);
+      assert.propEqual({ ...firstComment, updated_at: comment.updated_at, content: "Coolie" }, comment);
     });
 
-    let photoComment = await MemoryPhotoComment.update({
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      location: "Amsterdam",
-    });
+    test("$Model.update(attributes) doesnt throw an exception when a model gets updated with an unknown attribute", async function (assert) {
+      const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
-    assert.matchJson(photoComment, {
-      content: "Interesting indeed",
-      inserted_at: String,
-      is_important: true,
-      updated_at: String,
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      photo_id: 2,
-      user_id: 1
-    });
-  });
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
-  test("$Model.update(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
-    const { MemoryPhoto } = generateModels();
+      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
 
-    await MemoryPhoto.insert(PHOTOS[0]);
-
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({
-        href: "ski-trip.jpeg",
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      }),
-    ]);
-
-    let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false }, { cache: 0 });
-
-    assert.matchJson(photo, {
-      href: "ski-trip.jpeg",
-      id: 1,
-      is_public: false,
-      name: "ME",
-      group_uuid: null,
-      owner_id: null
-    });
-    assert.propEqual(await MemoryPhoto.findAll(), []);
-
-    await MemoryPhoto.insert(PHOTOS[0]);
-
-    let anotherPhoto = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
-
-    assert.matchJson(anotherPhoto, {
-      href: "ski-trip.jpeg",
-      id: 1,
-      is_public: false,
-      name: "ME",
-      group_uuid: null,
-      owner_id: null
-    });
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({
+      assert.matchJson(photo, {
         href: "ski-trip.jpeg",
         id: 1,
         is_public: false,
         name: "ME",
-      }),
-    ]);
+        group_uuid: null,
+        owner_id: null
+      });
+
+      let photoComment = await MemoryPhotoComment.update({
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        location: "Amsterdam",
+      });
+
+      assert.matchJson(photoComment, {
+        content: "Interesting indeed",
+        inserted_at: String,
+        is_important: true,
+        updated_at: String,
+        uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        photo_id: 2,
+        user_id: 1
+      });
+    });
   });
 
-  test("$Model.update(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
-    const { MemoryPhoto } = generateModels();
+  module('Error cases', function () {
+    test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
+      const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
-    await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
-    assert.propEqual(await MemoryPhoto.findAll(), PHOTOS.map((photo) => MemoryPhoto.build(photo)));
+      try {
+        await MemoryPhoto.update({ id: 99, href: "family-photo-2.jpeg" });
+      } catch (error) {
+        assert.ok(error instanceof UpdateError);
+      }
 
-    let photoOne = await MemoryPhoto.update({ id: PHOTOS[1].id, name: "first" }, { cache: 10 });
-    let photoTwo = await MemoryPhoto.update({ id: PHOTOS[2].id, name: "second" }, { cache: 70 });
-
-    assert.propEqual(photoOne, MemoryPhoto.build({ ...PHOTOS[1], name: "first" }));
-    assert.propEqual(photoTwo, MemoryPhoto.build({ ...PHOTOS[2], name: "second" }));
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({
-        href: "ski-trip.jpeg",
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      }),
-      photoOne,
-      photoTwo,
-    ]);
-
-    await wait(10);
-
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({
-        href: "ski-trip.jpeg",
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      }),
-      photoTwo,
-    ]);
-
-    await wait(60);
-
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({
-        href: "ski-trip.jpeg",
-        id: 1,
-        name: "Ski trip",
-        is_public: false,
-      }),
-    ]);
+      try {
+        await MemoryPhotoComment.update({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5666", content: "Nice" });
+      } catch (error) {
+        assert.ok(error instanceof UpdateError);
+      }
+    });
   });
 
-  test("$Model.update(json. { cache: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
-    const { MemoryPhoto } = generateModels();
+  module('Reference tests', function () {
+    test("$Model.update($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+      const { MemoryPhoto } = generateModels();
 
-    await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+      let insertedPhoto = await MemoryPhoto.insert({
+        id: 2, name: "Something", href: "/something.jpg", is_public: false
+      });
 
-    assert.propEqual(await MemoryPhoto.findAll(), PHOTOS.map((photo) => MemoryPhoto.build(photo)));
+      assert.equal(InstanceDB.getReferences(insertedPhoto).size, 2);
 
-    await MemoryPhoto.update({ id: PHOTOS[1].id, name: "aa" }, { cache: 10 });
-    await MemoryPhoto.update({ id: PHOTOS[1].id, name: "bb" }, { cache: 70 });
-    await wait(25);
+      assert.propEqual(insertedPhoto, MemoryPhoto.build({
+        id: 2, name: "Something", href: "/something.jpg", is_public: false
+      }));
 
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build(PHOTOS[0]),
-      MemoryPhoto.build({ ...PHOTOS[1], name: "bb" }),
-      MemoryPhoto.build(PHOTOS[2]),
-    ]);
+      assert.equal(InstanceDB.getReferences(insertedPhoto).size, 3);
 
-    await wait(150);
+      let updatedPhoto = await MemoryPhoto.update({ id: 2, name: "Another", href: "/another.jpg" });
 
-    assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[0]), MemoryPhoto.build(PHOTOS[2])]);
+      assert.notEqual(insertedPhoto, updatedPhoto);
+      assert.equal(InstanceDB.getReferences(updatedPhoto).size, 4);
+      assert.propEqual(updatedPhoto, MemoryPhoto.build({
+        id: 2,
+        name: "Another",
+        href: "/another.jpg",
+        is_public: false,
+      }));
 
-    await MemoryPhoto.update({ id: PHOTOS[0].id, name: "bb" }, { cache: 150 });
-    await wait(25);
+      assert.deepEqual(MemoryPhoto.peek(updatedPhoto.id), updatedPhoto);
+      assert.equal(InstanceDB.getReferences(updatedPhoto).size, 6);
+      assert.equal(InstanceDB.getReferences(insertedPhoto), InstanceDB.getReferences(updatedPhoto));
 
-    assert.propEqual(await MemoryPhoto.findAll(), [
-      MemoryPhoto.build({ ...PHOTOS[0], name: "bb" }),
-      MemoryPhoto.build(PHOTOS[2])
-    ]);
+      updatedPhoto.name = "testing store just holds a copy";
 
-    await MemoryPhoto.update({ id: PHOTOS[0].id, name: "aa" }, { cache: 25 });
-    await wait(25);
+      assert.equal(updatedPhoto.name, "testing store just holds a copy");
+      assert.notPropEqual(MemoryPhoto.peek(updatedPhoto.id), updatedPhoto);
+    });
 
-    assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[2])]);
+    test("$Model.update($model) copies relationships but not for stored instance, also update references", async function (assert) {
+      const { MemoryGroup, MemoryUser, MemoryPhoto } = generateModels();
+
+      let izel = MemoryUser.build({ first_name: "Izel", last_name: "Nakri" });
+      let groupPhoto = MemoryPhoto.build();
+      let group = MemoryGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
+
+      assert.equal(group.owner, izel);
+      assert.equal(group.photo, groupPhoto);
+
+      let insertedGroup = await MemoryGroup.insert(group);
+
+      assert.notEqual(insertedGroup, group);
+      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.equal(insertedGroup.owner, izel);
+      assert.equal(groupPhoto.group, insertedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 3);
+
+      let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
+      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (reference !== cachedReference) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      assert.equal(groupPhoto.group, insertedGroup);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (![cachedReference].includes(reference)) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      insertedGroup.name = 'Changed Hacker Log';
+
+      assert.equal(insertedGroup.name, 'Changed Hacker Log');
+
+      let updatedGroup = await MemoryGroup.update(insertedGroup);
+
+      assert.notEqual(updatedGroup, group);
+      assert.notEqual(updatedGroup, insertedGroup);
+      assert.equal(updatedGroup.owner, izel);
+      assert.equal(updatedGroup.photo, groupPhoto);
+      assert.equal(groupPhoto.group, updatedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 4);
+
+      let lastCachedReference = MemoryGroup.Cache.get(updatedGroup.uuid);
+      assert.equal(RelationshipDB.has(lastCachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(lastCachedReference, 'photo'), false);
+
+      assert.deepEqual(updatedGroup, MemoryGroup.build({
+        uuid: group.uuid,
+        name: "Changed Hacker Log",
+        owner: izel,
+        photo: groupPhoto
+      }));
+
+      assert.equal(InstanceDB.getReferences(group).size, 5);
+
+      let peekedGroup = await MemoryGroup.peek(group.uuid);
+
+      assert.notEqual(peekedGroup, insertedGroup);
+      assert.notEqual(peekedGroup, group);
+      assert.notEqual(peekedGroup, updatedGroup);
+      assert.equal(peekedGroup.name, 'Changed Hacker Log');
+      assert.equal(InstanceDB.getReferences(group).size, 6);
+
+      let fetchedGroup = await MemoryGroup.find(group.uuid);
+
+      assert.notEqual(fetchedGroup, insertedGroup);
+      assert.notEqual(fetchedGroup, group);
+      assert.notEqual(fetchedGroup, peekedGroup);
+      assert.equal(fetchedGroup.name, 'Changed Hacker Log');
+      assert.equal(InstanceDB.getReferences(group).size, 7);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (![peekedGroup, cachedReference, fetchedGroup].includes(reference)) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      assert.equal(groupPhoto.group, fetchedGroup);
+    });
+  });
+
+  module('Cache timeout tests', function () {
+    test("$Model.update(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      await MemoryPhoto.insert(PHOTOS[0]);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({
+          href: "ski-trip.jpeg",
+          id: 1,
+          name: "Ski trip",
+          is_public: false,
+        }),
+      ]);
+
+      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false }, { cache: 0 });
+
+      assert.matchJson(photo, {
+        href: "ski-trip.jpeg",
+        id: 1,
+        is_public: false,
+        name: "ME",
+        group_uuid: null,
+        owner_id: null
+      });
+      assert.propEqual(await MemoryPhoto.findAll(), []);
+
+      await MemoryPhoto.insert(PHOTOS[0]);
+
+      let anotherPhoto = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
+
+      assert.matchJson(anotherPhoto, {
+        href: "ski-trip.jpeg",
+        id: 1,
+        is_public: false,
+        name: "ME",
+        group_uuid: null,
+        owner_id: null
+      });
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({
+          href: "ski-trip.jpeg",
+          id: 1,
+          is_public: false,
+          name: "ME",
+        }),
+      ]);
+    });
+
+    test("$Model.update(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+
+      assert.propEqual(await MemoryPhoto.findAll(), PHOTOS.map((photo) => MemoryPhoto.build(photo)));
+
+      let photoOne = await MemoryPhoto.update({ id: PHOTOS[1].id, name: "first" }, { cache: 10 });
+      let photoTwo = await MemoryPhoto.update({ id: PHOTOS[2].id, name: "second" }, { cache: 70 });
+
+      assert.propEqual(photoOne, MemoryPhoto.build({ ...PHOTOS[1], name: "first" }));
+      assert.propEqual(photoTwo, MemoryPhoto.build({ ...PHOTOS[2], name: "second" }));
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({
+          href: "ski-trip.jpeg",
+          id: 1,
+          name: "Ski trip",
+          is_public: false,
+        }),
+        photoOne,
+        photoTwo,
+      ]);
+
+      await wait(10);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({
+          href: "ski-trip.jpeg",
+          id: 1,
+          name: "Ski trip",
+          is_public: false,
+        }),
+        photoTwo,
+      ]);
+
+      await wait(60);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({
+          href: "ski-trip.jpeg",
+          id: 1,
+          name: "Ski trip",
+          is_public: false,
+        }),
+      ]);
+    });
+
+    test("$Model.update(json. { cache: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
+
+      assert.propEqual(await MemoryPhoto.findAll(), PHOTOS.map((photo) => MemoryPhoto.build(photo)));
+
+      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "aa" }, { cache: 10 });
+      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "bb" }, { cache: 70 });
+      await wait(25);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build(PHOTOS[0]),
+        MemoryPhoto.build({ ...PHOTOS[1], name: "bb" }),
+        MemoryPhoto.build(PHOTOS[2]),
+      ]);
+
+      await wait(150);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[0]), MemoryPhoto.build(PHOTOS[2])]);
+
+      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "bb" }, { cache: 150 });
+      await wait(25);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [
+        MemoryPhoto.build({ ...PHOTOS[0], name: "bb" }),
+        MemoryPhoto.build(PHOTOS[2])
+      ]);
+
+      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "aa" }, { cache: 25 });
+      await wait(25);
+
+      assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[2])]);
+    });
   });
 });
