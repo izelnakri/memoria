@@ -15,11 +15,11 @@ import RelationshipUtils from "./utils.js";
 import { RelationshipPromise } from "../../promises/index.js";
 import InstanceDB from "../instance/db.js";
 import ArrayIterator from "../../utils/array-iterator.js";
+import { clearObject } from "../../utils/index.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
 import type { PrimaryKey } from "../../types.js";
 
 type RelationshipTableKey = string; // Example: "MemoryUser:comments"
-// type ModelName = string;
 type BelongsToPrimaryKey = PrimaryKey;
 // type QueryObject = { [key: string]: any };
 
@@ -272,27 +272,34 @@ export default class RelationshipDB {
   }
 
   // NOTE: Deletes persisted to references, from references to instances, from instances to relationship changes
-  // TODO: this removes null references(too much)
   static delete(model: Model) {
     let Class = model.constructor as typeof Model;
-    let belongsToRelationshipKeys = Object.keys(RelationshipSchema.getRelationshipTable(Class, "BelongsTo")); // NOTE: could be costly
-
-    belongsToRelationshipKeys.forEach((relationshipName) => {
-      this.findPersistedRecordsCacheFor(Class, relationshipName).delete(model[Class.primaryKeyName]);
-    });
-    // TODO: only removes BelongsTo, NOT HasMany and other Relationships YET:
-    InstanceDB.getReferences(model).forEach((modelReference) => {
-      belongsToRelationshipKeys.forEach((relationshipName) => {
-        this.findRelationshipCacheFor(Class, relationshipName, "BelongsTo").delete(modelReference);
-      });
-    });
-
+    let existingReferences = Array.from(InstanceDB.getReferences(model));
     let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
     Object.keys(reverseRelationships).forEach((relationshipClassName) => {
       this.deleteRelationshipsGloballyFromARelationship(
         model,
-        reverseRelationships[relationshipClassName]
+        reverseRelationships[relationshipClassName],
+        existingReferences
       );
+    });
+
+    let modelsRelationships = RelationshipSchema.getRelationshipTable(Class);
+    Object.keys(modelsRelationships).forEach((relationshipName) => {
+      let relationship = modelsRelationships[relationshipName];
+      let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, relationship.relationshipType);
+
+      existingReferences.forEach((modelReference) => {
+        if (relationship.relationshipType === 'BelongsTo') {
+          modelReference[relationship.foreignKeyColumnName as string] = null;
+          this.findPersistedRecordsCacheFor(Class, relationshipName).delete(model[Class.primaryKeyName]);
+        }
+
+        relationshipCache.set(modelReference, null);
+      });
+    });
+    existingReferences.forEach((modelReference) => {
+      clearObject(modelReference.changes);
     });
 
     InstanceDB.getReferences(model).clear();
@@ -302,31 +309,20 @@ export default class RelationshipDB {
 
   // TODO: this currently only removes belongsTo, not an element from HasMany array!
   static deleteRelationshipsGloballyFromARelationship(
-    targetModel: Model,
-    reverseRelationshipMetadatas: ReverseRelationshipMetadata[]
+    _targetModel: Model,
+    reverseRelationshipMetadatas: ReverseRelationshipMetadata[],
+    targetModelInstances: Model[]
   ) {
-    let Class = targetModel.constructor as typeof Model;
-    let targetModels = Array.from(InstanceDB.getReferences(targetModel));
     let possibleReferences = InstanceDB.getAllReferences(reverseRelationshipMetadatas[0].TargetClass) as Array<Set<Model>>;
     if (possibleReferences) {
       for (let referenceSet of possibleReferences.values()) {
         referenceSet.forEach((reference) => {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
-            if (targetModels.some((model) => this.referenceIsRelatedTo(model, reference, relationshipMetadata))) {
+            if (targetModelInstances.some((model) => this.referenceIsRelatedTo(model, reference, relationshipMetadata))) {
               let { TargetClass, relationshipName, relationshipType, foreignKeyColumnName } = relationshipMetadata;
               let relationshipCache = this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType);
-              let existingRelationship = relationshipCache.get(reference);
-
-              // NOTE: this maybe needs reflection(probably not)
-              if (
-                existingRelationship &&
-                existingRelationship[Class.primaryKeyName] === targetModel[Class.primaryKeyName]
-              ) {
-                relationshipCache.set(reference, null);
-
-                if (relationshipType === "BelongsTo" && foreignKeyColumnName) {
-                  reference[foreignKeyColumnName] = null;
-                }
+              if (relationshipCache.get(reference)) {
+                reference[relationshipName] = null;
               }
             }
           });

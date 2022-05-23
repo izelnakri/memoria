@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column, DeleteError, RuntimeError } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, DeleteError, RuntimeError, InstanceDB, RelationshipDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
@@ -111,8 +111,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
         is_important: true,
         inserted_at: deletedComment.inserted_at,
         updated_at: deletedComment.updated_at,
-        photo_id: 1,
-        user_id: 1,
+        photo_id: null,
+        user_id: null,
       }));
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
 
@@ -152,6 +152,98 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
           updated_at: deletedComment.updated_at,
         }),
       ]);
+    });
+  });
+
+  module('Reference tests', function () {
+    test("$Model.delete($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+      const { MemoryPhoto } = generateModels();
+
+      let photo = MemoryPhoto.build({ name: "some name" });
+
+      assert.equal(InstanceDB.getReferences(photo).size, 1);
+
+      let insertedPhoto = await MemoryPhoto.insert(photo);
+
+      assert.notEqual(insertedPhoto, photo);
+      assert.propEqual(insertedPhoto, MemoryPhoto.build({
+        href: null,
+        id: 1,
+        is_public: null,
+        name: "some name",
+      }));
+      assert.equal(InstanceDB.getReferences(photo).size, 4);
+      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
+
+      let deletedPhoto = await MemoryPhoto.delete(insertedPhoto); // NOTE: this should make all same instances isPersisted = false in the future(?)
+
+      assert.notEqual(deletedPhoto, insertedPhoto);
+      assert.equal(InstanceDB.getReferences(photo).size, 0);
+      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(deletedPhoto));
+
+      deletedPhoto.name = "testing the instance is just a copy";
+
+      assert.equal(deletedPhoto.name, "testing the instance is just a copy");
+      assert.notEqual(photo.name, deletedPhoto.name);
+      assert.notOk(MemoryPhoto.peek(photo.id));
+    });
+
+    test("$Model.delete($model) removes relationships for all references", async function (assert) {
+      const { MemoryGroup, MemoryUser, MemoryPhoto } = generateModels();
+
+      let izel = MemoryUser.build({ first_name: "Izel", last_name: "Nakri" });
+      let groupPhoto = MemoryPhoto.build();
+      let group = MemoryGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
+
+      let insertedUser = await MemoryUser.insert(izel);
+
+      assert.ok(izel.id);
+      assert.deepEqual(izel, insertedUser);
+      assert.equal(group.owner, insertedUser);
+      assert.equal(group.owner_id, izel.id);
+      assert.equal(group.photo, groupPhoto);
+
+      let insertedGroup = await MemoryGroup.insert(group);
+
+      assert.notEqual(insertedGroup, group);
+      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.equal(insertedGroup.owner_id, insertedUser.id);
+      assert.equal(groupPhoto.group, insertedGroup);
+      assert.equal(groupPhoto.group_id, insertedGroup.id);
+      assert.equal(InstanceDB.getReferences(group).size, 3);
+
+      let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
+      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (reference !== cachedReference) {
+          assert.equal(reference.owner, insertedUser);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      let deletedGroup = await MemoryGroup.delete(group);
+
+      assert.notEqual(deletedGroup, group);
+      assert.notEqual(deletedGroup, insertedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 0);
+      assert.equal(InstanceDB.getReferences(deletedGroup).size, 0);
+
+      assert.deepEqual(deletedGroup, MemoryGroup.build({
+        uuid: group.uuid,
+        name: "Hacker Log",
+        owner: null,
+        photo: null
+      }));
+      assert.deepEqual(insertedGroup, MemoryGroup.build({
+        uuid: group.uuid,
+        name: "Hacker Log",
+        owner: null,
+        photo: null
+      }));
+      assert.equal(groupPhoto.group, null);
+      assert.equal(groupPhoto.group_id, null);
     });
   });
 });

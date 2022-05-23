@@ -182,6 +182,14 @@ export default function generateRESTModels() {
         }
       });
 
+      this.delete('/photo-comments/:uuid', async (request) => {
+        try {
+          await PhotoComment.delete(request.params.photoComment);
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
       this.get("/photo-comments/count", async (request) => {
         let photoComment = await PhotoComment.findAll();
 
