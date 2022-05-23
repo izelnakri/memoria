@@ -236,7 +236,7 @@ module(
       let { Server, RESTPhoto, RESTUser, RESTGroup } = setupRESTModels();
       this.Server = Server;
 
-      let firstPhoto = await RESTPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
       let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
       let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
 
@@ -252,7 +252,7 @@ module(
       assert.equal(secondPhoto.group_id, group.id);
       assert.deepEqual(group.photo, firstPhoto);
 
-      let insertedGroup = await RESTGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+      let insertedGroup = await RESTGroup.insert(group);
 
       assert.deepEqual(insertedGroup.photo, firstPhoto);
       assert.equal(group.photo, insertedGroup.photo);
@@ -297,10 +297,11 @@ module(
 
       assert.equal(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
+      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
 
-      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
+      assert.equal(updatedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
       assert.equal(firstPhoto.group, null);

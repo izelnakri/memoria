@@ -146,10 +146,10 @@ module(
 
       let deletedPhoto = await SQLPhoto.delete(fetchedPhoto);
 
-      assert.propEqual(Object.assign(fetchedPhoto.toJSON(), { owner_uuid: user.uuid }), deletedPhoto.toJSON());
+      assert.deepEqual(fetchedPhoto.toJSON(), deletedPhoto.toJSON());
       assert.equal(fetchedPhoto.owner, null);
-      assert.equal(deletedPhoto.owner_uuid, user.uuid);
-      assert.deepEqual(deletedPhoto.owner, user);
+      assert.equal(deletedPhoto.owner_uuid, null);
+      assert.equal(deletedPhoto.owner, null);
     });
 
     test("a model can create, update, delete with correct changing relationships without GET in one flow", async function (assert) {
@@ -200,7 +200,7 @@ module(
       // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
       let { SQLGroup, SQLPhoto } = setupSQLModels();
 
-      let firstPhoto = await SQLPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
+      let firstPhoto = await SQLPhoto.insert({ name: "First photo" });
       let secondPhoto = await SQLPhoto.insert({ name: "Second photo" });
       let group = SQLGroup.build({ name: "Dinner group", photo: secondPhoto });
 
@@ -216,7 +216,7 @@ module(
       assert.equal(secondPhoto.group_uuid, group.uuid);
       assert.equal(group.photo, firstPhoto);
 
-      let insertedGroup = await SQLGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+      let insertedGroup = await SQLGroup.insert(group);
 
       assert.deepEqual(insertedGroup.photo, firstPhoto);
       assert.equal(group.photo, insertedGroup.photo);
@@ -265,7 +265,7 @@ module(
       let deletedGroup = await SQLGroup.delete(updatedGroup);
 
       assert.equal(updatedGroup.photo, null);
-      // assert.deepEqual(await deletedGroup.photo, secondPhoto); // NOTE: do this later
+      assert.equal(deletedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
       assert.equal(firstPhoto.group_uuid, null);

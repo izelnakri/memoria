@@ -176,10 +176,10 @@ module(
 
       let deletedPhoto = await SQLPhoto.delete(fetchedPhoto); // NOTE: it is true because sql server returns owner_id: 1
 
-      assert.deepEqual(Object.assign(fetchedPhoto.toJSON(), { owner_id: user.id }), deletedPhoto.toJSON());
+      assert.deepEqual(fetchedPhoto.toJSON(), deletedPhoto.toJSON());
       assert.equal(fetchedPhoto.owner, null);
-      assert.deepEqual(deletedPhoto.owner, user);
-      assert.equal(deletedPhoto.owner_id, user.id);
+      assert.equal(deletedPhoto.owner, null);
+      assert.equal(deletedPhoto.owner_id, null);
     });
 
     test("a model can create, update, delete with correct changing relationships without SELECT in one flow", async function (assert) {

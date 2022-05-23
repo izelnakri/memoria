@@ -216,7 +216,6 @@ module(
 
     // TODO: insert() generates 3 instances when instance is provided, make it 2
     test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-      // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let firstPhoto = await MemoryPhoto.insert({ name: "First photo" }); // insert generates 2 instanceCaches
@@ -235,7 +234,7 @@ module(
       assert.equal(secondPhoto.group_uuid, group.uuid);
       assert.deepEqual(group.photo, firstPhoto);
 
-      let insertedGroup = await MemoryGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+      let insertedGroup = await MemoryGroup.insert(group);
 
       assert.deepEqual(insertedGroup.photo, firstPhoto);
       assert.equal(group.photo, insertedGroup.photo);
@@ -266,7 +265,7 @@ module(
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
 
-      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+      updatedGroup.photo = null;
 
       assert.equal(updatedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
