@@ -83,6 +83,8 @@ export default class Model {
   // NOTE: test also passing new Model() instances
   // TODO: also invalidate the unpersistedReferenceGroup for RelationshipDB.cache() and delete
   // TODO: in future build tests and assertion throw for changing existing primaryKey to smt else and handle null to smt-else(throw if target primarykey exists)
+
+  // revisionHistory should it be from buildObject or existingInstances, or should there be metadata to check
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
@@ -201,7 +203,7 @@ export default class Model {
                 let relationship = RelationshipClass.peek(cache);
                 if (relationship) {
                   relationshipCache.set(this, relationship);
-                  reflectionCache.set(relationship, this);
+                  reflectionCache && reflectionCache.set(relationship, this);
                 }
               } else if (existingRelationshipPrimaryKey !== cache) {
                 // debugger;
@@ -222,7 +224,7 @@ export default class Model {
                   }
                 } else if (existingRelationshipPrimaryKey) {
                   relationshipCache.delete(this);
-                  return reflectionCache.delete(existingRelationship); // NOTE: this maybe not needed(?)
+                  reflectionCache && reflectionCache.delete(existingRelationship); // NOTE: this maybe not needed(?)
                 }
               }
             }
@@ -233,8 +235,13 @@ export default class Model {
       model[columnName] = getTransformedValue(model, columnName, buildObject);
     });
 
+    // NOTE: reference instance
+
+    // let lastPersistedInstance = existingInstances.size > 0
+    //   ? InstanceDB.getLastPersistedInstance(existingInstances, primaryKey)
+    //   : buildObject instanceof this ? buildObject : model;
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
-    Object.keys(relationshipTable).reduce((lastPersistedInstance, relationshipName) => {
+    Object.keys(relationshipTable).forEach((relationshipName) => {
       if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (
@@ -247,15 +254,10 @@ export default class Model {
       } else if (
         primaryKey &&
         ARRAY_ASKING_RELATIONSHIPS.includes(relationshipTable[relationshipName].relationshipType)
+        // && lastPersistedInstance &&
+        // RelationshipDB.has(lastPersistedInstance, relationshipName)
       ) {
-        // NOTE: maybe do it for has one as well(?) get it from related id instance relationship // TODO: write test case for it!!
-        if (lastPersistedInstance === undefined && existingInstances.size > 0) {
-          lastPersistedInstance = InstanceDB.getLastPersistedInstance(existingInstances, primaryKey) || null;
-        }
-
-        if (lastPersistedInstance && RelationshipDB.has(lastPersistedInstance, relationshipName)) {
-          RelationshipDB.set(model, relationshipName, lastPersistedInstance[relationshipName]);
-        }
+        //   RelationshipDB.set(model, relationshipName, lastPersistedInstance[relationshipName]);
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -268,9 +270,7 @@ export default class Model {
           return RelationshipDB.set(model, relationshipName, value);
         },
       });
-
-      return lastPersistedInstance;
-    }, undefined as any);
+    });
 
     existingInstances.add(model);
 
@@ -471,7 +471,7 @@ export default class Model {
       record.#_isDeleted = true;
     }
 
-    return result;
+    return result as Model;
   }
 
   static async saveAll(
@@ -596,7 +596,7 @@ export default class Model {
     return models;
   }
 
-  static async count(options: QueryObject): Promise<number> {
+  static async count(options?: QueryObject): Promise<number> {
     return await this.Adapter.count(this, options);
   }
 

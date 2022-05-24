@@ -285,7 +285,7 @@ module(
 
       secondPhoto.group = null; // firstPhoto.group null doesnt happen
 
-      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
+      assert.equal(updatedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
 
@@ -297,7 +297,7 @@ module(
 
       assert.equal(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
-      assert.ok(updatedGroup.photo instanceof RelationshipPromise);
+      assert.equal(updatedGroup.photo, null);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
 

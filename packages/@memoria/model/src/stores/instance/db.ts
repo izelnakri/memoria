@@ -81,6 +81,6 @@ export default class InstanceDB {
     let existingInstancedByLastAdded = Array.from(existingInstances.values())
       .reverse();
 
-    return existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) || existingInstancedByLastAdded[0];
+    return existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) || existingInstancedByLastAdded[0] || null;
   }
 }
