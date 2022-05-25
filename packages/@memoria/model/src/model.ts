@@ -179,14 +179,7 @@ export default class Model {
             if (belongsToColumnNames.has(columnName)) {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
 
-              if (
-                this[relationshipName] &&
-                !this[relationshipName][RelationshipClass.primaryKeyName]
-              ) {
-                return;
-              }
-
-              // TODO: BUGFIX: these settings are not reflective, make them reflective(!!)
+              // cache is a number or null
               let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
               let existingRelationship = relationshipCache.get(this);
               let existingRelationshipPrimaryKey = existingRelationship &&
@@ -194,38 +187,34 @@ export default class Model {
               let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
               let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "OneToOne")
                 || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
-
-              if (!existingRelationship) {
-                if (cache === null) {
-                  return relationshipCache.set(this, null);
-                }
-
-                let relationship = RelationshipClass.peek(cache);
-                if (relationship) {
-                  relationshipCache.set(this, relationship);
-                  reflectionCache && reflectionCache.set(relationship, this);
-                }
+              if (!relationshipCache.has(this)) {
+                cache === null ? relationshipCache.set(this, null) : null;
               } else if (existingRelationshipPrimaryKey !== cache) {
-                // debugger;
-                RelationshipUtils.cleanRelationshipsOn(
-                  existingRelationship,
-                  this,
-                  metadata,
-                  relationshipCache,
-                  reflectionCache,
-                );
-                // debugger;
-
-                if (cache) {
-                  let relationship = RelationshipClass.peek(cache);
-                  if (relationship) {
-                    relationshipCache.set(this, relationship);
-                    reflectionCache.set(relationship, this);
-                  }
-                } else if (existingRelationshipPrimaryKey) {
-                  relationshipCache.delete(this);
-                  reflectionCache && reflectionCache.delete(existingRelationship); // NOTE: this maybe not needed(?)
+                if (existingRelationship) {
+                  RelationshipUtils.cleanRelationshipsOn(
+                    this,
+                    existingRelationship,
+                    metadata,
+                    relationshipCache,
+                    reflectionCache,
+                    false
+                  );
+                  RelationshipUtils.cleanRelationshipsOn(
+                    existingRelationship,
+                    this,
+                    {
+                      relationshipType: metadata.reverseRelationshipType,
+                      reverseRelationshipType: metadata.relationshipType,
+                      foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
+                      reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
+                    },
+                    reflectionCache,
+                    relationshipCache,
+                    false
+                  );
                 }
+
+                cache ? relationshipCache.delete(this) : relationshipCache.set(this, null);
               }
             }
           },

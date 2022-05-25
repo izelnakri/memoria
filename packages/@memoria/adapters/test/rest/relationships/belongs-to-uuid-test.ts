@@ -274,8 +274,8 @@ module(
 
       let updatedGroup = await RESTGroup.update(insertedGroup);
 
-      assert.deepEqual(insertedGroup.photo, secondPhoto);
-      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.equal(insertedGroup.photo, secondPhoto);
+      assert.equal(updatedGroup.photo, secondPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       assert.equal(secondPhoto.group, updatedGroup);
@@ -283,25 +283,21 @@ module(
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
 
-      updatedGroup.photo = null; // firstPhoto.group null doesnt happen
+      secondPhoto.group = null;
 
-      assert.equal(updatedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
+      assert.equal(updatedGroup.photo, null);
 
+      assert.deepEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
       assert.deepEqual(insertedGroup.photo, secondPhoto);
       assert.deepEqual(group.photo, firstPhoto);
-
-      assert.equal(secondPhoto.group, null);
-      assert.equal(secondPhoto.group_uuid, null);
-
-      assert.equal(firstPhoto.group, updatedGroup);
-      assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
 
       assert.equal(updatedGroup.photo, null);
-      assert.propEqual(deletedGroup.photo, null);
+      assert.equal(await deletedGroup.photo, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
       assert.equal(firstPhoto.group, null);

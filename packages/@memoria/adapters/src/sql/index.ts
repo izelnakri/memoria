@@ -332,7 +332,7 @@ export default class SQLAdapter extends MemoryAdapter {
         });
       }
 
-      if (this.peek(Model, result[Model.primaryKeyName])) {
+      if (Model.Cache.get(result[Model.primaryKeyName])) {
         return await super.delete(
           Model,
           Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,

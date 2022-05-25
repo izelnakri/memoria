@@ -9,4 +9,4 @@ import "./reset-records-fixtures-test.js";
 import "./update-test.js";
 import "./relationships/belongs-to-id-test.js";
 import "./relationships/belongs-to-uuid-test.js";
-import "./relationships/has-one-id-test.js";
+// import "./relationships/has-one-id-test.js";

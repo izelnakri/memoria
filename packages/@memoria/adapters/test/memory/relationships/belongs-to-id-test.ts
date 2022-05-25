@@ -259,8 +259,8 @@ module(
 
       let updatedGroup = await MemoryGroup.update(insertedGroup);
 
-      assert.deepEqual(insertedGroup.photo, secondPhoto);
-      assert.deepEqual(updatedGroup.photo, secondPhoto);
+      assert.equal(insertedGroup.photo, secondPhoto);
+      assert.equal(updatedGroup.photo, secondPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       assert.equal(secondPhoto.group, updatedGroup);
@@ -272,16 +272,12 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
-      assert.equal(await updatedGroup.photo, null);
-
-      assert.deepEqual(insertedGroup.photo, secondPhoto);
-      assert.deepEqual(group.photo, firstPhoto);
-
-      assert.equal(secondPhoto.group, null);
-      assert.equal(secondPhoto.group_id, null);
+      assert.equal(updatedGroup.photo, null);
 
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
+      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.deepEqual(group.photo, firstPhoto);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 

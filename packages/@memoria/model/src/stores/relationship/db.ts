@@ -155,31 +155,35 @@ export default class RelationshipDB {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
             if (
               targetModelInstances.some((model) => this.referenceIsRelatedTo(model, reference, relationshipMetadata))
-              // TODO: filtering needs to be better(?)
+              // NOTE: filtering needs to be better(?)
             ) {
-              let {
-                TargetClass,
-                relationshipName,
-                foreignKeyColumnName,
-                relationshipType,
-                // reverseRelationshipName,
-                // reverseRelationshipType
-              } = relationshipMetadata;
+              let { TargetClass, relationshipName, relationshipType, foreignKeyColumnName } = relationshipMetadata;
               if (['ManyToMany', 'HasMany'].includes(relationshipType)) {
                 // TODO: implement in the future: if instance array exists in the cache(for HasMany or ManyToMany) then change the specific element in the array
                 return;
               }
-              // let existingRelationshipValue = this.findRelationshipCacheFor(TargetModelClass, reverseRelationshipName as string, reverseRelationshipType as string)
-              //   .get(targetModel);
 
               // there is source and model(model is end result), source isnt
+              // console.log('targetModel is');
+              // console.log(targetModel);
+              // console.log('reference is');
+              // console.log(reference);
               if (relationshipType === "BelongsTo") {
-                reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName];
+                // let reflectionCache = this.findRelationshipCacheFor(TargetModelClass, relationshipMetadata.reverseRelationshipName as string, relationshipMetadata.reverseRelationshipType as string)
+                // let existingValue = reflectionCache.get(targetModel);
+
+                reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName]; // TODO: this should trigger reflection(?)
               }
 
               // TODO: this updates all to targetModel, is that correct(?)
+              // reference[relationshipName] = targetModel;
+
               this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType)
-                .set(reference, targetModel);
+                .set(reference, targetModel); // TODO: this is not reflective
+              // this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType)
+              //   .set(reference, targetModel); // TODO: this is not reflective
+
+              // make this reflexive setting(?)
             }
           });
         });
@@ -282,8 +286,7 @@ export default class RelationshipDB {
 
   static has(model: Model, relationshipName: string, metadata?: RelationshipMetadata) {
     let Class = model.constructor as typeof Model;
-    let { relationshipType } =
-      metadata || RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+    let { relationshipType } = metadata || RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
 
     return RelationshipDB[`instanceRecords${relationshipType}Cache`]
       .get(`${Class.name}:${relationshipName}`)
