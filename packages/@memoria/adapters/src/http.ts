@@ -314,7 +314,6 @@ function deserializeModel(Model, input, results) {
 }
 
 function synchronizePayloadForBuild(Model, input, result) {
-  debugger;
   return Model && result && input instanceof Model
     ? Model.assign(input, result)
     : result;

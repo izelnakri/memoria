@@ -159,7 +159,7 @@ export default class MemoryAdapter {
           : result;
       }, [] as MemoriaModel[]);
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      let model = Model.Cache.get(primaryKey);
+      let model = Model.Cache.get(primaryKey) || null;
 
       return model && this.returnWithCacheEviction(model, options);
     }
@@ -175,7 +175,7 @@ export default class MemoryAdapter {
     let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
     let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) =>
       comparison(model, queryObject, keys, 0)
-    );
+    ) || null;
 
     return model && this.returnWithCacheEviction(model, options);
   }
@@ -288,7 +288,6 @@ export default class MemoryAdapter {
         return result;
       }, record.isFrozen ? Model.build(record) : record);
 
-      debugger;
       return this.cache(Model, target, options);
     }
 
@@ -415,9 +414,11 @@ export default class MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
           return resolve(
-            RelationshipClass.peekBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            }) || null
+            model[Model.primaryKeyName]
+              ? RelationshipClass.peekBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+              : null
           );
         }
 

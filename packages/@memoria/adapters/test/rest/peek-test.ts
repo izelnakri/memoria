@@ -169,7 +169,6 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
       assert.propEqual(RESTPhoto.peekBy({ is_public: false }), firstPhoto);
-      debugger;
       assert.propEqual(RESTPhoto.peekBy(firstPhoto), firstPhoto);
       assert.propEqual(RESTPhoto.peekBy({ name: "Family photo", href: "family-photo.jpeg" }), RESTPhoto.build({
         id: 2,
