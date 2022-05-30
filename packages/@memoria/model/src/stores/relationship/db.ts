@@ -54,27 +54,28 @@ export default class RelationshipDB {
       .get(model);
   }
 
-  // used deciding whether record should be fetched for BelongsTo, OneToOne
-  // used for diffing on HasMany, BelongsTo & OneToOne(when done on CCUD and compare with newly obtained)
-  static generateRelationshipFromPersistence(model: Model, relationshipName: string) { // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos') #=> Photo[]
+  // NOTE: used deciding whether record should be fetched for BelongsTo, OneToOne
+  // NOTE: could be used for diffing on HasMany, BelongsTo & OneToOne(when done on CCUD and compare with newly obtained)
+  static generateRelationshipFromPersistence(model: Model, relationshipName: string, relationshipMetadata?: RelationshipMetadata) { // Example: RelationshipDB.generateRelationshipFromPersistence(user, 'photos') #=> Photo[]
     let Class = model.constructor as typeof Model;
-    let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+    let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
     let { RelationshipClass, relationshipType, reverseRelationshipForeignKeyColumnName } = metadata;
     if (relationshipType === "BelongsTo") {
       return (
         metadata.foreignKeyColumnName &&
         model[metadata.foreignKeyColumnName] &&
-        RelationshipClass.peek(model[metadata.foreignKeyColumnName])
+        associate(RelationshipClass.peek(model[metadata.foreignKeyColumnName]) as Model | void, model, relationshipName) // NOTE: and associate
       )
     }
 
     let primaryKey = model[Class.primaryKeyName];
     if (!primaryKey) {
-      return;
+      return null;
     } else if (relationshipType === "OneToOne") {
       return (
+        primaryKey &&
         reverseRelationshipForeignKeyColumnName &&
-        RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey })
+        associate(RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey }), model, relationshipName) // NOTE: and associate
       );
     } else if (relationshipType === "HasMany") {
       // NOTE: this could be problematic
@@ -174,7 +175,6 @@ export default class RelationshipDB {
 
                 reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName]; // TODO: this should trigger reflection(?)
               }
-
               // TODO: this updates all to targetModel, is that correct(?)
               // reference[relationshipName] = targetModel;
 
@@ -313,7 +313,9 @@ export default class RelationshipDB {
         let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: necessary for .reload() otherwise references finalized promise
         try {
           let relationship = await reference;
-          cache.set(model, relationship);
+          if (relationship) {
+            cache.set(model, relationship);
+          }
 
           resolve(relationship);
         } catch (error) {
@@ -323,7 +325,9 @@ export default class RelationshipDB {
     } else {
       // NOTE: Removing this is currently tricky but this could be a nice lazy optimization:
       // maybe check has here
-      cache.set(model, reference);
+      if (reference) {
+        cache.set(model, reference);
+      }
 
       return reference;
     }
@@ -353,9 +357,6 @@ export default class RelationshipDB {
       return model;
     }
 
-    // let previousRelationship = cache.get(model);
-    // let previousRelationship = model[relationshipName];
-    // TODO: for reflexive clear previous reference(2 sides), add cache, add new reference
     let targetRelationship = formatInput(input, metadata.relationshipType);
     if (existingRelationship === targetRelationship) { // null === null
       if (targetRelationship && reverseRelationshipName) {
@@ -407,20 +408,22 @@ function buildReferenceFromPersistedCacheOrFetch(
       return null;
     }
 
-    foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName);
+    foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName); // now returns null
+
+    return foundValue ? foundValue : Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   } else if (relationshipType === "OneToOne") {
     foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName);
     if (foundValue || foundValue === null) {
       return foundValue;
     }
 
-    foundValue = computeFromPreviousReference(model, relationshipName);
+    // foundValue = computeFromPreviousReference(model, relationshipName); // NOTE: This should always create a new record if found!! Just like others for uniformity
+    // debugger;
+    // if (foundValue || foundValue === null) {
+    //   return foundValue;
+    // }
   } else if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
-    return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
-  }
-
-  if (foundValue || foundValue === null) {
-    return foundValue;
+    // return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   }
 
   return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
@@ -429,7 +432,23 @@ function buildReferenceFromPersistedCacheOrFetch(
 function computeFromPreviousReference(model, relationshipName) {
   let references = Array.from(InstanceDB.getReferences(model));
   // let targetReference = model.revisionHistory[model.revisionHistory.length - 1];
-  let targetReference = references.reverse().find((reference) => reference !== model && !reference.isDirty);
+  let targetReference = references.reverse().find((reference) => {
+    // return reference !== model && !reference.isDirty;
+
+    if (reference !== model && !reference.isDirty) {
+      // let relationship = RelationshipDB.findRelationshipFor(targetReference, relationshipName, "OneToOne");
+      // // let foreignKeyColumnName =
+      // if (relationship && relationship[foreignKeyColumnName] model[(relationship.constructor as typeof Model).primaryKeyName]
+    }
+  });
 
   return targetReference && RelationshipDB.findRelationshipFor(targetReference, relationshipName, "OneToOne");
 }
+
+ function associate(targetModel: Model | void, model: Model, relationshipName: string) {
+   if (targetModel) {
+     model[relationshipName] = targetModel;
+
+     return targetModel;
+   }
+ }

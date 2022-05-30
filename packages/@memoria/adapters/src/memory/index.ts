@@ -401,6 +401,7 @@ export default class MemoryAdapter {
       RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
+    // NOTE: these always create new instances, we want this to happen
     return new RelationshipPromise(async (resolve, reject) => {
       if (relationshipType === "BelongsTo") {
         let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
@@ -426,6 +427,7 @@ export default class MemoryAdapter {
       } else if (relationshipType === "HasMany") {
         if (reverseRelationshipName) {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+
           return resolve(
             RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
           );

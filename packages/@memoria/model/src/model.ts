@@ -5,7 +5,7 @@ import Changeset from "./changeset.js";
 import RevisionHistory from "./revision-history.js";
 import Serializer, { transformValue } from "./serializer.js";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipUtils, InstanceDB } from "./stores/index.js";
+import { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipUtils, RelationshipQuery, InstanceDB } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
@@ -46,7 +46,7 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
-  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB, InstanceDB };
+  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipQuery, InstanceDB };
 
   static get Cache() {
     return DB.getDB(this);
@@ -179,17 +179,21 @@ export default class Model {
             if (belongsToColumnNames.has(columnName)) {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
 
-              // cache is a number or null
+              // cache(foreign_key) cant be a number or null, but can mutate when passed in to these functions:
               let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
               let existingRelationship = relationshipCache.get(this);
-              let existingRelationshipPrimaryKey = existingRelationship &&
-                existingRelationship[RelationshipClass.primaryKeyName];
-              let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
-              let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "OneToOne")
-                || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
+              let existingRelationshipPrimaryKey = existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
+
               if (!relationshipCache.has(this)) {
-                cache === null ? relationshipCache.set(this, null) : null;
+                // if (cache === null) {
+                //   return relationshipCache.set(this, null)
+                // }
+
+                // check if relationship with photo.group_id = 5 exists, clean it and set it here(?)
               } else if (existingRelationshipPrimaryKey !== cache) {
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
+                let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "OneToOne")
+                  || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
                 if (existingRelationship) {
                   RelationshipUtils.cleanRelationshipsOn(
                     this,
@@ -199,22 +203,10 @@ export default class Model {
                     reflectionCache,
                     false
                   );
-                  RelationshipUtils.cleanRelationshipsOn(
-                    existingRelationship,
-                    this,
-                    {
-                      relationshipType: metadata.reverseRelationshipType,
-                      reverseRelationshipType: metadata.relationshipType,
-                      foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
-                      reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
-                    },
-                    reflectionCache,
-                    relationshipCache,
-                    false
-                  );
                 }
 
-                cache ? relationshipCache.delete(this) : relationshipCache.set(this, null);
+                relationshipCache.delete(this);
+                // cache ? relationshipCache.delete(this) : relationshipCache.set(this, null);
               }
             }
           },
