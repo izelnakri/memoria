@@ -228,8 +228,10 @@ export default class Model {
       } else if (
         buildObject &&
         buildObject instanceof this &&
-        RelationshipDB.has(buildObject, relationshipName) &&
-        !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise)
+        RelationshipDB.has(buildObject, relationshipName)
+        // &&
+        // RelationshipDB.get(buildObject as Model, relationshipName) // NOTE: this can be removed(?)
+        // !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise) // NOTE: this can be removed(?)
       ) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
       } else if (
@@ -680,7 +682,7 @@ export default class Model {
     return new Changeset(this, this.changes);
   }
 
-  get fetchedRelationships() {
+  get fetchedRelationships() { // TODO: this wont take the null records(!!!)
     let Class = this.constructor as typeof Model;
     let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
 

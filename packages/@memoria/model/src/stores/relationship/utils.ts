@@ -159,14 +159,19 @@ export default class RelationshipUtils {
       });
 
       // relationshipInstances should be all relationship references in this case(4)
-      relationshipInstances.forEach((existingTargetRelationshipReference) => { // targetRelationshipInstance (once)
-        // reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
-        if (otherSourceReference) {
-          reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
-        } else {
-          reflectionCache.delete(existingTargetRelationshipReference);
-        }
-      });
+      // noo only do it if reference is not in the same source group
+      if (reverseRelationshipName) {
+        relationshipInstances.forEach((existingTargetRelationshipReference) => { // targetRelationshipInstance (once)
+          // reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
+          if (otherSourceReference) {
+            reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
+          } else {
+            reflectionCache.delete(existingTargetRelationshipReference);
+          }
+
+          //
+        });
+      }
     } else if (relationshipType === 'OneToOne') {
       relationshipInstances.forEach((existingTargetRelationshipReference) => { // sourceInstance
         // reflectionCache.set(existingTargetRelationshipReference, otherSourceReference);
@@ -241,7 +246,7 @@ function findBelongsToRelationshipsFor(
   reflectionCache,
   relationshipType
 ) {
-  if (!relationshipCache) {
+  if (!reflectionCache) {
     return [];
   } else if (relationshipType === 'OneToOne') {
     let result = new Set() as Set<Model[]>
@@ -270,7 +275,7 @@ function findOneToOneRelationshipFor(
   reflectionCache,
   relationshipType
 ) {
-  if (!relationshipCache) {
+  if (!reflectionCache) {
     return [];
   } else if (relationshipType === 'BelongsTo') {
     let result = new Set() as Set<Model[]>

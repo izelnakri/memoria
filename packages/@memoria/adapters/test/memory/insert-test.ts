@@ -353,7 +353,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
           assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.photo, groupPhoto); // TODO: this fails at group.photo!!
         }
       });
 

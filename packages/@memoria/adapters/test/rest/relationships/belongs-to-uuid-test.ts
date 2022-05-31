@@ -287,11 +287,11 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
-      assert.equal(updatedGroup.photo, null);
+      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
 
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
-      assert.deepEqual(insertedGroup.photo, secondPhoto);
+      assert.notEqual(insertedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
       assert.deepEqual(group.photo, firstPhoto);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);

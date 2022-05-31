@@ -250,8 +250,9 @@ export default class MemoryAdapter {
       });
     }
 
-    // NOTE: maybe move part of the following logic to model instead of MemoryAdapter:
-    let cachedRecord = Model.build(assignDefaultValuesForInsert(targetRecord, Model), targetOptions);
+    let cachedRecord = Model.build(assignDefaultValuesForInsert(targetRecord, Model), targetOptions); // TODO: this will have the relationships as they are taken from fetchedRelationships
+
+    // NOTE: this has caches, do we want this(?!), probably not
 
     Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
