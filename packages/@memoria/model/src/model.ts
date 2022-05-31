@@ -131,21 +131,61 @@ export default class Model {
             let targetValue = value === undefined ? null : value;
             if (this[columnName] === targetValue) {
               return;
-            } else if (primaryKey && !(columnName in this.changes)) {
-              console.warn(`You are changing the ${Class.name} instance ${primaryKeyName}:${primaryKey} to ${primaryKeyName}:${targetValue}. This is not tested!`);
-              throw new Error(`You are changing the ${Class.name} instance ${primaryKeyName}:${primaryKey} to ${primaryKeyName}:${targetValue}. This is not tested!`);
+            } else if (Class.Cache.get(primaryKey)) {
+              throw new Error(`${Class.name}:${primaryKey} exists in persisted cache, you can't make this records ${columnName}: null without unloading it from cache`);
+            } else if (targetValue === null) {
+              let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);
+              if (foundKnownReferences) {
+                InstanceDB.getAllKnownReferences(Class).delete(primaryKey);
+                InstanceDB.getAllUnknownInstances(Class).push(existingInstances);
+
+                existingInstances.forEach((instance) => {
+                  if (instance !== this) {
+                    instance[columnName] = null;
+                  }
+                });
+              }
+
+              primaryKey = targetValue;
+
+              return attributeTrackingEnabledForModel && dirtyTrackAttribute(this, columnName, targetValue);
             }
 
+            let knownReferencesForTargetValue = InstanceDB.getAllKnownReferences(Class).get(targetValue);
+            if (knownReferencesForTargetValue && knownReferencesForTargetValue !== existingInstances) {
+              throw new Error(`${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`);
+            }
+
+            let oldPrimaryKey = primaryKey;
             primaryKey = targetValue;
 
             if (attributeTrackingEnabledForModel) {
               dirtyTrackAttribute(this, columnName, targetValue);
             }
 
-            // NOTE: this is not tested
+            if (knownReferencesForTargetValue) {
+              return;
+            } else if (oldPrimaryKey) {
+              InstanceDB.getAllKnownReferences(Class).delete(oldPrimaryKey);
+              InstanceDB.getAllKnownReferences(Class).set(primaryKey, existingInstances)
+
+              return existingInstances.forEach((instance) => {
+                if (instance !== this) {
+                  instance[columnName] = primaryKey;
+                }
+              });
+            }
+
             let unknownInstances = InstanceDB.getAllUnknownInstances(Class);
             if (unknownInstances.includes(existingInstances)) {
               removeFromArray(unknownInstances, existingInstances);
+
+              existingInstances.forEach((instance) => {
+                if (instance !== this) {
+                  instance[columnName] = primaryKey;
+                }
+              });
+
               InstanceDB.getAllKnownReferences(Class).set(targetValue, existingInstances as Set<Model>);
             }
           }
