@@ -71,20 +71,22 @@ export default class RelationshipUtils {
       this.cleanRelationshipsOn(model, previousRelationship, metadata, relationshipCache, reverseRelationshipCache); // TODO: this doesnt clean insertedGroup on OneToOne, model is updatedGroup, previousRelationship is secondPhoto
     }
 
-    if (targetRelationship) {
-      this.cleanRelationshipsOn(
-        targetRelationship as Model,
-        model,
-        {
-          relationshipType: reverseRelationshipType,
-          reverseRelationshipType: metadata.relationshipType,
-          foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
-          reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
-        },
-        reverseRelationshipCache,
-        relationshipCache,
-      );
-    }
+    // TODO: maybe do this?!?
+    // if (targetRelationship) {
+    //   this.cleanRelationshipsOn(
+    //     targetRelationship as Model,
+    //     model,
+    //     {
+    //       relationshipType: reverseRelationshipType,
+    //       reverseRelationshipType: metadata.relationshipType,
+    //       reverseRelationshipName: metadata.relationshipName,
+    //       foreignKeyColumnName: metadata.reverseRelationshipForeignKeyColumnName,
+    //       reverseRelationshipForeignKeyColumnName: metadata.foreignKeyColumnName,
+    //     },
+    //     reverseRelationshipCache,
+    //     relationshipCache,
+    //   );
+    // }
 
     relationshipCache.set(model, targetRelationship);
 
@@ -114,7 +116,7 @@ export default class RelationshipUtils {
   static cleanRelationshipsOn(
     source: Model,
     existingRelationship: Model,
-    { foreignKeyColumnName, relationshipName, reverseRelationshipForeignKeyColumnName, relationshipType },
+    { foreignKeyColumnName, relationshipName, reverseRelationshipName, reverseRelationshipForeignKeyColumnName, relationshipType },
     relationshipCache,
     reflectionCache,
     mutateForeignKey = true

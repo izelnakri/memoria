@@ -99,9 +99,10 @@ module(
         assert.strictEqual(targetPhotoCopy.group_id, null);
         assert.equal(targetPhotoCopy.group, null);
 
-        await Promise.all([
-          group, insertedGroup, secondGroup, copiedSecondGroup, thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup
-        ].map(async (targetGroup) => {
+        await Promise.all([thirdInsertedGroup, thirdUpdatedGroup, thirdCopiedGroup].map(async (targetGroup) => {
+          assert.strictEqual(targetGroup.photo, targetPhoto);
+        }));
+        await Promise.all([group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, null);
         }));
 
@@ -254,7 +255,7 @@ module(
         }));
 
         await Promise.all([group, insertedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, null);
+          assert.strictEqual(targetGroup.photo, targetPhoto);
         }));
 
         await Promise.all([thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
@@ -272,7 +273,6 @@ module(
         }));
       });
 
-      // TODO: this needs update eventually
       test("set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
         let context = generateModels();
         let { MemoryPhoto, MemoryGroup } = context;
@@ -291,7 +291,7 @@ module(
         let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
         let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
-        assert.strictEqual(await group.photo, null);
+        assert.equal(await group.photo, null);
 
         assert.strictEqual(targetPhoto.group_id, thirdInsertedGroup.id);
         assert.strictEqual(targetPhoto.group, thirdUpdatedGroup);
@@ -330,8 +330,7 @@ module(
 
         let mockGroup = MemoryGroup.build({ id: 999999, name: "Mock Group" });
 
-        assert.ok(targetPhoto.group instanceof RelationshipPromise);
-        assert.strictEqual(await targetPhoto.group, null); // NOTE: BelongsTo in-memory registration would be helpful, because peek() doesnt return // NOTE:: should this be mockGroup reference(?) very tricky to implement
+        assert.strictEqual(targetPhoto.group, mockGroup);
         assert.strictEqual(targetPhoto.group_id, 999999);
 
         let insertedMockGroup = await MemoryGroup.insert(mockGroup);
@@ -340,7 +339,6 @@ module(
         assert.strictEqual(targetPhoto.group_id, 999999);
       });
 
-      // TODO: this needs update eventually
       test("set model with instance fkey (that doesnt exist) to null works", async function (assert) {
         let context = generateModels();
         let { MemoryPhoto, MemoryGroup } = context;
@@ -369,7 +367,6 @@ module(
         assert.strictEqual(targetPhoto.group, null);
       });
 
-      // TODO: this needs update eventually
       test("set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
         let context = generateModels();
         let { MemoryPhoto, MemoryGroup } = context;
@@ -419,7 +416,7 @@ module(
         }));
 
         await Promise.all([group, insertedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, null); // TODO: Could this be a big problem(?). It creates new instance, OneToOne in-memory registration would be helpful, because peek() doesnt return, it should be targetGroup.photo == targetPhoto
+          assert.strictEqual(targetGroup.photo, targetPhoto);
         }));
 
         let cachedInsertedPhoto = MemoryPhoto.Cache.get(insertedGroup.id);
@@ -436,8 +433,7 @@ module(
         let lastPhoto = await MemoryPhoto.update(targetPhoto); // photos group_ids should all be insertedGroup or new cache(?)
 
         await Promise.all([group, insertedGroup].map(async (targetGroup) => {
-          assert.notStrictEqual(await targetGroup.photo, lastPhoto); // in a reactive system, getter gets recalled, otherwise it should be check again(not directly mutated today)
-          assert.deepEqual(await targetGroup.photo, targetPhoto);
+          assert.strictEqual(await targetGroup.photo, lastPhoto);
         }));
 
         await Promise.all([secondGroup, copiedSecondGroup].map(async (targetGroup) => {

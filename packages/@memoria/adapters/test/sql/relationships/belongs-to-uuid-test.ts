@@ -195,7 +195,6 @@ module(
       assert.equal(deletedPhoto.owner, null);
     });
 
-    // // TODO: insert() generates 3 instances when instance is provided, make it 2
     test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
       let { SQLGroup, SQLPhoto } = setupSQLModels();
@@ -251,11 +250,11 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
-      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
+      assert.strictEqual(updatedGroup.photo, firstPhoto);
 
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
-      assert.notEqual(insertedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       let deletedGroup = await SQLGroup.delete(updatedGroup);

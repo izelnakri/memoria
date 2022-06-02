@@ -43,7 +43,7 @@ module(
       assert.deepEqual(insertedPhoto.owner, user);
       assert.deepEqual(insertedPhoto.owner, insertedUser);
 
-      assert.ok(user !== insertedUser);
+      assert.notStrictEqual(user, insertedUser);
     });
 
     test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
@@ -88,7 +88,7 @@ module(
 
       assert.equal(user.first_name, "Izel");
       assert.notOk(photo.isNew);
-      assert.equal(photo.owner, user);
+      assert.strictEqual(photo.owner, user);
       assert.equal(photo.owner_id, user.id);
 
       let fetchedPhoto = await MemoryPhoto.find(photo.id);
@@ -105,7 +105,7 @@ module(
 
       assert.deepEqual(fetchedPhoto.owner, newOwner);
       assert.equal(fetchedPhoto.owner_id, null);
-      assert.equal(photo.owner, user);
+      assert.strictEqual(photo.owner, user);
       assert.equal(photo.owner_id, user.id);
 
       let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
@@ -240,7 +240,7 @@ module(
       let insertedGroup = await MemoryGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
 
       assert.deepEqual(insertedGroup.photo, firstPhoto);
-      assert.equal(group.photo, insertedGroup.photo);
+      assert.strictEqual(group.photo, insertedGroup.photo);
       assert.deepEqual(group.photo, firstPhoto);
 
       assert.deepEqual(firstPhoto.group, insertedGroup);
@@ -259,11 +259,11 @@ module(
 
       let updatedGroup = await MemoryGroup.update(insertedGroup);
 
-      assert.equal(insertedGroup.photo, secondPhoto);
-      assert.equal(updatedGroup.photo, secondPhoto);
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(updatedGroup.photo, secondPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
-      assert.equal(secondPhoto.group, updatedGroup);
+      assert.strictEqual(secondPhoto.group, updatedGroup);
       assert.equal(secondPhoto.group_id, updatedGroup.id);
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
@@ -273,11 +273,11 @@ module(
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
 
-      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: assert.equal(updatedGroup.photo, firstPhoto);  // assert.notEqual(await updatedGroup.photo, secondPhoto); // TODO: then it should be firstPhoto but not because cached foreignKey value isn't it.
+      assert.deepEqual(updatedGroup.photo, firstPhoto);
 
       assert.deepEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
-      assert.deepEqual(await insertedGroup.photo, null); // TODO: assert.equal(insertedPhoto.photo, firstPhoto);
+      assert.deepEqual(insertedGroup.photo, firstPhoto); // TODO: assert.strictEqual(insertedPhoto.photo, firstPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
@@ -309,28 +309,28 @@ module(
       let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
       assert.ok(photo.isNew);
-      assert.equal(photo.owner, secondUser);
+      assert.strictEqual(photo.owner, secondUser);
       assert.equal(photo.owner_id, secondUser.id);
 
       photo.owner = firstUser;
 
-      assert.equal(photo.owner, firstUser);
+      assert.strictEqual(photo.owner, firstUser);
       assert.equal(photo.owner_id, firstUser.id);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
-      assert.equal(insertedPhoto.owner, firstUser);
-      assert.equal(photo.owner, insertedPhoto.owner);
+      assert.strictEqual(insertedPhoto.owner, firstUser);
+      assert.strictEqual(photo.owner, insertedPhoto.owner);
 
       insertedPhoto.owner = secondUser;
 
-      assert.equal(insertedPhoto.owner, secondUser);
+      assert.strictEqual(insertedPhoto.owner, secondUser);
       assert.equal(insertedPhoto.owner_id, secondUser.id);
 
       let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
 
-      assert.equal(updatedPhoto.owner, secondUser);
-      assert.equal(insertedPhoto.owner, secondUser);
+      assert.strictEqual(updatedPhoto.owner, secondUser);
+      assert.strictEqual(insertedPhoto.owner, secondUser);
 
       updatedPhoto.owner = null;
 

@@ -12,6 +12,7 @@
 import Model from "../../model.js";
 import RelationshipSchema, { ARRAY_ASKING_RELATIONSHIPS } from "./schema.js";
 import RelationshipUtils from "./utils.js";
+import RelationshipQuery from "./query.js";
 import { RelationshipPromise } from "../../promises/index.js";
 import InstanceDB from "../instance/db.js";
 import ArrayIterator from "../../utils/array-iterator.js";
@@ -307,10 +308,10 @@ export default class RelationshipDB {
       return null;
     }
 
-    let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: optimize this
+    let reference = buildReferenceFromPersistedCacheOrMemoryOrFetch(model, relationshipName, metadata); // NOTE: optimize this
     if (reference instanceof Promise) {
       return new RelationshipPromise(async (resolve, reject) => {
-        let reference = buildReferenceFromPersistedCacheOrFetch(model, relationshipName, metadata); // NOTE: necessary for .reload() otherwise references finalized promise
+        let reference = buildReferenceFromPersistedCacheOrMemoryOrFetch(model, relationshipName, metadata); // NOTE: necessary for .reload() otherwise references finalized promise
         try {
           let relationship = await reference;
           if (relationship) {
@@ -392,7 +393,7 @@ function formatInput(input, relationshipType) {
   return input instanceof Model ? input : null;
 }
 
-function buildReferenceFromPersistedCacheOrFetch(
+function buildReferenceFromPersistedCacheOrMemoryOrFetch(
   model: Model,
   relationshipName: string,
   metadata?: RelationshipMetadata
@@ -408,7 +409,8 @@ function buildReferenceFromPersistedCacheOrFetch(
       return null;
     }
 
-    foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName); // now returns null
+    foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName)
+      || RelationshipQuery.findPossibleReferenceInMemory(model, relationshipName, relationshipMetadata); // look up cache, then lookup memory instances
 
     return foundValue ? foundValue : Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   } else if (relationshipType === "OneToOne") {
@@ -417,32 +419,13 @@ function buildReferenceFromPersistedCacheOrFetch(
       return foundValue;
     }
 
-    // foundValue = computeFromPreviousReference(model, relationshipName); // NOTE: This should always create a new record if found!! Just like others for uniformity
-    // debugger;
-    // if (foundValue || foundValue === null) {
-    //   return foundValue;
-    // }
+    foundValue = RelationshipQuery.findPossibleReferenceInMemory(model, relationshipName, relationshipMetadata);
+    return foundValue ? foundValue : Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   } else if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
     // return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   }
 
   return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
-}
-
-function computeFromPreviousReference(model, relationshipName) {
-  let references = Array.from(InstanceDB.getReferences(model));
-  // let targetReference = model.revisionHistory[model.revisionHistory.length - 1];
-  let targetReference = references.reverse().find((reference) => {
-    // return reference !== model && !reference.isDirty;
-
-    if (reference !== model && !reference.isDirty) {
-      // let relationship = RelationshipDB.findRelationshipFor(targetReference, relationshipName, "OneToOne");
-      // // let foreignKeyColumnName =
-      // if (relationship && relationship[foreignKeyColumnName] model[(relationship.constructor as typeof Model).primaryKeyName]
-    }
-  });
-
-  return targetReference && RelationshipDB.findRelationshipFor(targetReference, relationshipName, "OneToOne");
 }
 
  function associate(targetModel: Model | void, model: Model, relationshipName: string) {

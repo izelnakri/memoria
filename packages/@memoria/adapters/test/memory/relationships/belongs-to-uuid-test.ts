@@ -214,7 +214,6 @@ module(
       assert.equal(deletedPhoto.owner_uuid, null);
     });
 
-    // TODO: insert() generates 3 instances when instance is provided, make it 2
     test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
@@ -269,11 +268,11 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_uuid, null);
-      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
+      assert.strictEqual(updatedGroup.photo, firstPhoto);
 
       assert.equal(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
-      assert.notEqual(insertedGroup.photo, secondPhoto); // TODO: check the value to be firstPhoto instead of notEqual
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);

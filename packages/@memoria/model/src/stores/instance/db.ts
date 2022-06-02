@@ -36,7 +36,8 @@ export default class InstanceDB {
 
     return model[Class.primaryKeyName] ?
       this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model> :
-      this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) as Set<Model>;
+      this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model))
+        || Array.from(this.getAllKnownReferences(Class).values()).find((set) => set.has(model)) as Set<Model>;
   }
 
   static getOrCreateExistingInstancesSet(model: Model, buildObject: JSObject, primaryKey?: PrimaryKey) {

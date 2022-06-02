@@ -230,7 +230,6 @@ module(
       assert.equal(deletedPhoto.owner_id, null);
     });
 
-    // TODO: insert() generates 3 instances when instance is provided, make it 2
     test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       // when there is hasOne the reflection cache should print warning! two models can have the same belongs_to in a table but should there be check for hasOne reflection(?)
       let { Server, RESTPhoto, RESTUser, RESTGroup } = setupRESTModels();
@@ -287,9 +286,9 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
-      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: assert.equal(updatedGroup.photo, secondPhoto);  // assert.notEqual(await updatedGroup.photo, secondPhoto); // TODO: then it should be firstPhoto but not because cached foreignKey value isn't it.
+      assert.strictEqual(updatedGroup.photo, firstPhoto);
 
-      assert.notEqual(insertedGroup.photo, secondPhoto); // TODO: assert.equal(insertedGroup.photo, secondPhoto);  // assert.notEqual(await updatedGroup.photo, secondPhoto); // TODO: then it should be firstPhoto but not because cached foreignKey value isn't it.
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       assert.equal(secondPhoto.group, null);

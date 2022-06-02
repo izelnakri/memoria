@@ -246,7 +246,7 @@ module(
       assert.equal(secondPhoto.group_id, group.id);
       assert.deepEqual(group.photo, firstPhoto);
 
-      let insertedGroup = await SQLGroup.insert(group); // NOTE: there has to be 2 instances but there is 3
+      let insertedGroup = await SQLGroup.insert(group);
 
       assert.deepEqual(insertedGroup.photo, firstPhoto);
       assert.equal(insertedGroup.photo, group.photo);
@@ -281,9 +281,9 @@ module(
 
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
-      assert.notEqual(updatedGroup.photo, secondPhoto); // TODO: assert.equal(updatedGroup.photo, secondPhoto);  // assert.notEqual(await updatedGroup.photo, secondPhoto); // TODO: then it should be firstPhoto but not because cached foreignKey value isn't it.
+      assert.strictEqual(updatedGroup.photo, firstPhoto);
 
-      assert.notEqual(insertedGroup.photo, secondPhoto); // TODO: assert.equal(updatedGroup.photo, secondPhoto);  // assert.notEqual(await updatedGroup.photo, secondPhoto); // TODO: then it should be firstPhoto but not because cached foreignKey value isn't it.
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
       assert.deepEqual(group.photo, firstPhoto);
 
       assert.equal(secondPhoto.group, null);
