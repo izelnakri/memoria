@@ -84,7 +84,9 @@ module("@memoria/model | HasManyArray", function (hooks) {
     test('new HasManyArray(param) throws on wrong param types', async function (assert) {
       const { Photo } = generateModels();
 
-      [undefined, true, false, 0, 1, 'a', 100, {}].forEach((value) => {
+      class SomeClass {};
+
+      [undefined, true, false, 0, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
         try {
           new HasManyArray(value);
         } catch (error) {
@@ -93,14 +95,12 @@ module("@memoria/model | HasManyArray", function (hooks) {
         }
       });
 
-      class SomeClass {};
-
-      [SomeClass, new SomeClass(), [undefined], [true], [false], [0], [1], ['a'], [100], [{}]].forEach((classValue) => {
+      [[undefined], [true], [false], [0], [1], ['a'], [100], [{}], [SomeClass], [new SomeClass()]].forEach((classValue) => {
         try {
-          new HasManyArray();
+          new HasManyArray(classValue);
         } catch (error) {
           assert.ok(error instanceof Error);
-          assert.equal(error.message, "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements");
+          assert.equal(error.message, "HasManyArray cannot have non memoria Model instance inside!");
         }
       });
     });
@@ -137,6 +137,85 @@ module("@memoria/model | HasManyArray", function (hooks) {
 
       assert.deepEqual(secondArray, [firstPhoto, secondPhoto, thirdPhoto]);
     });
+
+    test('hasManyArray[hasManyArray.length] = invalidParam; throws', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      class SomeClass {};
+
+      [true, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
+        try {
+          array[array.length] = value;
+        } catch (error) {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+        }
+      });
+    });
+
+    test('hasManyArray[hasManyArray.length] = wrongModel; throws', function (assert) {
+      const { User, Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array[array.length] = User.build({ first_name: "Izel" });
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign User instance!");
+      }
+    });
+
+    test('hasManyArray[hasManyArray.length] = falsyValue; does nothing', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      [undefined, false, 0].forEach((value) => {
+        array[array.length] = value;
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      });
+    });
+
+    test('hasManyArray[hasManyArray.length] = null should do nothing', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let array = new HasManyArray();
+
+      array[0] = null;
+
+      assert.deepEqual(array, []);
+
+      array[0] = firstPhoto;
+
+      assert.deepEqual(array, [firstPhoto]);
+
+      array[1] = null;
+
+      assert.deepEqual(array, [firstPhoto]);
+
+      let secondArray = new HasManyArray([firstPhoto, secondPhoto]);
+
+      assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
+
+      secondPhoto[2] = null;
+
+      assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
+    });
+
 
     test('hasManyArray[hasManyArray.length] = x; replaces a model on the right index when x reference already exists', async function (assert) {
       const { Photo } = generateModels();
@@ -195,34 +274,6 @@ module("@memoria/model | HasManyArray", function (hooks) {
       array[3] = thirdPhoto;
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
-    });
-
-    test('hasManyArray[hasManyArray.length] = null should do nothing', function (assert) {
-      const { Photo } = generateModels();
-
-      let firstPhoto = Photo.build({ name: "First photo" });
-      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
-      let array = new HasManyArray();
-
-      array[0] = null;
-
-      assert.deepEqual(array, []);
-
-      array[0] = firstPhoto;
-
-      assert.deepEqual(array, [firstPhoto]);
-
-      array[1] = null;
-
-      assert.deepEqual(array, [firstPhoto]);
-
-      let secondArray = new HasManyArray([firstPhoto, secondPhoto]);
-
-      assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
-
-      secondPhoto[2] = null;
-
-      assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
     });
 
     test('hasManyArray[x] = y; throws when y is not a correct value', function (assert) {

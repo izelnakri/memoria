@@ -1,3 +1,4 @@
+// TODO: add splice tests directly before anything
 import InstanceDB from "./stores/instance/db.js";
 import Model from "./model.js";
 
@@ -20,13 +21,33 @@ import Model from "./model.js";
 // TODO: tests for push(void), push(newModel), push(modelWithExistingInstance), push(modelWrongInstance), pop, shift, splice, unshift, clear, addObjects, remove/delete(?)
 
 // NOTE: do we want to batch also relationships assignments(?) -> probably not for now
+
+// NOTE: things that can return *this*:
+// - HasManyArray.add
+// - HasManyArray.replace
+// - HasManyArray.remove
+// - Mixin functions could also be here, they should be in instance too because thats JS.
+
+// NOTE: things that can return mutation metadata(these could be the actual optimized relationship mutation paths(?)):
+// should they return metadata or this(?)
+// - add() -> //-> added or replaced(true | false)
+// - replace() // -> actual removal count, actual addition, actual replacementIndexes[]
+// - remove -> // -> [Model] // found and removed models
 export default class HasManyArray extends Array {
   static get [Symbol.species]() {
     return Array;
   }
 
   #relationshipMetadata; // -> relationshipMetadata: this could cache the lookup for remaining stuff
+  #spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
+
+  get spliceCallOnNullSetting() {
+    return this.#spliceCallOnNullSetting;
+  }
+  set spliceCallOnNullSetting(value) {
+    this.#spliceCallOnNullSetting = value;
+  }
 
   constructor(array?: Array<Model> | Set<Model>) {
     super();
@@ -48,7 +69,7 @@ export default class HasManyArray extends Array {
         if (typeof propertyName !== 'symbol') {
           let targetIndex = Number(propertyName);
           if (!isNaN(targetIndex)) {
-            console.log('SET[x] CALLED');
+            console.log('SET[x] CALLED for x:index');
 
             if (targetIndex > self.length) {
               throw new Error(`You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`);
@@ -56,9 +77,12 @@ export default class HasManyArray extends Array {
               if (value) {
                 throw new Error(`HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
               } else if (targetIndex !== self.length) {
-                // TODO: instead this should just remove it!!, figure out how to remove
-
-                self.splice(targetIndex, 1); // TODO: splice should do this: RelationshipDB.removeFromHasManyArray(targetIndex, self);
+                // NOTE: following if check needed because no way to differentiate user generated null setting and internal generated null setting
+                if (self.spliceCallOnNullSetting) {
+                  self.splice(targetIndex, 1); // TODO: splice should do this: RelationshipDB.removeFromHasManyArray(targetIndex, self);
+                } else {
+                  self[targetIndex] = null;
+                }
               }
 
               return true;
@@ -110,7 +134,8 @@ export default class HasManyArray extends Array {
             return true;
           } else if (propertyName === 'length') {
             if (value < self.length) {
-              self.splice(value, self.length - value); // NOTE: assuming .splice() calls the RelationshipDB
+              // TODO: register model removals here
+              target[propertyName] = value;
 
               return true;
             } else if (value !== self.length && !pushLengthCall) {
@@ -139,7 +164,7 @@ export default class HasManyArray extends Array {
             throw new Error(`You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`);
           }
 
-          self.splice(propertyAsNumber, 1);
+          self.splice(propertyAsNumber as number, 1);
 
           return true;
         }
@@ -151,78 +176,135 @@ export default class HasManyArray extends Array {
     });
   }
 
-  concat(otherHasManyArray: Model[]) {
-    // NOTE: this shouldnt replace in place(?) here, but might be needed for manipulation(?)
-    throw new Error('HasManyArray.concat() not supported for now, it can be very complex to implement correctly');
+  concat(_otherHasManyArrays: Model[] | HasManyArray): Array<Model> {
+    return filterInstancesToAdd(super.concat.apply(this, [...arguments]));
   }
 
-  slice(start, end) {
-    // NOTE: maybe implement this by basic super.slice(start, end); for tests
-    // NOTE: this shouldnt replace in place(?) here, but might be needed for manipulation(?)
-    throw new Error('HasManyArray.slice() not supported for now, it can be very complex to implement correctly');
-  }
+  fill(value: void | Model, start?: number, end?: number): HasManyArray {
+    let [targetStart, targetEnd] = [start || 0, end || this.length - 1]; // NOTE: maybe this should be this.length - 1;
+    let endIndex = targetEnd < 0 ? this.length + targetEnd : targetEnd;
+    let startIndex = targetStart < 0 ? this.length + targetStart : targetStart;
+    if (startIndex > 0 && startIndex > this.length - 1) {
+      return this;
+    } else if (value && !(value instanceof Model)) {
+      throw new Error('hasManyArray.fill(value) value has to be falsy value or a memoria Model');
+    }
 
-  fill() {
-    // instead this should clear and add the model if model is a proper value
+    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
+
+    this.spliceCallOnNullSetting = false;
+    this.splice(startIndex, endIndex - startIndex + 1);
+    this.spliceCallOnNullSetting = oldSpliceCallOnNullSetting;
+
+    if (value && value instanceof Model) {
+      this[this.length] = value;
+      this[startIndex] = value;
+    }
+
     return this;
   }
 
-  pop() {
-    let result = super.pop();
-    if (result) {
-      // TODO: Remove reflection of the relationship
+  pop(): Element | undefined {
+    if (this.length === 0) {
+      return;
     }
 
-    return result;
+    return this.splice(this.length - 1, 1)[0];
   }
 
-  push(model: Model) { // NOTE: this can add or replace-in-place
-    return super.push(model);
+  push(model: Model): number {
+    this[this.length] = model;
+
+    return this.length;
   }
 
-  shift() {
-    // TODO: remove reflection
-    return super.shift();
+  shift(): Model | undefined {
+    if (this.length === 0) {
+      return;
+    }
+
+    let [removedElement] = this.splice(0, 1);
+
+    return removedElement;
   }
 
-  splice(_startIndex, _deleteCount, _item1?: Model) {
-    // implement RelationshipDB.removeFromHasManyArray and RelationshipDB.addModelToHasManyArray
-    return super.splice.apply(this, [...arguments]);
+  // test it for (0, 1)
+  // TODO: this sometimes changes the length(?)
+  splice(startIndex: number, deleteCount?: number, _item1?: Model): Array<Model> {
+    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
+    this.spliceCallOnNullSetting = false;
 
-    // // NOTE: array.splice runs the constructor!! this is why this is messed up
-    // if (deleteCount > 0) {
-    //   for (let i = 0; i < deleteCount; i++;) {
-    //     this[startIndex + i] = null; // NOTE: move this to delete this[startIndex + i] ?
-    //   }
-    // }
+    let deletedElements: Array<Model> = [];
+    if (deleteCount && deleteCount > 0) {
+      // TODO: maybe limit this to this.length here:
+      for (let i = 0; i < deleteCount; i++) {
+        let targetIndex = startIndex + i;
+        deletedElements.push(this[targetIndex]);
+        this[targetIndex] = null; // NOTE: move this to delete this[startIndex + i] ?
+      }
 
-    // let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
-    // itemsToAdd.forEach((item, index) => {
-    //   // TODO: this should expand the length, so its currently a wrong logic:
-    //   this[startIndex + index + 1] = item; // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
-    // });
+      if (deletedElements.length > 0) {
+        let elementsToMoveAfterDelete = this.length - (startIndex + deleteCount);
+        if (elementsToMoveAfterDelete > 0) {
+          for (let i = 0; i < elementsToMoveAfterDelete; i++) {
+            let targetIndex = startIndex + deleteCount + i; // NOTE: this needs to start from far right
+            let model = this[targetIndex];
+            debugger;
+            this[targetIndex] = null; // TODO: does this ever change length(?)
+            debugger;
+            this[startIndex + i] = model;
+          }
+        }
+
+        this.length = this.length - deletedElements.length;
+      }
+    }
+
+    let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
+    // debugger;
+    itemsToAdd.forEach((item, index) => {
+      this[this.length] = item;
+      this[startIndex + index + 1] = item;  // because this should add to the end of the array
+      // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
+    });
+
+    this.spliceCallOnNullSetting = oldSpliceCallOnNullSetting;
+
+    return deletedElements;
   }
 
-  unshift(_element0?: Model, _element1?: Model) {
-    // TODO: add reflection of the relationship
+  unshift(_element0?: Model, _element1?: Model): number {
+    let elements = [...arguments].reverse();
 
-    return super.push(...arguments);
+    elements.forEach((element) => {
+      this.splice(-1, 0, element);
+    });
+
+    return this.length;
   }
 
   any(predicate) {
     return super.some(predicate);
   }
 
-  addObjects(param: Model[]) { // this can add or replace objects after a filter
-    this.push(param);
+  // TODO: Built for DX and optimized RelationshipDB operations here:
+  // TODO: rename this to add and make it accept Model or Array<Model>
+  add(param: Model | Model[]): HasManyArray {
+    Array.isArray(param)
+      ? filterInstancesToAdd(param).forEach((model) => this.push(model))
+      : this.push(param)
 
     return this;
   }
 
-  delete(param) { // NOTE: or remove
+  // replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): HasManyArray {
+
+  // }
+
+  remove(param: Model | Model[]): HasManyArray {
     let index = this.indexOf(param);
     if (index > -1) {
-      this.splice(index, 1); // TODO: splice nooped!!
+      this.splice(index, 1);
       return true;
     }
 
@@ -230,11 +312,12 @@ export default class HasManyArray extends Array {
   }
 
   clear() {
-    // this.forEach((model, index) => RelationshipDB.removeFromHasManyArray(index, self));
     this.length = 0;
 
     return this;
   }
+
+  // NOTE: investigate .get(), .getProperties, is .reverseObjects() needed(?)
 
   get metadata() {
     return this.#relationshipMetadata || {
@@ -259,7 +342,7 @@ export default class HasManyArray extends Array {
 
 // NOTE: maybe this isnt needed based on the array, but we also dont want to change the arrays existing results for no reason
 
-function filterInstancesToAdd(instancesToLookup: Model[]) {
+function filterInstancesToAdd(instancesToLookup: Model[] | HasManyArray) {
   let arraysModelType;
 
   return instancesToLookup.reduce((result, instanceToLookup) => {
@@ -291,73 +374,19 @@ function filterInstancesToAdd(instancesToLookup: Model[]) {
   }, [[] as Model[], new Set()])[0];
 }
 
-// function addInstancesToHasManyArray(instancesToLookup: Model[], hasManyArray: Model[]): Model[] {
-//   let [instancesToAdd, instanceToAddReferencesSet] = filterInstancesToAdd(instancesToLookup);
+// Atomic operations
+// function replaceExistingModelFromArray(newModel: Model, existingModelIndex: number, hasManyArray: Model[]) {
 
-//   // TODO: should mutate instancesToAdd for old or replaced instances on hasManyArray
-//   hasManyArray.forEach((existingInstance) => {
-//     let existingElementReferences = InstanceDB.getReferences(existingInstance);
-
-//     if (instanceToAddReferencesSet.has(existingElementReferences)) {
-
-//       // remove for old or replace for
-//     }
-//     let existingReference =
-
-//     // replaceExistingModelFromArray(instancesToAdd, existingModelIndex, hasManyArray);
-//   });
-
-//   instancesToAdd.forEach((targetInstance) => addToHasManyArray(targetInstance, hasManyArray));
-
-//   return hasManyArray;
 // }
 
+// // TODO: this will be push instead(push does filtering itself(?)
+// function addToHasManyArray(newModel: Model, hasManyArray: Model[]) {
 
-// Atomic operations
-function replaceExistingModelFromArray(newModel: Model, existingModelIndex: number, hasManyArray: Model[]) {
+// }
 
-}
-
-// TODO: this will be push instead(push does filtering itself(?)
-function addToHasManyArray(newModel: Model, hasManyArray: Model[]) {
-
-}
-
-function removeFromHasManyArray(existingModelIndex: number, hasManyArray: Model[]) {
-  return array.splice(existingModelIndex, 1);
-}
-
-
-
-// let instancesToAdd = [model];
-// let instanceToAddReferencesSet = new Set([InstanceDB.getReferences(instancesToAdd[0])]);
-
-// this.forEach((existingInstance) => {
-//   let existingElementReferencesSet = InstanceDB.getReferences(existingInstance);
-
-//   if (instanceToAddReferencesSet.has(existingElementReferencesSet)) {
-//     let existingElementReferences = Array.from(existingElementReferencesSet);
-//     let existingInstanceIndex = existingElementReferences.indexOf(existingInstance);
-//     let instanceToAddIndex = existingElementReferences.indexOf(instancesToAdd[0]);
-
-//     if (instanceToAddIndex > existingInstanceIndex) {
-//       let instancesArrayIndex = this.indexOf(existingInstance);
-
-//       this[instancesArrayIndex] = instancesToAdd[0]; // TODO: this should trigger InstanceDB.replaceRecord in the proxy
-//     }
-
-//     instancesToAdd.length = 0; // make this remove it instead in future for extensibility
-//   }
-// });
-
-// instancesToAdd.forEach((instanceToAdd) => {
-//   super.push(instanceToAdd);
-//   // RelationshipDB effect
-// });
-
-// return super.length;
-
-
+// function removeFromHasManyArray(existingModelIndex: number, hasManyArray: Model[]) {
+//   return array.splice(existingModelIndex, 1);
+// }
 
 
 // NOTE: For later: Array utils/mixins from ember:
