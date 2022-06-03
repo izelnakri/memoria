@@ -127,6 +127,9 @@ export default class MemoryAdapter {
         record.fetchedRelationships.forEach((relationshipName) => {
           target[relationshipName] = record[relationshipName];
         });
+        Array.from(Model.columnNames).forEach((columnName) => {
+          record[columnName] = model[columnName];
+        });
       }
 
       return RelationshipDB.cache(target, "update");
