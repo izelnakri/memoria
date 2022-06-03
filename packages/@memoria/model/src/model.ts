@@ -256,11 +256,6 @@ export default class Model {
       model[columnName] = getTransformedValue(model, columnName, buildObject);
     });
 
-    // NOTE: reference instance
-
-    // let lastPersistedInstance = existingInstances.size > 0
-    //   ? InstanceDB.getLastPersistedInstance(existingInstances, primaryKey)
-    //   : buildObject instanceof this ? buildObject : model;
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
       if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {

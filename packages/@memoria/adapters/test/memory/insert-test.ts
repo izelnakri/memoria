@@ -343,6 +343,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       assert.notEqual(insertedGroup, group);
       assert.equal(insertedGroup.photo, groupPhoto);
+
       assert.equal(groupPhoto.group, insertedGroup);
       assert.equal(existingGroupReferences.size, 3);
 

@@ -7,6 +7,8 @@ export const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
+// NOTE: add cachePointers here too
+// Maybe also reverseRelationshipClass
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
   relationshipName: string;
