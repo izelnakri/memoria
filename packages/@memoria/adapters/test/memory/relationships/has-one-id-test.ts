@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, RelationshipDB } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
@@ -13,35 +13,21 @@ module(
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "Some photo" });
-      let group = MemoryGroup.build({ name: "Hacker Log", photo: photo });
+      let group = MemoryGroup.build({ name: "Hacker Log", photo });
 
-      assert.ok(photo instanceof MemoryPhoto);
-      assert.ok(photo.isNew);
-      assert.ok(group.isNew);
       assert.strictEqual(group.photo, photo);
       assert.equal(photo.group_id, null);
 
       let insertedGroup = await MemoryGroup.insert(group);
 
-      assert.ok(photo.isNew);
-      assert.notOk(group.isNew);
-      assert.notOk(insertedGroup.isNew);
-
       assert.strictEqual(group.photo, photo);
       assert.strictEqual(insertedGroup.photo, photo);
       assert.equal(photo.group_id, insertedGroup.id);
-      assert.ok(insertedGroup.photo.isNew);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
-      assert.notOk(photo.isNew);
-      assert.notOk(insertedPhoto.isNew);
-      assert.notOk(insertedGroup.photo.isNew);
-
       assert.strictEqual(group.photo, insertedPhoto);
       assert.strictEqual(insertedGroup.photo, insertedPhoto);
-
-      assert.notStrictEqual(photo, insertedPhoto);
     });
 
     test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
@@ -53,31 +39,26 @@ module(
 
       assert.equal(await group.photo, null);
       assert.equal(await secondGroup.photo, null);
-      assert.ok(group.isNew);
-      assert.ok(secondGroup.isNew);
 
       let insertedGroup = await MemoryGroup.insert(group);
 
-      assert.notOk(group.isNew);
-      assert.notOk(insertedGroup.isNew);
-      assert.notStrictEqual(insertedGroup, group);
       assert.equal(await group.photo, null);
       assert.equal(await insertedGroup.photo, null);
 
       secondGroup.photo = photo;
 
+      assert.strictEqual(secondGroup.photo, photo);
+      assert.strictEqual(photo.group, secondGroup);
+      assert.equal(photo.group_id, secondGroup.id);
+
       let secondInsertedGroup = await MemoryGroup.insert(secondGroup);
 
-      assert.notStrictEqual(secondInsertedGroup, secondGroup);
-      assert.notOk(secondInsertedGroup.isNew);
-      assert.notOk(secondGroup.isNew);
       assert.strictEqual(secondGroup.photo, photo);
+      assert.strictEqual(secondInsertedGroup.photo, photo);
       assert.strictEqual(photo.group, secondInsertedGroup);
       assert.equal(photo.group_id, secondInsertedGroup.id);
-      assert.equal(photo.group_id, secondGroup.id);
     });
 
-    // NOTE: decide on this hasOne change shouldnt remove belongsTo relationship(?)
     test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
@@ -87,39 +68,35 @@ module(
 
       let group = await MemoryGroup.insert({ name: "Dinner group", photo });
 
-      assert.equal(photo.name, "Cover photo");
-      assert.notOk(group.isNew);
       assert.strictEqual(group.photo, photo);
       assert.equal(photo.group_id, group.id);
       assert.deepEqual(photo.changes, { group_id: 1 });
 
-      let fetchedGroup = await MemoryGroup.find(group.id); // TODO: this should set the last one maybe(?) should have group in revisionHistory
-
-      assert.notOk(fetchedGroup.isNew);
+      let fetchedGroup = await MemoryGroup.find(group.id);
 
       assert.strictEqual(fetchedGroup.photo, photo);
       assert.strictEqual(group.photo, photo);
       assert.strictEqual(photo.group, fetchedGroup);
-      assert.equal(photo.group_id, group.id);
+      assert.equal(photo.group_id, fetchedGroup.id);
 
       let newPhoto = MemoryPhoto.build({ name: "Another cover photo" });
 
-      assert.equal(newPhoto.name, "Another cover photo");
       assert.strictEqual(photo.group, fetchedGroup);
 
       fetchedGroup.photo = newPhoto;
 
       assert.strictEqual(fetchedGroup.photo, newPhoto);
       assert.equal(newPhoto.group_id, fetchedGroup.id);
-      assert.strictEqual(group.photo, photo); // TODO: should this be fetchedGroup(?)
-      assert.strictEqual(photo.group, group);
-      assert.equal(photo.group_id, fetchedGroup.id);
 
-      let updatedGroup = await MemoryGroup.update(fetchedGroup);
+      assert.strictEqual(group.photo, photo);
 
-      assert.strictEqual(fetchedGroup.photo, newPhoto);
-      assert.deepEqual(updatedGroup, fetchedGroup);
+      assert.strictEqual(photo.group, group); // NOTE: this should be fetchedGroup(?), probably not due to controversial target lookups on relationship cleanups
+      assert.equal(photo.group_id, group.id);
+
+      let updatedGroup = await MemoryGroup.update(fetchedGroup); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
+
       assert.strictEqual(updatedGroup.photo, newPhoto);
+      assert.strictEqual(fetchedGroup.photo, newPhoto);
       assert.strictEqual(newPhoto.group, updatedGroup);
       assert.strictEqual(photo.group, updatedGroup);
     });
@@ -133,8 +110,6 @@ module(
 
       let group = await MemoryGroup.insert({ name: "Dinner group", photo });
 
-      assert.equal(photo.name, "Cover photo");
-      assert.notOk(group.isNew);
       assert.strictEqual(group.photo, photo);
       assert.strictEqual(photo.group, group);
       assert.equal(photo.group_id, group.id);
@@ -142,10 +117,10 @@ module(
 
       let fetchedGroup = await MemoryGroup.find(group.id);
 
-      assert.notOk(fetchedGroup.isNew);
+      assert.strictEqual(group.photo, photo);
       assert.strictEqual(fetchedGroup.photo, photo);
       assert.strictEqual(photo.group, fetchedGroup);
-      assert.equal(photo.group_id, group.id);
+      assert.equal(photo.group_id, fetchedGroup.id);
 
       fetchedGroup.photo = null;
 
@@ -156,12 +131,11 @@ module(
 
       let updatedGroup = await MemoryGroup.update(fetchedGroup);
 
-      assert.deepEqual(fetchedGroup, updatedGroup);
       assert.strictEqual(fetchedGroup.photo, null);
-      assert.strictEqual(updatedGroup.photo, null);
+      assert.strictEqual(updatedGroup.photo, null); // NOTE: is this ok(?)
 
       assert.strictEqual(photo.group, updatedGroup);
-      assert.equal(photo.group_id, group.id);
+      assert.equal(photo.group_id, updatedGroup.id);
       assert.strictEqual(group.photo, photo);
     });
 
@@ -174,15 +148,12 @@ module(
 
       let group = await MemoryGroup.insert({ name: "Dinner group", photo });
 
-      assert.equal(photo.name, "Cover photo");
-      assert.notOk(group.isNew);
       assert.strictEqual(group.photo, photo);
       assert.equal(photo.group_id, group.id);
       assert.deepEqual(photo.changes, { group_id: 1 });
 
       let fetchedGroup = await MemoryGroup.find(group.id);
 
-      assert.notOk(fetchedGroup.isNew);
       assert.strictEqual(fetchedGroup.photo, photo);
       assert.strictEqual(group.photo, photo);
       assert.strictEqual(photo.group, fetchedGroup);
@@ -192,28 +163,30 @@ module(
 
       assert.equal(fetchedGroup.photo, null);
       assert.strictEqual(group.photo, photo);
+
+      // it should be done only if its null
       assert.strictEqual(photo.group, group);
+
       assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
+
       assert.equal(photo.group_id, group.id);
 
-      // TODO: implement this!
-      // group.photo = null;
+      group.photo = null;
 
-      // assert.equal(group.photo, null);
-      // assert.equal(photo.group, null);
-      // assert.equal(photo.group_id, null);
+      assert.equal(group.photo, null);
+      assert.equal(fetchedGroup.photo, null);
+      assert.equal(photo.group_id, null);
+      assert.equal(photo.group, null);
 
-      // group.photo = photo;
+      group.photo = photo;
 
-      // assert.equal(fetchedGroup.photo, null);
-      // assert.strictEqual(group.photo, photo);
-      // assert.strictEqual(photo.group, group);
-      // assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
-      // assert.equal(photo.group_id, group.id);
+      assert.equal(fetchedGroup.photo, null);
+      assert.strictEqual(photo.group, group);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_id, group.id);
 
       let deletedGroup = await MemoryGroup.delete(fetchedGroup);
 
-      assert.deepEqual(fetchedGroup, deletedGroup);
       assert.equal(fetchedGroup.photo, null);
       assert.equal(deletedGroup.photo, null);
       assert.equal(photo.group, null);
@@ -228,19 +201,14 @@ module(
       let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
       let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
 
-      assert.ok(group.isNew);
-      assert.equal(group.photo, secondPhoto);
-      assert.equal(secondPhoto.group, group);
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, group);
       assert.equal(secondPhoto.group_id, group.id);
-
-      window.firstPhoto = firstPhoto;
-      window.secondPhoto = secondPhoto;
-      window.group = group;
 
       group.photo = firstPhoto;
 
-      assert.equal(group.photo, firstPhoto);
-      assert.equal(firstPhoto.group, group);
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, group);
       assert.equal(firstPhoto.group_id, group.id);
 
       assert.equal(secondPhoto.group, null);
@@ -248,176 +216,178 @@ module(
 
       let insertedGroup = await MemoryGroup.insert(group);
 
-      assert.equal(insertedGroup.photo, firstPhoto);
-      assert.equal(group.photo, firstPhoto);
-      assert.equal(firstPhoto.group, insertedGroup);
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
 
-      debugger;
-      insertedGroup.photo = secondPhoto; // NOTE: this fucks up firstPhoto.group reference
-      debugger;
+      insertedGroup.photo = secondPhoto;
 
-      assert.equal(insertedGroup.photo, secondPhoto);
-      assert.equal(secondPhoto.group, insertedGroup);
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-      assert.equal(firstPhoto.group, group); // NOTE: this is bit odd change after reflection(?)
+      assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
       assert.equal(firstPhoto.group_id, group.id);
-      assert.equal(group.photo, firstPhoto);
+      assert.strictEqual(group.photo, firstPhoto);
 
-      let updatedGroup = await MemoryGroup.update(insertedGroup); // TODO: BUG: this makes firstPhoto.group to updatedGroup.id
-      // TODO: this is the *FIRST* problem
-      // groupInstance[0] & [2] still points to firstPhoto!! on photoMap
-      // debugger;
-      // console.log('YYYYYYYYY');
+      let updatedGroup = await MemoryGroup.update(insertedGroup); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
 
-      assert.equal(group.photo, firstPhoto);
-      assert.deepEqual(insertedGroup.photo, secondPhoto);
-      assert.equal(updatedGroup.photo, secondPhoto);
-      assert.equal(secondPhoto.group, updatedGroup);
+      assert.strictEqual(group.photo, firstPhoto);
+
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(updatedGroup.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, updatedGroup);
       assert.equal(secondPhoto.group_id, updatedGroup.id);
-      assert.equal(firstPhoto.group, updatedGroup);
+      assert.strictEqual(firstPhoto.group, updatedGroup);
       assert.equal(firstPhoto.group_id, updatedGroup.id);
 
-      window.insertedGroup = insertedGroup;
-      window.updatedGroup = updatedGroup;
-      window.secondPhoto = secondPhoto;
-      window.firstPhoto = firstPhoto;
-
-      console.log('XXXXXXXXXXX');
-      debugger;
-      updatedGroup.photo = null;  // firstPhoto.group -> updatedGroup becomes dangling because updatedGroup.photo points to secondPhoto
-
-      // NOTE: when this happens secondPhoto.group(updatedGroup) is null , insertedGroup just gets it from updatedGroup
-      debugger;
-      console.log('YYYYYYYYYYYY');
+      updatedGroup.photo = null;
 
       assert.equal(updatedGroup.photo, null);
-      assert.equal(insertedGroup.photo, secondPhoto);
-      assert.equal(secondPhoto.group, insertedGroup);
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
-      // This has nothing to do with firstPhoto.group (belongsTo) -> updatedGroup
 
-      assert.equal(firstPhoto.group, insertedGroup)
+      assert.strictEqual(firstPhoto.group, insertedGroup)
       assert.equal(firstPhoto.group_id, insertedGroup.id);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
       assert.equal(deletedGroup.photo, null);
       assert.equal(updatedGroup.photo, null);
+      assert.equal(insertedGroup.photo, null);
       assert.equal(firstPhoto.group, null);
       assert.equal(firstPhoto.group_id, null);
       assert.equal(secondPhoto.group, null);
       assert.equal(secondPhoto.group_id, null);
     });
 
-    // // test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-    //   // let { MemoryGroup, MemoryPhoto } = generateModels();
+    test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      let { MemoryGroup, MemoryPhoto } = generateModels();
 
-    //   // MemoryPhoto.cache([
-    //     // {
-    //       // id: 1,
-    //       // first_name: "Izel",
-    //     // },
-    //     // {
-    //       // id: 2,
-    //       // first_name: "Moris",
-    //     // },
-    //   // ]);
+      MemoryPhoto.cache([
+        {
+          id: 1,
+          name: "First photo",
+        },
+        {
+          id: 2,
+          name: "Second photo",
+        },
+      ]);
 
-    //   // let firstPhoto = await MemoryPhoto.find(1);
-    //   // let secondPhoto = await MemoryPhoto.find(2);
-    //   // let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
+      let firstPhoto = await MemoryPhoto.find(1);
+      let secondPhoto = await MemoryPhoto.find(2);
+      let group = MemoryGroup.build({ name: "Dinner group", photo: secondPhoto });
 
-    //   // assert.ok(group.isNew);
-    //   // assert.equal(group.photo, secondPhoto);
-    //   // assert.equal(firstPhoto.group_id, null);
-    //   // assert.equal(secondPhoto.group_id, group.id);
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
+      assert.strictEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, group.id);
 
-    //   // group.photo = firstPhoto;
+      group.photo = firstPhoto;
 
-    //   // assert.equal(group.photo, firstPhoto);
-    //   // assert.equal(firstPhoto.group_id, group.id);
-    //   // assert.equal(secondPhoto.group_id, null);
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
 
-    //   // let insertedGroup = await MemoryGroup.insert(group);
+      let insertedGroup = await MemoryGroup.insert(group);
 
-    //   // assert.equal(insertedGroup.photo, firstPhoto);
-    //   // assert.equal(group.photo, insertedGroup.photo);
-    //   // assert.equal(firstPhoto.group_id, insertedGroup.id);
-    //   // assert.equal(secondPhoto.group_id, null);
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
 
-    //   // insertedGroup.photo = secondPhoto;
+      insertedGroup.photo = secondPhoto;
 
-    //   // assert.equal(insertedGroup.photo, secondPhoto);
-    //   // assert.equal(firstPhoto.group_id, null);
-    //   // assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, group);
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-    //   // let updatedGroup = await MemoryGroup.update(insertedGroup);
+      let updatedGroup = await MemoryGroup.update(insertedGroup);
 
-    //   // assert.equal(updatedGroup.photo, secondPhoto);
-    //   // assert.equal(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(updatedGroup.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_id, updatedGroup.id);
 
-    //   // updatedGroup.photo = null;
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
 
-    //   // assert.equal(updatedGroup.photo, null);
-    //   // assert.equal(firstPhoto.group_id, null);
-    //   // assert.equal(secondPhoto.group_id, null);
+      updatedGroup.photo = null;
 
-    //   // let deletedGroup = await MemoryGroup.delete(updatedGroup);
+      assert.strictEqual(updatedGroup.photo, null);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-    //   // assert.equal(updatedGroup.photo, null);
-    //   // assert.equal(deletedGroup.photo, null);
-    //   // assert.equal(firstPhoto.group_id, null);
-    //   // assert.equal(secondPhoto.group_id, null);
-    // // });
+      assert.strictEqual(group.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
 
-    // // test("a model can fetch its not loaded relationship", async function (assert) {
-    //   // let { MemoryGroup, MemoryPhoto } = generateModels();
+      let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
-    //   // let group = await MemoryGroup.insert({ name: "Dinner group" });
-    //   // let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
-    //   // let secondPhoto = await MemoryPhoto.insert({ name: "Second photo", group: group });
+      assert.equal(group.photo, null);
+      assert.equal(insertedGroup.photo, null);
+      assert.equal(updatedGroup.photo, null);
+      assert.equal(deletedGroup.photo, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+    });
 
-    //   // assert.equal(secondPhoto.group_id, group.id);
-    //   // assert.equal(group.photo, secondPhoto);
-    // // });
+    test("a model can fetch its not loaded relationship", async function (assert) {
+      let { MemoryGroup, MemoryPhoto } = generateModels();
 
-    // // TODO: bugfix this one
-    // // test("a models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
-    //   // let { MemoryGroup, MemoryPhoto } = generateModels();
+      let group = await MemoryGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo", group_id: group.id });
 
-    //   // let group = await MemoryGroup.insert({ name: "Dinner group" });
-    //   // let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
-    //   // let secondPhoto = await MemoryPhoto.insert({ name: "Second photo", group: group });
+      assert.equal(secondPhoto.group_id, group.id);
+      assert.deepEqual(group.photo, secondPhoto);
+      assert.notStrictEqual(group.photo, secondPhoto);
+    });
 
-    //   // assert.equal(group.photo, secondPhoto);
+    test("a models relationship lookup gets activated when relationship foreign key sets to null", async function (assert) {
+      let { MemoryGroup, MemoryPhoto } = generateModels();
 
-    //   // console.log('XXXXXXXXX');
-    //   // debugger;
-    //   // secondPhoto.group_id = null;
-    //   // debugger;
-    //   // console.log('YYYYYYYY');
+      let group = await MemoryGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo", group });
 
-    //   // assert.equal(group.photo, null);
-    // // });
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, group.id);
 
-    // // TODO: NOTE: Im here
-    // // TODO: all photos will be groups, all users will be photo
-    // // Completely change this
-    // // test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
-    // //   let { MemoryPhoto, MemoryUser } = generateModels();
+      secondPhoto.group_id = null;
 
-    // //   let firstUser = await MemoryUser.insert({ first_name: "Izel" });
-    // //   let secondUser = await MemoryUser.insert({ first_name: "Moris" });
-    // //   let photo = MemoryPhoto.build({ name: "Dinner photo" });
+      assert.notOk(RelationshipDB.has(group, 'photo'));
+      assert.notStrictEqual(group.photo, secondPhoto);
+      assert.deepEqual(group.photo.toJSON(), { ...secondPhoto.toJSON(), group_id: group.id }); // NOTE: id reference is still in the cache so a built relationship gets returned from cache
+    });
 
-    // //   assert.equal(photo.owner, null);
-    // //   assert.equal(photo.owner_id, null);
+    test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+      let { MemoryGroup, MemoryPhoto } = generateModels();
 
-    // //   photo.owner_id = secondUser.id;
+      let group = await MemoryGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
+      let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
 
-    // //   assert.deepEqual(photo.owner, secondUser);
-    // //   assert.equal(photo.owner_id, secondUser.id);
-    // // });
+      assert.equal(await group.photo, null);
+      assert.equal(firstPhoto.group_id, null);
+
+      firstPhoto.group_id = group.id;
+
+      assert.equal(firstPhoto.group_id, group.id);
+      assert.deepEqual(group.photo, firstPhoto);
+    });
   }
 );

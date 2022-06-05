@@ -145,7 +145,8 @@ export default class RelationshipUtils {
         if (relationshipType === 'BelongsTo') {
           return relationshipCache.get(sourceReference) === existingRelationship; // NOTE: This cant be cachedSource because cachedSources dont have relationship
         } else if (NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
-          return existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName]; // NOTE: refer to group of instances not this
+          return existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName]
+            && relationshipCache.get(sourceReference) !== null;
         } // NOTE: add ManyToMany in future
       }) : [];
     let otherSourceReference = otherSourceReferences.length > 0 ? otherSourceReferences[otherSourceReferences.length - 1] : null;
