@@ -37,7 +37,7 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
-// Document .cache() replaces existing record! doesnt have defaultValues
+// Document .cache() replaces existing cached record! doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
 // TODO: it can also be that InstanceDB null primaryKey instances need to be moved over on isNew when building or setting.
 export default class Model {
@@ -262,10 +262,8 @@ export default class Model {
         buildObject &&
         buildObject instanceof this &&
         RelationshipDB.has(buildObject, relationshipName)
-        // &&
-        // RelationshipDB.get(buildObject as Model, relationshipName) // NOTE: this can be removed(?)
-        // !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise) // NOTE: this can be removed(?)
       ) {
+        // NOTE: this messes up nulled belongsTo relationship with foreignKey value
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
       }
 

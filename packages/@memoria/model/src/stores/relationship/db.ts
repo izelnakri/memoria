@@ -1,13 +1,7 @@
-// relationship tracking(very complex) - on build, set AND CRUD(is on crud needed(?))
-// Caches refresh/mutate on CCUD: create, cache(fetch), update, delete
 // NOTE: in future try to optimize instanceCache(s) with symbol references instead of full instances(?)[each symbol refer to a modelReference]
 // NOTE: Two approaches found for updating reference caches on new cache, the 1st one chosen for now for simplicity:
 // 1- Update similar instances on CRUD(multicore problematic), 2- DONT update similar instances on CRUD, only persistedRecordsBelongsToCache, and have timeStamp for each revision(?)
 // NOTE: in-future maybe create special class/object for HasManyArray -> behaves like Set, has Array prototype methods(filter etc), .lastElement
-
-// Types:
-// instanceRecord
-// generatedRecordFromPersistance
 
 import Model from "../../model.js";
 import RelationshipSchema, { ARRAY_ASKING_RELATIONSHIPS } from "./schema.js";
@@ -29,9 +23,8 @@ type PrimaryKeyPointerMap = Map<PrimaryKey, null | BelongsToPrimaryKey> // NOTE:
 
 type JSObject = { [key: string]: any };
 
-// NOTE: will be refactored/cleaned up after full test suite
 export default class RelationshipDB {
-  static persistedRecordsBelongsToCache: RelationshipMap<PrimaryKeyPointerMap> = new Map();
+  static persistedRecordsBelongsToCache: RelationshipMap<PrimaryKeyPointerMap> = new Map(); // NOTE: probably redundant, can be removed
 
   // NOTE: these instance caches are kept for user changes on relationships that are done prior any CRUD.
   // Each needed because we cant reach otherwise relationships that are mutated & not saved or re-read without reload
@@ -44,7 +37,6 @@ export default class RelationshipDB {
     return this.persistedRecordsBelongsToCache.get(`${Class.name}:${relationshipName}`) as PrimaryKeyPointerMap;
   }
 
-  // NOTE: very heavy hit needs to be fast
   static findRelationshipCacheFor(Class: typeof Model, relationshipName: string, relationshipType?: string) {
     return this[`instanceRecords${
       relationshipType ||
@@ -67,7 +59,7 @@ export default class RelationshipDB {
       return (
         metadata.foreignKeyColumnName &&
         model[metadata.foreignKeyColumnName] &&
-        associate(RelationshipClass.peek(model[metadata.foreignKeyColumnName]) as Model | void, model, relationshipName) // NOTE: and associate
+        associate(RelationshipClass.peek(model[metadata.foreignKeyColumnName]) as Model | void, model, relationshipName)
       )
     }
 
@@ -78,7 +70,7 @@ export default class RelationshipDB {
       return (
         primaryKey &&
         reverseRelationshipForeignKeyColumnName &&
-        associate(RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey }), model, relationshipName) // NOTE: and associate
+        associate(RelationshipClass.peekBy({ [reverseRelationshipForeignKeyColumnName]: primaryKey }), model, relationshipName)
       );
     } else if (relationshipType === "HasMany") {
       // NOTE: this could be problematic
@@ -93,10 +85,8 @@ export default class RelationshipDB {
     }
   }
 
-  // TODO: this should move related references to certain id cache
   // NOTE: in future relationshipChanges could be tracked and passed in here for optional optimization
-  static cache(result: Model, _type: "insert" | "update", input?: Model | JSObject) { // NOTE: now this does relationship organization as well
-    // TODO: this should try to add to References if it doesnt exist(delete removes even the built ones from cache)
+  static cache(result: Model, _type: "insert" | "update", input?: Model | JSObject) {
     let Class = result.constructor as typeof Model;
     let primaryKey = result[Class.primaryKeyName];
     let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
@@ -104,26 +94,13 @@ export default class RelationshipDB {
       let foreignKeyValue = result[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
 
       this.findPersistedRecordsCacheFor(Class, relationshipName).set(primaryKey, foreignKeyValue);
-
-      // TODO: this is probably correct(needed, write test case) but not enough, also oneToOne needs to be cleared if there is in the cache something
-      // TODO: check if the reverse really isnt the solution
-      if (foreignKeyValue) { // NOTE: maybe do this only when the cache value is null(?)
-        let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, 'BelongsTo');
-
-        relationshipCache.get(result) === null && relationshipCache.delete(result);
-        input instanceof Class && relationshipCache.get(input) === null && relationshipCache.delete(input);
-      }
     });
-
-    // NOTE: investigate if we can get this done through this.updateRelationshipsGloballyFromARelationship checks(probably not)
     Object.keys(RelationshipSchema.getRelationshipTable(Class, "OneToOne")).forEach((relationshipName) => {
       let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, 'OneToOne');
 
       relationshipCache.get(result) === null && relationshipCache.delete(result);
       input instanceof Class && relationshipCache.get(input) === null && relationshipCache.delete(input);
     });
-
-
 
     let existingReferences = Array.from(InstanceDB.getReferences(result));
     let foundReference = existingReferences.reduce((foundReference, resultReference) => {
@@ -133,7 +110,7 @@ export default class RelationshipDB {
 
       Class.columnNames.forEach((columnName) => {
         if (resultReference[columnName] !== result[columnName]) {
-          resultReference[columnName] = result[columnName]; // NOTE: maybe I need to make them not tracked for revision!
+          resultReference[columnName] = result[columnName];
         }
       });
 
@@ -176,27 +153,17 @@ export default class RelationshipDB {
           reverseRelationshipMetadatas.forEach((relationshipMetadata) => {
             if (
               targetModelInstances.some((model) => this.referenceIsRelatedTo(model, reference, relationshipMetadata))
-              // NOTE: filtering needs to be better(?)
             ) {
               let { TargetClass, relationshipName, relationshipType, foreignKeyColumnName } = relationshipMetadata;
               if (['ManyToMany', 'HasMany'].includes(relationshipType)) {
                 // TODO: implement in the future: if instance array exists in the cache(for HasMany or ManyToMany) then change the specific element in the array
                 return;
+              } else if (relationshipType === "BelongsTo") {
+                reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName];
               }
 
-              // there is source and model(model is end result), source isnt
-              // console.log('targetModel is');
-              // console.log(targetModel);
-              // console.log('reference is');
-              // console.log(reference);
-
-              if (relationshipType === "BelongsTo") {
-                // let reflectionCache = this.findRelationshipCacheFor(TargetModelClass, relationshipMetadata.reverseRelationshipName as string, relationshipMetadata.reverseRelationshipType as string)
-                // let existingValue = reflectionCache.get(targetModel);
-                reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName]; // TODO: this should trigger reflection(?)
-              }
               this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType)
-                .set(reference, targetModel); // NOTE: this is not reflective on purpose(?)
+                .set(reference, targetModel);
             }
           });
         });
@@ -335,22 +302,15 @@ export default class RelationshipDB {
           reject(error);
         }
       });
-    } else {
-      // NOTE: Removing this is currently tricky but this could be a nice lazy optimization:
-      // maybe check has here
-      if (reference) {
-        cache.set(model, reference);
-      }
-
-      return reference;
+    } else if (reference) {
+      cache.set(model, reference);
     }
+
+    return reference;
   }
 
-  // TODO: should remove existing reference on only the same instance(!) and if we are doing runtime set(!) model.rel = someRel
   // NOTE: it should never remove its own existing copies(same primaryKey, also when primaryKey null gets built)
   // NOTE: it should remove in batches connections(as more instances of certain model exists)
-
-  // TODO: REFACTOR THIS
   static set(model: Model, relationshipName: string, input: null | Model, _copySource?: Model) {
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
@@ -359,7 +319,7 @@ export default class RelationshipDB {
     let existingRelationship = relationshipCache.get(model);
 
     if (input === undefined) {
-      relationshipCache.delete(model); // TODO: add reflection cleanup to existing relationship if exists
+      relationshipCache.delete(model);
 
       if (existingRelationship && reverseRelationshipName) {
         let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType as string);
@@ -371,7 +331,7 @@ export default class RelationshipDB {
     }
 
     let targetRelationship = formatInput(input, metadata.relationshipType);
-    if (existingRelationship === targetRelationship) { // null === null
+    if (existingRelationship === targetRelationship) {
       if (targetRelationship && reverseRelationshipName) {
         let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType as string);
 
@@ -422,7 +382,7 @@ function buildReferenceFromPersistedCacheOrMemoryOrFetch(
     }
 
     foundValue = RelationshipDB.generateRelationshipFromPersistence(model, relationshipName)
-      || RelationshipQuery.findPossibleReferenceInMemory(model, relationshipName, relationshipMetadata); // look up cache, then lookup memory instances
+      || RelationshipQuery.findPossibleReferenceInMemory(model, relationshipName, relationshipMetadata);
 
     return foundValue ? foundValue : Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
   } else if (relationshipType === "OneToOne") {

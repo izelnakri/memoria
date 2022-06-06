@@ -1,3 +1,7 @@
+- insert, update null relationship reference tests, should they get cleared up(?) esp when insert and update happens on valid foreignKey or null-direct based reference
+- currently belongsTo null references dont get cleaned up(this is I guess ideal) we only clear when the reference is direct null, not notPersistedInstance
+
+check delete and unload interface tests & implementation for relationship references
 make CRUD assert.equal relationship/instance checks either strictEqual or deepEqual
 
 Design decisions:
