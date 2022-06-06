@@ -13,6 +13,7 @@ import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/memory/mix/index.js";
+import generateIDModels from "../helpers/models-with-relations/memory/id/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
@@ -355,6 +356,23 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       });
 
       assert.equal(groupPhoto.group, fetchedGroup);
+    });
+
+    test("$Model.update($model) resets null set hasOne relationships after insert", async function (assert) {
+      const { MemoryGroup, MemoryUser, MemoryPhoto } = generateIDModels();
+
+      let group = MemoryGroup.build({ name: "Hacker Log" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
+
+      let insertedGroup = await MemoryGroup.insert(group);
+      let groupPhoto = await MemoryPhoto.insert({ name: "Some photo", group_id: 1 });
+      let updatedGroup = await MemoryGroup.update(group);
+
+      assert.deepEqual(group.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(insertedGroup.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(updatedGroup.photo.toJSON(), groupPhoto.toJSON());
     });
   });
 

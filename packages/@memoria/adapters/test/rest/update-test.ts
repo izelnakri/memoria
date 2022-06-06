@@ -15,6 +15,7 @@ import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
+import generateIDModels from "../helpers/models-with-relations/rest/id/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
@@ -327,6 +328,24 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       });
 
       assert.equal(groupPhoto.group, fetchedGroup);
+    });
+
+    test("$Model.update($model) resets null set hasOne relationships after insert", async function (assert) {
+      const { RESTGroup, RESTPhoto, Server } = generateIDModels();
+      this.Server = Server;
+
+      let group = RESTGroup.build({ name: "Hacker Log" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
+
+      let insertedGroup = await RESTGroup.insert(group);
+      let groupPhoto = await RESTPhoto.insert({ name: "Some photo", group_id: 1 });
+      let updatedGroup = await RESTGroup.update(group);
+
+      assert.deepEqual(group.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(insertedGroup.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(updatedGroup.photo.toJSON(), groupPhoto.toJSON());
     });
   });
 });
