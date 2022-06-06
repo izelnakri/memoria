@@ -15,6 +15,7 @@ import setupMemoria from "../helpers/setup-memoria.js";
 import Memoria from "@memoria/server";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
+import generateIDModels from "../helpers/models-with-relations/rest/id/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
@@ -426,6 +427,22 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       });
 
       assert.equal(groupPhoto.group, fetchedGroup);
+    });
+
+    test("$Model.insert($model) resets null set hasOne relationships after insert", async function (assert) {
+      const { RESTGroup, RESTUser, RESTPhoto, Server } = generateIDModels();
+      this.Server = Server;
+
+      let groupPhoto = await RESTPhoto.insert({ name: "Some photo", group_id: 1 });
+      let group = RESTGroup.build({ name: "Hacker Log" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
+
+      let insertedGroup = await RESTGroup.insert(group);
+
+      assert.deepEqual(group.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(insertedGroup.photo.toJSON(), groupPhoto.toJSON());
     });
   });
 });

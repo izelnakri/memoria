@@ -12,6 +12,7 @@ import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
 import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
+import generateIDModels from "../helpers/models-with-relations/sql/id/index.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js"
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
@@ -413,6 +414,21 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       });
 
       assert.equal(groupPhoto.group, fetchedGroup);
+    });
+
+    test("$Model.insert($model) resets null set hasOne relationships after insert", async function (assert) {
+      const { SQLGroup, SQLUser, SQLPhoto } = generateIDModels();
+
+      let groupPhoto = await SQLPhoto.insert({ name: "Some photo", group_id: 1 });
+      let group = SQLGroup.build({ name: "Hacker Log" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
+
+      let insertedGroup = await SQLGroup.insert(group);
+
+      assert.deepEqual(group.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(insertedGroup.photo.toJSON(), groupPhoto.toJSON());
     });
   });
 });
