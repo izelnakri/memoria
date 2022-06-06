@@ -132,7 +132,7 @@ export default class MemoryAdapter {
         });
       }
 
-      return RelationshipDB.cache(target, "update");
+      return RelationshipDB.cache(target, "update", record);
     }
 
     let cachedRecord = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
@@ -145,7 +145,7 @@ export default class MemoryAdapter {
       RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
     });
 
-    return RelationshipDB.cache(result, "insert");
+    return RelationshipDB.cache(result, "insert", record);
   }
 
   static peek(
@@ -263,7 +263,7 @@ export default class MemoryAdapter {
       RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
     });
 
-    return RelationshipDB.cache(result, "insert");
+    return RelationshipDB.cache(result, "insert", record);
   }
 
   static async update(

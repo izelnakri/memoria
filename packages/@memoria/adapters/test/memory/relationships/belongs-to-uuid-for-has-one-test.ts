@@ -140,10 +140,50 @@ module(
       assert.equal(deletedPhoto.group_uuid, null);
     });
 
-    // TODO: add this test case
-    // test('when related models reflective relationships are completely cleared it deosnt clear the foreign key, just the relationship of the model', async function (assert) {
+    test('when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model', async function (assert) {
+      let { MemoryPhoto, MemoryGroup } = generateModels();
 
-    // });
+      let group = await MemoryGroup.insert({ name: "Some group" });
+      let secondGroup = MemoryGroup.build({ name: "Another group" });
+      let thirdGroup = MemoryGroup.build({ uuid: "499ec646-493f-4eea-b92e-e383d94182f4", name: "Third group" });
+      let photo = await MemoryPhoto.insert({ name: "Dinner photo", group_uuid: group.uuid });
+
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.deepEqual(photo.group, group);
+
+      group.photo = null;
+
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.deepEqual(photo.group.toJSON(), group.toJSON());
+
+      secondGroup.photo = photo;
+
+      assert.equal(photo.group_uuid, null);
+      assert.strictEqual(photo.group, secondGroup);
+
+      secondGroup.photo = null;
+
+      assert.equal(photo.group_uuid, null);
+      assert.equal(photo.group, null);
+
+      thirdGroup.photo = photo;
+
+      assert.equal(photo.group_uuid, thirdGroup.uuid);
+      assert.deepEqual(photo.group, thirdGroup);
+      let oldPhotoGroup = photo.group;
+
+      thirdGroup.photo = null;
+
+      assert.equal(photo.group_uuid, thirdGroup.uuid);
+      assert.ok(photo.group instanceof RelationshipPromise);
+      assert.equal(await photo.group, null);
+
+      let insertedThirdGroup = await MemoryGroup.insert(thirdGroup);
+
+      assert.deepEqual(photo.group, thirdGroup);
+      assert.deepEqual(photo.group, insertedThirdGroup);
+      assert.strictEqual(photo.group.photo, photo);
+    });
 
     test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryPhoto, MemoryGroup } = generateModels();

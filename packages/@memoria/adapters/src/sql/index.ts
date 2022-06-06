@@ -467,10 +467,12 @@ export default class SQLAdapter extends MemoryAdapter {
 
           let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
           if (!relationshipModel) {
-            throw new NotFoundError(
-              {},
-              `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[foreignKeyColumnName]} not found`
-            );
+            return resolve(null);
+            // NOTE: now doesnt throw to match REST behavior
+            // throw new NotFoundError(
+            //   {},
+            //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[foreignKeyColumnName]} not found`
+            // );
           }
 
           return resolve(relationshipModel);
@@ -481,10 +483,12 @@ export default class SQLAdapter extends MemoryAdapter {
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
             });
             if (!relationshipModel) {
-              throw new NotFoundError(
-                {},
-                `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
-              );
+              return resolve(null);
+              // NOTE: now doesnt throw to match REST behavior
+              // throw new NotFoundError(
+              //   {},
+              //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
+              // );
             }
 
             return resolve(relationshipModel);

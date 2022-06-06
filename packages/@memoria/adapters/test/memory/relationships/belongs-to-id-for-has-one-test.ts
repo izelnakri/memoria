@@ -1,5 +1,5 @@
 // TODO: insertedPhoto = Model.insert() becomes the reflexive reference(on group) BUT updatedPhoto = Model.insert() doesnt become the reference only its shape(!)
-import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, RelationshipPromise } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
@@ -144,10 +144,49 @@ module(
       assert.equal(deletedPhoto.group_id, null);
     });
 
-    // TODO: add this test case
-    // test('when related models reflective relationships are completely cleared it deosnt clear the foreign key, just the relationship of the model', async function (assert) {
+    test('when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model', async function (assert) {
+      let { MemoryPhoto, MemoryGroup } = generateModels();
 
-    // });
+      let group = await MemoryGroup.insert({ name: "Some group" });
+      let secondGroup = MemoryGroup.build({ name: "Another group" });
+      let thirdGroup = MemoryGroup.build({ id: 3, name: "Third group" });
+      let photo = await MemoryPhoto.insert({ name: "Dinner photo", group_id: group.id });
+
+      assert.equal(photo.group_id, group.id);
+      assert.deepEqual(photo.group, group);
+
+      group.photo = null;
+
+      assert.equal(photo.group_id, group.id);
+      assert.deepEqual(photo.group.toJSON(), group.toJSON());
+
+      secondGroup.photo = photo;
+
+      assert.equal(photo.group_id, null);
+      assert.strictEqual(photo.group, secondGroup);
+
+      secondGroup.photo = null;
+
+      assert.equal(photo.group_id, null);
+      assert.equal(photo.group, null);
+
+      thirdGroup.photo = photo;
+
+      assert.equal(photo.group_id, thirdGroup.id);
+      assert.deepEqual(photo.group, thirdGroup);
+
+      thirdGroup.photo = null;
+
+      assert.equal(photo.group_id, thirdGroup.id);
+      assert.ok(photo.group instanceof RelationshipPromise);
+      assert.equal(await photo.group, null);
+
+      let insertedThirdGroup = await MemoryGroup.insert(thirdGroup);
+
+      assert.deepEqual(photo.group, thirdGroup);
+      assert.deepEqual(photo.group, insertedThirdGroup);
+      assert.strictEqual(photo.group.photo, photo);
+    });
 
     test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryPhoto, MemoryGroup } = generateModels();

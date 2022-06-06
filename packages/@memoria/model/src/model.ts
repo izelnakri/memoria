@@ -377,7 +377,7 @@ export default class Model {
   ): Promise<Model | void> {
     let result = await this.Adapter.findBy(this, queryObject, options);
     if (result) {
-      return RelationshipDB.cache(result, "update");
+      return RelationshipDB.cache(result, "update", queryObject);
     }
   }
 
