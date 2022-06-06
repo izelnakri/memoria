@@ -20,8 +20,6 @@ interface ModelInstantiateOptions {
   freeze?: boolean;
 }
 
-const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
-
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
   cache?: number;
@@ -269,13 +267,6 @@ export default class Model {
         // !(RelationshipDB.get(buildObject as Model, relationshipName) instanceof Promise) // NOTE: this can be removed(?)
       ) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
-      } else if (
-        primaryKey &&
-        ARRAY_ASKING_RELATIONSHIPS.includes(relationshipTable[relationshipName].relationshipType)
-        // && lastPersistedInstance &&
-        // RelationshipDB.has(lastPersistedInstance, relationshipName)
-      ) {
-        //   RelationshipDB.set(model, relationshipName, lastPersistedInstance[relationshipName]);
       }
 
       Object.defineProperty(model, relationshipName, {

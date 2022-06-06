@@ -211,6 +211,10 @@ async function makeFetchRequest(
         }) as MemoriaModel[];
       }
 
+      if (!deserializedResponse) {
+        return null; // NOTE: maybe throw here in the future(?)
+      }
+
       return Adapter.cache(
         Model,
         deserializedResponse,

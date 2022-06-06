@@ -124,15 +124,8 @@ export default class RelationshipUtils {
     let relationshipInstances = relationshipType === 'OneToOne'
       ? findBelongsToRelationshipsFor(existingRelationship, source, relationshipCache, reflectionCache, relationshipType) // NOTE: this needs to be improved for all
       : findOneToOneRelationshipFor(existingRelationship, source, relationshipCache, reflectionCache, relationshipType);
-    debugger;
-
-    // NOTE: problem, we were only able to retrive needed relationshipInstances from reflectionCache lookup logic(!!)
     let sourceReferences = findDirectRelationshipsFor(source, existingRelationship, reflectionCache, relationshipType); // includesBelongsTo // TODO: this doesnt find all the relationships
-
     let SourceClass = source.constructor as typeof Model;
-    // let ExistingRelationshipClass = existingRelationship.constructor as typeof Model;
-    // let existingRelationshipReferences = InstanceDB.getReferences(existingRelationship);
-
     let otherSourceReferences = sourceReferences.length > 0 ? Array.from(InstanceDB.getReferences(source))
       .filter((sourceReference) => {
         if (sourceReference === source) {
@@ -140,19 +133,22 @@ export default class RelationshipUtils {
         } else if (SourceClass.Cache.get(sourceReference[SourceClass.primaryKeyName]) === sourceReference) {
           return false;
         }
-        // return true;
 
         if (relationshipType === 'BelongsTo') {
           return relationshipCache.get(sourceReference) === existingRelationship; // NOTE: This cant be cachedSource because cachedSources dont have relationship
         } else if (NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
           return existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName]
             && relationshipCache.get(sourceReference) !== null;
+
+          // NOTE: add smt more so fetchedGroup doesnt show up(its cleared up) when group.photo = null
+          // source is a group type, existingRelationship is photo type
+
+            // && relationshipCache.get(sourceReference) !== existingRelationship; // NOTE: refer to group of instances not this
         } // NOTE: add ManyToMany in future
       }) : [];
     let otherSourceReference = otherSourceReferences.length > 0 ? otherSourceReferences[otherSourceReferences.length - 1] : null;
 
     if (relationshipType === 'BelongsTo') {
-      debugger;
       sourceReferences.forEach((sourceInstance) => {
         relationshipCache.delete(sourceInstance);
 
@@ -161,33 +157,26 @@ export default class RelationshipUtils {
         }
       });
 
-      // relationshipInstances should be all relationship references in this case(4)
-      // noo only do it if reference is not in the same source group
       if (reverseRelationshipName) {
-        relationshipInstances.forEach((existingTargetRelationshipReference) => { // targetRelationshipInstance (once)
-          // reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
+        relationshipInstances.forEach((existingTargetRelationshipReference) => {
           if (otherSourceReference) {
             reflectionCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
           } else {
             reflectionCache.delete(existingTargetRelationshipReference);
           }
-
-          //
         });
       }
     } else if (relationshipType === 'OneToOne') {
-      relationshipInstances.forEach((existingTargetRelationshipReference) => { // sourceInstance
-        // reflectionCache.set(existingTargetRelationshipReference, otherSourceReference);
+      relationshipInstances.forEach((existingTargetRelationshipReference) => {
         if (otherSourceReference) {
           reflectionCache.set(existingTargetRelationshipReference, otherSourceReference);
         } else {
           reflectionCache.delete(existingTargetRelationshipReference);
         }
 
-        if (mutateForeignKey && reverseRelationshipForeignKeyColumnName) {
-          existingTargetRelationshipReference[reverseRelationshipForeignKeyColumnName] = otherSourceReference
-            ? otherSourceReference[SourceClass.primaryKeyName]
-            : null;
+        if (mutateForeignKey && reverseRelationshipForeignKeyColumnName && otherSourceReference) {
+          existingTargetRelationshipReference[reverseRelationshipForeignKeyColumnName] =
+            otherSourceReference[SourceClass.primaryKeyName];
         }
       });
 
@@ -212,8 +201,7 @@ export default class RelationshipUtils {
   }
 }
 
-// TODO: this needs to improve, doesnt give the right results all the time(!!!), Querying needs to get better
-
+// TODO: this needs to improve, doesnt give the right results all the time(?!), Querying needs to get better
 // let relationshipInstances = findRelationshipsFor(existingRelationship, source, relationshipCache, relationshipType); // oneToOne
 function findDirectRelationshipsFor(
   targetModel: Model,
@@ -351,4 +339,3 @@ function findOneToOneRelationshipFor(
 
 //   return [];
 // }
-

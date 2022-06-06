@@ -131,9 +131,6 @@ module(
 
       let updatedGroup = await MemoryGroup.update(fetchedGroup);
 
-      assert.strictEqual(fetchedGroup.photo, null);
-      assert.strictEqual(updatedGroup.photo, null); // NOTE: is this ok(?)
-
       assert.strictEqual(photo.group, updatedGroup);
       assert.equal(photo.group_id, updatedGroup.id);
       assert.strictEqual(group.photo, photo);
@@ -175,8 +172,8 @@ module(
 
       assert.equal(group.photo, null);
       assert.equal(fetchedGroup.photo, null);
-      assert.equal(photo.group_id, null);
-      assert.equal(photo.group, null);
+      assert.equal(photo.group_id, group.id);
+      assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
 
       group.photo = photo;
 

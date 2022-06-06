@@ -218,8 +218,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
-          assert.equal(reference.owner, insertedUser);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, insertedUser);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 

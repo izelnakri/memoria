@@ -27,6 +27,8 @@ type BelongsToPrimaryKey = PrimaryKey;
 type RelationshipMap<Value> = Map<RelationshipTableKey, Value>;
 type PrimaryKeyPointerMap = Map<PrimaryKey, null | BelongsToPrimaryKey> // NOTE: remove null here
 
+type JSObject = { [key: string]: any };
+
 // NOTE: will be refactored/cleaned up after full test suite
 export default class RelationshipDB {
   static persistedRecordsBelongsToCache: RelationshipMap<PrimaryKeyPointerMap> = new Map();
@@ -93,35 +95,52 @@ export default class RelationshipDB {
 
   // TODO: this should move related references to certain id cache
   // NOTE: in future relationshipChanges could be tracked and passed in here for optional optimization
-  static cache(model: Model, _type: "insert" | "update") {
+  static cache(result: Model, _type: "insert" | "update", input?: Model | JSObject) { // NOTE: now this does relationship organization as well
     // TODO: this should try to add to References if it doesnt exist(delete removes even the built ones from cache)
-    let Class = model.constructor as typeof Model;
-    let primaryKey = model[Class.primaryKeyName];
+    let Class = result.constructor as typeof Model;
+    let primaryKey = result[Class.primaryKeyName];
     let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
-
     Object.keys(belongsToRelationshipTable).forEach((relationshipName) => {
-      this.findPersistedRecordsCacheFor(Class, relationshipName).set(
-        primaryKey,
-        model[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string]
-      );
+      let foreignKeyValue = result[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
+
+      this.findPersistedRecordsCacheFor(Class, relationshipName).set(primaryKey, foreignKeyValue);
+
+      // TODO: this is probably correct(needed, write test case) but not enough, also oneToOne needs to be cleared if there is in the cache something
+      // TODO: check if the reverse really isnt the solution
+      if (foreignKeyValue) { // NOTE: maybe do this only when the cache value is null(?)
+        let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, 'BelongsTo');
+
+        relationshipCache.get(result) === null && relationshipCache.delete(result);
+        input instanceof Class && relationshipCache.get(input) === null && relationshipCache.delete(input);
+      }
     });
 
-    let existingReferences = Array.from(InstanceDB.getReferences(model));
-    let foundReference = existingReferences.reduce((foundReference, modelReference) => {
-      if (model === modelReference) {
-        return modelReference;
+    // NOTE: investigate if we can get this done through this.updateRelationshipsGloballyFromARelationship checks(probably not)
+    Object.keys(RelationshipSchema.getRelationshipTable(Class, "OneToOne")).forEach((relationshipName) => {
+      let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, 'OneToOne');
+
+      relationshipCache.get(result) === null && relationshipCache.delete(result);
+      input instanceof Class && relationshipCache.get(input) === null && relationshipCache.delete(input);
+    });
+
+
+
+    let existingReferences = Array.from(InstanceDB.getReferences(result));
+    let foundReference = existingReferences.reduce((foundReference, resultReference) => {
+      if (result === resultReference) {
+        return resultReference;
       }
 
       Class.columnNames.forEach((columnName) => {
-        if (modelReference[columnName] !== model[columnName]) {
-          modelReference[columnName] = model[columnName]; // NOTE: maybe I need to make them not tracked for revision!
+        if (resultReference[columnName] !== result[columnName]) {
+          resultReference[columnName] = result[columnName]; // NOTE: maybe I need to make them not tracked for revision!
         }
       });
 
       return foundReference;
     }, undefined);
     if (!foundReference) {
-      InstanceDB.getReferences(model).add(model);
+      InstanceDB.getReferences(result).add(result);
     }
 
     // NOTE: walks down and mutates the graph based on received primary key or foreign key updates from server. Really needed.
@@ -134,13 +153,13 @@ export default class RelationshipDB {
     let reverseRelationships = RelationshipSchema.getReverseRelationshipsTable(Class);
     Object.keys(reverseRelationships).forEach((relationshipClassName) => {
       this.updateRelationshipsGloballyFromARelationship(
-        model,
+        result,
         reverseRelationships[relationshipClassName],
         existingReferences
       );
     });
 
-    return model;
+    return result;
   }
 
   // NOTE: this can be optimized for batching
@@ -170,21 +189,14 @@ export default class RelationshipDB {
               // console.log(targetModel);
               // console.log('reference is');
               // console.log(reference);
+
               if (relationshipType === "BelongsTo") {
                 // let reflectionCache = this.findRelationshipCacheFor(TargetModelClass, relationshipMetadata.reverseRelationshipName as string, relationshipMetadata.reverseRelationshipType as string)
                 // let existingValue = reflectionCache.get(targetModel);
-
                 reference[foreignKeyColumnName as string] = targetModel[TargetModelClass.primaryKeyName]; // TODO: this should trigger reflection(?)
               }
-              // TODO: this updates all to targetModel, is that correct(?)
-              // reference[relationshipName] = targetModel;
-
               this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType)
-                .set(reference, targetModel); // TODO: this is not reflective
-              // this.findRelationshipCacheFor(TargetClass, relationshipName, relationshipType)
-              //   .set(reference, targetModel); // TODO: this is not reflective
-
-              // make this reflexive setting(?)
+                .set(reference, targetModel); // NOTE: this is not reflective on purpose(?)
             }
           });
         });
