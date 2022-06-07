@@ -165,7 +165,7 @@ export default function() {
       return Response(404, { error: 'user not found');
     }
 
-    return { user: User.serializer(await User.update(user.params.user)) };
+    return { user: User.serializer(await User.update(request.params.user)) };
   });
 
   // OR:

@@ -2,492 +2,447 @@ import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import Model, {
   Changeset,
   Column,
+  InstanceDB,
   DB,
   CreateDateColumn,
   PrimaryGeneratedColumn,
   InsertError,
   RuntimeError,
+  RelationshipDB
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import Memoria from "@memoria/server";
+import FIXTURES from "../helpers/fixtures/mix/index.js";
+import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
+import generateIDModels from "../helpers/models-with-relations/rest/id/index.js";
+
+const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
 
-  const PHOTO_FIXTURES = [
-    {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    },
-    {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    },
-    {
-      id: 3,
-      name: "Selfie",
-      href: "selfie.jpeg",
-      is_public: false,
-    },
-  ];
-  const PHOTO_COMMENT_FIXTURES = [
-    {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      content: "I agree",
-      photo_id: 1,
-      user_id: 2,
-    },
-    {
-      uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-      content: "I was kidding",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1,
-    },
-  ];
+  module('Primary key tests', function () {
+    test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-  async function prepare() {
-    class User extends Model {
-      static Adapter = RESTAdapter;
-    }
-    class Photo extends Model {
-      static Adapter = RESTAdapter;
+      let initialPhotos = await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
 
-      @PrimaryGeneratedColumn()
-      id: number;
+      assert.deepEqual(initialPhotos, PHOTOS.map((photo) => RESTPhoto.build(photo)));
+      assert.ok(
+        initialPhotos.every(
+          (photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted
+        )
+      );
 
-      @Column("bool", { default: true })
-      is_public: boolean;
+      let initialPhotoComments = await Promise.all(
+        PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment))
+      );
 
-      @Column("varchar", { default: "Some default name" })
-      name: string;
+      assert.ok(
+        initialPhotoComments.every(
+          (comment) => !comment.isNew && !comment.isDirty && comment.isPersisted && !comment.isDeleted
+        )
+      );
 
-      @Column()
-      href: string;
-    }
-    class PhotoComment extends Model {
-      static Adapter = RESTAdapter;
+      assert.deepEqual(
+        (await RESTPhoto.findAll()).map((photo) => photo.id),
+        [1, 2, 3]
+      );
 
-      @PrimaryGeneratedColumn("uuid")
-      uuid: string;
+      await RESTPhoto.insert();
 
-      @CreateDateColumn()
-      inserted_at: Date;
+      assert.deepEqual(
+        (await RESTPhoto.findAll()).map((photo) => photo.id),
+        [1, 2, 3, 4]
+      );
 
-      @Column("bool", { default: true })
-      is_important: boolean;
-    }
+      await RESTPhoto.insert();
 
-    await DB.resetRecords();
+      assert.equal(await RESTPhoto.count(), 5);
+      assert.deepEqual(await RESTPhoto.findAll(), [
+        ...PHOTOS,
+        {
+          id: 4,
+          is_public: true,
+          name: "Photo default name",
+          href: null,
+        },
+        {
+          id: 5,
+          is_public: true,
+          name: "Photo default name",
+          href: null,
+        },
+      ].map((photo) => RESTPhoto.build(photo)));
 
-    return { Photo, PhotoComment, User };
-  }
+      const initialCommentUUIDs = (await RESTPhotoComment.findAll()).map((photoComment) => photoComment.uuid);
 
-  async function prepareServer() {
-    class ServerPhoto extends Model {
-      // NOTE: extending from another model doesnt work yet!
-      static Adapter = MemoryAdapter;
+      assert.deepEqual(initialCommentUUIDs, [
+        "499ec646-493f-4eea-b92e-e383d94182f4",
+        "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
+        "d351963d-e725-4092-a37c-1ca1823b57d3",
+        "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+      ]);
 
-      @PrimaryGeneratedColumn()
-      id: number;
+      await RESTPhotoComment.insert();
 
-      @Column("bool", { default: true })
-      is_public: boolean;
+      const allPhotoComments = await RESTPhotoComment.findAll();
+      const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
 
-      @Column("varchar", { default: "Some default name" })
-      name: string;
-
-      @Column()
-      href: string;
-    }
-    class ServerPhotoComment extends Model {
-      // NOTE: extending from another model doesnt work yet!
-      static Adapter = MemoryAdapter;
-
-      @PrimaryGeneratedColumn("uuid")
-      uuid: string;
-
-      @CreateDateColumn()
-      inserted_at: Date;
-
-      @Column("bool", { default: true })
-      is_important: boolean;
-    }
-
-    await DB.resetRecords();
-
-    return new Memoria({
-      routes() {
-        this.post("/photos", async (request) => {
-          try {
-            let photo = await ServerPhoto.insert(request.params.photo);
-
-            return { photo: ServerPhoto.serializer(photo) };
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photos", async () => {
-          let photos = await ServerPhoto.findAll();
-
-          return { photos: ServerPhoto.serializer(photos) };
-        });
-
-        this.get("/photos/:id", async (request) => {
-          let photo = await ServerPhoto.find(request.params.id);
-
-          return { photo: ServerPhoto.serializer(photo) };
-        });
-
-        this.get("/photos/count", async (request) => {
-          let photos = await ServerPhoto.findAll();
-
-          return { count: photos.length };
-        });
-
-        this.post("/photo-comments", async (request) => {
-          try {
-            let photoComment = await ServerPhotoComment.insert(request.params.photoComment);
-
-            return { photoComment: ServerPhotoComment.serializer(photoComment) };
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photo-comments", async (request) => {
-          let photoComment = await ServerPhotoComment.findAll();
-
-          return { photoComments: ServerPhotoComment.serializer(photoComment) };
-        });
-
-        this.get("/photo-comments/count", async (request) => {
-          let photoComment = await ServerPhotoComment.findAll();
-
-          return { count: photoComment.length };
-        });
-      },
+      assert.equal(await RESTPhotoComment.count(), 5);
+      assert.ok(allPhotoComments[4].uuid, "inserted comment has a unique uuid");
     });
-  }
 
-  test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+    test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-    let initialPhotos = await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-    assert.propEqual(initialPhotos, PHOTO_FIXTURES);
-    assert.ok(
-      initialPhotos.every(
-        (photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted
-      )
-    );
+      try {
+        await RESTPhoto.insert({ id: 1 });
+      } catch (changeset) {
+        assert.ok(changeset instanceof InsertError);
+        assert.propContains(changeset.errors[0],
+          {
+            attribute: "id",
+            id: 1,
+            message: "already exists",
+            modelName: "RESTPhoto",
+            name: "ModelError",
+          },
+        );
+      }
+      try {
+        await RESTPhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
+      } catch (changeset) {
+        assert.ok(changeset instanceof InsertError);
+        assert.propContains(changeset.errors[0],
+          {
+            attribute: "uuid",
+            id: "d351963d-e725-4092-a37c-1ca1823b57d3",
+            message: "already exists",
+            modelName: "RESTPhotoComment",
+            name: "ModelError",
+          },
+        );
+      }
+    });
 
-    let initialPhotoComments = await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-    assert.ok(
-      initialPhotoComments.every(
-        (comment) => !comment.isNew && !comment.isDirty && comment.isPersisted && !comment.isDeleted
-      )
-    );
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-    assert.deepEqual(
-      (await Photo.findAll()).map((photo) => photo.id),
-      [1, 2, 3]
-    );
-
-    await Photo.insert();
-
-    assert.deepEqual(
-      (await Photo.findAll()).map((photo) => photo.id),
-      [1, 2, 3, 4]
-    );
-
-    await Photo.insert();
-
-    assert.equal(await Photo.count(), 5);
-    assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
-      {
-        id: 4,
-        is_public: true,
-        name: "Some default name",
-        href: null,
-      },
-      {
-        id: 5,
-        is_public: true,
-        name: "Some default name",
-        href: null,
-      },
-    ]);
-
-    const initialCommentUUIDs = (await PhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
-
-    assert.deepEqual(initialCommentUUIDs, [
-      "499ec646-493f-4eea-b92e-e383d94182f4",
-      "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      "d351963d-e725-4092-a37c-1ca1823b57d3",
-      "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-    ]);
-
-    await PhotoComment.insert();
-
-    const allPhotoComments = await PhotoComment.findAll();
-    const lastPhotoComment = allPhotoComments[allPhotoComments.length - 1];
-
-    assert.equal(await PhotoComment.count(), 5);
-    assert.ok(!initialCommentUUIDs[lastPhotoComment.uuid], "inserted comment has a unique uuid");
+      try {
+        await RESTPhoto.insert({ id: "99" });
+      } catch (changeset) {
+        assert.ok(changeset instanceof RuntimeError);
+      }
+      try {
+        await RESTPhotoComment.insert({ uuid: 1 });
+      } catch (changeset) {
+        assert.ok(changeset instanceof RuntimeError);
+      }
+    });
   });
 
-  test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+  module('Attribute tests', function () {
+    test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-    await Photo.insert({ id: 99, href: "/izel.html", is_public: false });
-    let model = await Photo.insert({ name: "Baby photo", href: "/baby.jpg" });
-    assert.notOk(model.isNew);
-    assert.ok(model.isPersisted);
-    assert.notOk(model.isDeleted);
-    assert.notOk(model.isDirty);
-    assert.deepEqual(model.changes, {});
-    assert.deepEqual(model.revision, {
-      id: 100,
-      name: "Baby photo",
-      href: "/baby.jpg",
-      is_public: true,
-    });
-    assert.deepEqual(model.revisionHistory, [
-      {
+      await RESTPhoto.insert({ id: 99, href: "/izel.html", is_public: false });
+      let model = await RESTPhoto.insert({ name: "Baby photo", href: "/baby.jpg" });
+      assert.notOk(model.isNew);
+      assert.ok(model.isPersisted);
+      assert.notOk(model.isDeleted);
+      assert.notOk(model.isDirty);
+      assert.deepEqual(model.changes, {});
+      assert.deepEqual(model.revision, {
         id: 100,
         name: "Baby photo",
         href: "/baby.jpg",
         is_public: true,
-      },
-    ]);
+        group_uuid: null,
+        owner_id: null
+      });
+      assert.deepEqual(model.revisionHistory, [
+        {
+          id: 100,
+          name: "Baby photo",
+          href: "/baby.jpg",
+          is_public: true,
+          group_uuid: null,
+          owner_id: null
+        },
+      ]);
 
-    assert.equal(await Photo.count(), 5);
-    assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
-      {
-        id: 99,
-        is_public: false,
-        name: "Some default name",
-        href: "/izel.html",
-      },
-      {
-        id: 100,
-        is_public: true,
-        name: "Baby photo",
-        href: "/baby.jpg",
-      },
-    ]);
+      assert.equal(await RESTPhoto.count(), 5);
+      assert.deepEqual(await RESTPhoto.findAll(), [
+        ...PHOTOS,
+        {
+          id: 99,
+          is_public: false,
+          name: "Photo default name",
+          href: "/izel.html",
+        },
+        {
+          id: 100,
+          is_public: true,
+          name: "Baby photo",
+          href: "/baby.jpg",
+        },
+      ].map((photo) => RESTPhoto.build(photo)));
 
-    const initialCommentUUIDs = (await PhotoComment.findAll()).map((comment) => comment.uuid);
-    const commentOne = await PhotoComment.insert({
-      uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
-      inserted_at: new Date("2015-10-25T20:54:04.447Z"),
-      photo_id: 1,
-    });
-    assert.notOk(commentOne.isNew);
-    assert.ok(commentOne.isPersisted);
-    assert.notOk(commentOne.isDeleted);
-    assert.notOk(commentOne.isDirty);
-    assert.deepEqual(commentOne.changes, {});
-    assert.deepEqual(commentOne.revision, {
-      inserted_at: new Date("2015-10-25T20:54:04.447Z"),
-      is_important: true,
-      uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
-    });
-    assert.deepEqual(commentOne.revisionHistory, [
-      {
+      const initialCommentUUIDs = (await RESTPhotoComment.findAll()).map((comment) => comment.uuid);
+      const commentOne = await RESTPhotoComment.insert({
+        uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
+        photo_id: 1,
+      });
+      assert.notOk(commentOne.isNew);
+      assert.ok(commentOne.isPersisted);
+      assert.notOk(commentOne.isDeleted);
+      assert.notOk(commentOne.isDirty);
+      assert.deepEqual(commentOne.changes, {});
+      assert.deepEqual(commentOne.revision, {
+        content: null,
+        inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+        updated_at: new Date("2015-10-25T20:54:04.447Z"),
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
-      },
-    ]);
-    const commentTwo = await PhotoComment.insert({
-      uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
-      is_important: false,
-    });
-
-    assert.equal(await PhotoComment.count(), 6);
-
-    const allComments = await PhotoComment.findAll();
-    const lastInsertedComments = allComments.slice(4, allComments.length);
-
-    assert.ok(
-      allComments.find((comment) => comment.uuid === commentOne.uuid),
-      "first comment insert in the database"
-    );
-    assert.ok(
-      allComments.find((comment) => comment.uuid === commentTwo.uuid),
-      "second comment insert in the database"
-    );
-
-    assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
-    assert.equal(commentOne.photo_id, undefined);
-    assert.equal(commentOne.is_important, true);
-    assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
-    assert.ok(new Date() - commentTwo.inserted_at < 10000);
-    assert.equal(commentTwo.photo_id, null);
-    assert.equal(commentTwo.is_important, false);
-
-    lastInsertedComments.forEach((comment) => {
-      assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
-    });
-  });
-
-  test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
-    const { Photo } = await prepare();
-    this.Server = await prepareServer();
-
-    let photo = Photo.build({ name: "some name" });
-
-    assert.propEqual(photo, {
-      href: null,
-      id: null,
-      is_public: null,
-      name: "some name",
-    });
-
-    let insertedPhoto = await Photo.insert(photo);
-
-    assert.propEqual(photo, {
-      href: null,
-      id: 1,
-      is_public: null,
-      name: "some name",
-    });
-    assert.deepEqual(Photo.peek(insertedPhoto.id), insertedPhoto);
-
-    insertedPhoto.name = "testing store just holds a copy";
-
-    assert.equal(insertedPhoto.name, "testing store just holds a copy");
-    assert.notEqual(photo.name, insertedPhoto.name);
-    assert.notPropEqual(Photo.peek(photo.id), insertedPhoto);
-  });
-
-  test("$Model.insert(attributes) will throw if overriden primaryKey already exists", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
-
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
-
-    try {
-      await Photo.insert({ id: 1 });
-    } catch (changeset) {
-      assert.ok(changeset instanceof InsertError);
-      assert.propContains(changeset.errors[0],
+        photo_id: 1,
+        user_id: null
+      });
+      assert.deepEqual(commentOne.revisionHistory, [
         {
-          attribute: "id",
-          id: 1,
-          message: "already exists",
-          modelName: "Photo",
-          name: "ModelError",
+          content: null,
+          inserted_at: new Date("2015-10-25T20:54:04.447Z"),
+          updated_at: new Date("2015-10-25T20:54:04.447Z"),
+          is_important: true,
+          uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
+          photo_id: 1,
+          user_id: null
         },
+      ]);
+      const commentTwo = await RESTPhotoComment.insert({
+        uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
+        is_important: false,
+      });
+
+      assert.equal(await RESTPhotoComment.count(), 6);
+
+      const allComments = await RESTPhotoComment.findAll();
+      const lastInsertedComments = allComments.slice(4, allComments.length);
+
+      assert.ok(
+        allComments.find((comment) => comment.uuid === commentOne.uuid),
+        "first comment insert in the database"
       );
-    }
-    try {
-      await PhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
-    } catch (changeset) {
-      assert.ok(changeset instanceof InsertError);
-      assert.propContains(changeset.errors[0],
-        {
-          attribute: "uuid",
-          id: "d351963d-e725-4092-a37c-1ca1823b57d3",
-          message: "already exists",
-          modelName: "PhotoComment",
-          name: "ModelError",
-        },
+      assert.ok(
+        allComments.find((comment) => comment.uuid === commentTwo.uuid),
+        "second comment insert in the database"
       );
-    }
-  });
 
-  test("$Model.insert(attributes) will throw if overriden primaryKey is wrong type", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+      assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
+      assert.deepEqual(commentOne.updated_at, new Date("2015-10-25T20:54:04.447Z"));
+      assert.equal(commentOne.photo_id, 1);
+      assert.equal(commentOne.is_important, true);
+      assert.equal(commentTwo.uuid, "6401f27c-49aa-4da7-9835-08f6f669e29f");
+      assert.ok(new Date() - commentTwo.inserted_at < 10000);
+      assert.ok(new Date() - commentTwo.updated_at < 10000);
+      assert.equal(commentTwo.photo_id, null);
+      assert.equal(commentTwo.is_important, false);
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
-
-    try {
-      await Photo.insert({ id: "99" });
-    } catch (changeset) {
-      assert.ok(changeset instanceof RuntimeError);
-    }
-    try {
-      await PhotoComment.insert({ uuid: 1 });
-    } catch (changeset) {
-      assert.ok(changeset instanceof RuntimeError);
-    }
-  });
-
-  test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
-
-    await Promise.all([Photo, PhotoComment].map((model) => model.resetCache()));
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
-
-    await Photo.insert({
-      published_at: new Date("2017-10-10").toJSON(),
-      description: "Some description",
+      lastInsertedComments.forEach((comment) => {
+        assert.ok(!initialCommentUUIDs.includes(comment.uuid), "inserted comment uuid is unique");
+      });
     });
-    await Photo.insert({ location: "Istanbul", is_public: false });
-    await PhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-    await PhotoComment.insert({ reply_id: 1 });
 
-    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important"]);
-    assert.propEqual(await Photo.findAll(), [
-      ...PHOTO_FIXTURES,
-      {
-        id: 4,
-        is_public: true,
-        name: "Some default name",
+    test("$Model.insert(attributes) cannot add new values to $Model.attributes when new attributes are discovered", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
+
+      await Promise.all([RESTPhoto, RESTPhotoComment].map((model) => model.resetCache()));
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
+
+      await RESTPhoto.insert({
+        published_at: new Date("2017-10-10").toJSON(),
+        description: "Some description",
+      });
+      await RESTPhoto.insert({ location: "Istanbul", is_public: false });
+      await RESTPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+      await RESTPhotoComment.insert({ reply_id: 1 });
+
+      assert.deepEqual(Array.from(RESTPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
+      assert.deepEqual(Array.from(RESTPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "updated_at", "user_id", "photo_id"]);
+      assert.deepEqual(await RESTPhoto.findAll(), [
+        ...PHOTOS,
+        {
+          id: 4,
+          is_public: true,
+          name: "Photo default name",
+          href: null,
+        },
+        {
+          id: 5,
+          is_public: false,
+          name: "Photo default name",
+          href: null,
+        },
+      ].map((photo) => RESTPhoto.build(photo)));
+    });
+  });
+
+  module('Reference tests', function () {
+    test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+      const { RESTPhoto, Server } = generateModels();
+      this.Server = Server;
+
+      let photo = RESTPhoto.build({ name: "some name" });
+
+      assert.deepEqual(photo, RESTPhoto.build({
         href: null,
-      },
-      {
-        id: 5,
-        is_public: false,
-        name: "Some default name",
+        id: null,
+        is_public: null,
+        name: "some name",
+      }));
+
+      assert.equal(InstanceDB.getReferences(photo).size, 1);
+
+      let insertedPhoto = await RESTPhoto.insert(photo);
+
+      assert.notEqual(insertedPhoto, photo);
+      assert.deepEqual(insertedPhoto, RESTPhoto.build({
         href: null,
-      },
-    ]);
+        id: 1,
+        is_public: null,
+        name: "some name",
+      }));
+      assert.deepEqual(photo, RESTPhoto.build({
+        href: null,
+        id: 1,
+        is_public: null,
+        name: "some name",
+      }));
+      assert.deepEqual(RESTPhoto.peek(insertedPhoto.id), insertedPhoto);
+      assert.equal(InstanceDB.getReferences(photo).size, 6);
+      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
+
+      insertedPhoto.name = "testing store just holds a copy";
+
+      assert.equal(insertedPhoto.name, "testing store just holds a copy");
+      assert.notEqual(photo.name, insertedPhoto.name);
+      assert.notPropEqual(RESTPhoto.peek(photo.id), insertedPhoto);
+    });
+
+    test("$Model.insert($model) copies relationships but not for stored instance, also update references", async function (assert) {
+      const { RESTGroup, RESTUser, RESTPhoto, Server } = generateModels();
+      this.Server = Server;
+
+      let izel = RESTUser.build({ first_name: "Izel", last_name: "Nakri" });
+      let groupPhoto = RESTPhoto.build();
+      let group = RESTGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
+
+      assert.equal(group.owner, izel);
+      assert.equal(group.photo, groupPhoto);
+
+      let insertedGroup = await RESTGroup.insert(group);
+      let existingGroupReferences = InstanceDB.getReferences(group);
+
+      assert.notEqual(insertedGroup, group);
+      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.equal(groupPhoto.group, insertedGroup);
+      assert.equal(existingGroupReferences.size, 3);
+
+      let cachedReference = RESTGroup.Cache.get(insertedGroup.uuid);
+      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (reference !== cachedReference) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      let somePeekedModel = await RESTGroup.peek(group.uuid);
+
+      assert.equal(groupPhoto.group, insertedGroup);
+
+      let newBuiltReference = RESTGroup.build({
+        uuid: group.uuid,
+        name: "Hacker Log",
+        owner: izel,
+        photo: groupPhoto
+      });
+
+      assert.deepEqual(insertedGroup, newBuiltReference);
+      assert.equal(insertedGroup.owner, izel);
+      assert.equal(insertedGroup.photo, groupPhoto);
+
+      assert.equal(InstanceDB.getReferences(group).size, 5);
+      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (![somePeekedModel, cachedReference].includes(reference)) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      assert.notEqual(groupPhoto.group, insertedGroup);
+
+      let peekedGroup = await RESTGroup.peek(group.uuid);
+
+      assert.notEqual(peekedGroup, insertedGroup);
+      assert.notEqual(peekedGroup, group);
+      assert.equal(InstanceDB.getReferences(group).size, 6);
+      assert.equal(groupPhoto.group, newBuiltReference);
+
+      let fetchedGroup = await RESTGroup.find(group.uuid);
+
+      assert.notEqual(fetchedGroup, insertedGroup);
+      assert.notEqual(fetchedGroup, group);
+      assert.notEqual(fetchedGroup, peekedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 7);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (![somePeekedModel, peekedGroup, cachedReference, fetchedGroup].includes(reference)) {
+          assert.equal(reference.owner, izel);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      assert.equal(groupPhoto.group, fetchedGroup);
+    });
+
+    test("$Model.insert($model) resets null set hasOne relationships after insert", async function (assert) {
+      const { RESTGroup, RESTUser, RESTPhoto, Server } = generateIDModels();
+      this.Server = Server;
+
+      let groupPhoto = await RESTPhoto.insert({ name: "Some photo", group_id: 1 });
+      let group = RESTGroup.build({ name: "Hacker Log" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(group.photo, null);
+
+      let insertedGroup = await RESTGroup.insert(group);
+
+      assert.deepEqual(group.photo.toJSON(), groupPhoto.toJSON());
+      assert.deepEqual(insertedGroup.photo.toJSON(), groupPhoto.toJSON());
+    });
   });
 });

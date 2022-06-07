@@ -1,3 +1,30 @@
+make foreignKey tests run on each adapter
+make has-one uuid and each adapter tests
+
+check delete and unload interface tests & implementation for relationship references
+make CRUD assert.equal relationship/instance checks either strictEqual or deepEqual
+
+Design decisions:
+1- Should we always return a RelationshipPromise when instance.relationship gets accessed(?) - Current we dont for DX. This might also conflict with BelongTo setting logic. in-memory cache lookup only happens after remote call
+ - making it automatic has to be done on built() but might go against the idea of making everything lazy. Remote lookup needs a promise and non peek cache lookup has to happen AFTER remote lookup.
+ - this makes relationship .reload() not possible
+
+2- let insertedGroup = await MemoryGroup.insert(group); when group has a photo, it doesnt get transferred to insertedGroup.photo because
+3- fetchRelationship always returns new instance when record is found(this means .peek() as well for MemoryAdapter).
+4- get fetchedRelationships() {} check the relationshipCache, when null values are not stored this is wrong?!? No keep going on with this logic
+
+// never use propEqual due to recursion inside instances on sql(probably many-to-many bug)
+
+- instance metadata feature:
+  - index
+  - reason
+  - source
+  - host
+  - origin
+  - originator_id
+  - builtAt
+  - [extraData]
+
 email will not be reflexive to user until insert(?) if user also fetched email in this scenario:
 
 deleteInArray / change / addInArray (should be proxied correctly when reference diff different)

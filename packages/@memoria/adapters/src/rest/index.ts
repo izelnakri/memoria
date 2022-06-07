@@ -303,7 +303,9 @@ function buildQueryPath(queryObject?: JSObject) {
     return "";
   }
 
-  let findByKeys = Object.keys(queryObject);
+  let findByKeys = queryObject instanceof MemoriaModel ?
+    (queryObject.constructor as typeof MemoriaModel).columnNames :
+    Object.keys(queryObject);
   if (findByKeys.length > 0) {
     let arrayParams = {};
     let queryParams = new URLSearchParams(

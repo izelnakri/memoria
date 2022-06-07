@@ -9,348 +9,256 @@ import Model, {
   Column,
   DeleteError,
   RuntimeError,
+  InstanceDB,
+  RelationshipDB
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
+import FIXTURES from "../helpers/fixtures/mix/index.js";
+import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
+
+const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
   setupMemoria(hooks);
 
-  const PHOTO_FIXTURES = [
-    {
-      id: 1,
-      name: "Ski trip",
-      href: "ski-trip.jpeg",
-      is_public: false,
-    },
-    {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    },
-    {
-      id: 3,
-      name: "Selfie",
-      href: "selfie.jpeg",
-      is_public: false,
-    },
-  ];
-  const PHOTO_COMMENT_FIXTURES = [
-    {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      content: "I agree",
-      photo_id: 1,
-      user_id: 2,
-    },
-    {
-      uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-      content: "I was kidding",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1,
-    },
-  ];
+  module('Primary key tests', function () {
+    test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-  async function prepare() {
-    class User extends Model {
-      static Adapter = RESTAdapter;
+      try {
+        await RESTPhoto.delete({ id: 1 });
+      } catch (error) {
+        assert.ok(error instanceof DeleteError);
+      }
+      try {
+        await RESTPhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+      } catch (error) {
+        assert.ok(error instanceof DeleteError);
+      }
 
-      @PrimaryGeneratedColumn("increment")
-      id: number;
-    }
-    class Photo extends Model {
-      static Adapter = RESTAdapter;
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-      @PrimaryGeneratedColumn()
-      id: number;
+      await RESTPhoto.delete({ id: 1 });
 
-      @Column("varchar")
-      name: string;
-
-      @Column()
-      href: string;
-
-      @Column("boolean")
-      is_public: boolean;
-    }
-    class PhotoComment extends Model {
-      static Adapter = RESTAdapter;
-
-      @PrimaryGeneratedColumn("uuid")
-      uuid: string;
-
-      @Column()
-      content: string;
-
-      @Column("int")
-      photo_id: number;
-
-      @Column("int")
-      user_id: number;
-    }
-    await DB.resetRecords();
-
-    return { User, Photo, PhotoComment };
-  }
-
-  async function prepareServer() {
-    class ServerPhoto extends Model {
-      @PrimaryGeneratedColumn()
-      id: number;
-
-      @Column("varchar", { default: "Some default name" })
-      name: string;
-
-      @Column("varchar")
-      href: string;
-
-      @Column("boolean", { default: true })
-      is_public: boolean;
-    }
-    class ServerPhotoComment extends Model {
-      @PrimaryGeneratedColumn("uuid")
-      uuid: string;
-
-      @CreateDateColumn()
-      inserted_at: Date;
-
-      @UpdateDateColumn()
-      updated_at: Date;
-
-      @Column("boolean", { default: true })
-      is_important: boolean;
-
-      @Column()
-      content: string;
-
-      @Column("int")
-      photo_id: number;
-
-      @Column("int")
-      user_id: number;
-    }
-    class ServerUser extends Model {
-      @PrimaryGeneratedColumn()
-      id: number;
-    }
-
-    await DB.resetRecords();
-
-    return new Memoria({
-      routes() {
-        this.post("/photos", async (request) => {
-          try {
-            let photo = await ServerPhoto.insert(request.params.photo);
-
-            return { photo: ServerPhoto.serializer(photo) };
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photos", async ({ queryParams }) => {
-          let photos = await ServerPhoto.findAll();
-
-          return { photos: ServerPhoto.serializer(photos) };
-        });
-
-        this.delete("/photos/:id", async ({ params }) => {
-          try {
-            await ServerPhoto.delete(params.photo);
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photos/count", async (request) => {
-          let photos = await ServerPhoto.findAll();
-
-          return { count: photos.length };
-        });
-
-        this.post("/photo-comments", async (request) => {
-          try {
-            let photoComment = await ServerPhotoComment.insert(request.params.photoComment);
-
-            return { photoComment: ServerPhotoComment.serializer(photoComment) };
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photo-comments", async (request) => {
-          if (request.queryParams) {
-            let photoComments = await ServerPhotoComment.findAll(request.queryParams);
-
-            return { photoComments: ServerPhotoComment.serializer(photoComments) };
-          }
-
-          let photoComment = await ServerPhotoComment.findAll();
-
-          return { photoComments: ServerPhotoComment.serializer(photoComment) };
-        });
-
-        this.delete("/photo-comments/:uuid", async ({ params }) => {
-          try {
-            await ServerPhotoComment.delete(params.photoComment);
-          } catch (changeset) {
-            return { errors: Changeset.serializer(changeset) };
-          }
-        });
-
-        this.get("/photo-comments/count", async (request) => {
-          let photoComment = await ServerPhotoComment.findAll();
-
-          return { count: photoComment.length };
-        });
-      },
+      try {
+        await RESTPhoto.delete({ id: 1 });
+      } catch (error) {
+        assert.ok(error instanceof DeleteError);
+      }
+      try {
+        await RESTPhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
+      } catch (error) {
+        assert.ok(error instanceof DeleteError);
+      }
     });
-  }
 
-  test("$Model.delete() can delete existing items", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+    test("$Model.delete() throws when called without a parameter", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-    let deletedPhoto = await Photo.delete({ id: 2 });
-    assert.propEqual(deletedPhoto, {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
+      try {
+        await RESTPhoto.delete();
+      } catch (error) {
+        assert.ok(error instanceof RuntimeError);
+      }
+      try {
+        await RESTPhotoComment.delete();
+      } catch (error) {
+        assert.ok(error instanceof RuntimeError);
+      }
     });
-    assert.notOk(deletedPhoto.isNew);
-    assert.ok(deletedPhoto.isPersisted);
-    assert.ok(deletedPhoto.isDeleted);
-    assert.notOk(deletedPhoto.isDirty);
-    assert.deepEqual(deletedPhoto.changes, {});
-    assert.deepEqual(deletedPhoto.revision, {
-      id: 2,
-      name: "Family photo",
-      href: "family-photo.jpeg",
-      is_public: true,
-    });
-    assert.deepEqual(deletedPhoto.revisionHistory, [
-      {
+  });
+
+  module('Attribute tests', function () {
+    test("$Model.delete() can delete existing items", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
+
+      await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
+
+      let deletedPhoto = await RESTPhoto.delete({ id: 2 });
+      assert.propEqual(deletedPhoto, RESTPhoto.build({
         id: 2,
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      },
-    ]);
+      }));
+      assert.notOk(deletedPhoto.isNew);
+      assert.ok(deletedPhoto.isPersisted);
+      assert.ok(deletedPhoto.isDeleted);
+      assert.notOk(deletedPhoto.isDirty);
+      assert.deepEqual(deletedPhoto.changes, {});
+      assert.deepEqual(deletedPhoto.revision, {
+        id: 2,
+        name: "Family photo",
+        href: "family-photo.jpeg",
+        is_public: true,
+        group_uuid: null,
+        owner_id: null
+      });
+      assert.deepEqual(deletedPhoto.revisionHistory, [
+        {
+          id: 2,
+          name: "Family photo",
+          href: "family-photo.jpeg",
+          is_public: true,
+          group_uuid: null,
+          owner_id: null
+        },
+      ]);
 
-    let deletedComment = await PhotoComment.delete({
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+      let deletedComment = await RESTPhotoComment.delete({
+        uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+      });
+      assert.propEqual(deletedComment, RESTPhotoComment.build({
+        uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+        content: "What a nice photo!",
+        is_important: true,
+        inserted_at: deletedComment.inserted_at,
+        updated_at: deletedComment.updated_at,
+        photo_id: null,
+        user_id: null,
+      }));
+      assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
+
+      await RESTPhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+
+      assert.propEqual(await RESTPhoto.findAll(), [
+        RESTPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        }),
+        RESTPhoto.build({
+          id: 3,
+          name: "Selfie",
+          href: "selfie.jpeg",
+          is_public: false,
+        }),
+      ]);
+      assert.propEqual(await RESTPhotoComment.findAll(), [
+        RESTPhotoComment.build({
+          uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
+          content: "I agree",
+          is_important: true,
+          inserted_at: deletedComment.inserted_at,
+          updated_at: deletedComment.updated_at,
+          photo_id: 1,
+          user_id: 2,
+        }),
+        RESTPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          inserted_at: deletedComment.inserted_at,
+          updated_at: deletedComment.updated_at,
+          photo_id: 1,
+          user_id: 1,
+        }),
+      ]);
     });
-    assert.propEqual(deletedComment, {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    });
-    assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
+  });
 
-    await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
+  module('Reference tests', function () {
+    test("$Model.delete($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+      const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
+      this.Server = Server;
 
-    assert.propEqual(await Photo.findAll(), [
-      {
+      let photo = RESTPhoto.build({ name: "some name" });
+
+      assert.equal(InstanceDB.getReferences(photo).size, 1);
+
+      let insertedPhoto = await RESTPhoto.insert(photo);
+
+      assert.notEqual(insertedPhoto, photo);
+      assert.propEqual(insertedPhoto, RESTPhoto.build({
+        href: null,
         id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      },
-      {
-        id: 3,
-        name: "Selfie",
-        href: "selfie.jpeg",
-        is_public: false,
-      },
-    ]);
-    assert.propEqual(await PhotoComment.findAll(), [
-      {
-        uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-        content: "I agree",
-        photo_id: 1,
-        user_id: 2,
-      },
-      {
-        uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-        content: "I was kidding",
-        photo_id: 1,
-        user_id: 1,
-      },
-    ]);
-  });
+        is_public: null,
+        name: "some name",
+      }));
+      assert.equal(InstanceDB.getReferences(photo).size, 4);
+      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
-  test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+      let deletedPhoto = await RESTPhoto.delete(insertedPhoto); // NOTE: this should make all same instances isPersisted = false in the future(?)
 
-    try {
-      await Photo.delete({ id: 1 });
-    } catch (error) {
-      assert.ok(error instanceof DeleteError);
-    }
-    try {
-      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
-    } catch (error) {
-      assert.ok(error instanceof DeleteError);
-    }
+      assert.notEqual(deletedPhoto, insertedPhoto);
+      assert.equal(InstanceDB.getReferences(photo).size, 0);
+      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(deletedPhoto));
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+      deletedPhoto.name = "testing the instance is just a copy";
 
-    await Photo.delete({ id: 1 });
+      assert.equal(deletedPhoto.name, "testing the instance is just a copy");
+      assert.notEqual(photo.name, deletedPhoto.name);
+      assert.notOk(RESTPhoto.peek(photo.id));
+    });
 
-    try {
-      await Photo.delete({ id: 1 });
-    } catch (error) {
-      assert.ok(error instanceof DeleteError);
-    }
-    try {
-      await PhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111" });
-    } catch (error) {
-      assert.ok(error instanceof DeleteError);
-    }
-  });
+    test("$Model.delete($model) removes relationships for all references", async function (assert) {
+      const { RESTUser, RESTPhoto, RESTGroup, Server } = generateModels();
+      this.Server = Server;
 
-  test("$Model.delete() throws when called without a parameter", async function (assert) {
-    const { Photo, PhotoComment } = await prepare();
-    this.Server = await prepareServer();
+      let izel = RESTUser.build({ first_name: "Izel", last_name: "Nakri" });
+      let groupPhoto = RESTPhoto.build();
+      let group = RESTGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
 
-    await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+      let insertedUser = await RESTUser.insert(izel);
 
-    try {
-      await Photo.delete();
-    } catch (error) {
-      assert.ok(error instanceof RuntimeError);
-    }
-    try {
-      await PhotoComment.delete();
-    } catch (error) {
-      assert.ok(error instanceof RuntimeError);
-    }
+      assert.ok(izel.id);
+      assert.deepEqual(izel, insertedUser);
+      assert.equal(group.owner, insertedUser);
+      assert.equal(group.owner_id, izel.id);
+      assert.equal(group.photo, groupPhoto);
+
+      let insertedGroup = await RESTGroup.insert(group);
+
+      assert.notEqual(insertedGroup, group);
+      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.equal(insertedGroup.owner_id, insertedUser.id);
+      assert.equal(groupPhoto.group, insertedGroup);
+      assert.equal(groupPhoto.group_id, insertedGroup.id);
+      assert.equal(InstanceDB.getReferences(group).size, 3);
+
+      let cachedReference = RESTGroup.Cache.get(insertedGroup.uuid);
+      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
+      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+
+      InstanceDB.getReferences(group).forEach((reference) => {
+        if (reference !== cachedReference) {
+          assert.equal(reference.owner, insertedUser);
+          assert.equal(reference.photo, groupPhoto);
+        }
+      });
+
+      let deletedGroup = await RESTGroup.delete(group);
+
+      assert.notEqual(deletedGroup, group);
+      assert.notEqual(deletedGroup, insertedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 0);
+      assert.equal(InstanceDB.getReferences(deletedGroup).size, 0);
+
+      assert.deepEqual(deletedGroup, RESTGroup.build({
+        uuid: group.uuid,
+        name: "Hacker Log",
+        owner: null,
+        photo: null
+      }));
+      assert.deepEqual(insertedGroup, RESTGroup.build({
+        uuid: group.uuid,
+        name: "Hacker Log",
+        owner: null,
+        photo: null
+      }));
+      assert.equal(groupPhoto.group, null);
+      assert.equal(groupPhoto.group_id, null);
+    });
   });
 });
 

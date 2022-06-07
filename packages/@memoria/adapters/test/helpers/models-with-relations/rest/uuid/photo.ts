@@ -26,13 +26,13 @@ export default function generatePhoto() {
     @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
-    @Column()
+    @Column("varchar", { default: "Photo default name" })
     name: string;
 
     @Column()
     href: string;
 
-    @Column("boolean")
+    @Column("boolean", { default: true })
     is_public: boolean;
 
     @Column()

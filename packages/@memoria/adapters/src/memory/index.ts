@@ -1,3 +1,5 @@
+// NOTE: Decision, never store relationshipReferences for .insert() and .update() [especially]
+// NOTE: maybe move part of the insert, update, cache reference logic to model.js instead of MemoryAdapter:
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Schema,
@@ -13,6 +15,7 @@ import MemoriaModel, {
   transformValue,
   clearObject,
 } from "@memoria/model";
+import { prepareTargetObjectFromInstance } from "../utils.js";
 import type {
   PrimaryKey,
   ModelReference,
@@ -86,9 +89,8 @@ export default class MemoryAdapter {
   ): Promise<MemoriaModel[]> {
     if (Model) {
       if (targetState && targetState.length > 0) {
-        let newTargetState = targetState.map((model: ModelRefOrInstance) =>
-          assignDefaultValuesForInsert(model, Model)
-        );
+        let newTargetState =
+          targetState.map((model: ModelRefOrInstance) => assignDefaultValuesForInsert(model || {}, Model));
 
         return this.resetCache(Model, newTargetState, options);
       }
@@ -106,44 +108,44 @@ export default class MemoryAdapter {
     record: ModelRefOrInstance,
     options?: ModelBuildOptions
   ): MemoriaModel {
-    let targetOptions = Object.assign(options || {}, { isNew: false });
-    let existingModelInCache = this.peek(
-      Model,
-      record[Model.primaryKeyName]
-    ) as MemoriaModel | void;
+    let targetOptions = { ...options, isNew: false };
+    let existingModelInCache = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel | void;
     if (existingModelInCache) {
-      let model = Model.build(
-        Object.assign(
-          existingModelInCache,
-          Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
-            if (record.hasOwnProperty(attribute)) {
-              result[attribute] = transformValue(Model, attribute, record[attribute]);
-            }
+      let model = Object.assign(
+        existingModelInCache,
+        Array.from(Model.columnNames).reduce((result: QueryObject, attribute: string) => {
+          if (record.hasOwnProperty(attribute)) {
+            result[attribute] = transformValue(Model, attribute, record[attribute]);
+          }
 
-            return result;
-          }, {})
-        ),
-        targetOptions
+          return result;
+        }, {})
       );
+      let target = this.returnWithCacheEviction(tryToRevision(model, targetOptions), targetOptions);
 
-      if (record instanceof MemoriaModel) {
+      if (record instanceof Model) {
         record.fetchedRelationships.forEach((relationshipName) => {
-          model[relationshipName] = record[relationshipName];
+          target[relationshipName] = record[relationshipName];
+        });
+        Array.from(Model.columnNames).forEach((columnName) => {
+          record[columnName] = model[columnName];
         });
       }
 
-      return this.returnWithCacheEviction(
-        RelationshipDB.cache(tryToRevision(model, options), "update"),
-        options
-      );
+      return RelationshipDB.cache(target, "update", record);
     }
 
-    let target = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
+    let cachedRecord = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
 
-    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, targetOptions));
-    RelationshipDB.cache(target, "insert");
+    Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    return this.returnWithCacheEviction(target, options); // NOTE: instance here doesnt create revision for "cache", maybe add another revision
+    let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
+
+    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
+    });
+
+    return RelationshipDB.cache(result, "insert", record);
   }
 
   static peek(
@@ -160,7 +162,7 @@ export default class MemoryAdapter {
           : result;
       }, [] as MemoriaModel[]);
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-      let model = Model.Cache.get(primaryKey);
+      let model = Model.Cache.get(primaryKey) || null;
 
       return model && this.returnWithCacheEviction(model, options);
     }
@@ -173,10 +175,10 @@ export default class MemoryAdapter {
     queryObject: object,
     options?: ModelBuildOptions
   ): MemoriaModel | void {
-    let keys = Object.keys(queryObject);
+    let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
     let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) =>
       comparison(model, queryObject, keys, 0)
-    );
+    ) || null;
 
     return model && this.returnWithCacheEviction(model, options);
   }
@@ -186,7 +188,7 @@ export default class MemoryAdapter {
     queryObject: object = {},
     options?: ModelBuildOptions
   ): MemoriaModel[] {
-    let keys = Object.keys(queryObject);
+    let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
     if (keys.length === 0) {
       return Array.from(Model.Cache.values()).map((model) =>
         this.returnWithCacheEviction(model, options)
@@ -237,25 +239,31 @@ export default class MemoryAdapter {
 
   static async insert(
     Model: typeof MemoriaModel,
-    model: QueryObject | ModelRefOrInstance,
+    record?: QueryObject | ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    if (model[Model.primaryKeyName] && this.peek(Model, model[Model.primaryKeyName])) {
-      throw new InsertError(new Changeset(Model.build(model)), {
-        id: model[Model.primaryKeyName],
+    let targetOptions = { ...options, isNew: false };
+    let targetRecord = record || {};
+    if (targetRecord[Model.primaryKeyName] && Model.Cache.get(targetRecord[Model.primaryKeyName])) {
+      throw new InsertError(new Changeset(Model.Cache.get(targetRecord[Model.primaryKeyName])), {
+        id: targetRecord[Model.primaryKeyName],
         modelName: Model.name,
         attribute: Model.primaryKeyName,
         message: "already exists",
       });
     }
 
-    let buildOptions = Object.assign(options || {}, { isNew: false });
-    let target = Model.build(assignDefaultValuesForInsert(model, Model), buildOptions);
+    let cachedRecord = Model.build(assignDefaultValuesForInsert(targetRecord, Model), targetOptions); // TODO: this will have the relationships as they are taken from fetchedRelationships
 
-    Model.Cache.set(target[Model.primaryKeyName], Model.build(target, buildOptions));
-    RelationshipDB.cache(target, "insert");
+    Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    return this.returnWithCacheEviction(target, options);
+    let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
+
+    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
+    });
+
+    return RelationshipDB.cache(result, "insert", record);
   }
 
   static async update(
@@ -263,7 +271,7 @@ export default class MemoryAdapter {
     record: QueryObject | ModelRefOrInstance,
     options?: ModelBuildOptions
   ): Promise<MemoriaModel> {
-    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
+    let targetRecord = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
       throw new UpdateError(new Changeset(Model.build(record)), {
         id: record[Model.primaryKeyName],
@@ -275,39 +283,41 @@ export default class MemoryAdapter {
 
     let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
 
-    return this.cache(
-      Model,
-      Array.from(Model.columnNames).reduce((result, attribute: string) => {
-        if (record.hasOwnProperty(attribute)) {
-          result[attribute] = record[attribute];
-        } else if (typeof defaultColumnsForUpdate[attribute] === "function") {
-          result[attribute] = defaultColumnsForUpdate[attribute](Model);
-        }
+    if (record instanceof Model) {
+      let target = Object.keys(defaultColumnsForUpdate).reduce((result, attributeName) => {
+        record[attributeName] = defaultColumnsForUpdate[attributeName](Model);
 
-        return result as ModelRefOrInstance;
-      }, {} as ModelRefOrInstance),
-      options
-    );
+        return result;
+      }, record.isFrozen ? Model.build(record) : record);
+
+      return this.cache(Model, target, options);
+    }
+
+    let target = Array.from(Model.columnNames).reduce((result, attribute: string) => {
+      if (defaultColumnsForUpdate.hasOwnProperty(attribute)) {
+        result[attribute] = defaultColumnsForUpdate[attribute](Model);
+      } else if (record.hasOwnProperty(attribute)) {
+        result[attribute] = record[attribute];
+      }
+
+      return result;
+    }, { ...record }) as ModelRefOrInstance;
+
+    return this.cache(Model, target, options);
   }
 
   static unload(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    _options?: ModelBuildOptions
+    options?: ModelBuildOptions
   ): MemoriaModel {
-    let targetRecord = this.peek(Model, record[Model.primaryKeyName]) as MemoriaModel;
+    let targetRecord = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
-      throw new DeleteError(new Changeset(Model.build(record)), {
+      throw new DeleteError(new Changeset(Model.build(record, { ...options, isNew: false })), {
         id: record[Model.primaryKeyName],
         modelName: Model.name,
         attribute: Model.primaryKeyName,
         message: "doesn't exist in cache to delete",
-      });
-    }
-
-    if (record instanceof MemoriaModel) {
-      record.fetchedRelationships.forEach((relationshipName) => {
-        targetRecord[relationshipName] = record[relationshipName];
       });
     }
 
@@ -373,7 +383,7 @@ export default class MemoryAdapter {
       DB.setTimeout(model, options.cache || 0);
     }
 
-    return model;
+    return (model.constructor as typeof MemoriaModel).build(model, { ...options, isNew: false });
   }
 
   static fetchRelationship(
@@ -387,6 +397,7 @@ export default class MemoryAdapter {
       RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
+    // NOTE: these always create new instances, we want this to happen
     return new RelationshipPromise(async (resolve, reject) => {
       if (relationshipType === "BelongsTo") {
         let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
@@ -400,9 +411,11 @@ export default class MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
           return resolve(
-            RelationshipClass.peekBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            })
+            model[Model.primaryKeyName]
+              ? RelationshipClass.peekBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+              : null
           );
         }
 
@@ -410,6 +423,7 @@ export default class MemoryAdapter {
       } else if (relationshipType === "HasMany") {
         if (reverseRelationshipName) {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
+
           return resolve(
             RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
           );
@@ -438,7 +452,6 @@ function comparison(model: MemoriaModel, options: QueryObject, keys: string[], i
 // NOTE: maybe move to DB(?)
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
-
   return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {
     if (attribute === Model.primaryKeyName) {
       result[attribute] = model[attribute] || defaultValues[attribute](Model);
@@ -454,7 +467,7 @@ function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
     }
 
     return result;
-  }, model);
+  }, prepareTargetObjectFromInstance(model, Model));
 }
 
 function tryToRevision(model: MemoriaModel, options) {

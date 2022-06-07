@@ -12,8 +12,8 @@ import MemoriaModel, {
   RelationshipSchema,
   RelationshipDB,
   NotFoundError,
-  LazyPromise,
 } from "@memoria/model";
+import { prepareTargetObjectFromInstance } from "../utils.js";
 import type {
   PrimaryKey,
   ModelReference,
@@ -162,11 +162,11 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: QueryObject,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel | void> {
+  ): Promise<MemoriaModel | null> {
     let Manager = await this.getEntityManager();
-    let foundModel = await Manager.findOne(Model, queryObject);
+    let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
-    return this.cache(Model, foundModel, options);
+    return foundModel ? this.cache(Model, foundModel, options) : null;
   }
 
   static async findAll(
@@ -181,7 +181,8 @@ export default class SQLAdapter extends MemoryAdapter {
     );
 
     if (queryObject) {
-      query.where(buildWhereSQLQueryFromObject(Model.tableName, queryObject), queryObject);
+      let objectToQuery = getTargetKeysFromInstance(queryObject);
+      query.where(buildWhereSQLQueryFromObject(Model.tableName, objectToQuery), objectToQuery);
     }
 
     let result = await query.getMany();
@@ -225,7 +226,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return this.cache(
         Model,
-        Model.assign(record, result.generatedMaps[0]) as ModelRefOrInstance,
+        Model.assign(prepareTargetObjectFromInstance(record, Model), result.generatedMaps[0]) as ModelRefOrInstance,
         options
       );
     } catch (error) {
@@ -290,7 +291,7 @@ export default class SQLAdapter extends MemoryAdapter {
         });
       }
 
-      if (this.peek(Model, result[Model.primaryKeyName])) {
+      if (Model.Cache.get(result[Model.primaryKeyName])) {
         return await super.update(Model, Model.assign(record, result), options);
       }
 
@@ -331,7 +332,7 @@ export default class SQLAdapter extends MemoryAdapter {
         });
       }
 
-      if (this.peek(Model, result[Model.primaryKeyName])) {
+      if (Model.Cache.get(result[Model.primaryKeyName])) {
         return await super.delete(
           Model,
           Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,
@@ -357,10 +358,11 @@ export default class SQLAdapter extends MemoryAdapter {
     let primaryKey = records.find((record) => record[Model.primaryKeyName]);
     try {
       let Manager = await this.getEntityManager();
+      let targetRecords = records.map((record) => ({ ...record }));
       let result = await Manager.createQueryBuilder()
         .insert()
         .into(Model, Model.columnNames)
-        .values(records) // NOTE: probably doent need relationships filter as it is
+        .values(targetRecords) // NOTE: probably doent need relationships filter as it is
         .returning("*")
         .execute();
 
@@ -374,7 +376,7 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       return result.raw.map((rawResult, index) =>
-        this.cache(Model, Model.assign(records[index], rawResult) as ModelRefOrInstance, options)
+        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options)
       );
     } catch (error) {
       console.log(error);
@@ -465,10 +467,12 @@ export default class SQLAdapter extends MemoryAdapter {
 
           let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
           if (!relationshipModel) {
-            throw new NotFoundError(
-              {},
-              `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[foreignKeyColumnName]} not found`
-            );
+            return resolve(null);
+            // NOTE: now doesnt throw to match REST behavior
+            // throw new NotFoundError(
+            //   {},
+            //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[foreignKeyColumnName]} not found`
+            // );
           }
 
           return resolve(relationshipModel);
@@ -479,10 +483,12 @@ export default class SQLAdapter extends MemoryAdapter {
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
             });
             if (!relationshipModel) {
-              throw new NotFoundError(
-                {},
-                `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
-              );
+              return resolve(null);
+              // NOTE: now doesnt throw to match REST behavior
+              // throw new NotFoundError(
+              //   {},
+              //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
+              // );
             }
 
             return resolve(relationshipModel);
@@ -515,10 +521,8 @@ function cleanRelationships(Model, instance) {
   Object.keys(relationshipTable).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
       let { relationshipType } = relationshipTable[relationshipKey];
-      RelationshipDB.getInstanceRecordsCacheForTableKey(
-        `${Model.name}:${relationshipKey}`,
-        relationshipType
-      ).set(instance, undefined);
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipKey, relationshipType)
+        .set(instance, undefined);
     }
   });
 
@@ -533,4 +537,18 @@ function buildWhereSQLQueryFromObject(aliasName: string, query: QueryObject) {
 
     return `${result} AND ${aliasName}.${keyName} = :${keyName}`;
   }, "");
+}
+
+function getTargetKeysFromInstance(query: QueryObject) {
+  let Class = query.constructor as typeof MemoriaModel;
+
+  if (Class.columnNames) {
+    return Array.from(Class.columnNames).reduce((result: QueryObject, columnName) => {
+      result[columnName] = query[columnName];
+
+      return result;
+    }, {});
+  }
+
+  return query;
 }

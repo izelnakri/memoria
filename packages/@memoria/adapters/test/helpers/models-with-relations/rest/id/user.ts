@@ -38,6 +38,10 @@ export default function generateUser() {
     @HasMany(PhotoComment)
     photoComments;
 
+    // TODO: ADD THIS:
+    // @HasMany(Group)
+    // ownedGroups;
+
     @ManyToMany(Group)
     groups;
   }

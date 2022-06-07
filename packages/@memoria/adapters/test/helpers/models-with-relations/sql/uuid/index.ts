@@ -2,6 +2,8 @@ import Model, {
   Serializer,
   PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
+  UpdateDateColumn,
   BelongsTo,
   HasMany,
   HasOne,
@@ -19,6 +21,9 @@ export default function generateModels() {
 
     @Column("varchar", { nullable: true })
     name: string;
+
+    @Column("varchar", { nullable: true })
+    owner_uuid: string;
 
     @ManyToMany(() => SQLUser)
     users;
@@ -42,11 +47,20 @@ export default function generateModels() {
     @Column("varchar", { nullable: true })
     content: string;
 
-    @Column("varchar", { nullable: true })
-    photo_uuid: string;
+    @Column("boolean", { default: true })
+    is_important: boolean;
+
+    @CreateDateColumn()
+    inserted_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
 
     @Column("varchar", { nullable: true })
     user_uuid: string;
+
+    @Column("varchar", { nullable: true })
+    photo_uuid: string;
 
     @BelongsTo(() => SQLUser)
     user;
@@ -61,13 +75,13 @@ export default function generateModels() {
     @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
-    @Column("varchar", { nullable: true })
+    @Column("varchar", { nullable: true, default: "Photo default name" })
     name: string;
 
     @Column("varchar", { nullable: true })
     href: string;
 
-    @Column("boolean", { nullable: true })
+    @Column("boolean", { nullable: true, default: true })
     is_public: boolean;
 
     @Column("varchar", { nullable: true })

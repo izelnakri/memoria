@@ -1,6 +1,6 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
-export { Schema, DB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
+export { Schema, DB, InstanceDB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 export type {
   RelationshipType,
   RelationshipSummary,
@@ -47,7 +47,7 @@ export {
   set,
   getProperties,
   setProperties,
-} from "./utils.js";
+} from "./utils/index.js";
 export {
   Column,
   CreateDateColumn,
