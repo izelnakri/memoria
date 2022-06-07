@@ -321,12 +321,6 @@ export default class MemoryAdapter {
       });
     }
 
-    // if (record instanceof MemoriaModel) {
-    //   record.fetchedRelationships.forEach((relationshipName) => {
-    //     targetRecord[relationshipName] = record[relationshipName];
-    //   });
-    // }
-
     RelationshipDB.delete(targetRecord);
     Model.Cache.delete(targetRecord[Model.primaryKeyName]);
 

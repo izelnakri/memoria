@@ -3,35 +3,6 @@ import RelationshipDB from "./db.js";
 import type Model from "../../model.js";
 
 export default class RelationshipQuery {
-  static findAllInstancesFor(referenceClass: typeof Model, relationshipCache, value: Model) {
-    let result = [] as Model[];
-    let targetModels = InstanceDB.getAllReferences(referenceClass);
-
-    targetModels.forEach((instanceSet) => {
-      instanceSet.forEach((instance) => {
-        if (relationshipCache.get(instance) === value) {
-          result.push(instance);
-        }
-      });
-    });
-
-    return result;
-  }
-
-  // last one in InstanceDB Set is the most up to date one!! But what if it has changes to
-
-  // we want to find the column so this works, if both foreign keys are same and old one points
-  // then get simply the last element in InstanceDB array(?) yes this seems reasonable and hard to be wrong(?) even after mutations
-  // instead of getting it from the previous source reference directly
-
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-
-  // TODO: draw this search algorithm
   static findPossibleReferenceInMemory(
     model,
     relationshipName,
@@ -142,20 +113,3 @@ function getRelationshipFromAllModelsLookup(model, metadata, reverseRelationship
     return relationship;
   }
 }
-  // let result = [] as Model[];
-  //   let targetModels = InstanceDB.getAllReferences(TargetModel); // TODO: this is costly reduce it
-  //   targetModels.forEach((instanceSet) => {
-  //     instanceSet.forEach((instance) => {
-  //       if (relationshipCache.get(instance) === source) {
-  //         result.push(instance);
-  //       }
-  //     });
-
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-  // x a                y u
-
-  //   });
