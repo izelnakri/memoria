@@ -1,39 +1,39 @@
 import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, InstanceDB, RelationshipPromise } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
-import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
+import setupRESTModels from "../../helpers/models-with-relations/sql/id/index.js";
 
 module(
-  "@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation tests(id)",
+  "@memoria/adapters | SQLAdapter | Relationships | Foreign key mutation tests(id)",
   function (hooks) {
     setupMemoria(hooks);
 
     module('BelongsTo mutations for OneToOne', function () {
       async function setupTargetModels(context, modelOptions = {}) {
-        let { MemoryPhoto, MemoryGroup } = context;
+        let { SQLPhoto, SQLGroup } = context;
 
-        let targetPhoto = MemoryPhoto.build({ name: 'Target photo', ...modelOptions });
-        let targetPhotoCopy = MemoryPhoto.build(targetPhoto);
-        let insertedTargetPhoto = await MemoryPhoto.insert(targetPhoto);
-        let updatedTargetPhoto = await MemoryPhoto.update(insertedTargetPhoto);
+        let targetPhoto = SQLPhoto.build({ name: 'Target photo', ...modelOptions });
+        let targetPhotoCopy = SQLPhoto.build(targetPhoto);
+        let insertedTargetPhoto = await SQLPhoto.insert(targetPhoto);
+        let updatedTargetPhoto = await SQLPhoto.update(insertedTargetPhoto);
 
         return { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto };
       }
 
       test("set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
         let { targetPhoto, targetPhotoCopy } = await setupTargetModels(context);
 
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
         assert.equal(targetPhoto.group_id, null);
@@ -58,18 +58,18 @@ module(
       });
 
       test("set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         let { targetPhoto, targetPhotoCopy } = await setupTargetModels(context);
 
@@ -104,22 +104,23 @@ module(
       });
 
       test("set model with instance fkey (that exists) to null works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
+
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group: thirdInsertedGroup
         });
 
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
 
@@ -167,7 +168,7 @@ module(
           assert.deepEqual(targetGroup.photo.toJSON(), oldUpdatedGroupPhoto);
         }));
 
-        let cachedTargetPhoto = MemoryPhoto.Cache.get(updatedTargetPhoto.id);
+        let cachedTargetPhoto = SQLPhoto.Cache.get(updatedTargetPhoto.id);
         let targetPhotosToNullify = Array.from(InstanceDB.getReferences(updatedTargetPhoto)).filter((targetPhoto) => {
           return targetPhoto !== cachedTargetPhoto;
         });
@@ -183,23 +184,23 @@ module(
       });
 
       test("set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group: thirdInsertedGroup
         });
 
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
 
@@ -242,7 +243,7 @@ module(
           assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
         }));
 
-        let lastPhoto = await MemoryPhoto.update(targetPhoto);
+        let lastPhoto = await SQLPhoto.update(targetPhoto);
 
         await Promise.all([group, insertedGroup].map(async (targetGroup) => {
           assert.deepEqual(await targetGroup.photo, targetPhoto);
@@ -254,22 +255,23 @@ module(
       });
 
       test("set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
+
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group: thirdInsertedGroup
         });
 
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
 
@@ -308,27 +310,28 @@ module(
         assert.equal(await targetPhoto.group, null);
         assert.equal(targetPhoto.group_id, 999999);
 
-        let mockGroup = MemoryGroup.build({ id: 999999, name: "Mock Group" });
+        let mockGroup = SQLGroup.build({ id: 999999, name: "Mock Group" });
 
         assert.strictEqual(targetPhoto.group, mockGroup);
         assert.equal(targetPhoto.group_id, 999999);
 
-        let insertedMockGroup = await MemoryGroup.insert(mockGroup);
+        let insertedMockGroup = await SQLGroup.insert(mockGroup);
 
         assert.deepEqual(targetPhoto.group.toJSON(), insertedMockGroup.toJSON());
         assert.equal(targetPhoto.group_id, 999999);
       });
 
       test("set model with instance fkey (that doesnt exist) to null works", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
+
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group_id: 999999
@@ -348,22 +351,23 @@ module(
       });
 
       test("set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
+
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group_id: 999999
         });
 
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
 
@@ -400,7 +404,7 @@ module(
           assert.strictEqual(targetGroup.photo, targetPhoto);
         }));
 
-        let cachedInsertedPhoto = MemoryPhoto.Cache.get(insertedGroup.id);
+        let cachedInsertedPhoto = SQLPhoto.Cache.get(insertedGroup.id);
         let lastInsertedGroupInstance = Array.from(InstanceDB.getReferences(insertedGroup)).pop();
 
         assert.notStrictEqual(lastInsertedGroupInstance, cachedInsertedPhoto);
@@ -411,7 +415,7 @@ module(
           assert.equal(await targetGroup.photo, null);
         }));
 
-        let lastPhoto = await MemoryPhoto.update(targetPhoto);
+        let lastPhoto = await SQLPhoto.update(targetPhoto);
 
         await Promise.all([group, insertedGroup].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, lastPhoto);
@@ -427,22 +431,23 @@ module(
       });
 
       test("set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
-        let context = generateModels();
-        let { MemoryPhoto, MemoryGroup } = context;
-        let group = MemoryGroup.build({ name: "First Group" });
-        let insertedGroup = await MemoryGroup.insert(group);
+        let context = setupRESTModels();
+        let { SQLPhoto, SQLGroup } = context;
 
-        let secondGroup = MemoryGroup.build({ name: "Second Group" });
-        let copiedSecondGroup = MemoryGroup.build(secondGroup);
+        let group = SQLGroup.build({ name: "First Group" });
+        let insertedGroup = await SQLGroup.insert(group);
 
-        let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
+        let secondGroup = SQLGroup.build({ name: "Second Group" });
+        let copiedSecondGroup = SQLGroup.build(secondGroup);
+
+        let thirdInsertedGroup = await SQLGroup.insert({ name: "Third Group" });
 
         let { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto } = await setupTargetModels(context, {
           group_id: 999999
         });
 
-        let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
-        let thirdUpdatedGroup = await MemoryGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
+        let thirdCopiedGroup = SQLGroup.build(thirdInsertedGroup);
+        let thirdUpdatedGroup = await SQLGroup.update({ id: thirdCopiedGroup.id, name: "Third Updated Group" });
 
         assert.equal(await group.photo, null);
 

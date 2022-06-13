@@ -301,7 +301,7 @@ const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // o
 
 - Class static method provide a better and more functional way to work on CRUD operations.
 
-- Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key constraints are not strings.
+- Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key columns are not strings.
 
 - can run on node.js thus allows frontend mocking on server-side rendering context.
 
