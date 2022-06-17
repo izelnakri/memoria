@@ -136,7 +136,7 @@ export default class HTTP {
 async function makeFetchRequest(
   httpOptions: HTTPOptions,
   options: HTTPMemoriaOptions
-): Promise<JSObject | MemoriaModel | MemoriaModel[]> {
+): Promise<JSObject | MemoriaModel | MemoriaModel[] | null> {
   // TODO: could have the requestTime metadata
   // TODO: could implement logging
   let { Model } = options;
@@ -209,9 +209,7 @@ async function makeFetchRequest(
             options
           );
         }) as MemoriaModel[];
-      }
-
-      if (!deserializedResponse) {
+      } else if (!deserializedResponse) {
         return null; // NOTE: maybe throw here in the future(?)
       }
 
@@ -318,7 +316,17 @@ function deserializeModel(Model, input, results) {
 }
 
 function synchronizePayloadForBuild(Model, input, result) {
-  return Model && result && input instanceof Model
+  if (!input) {
+    return result;
+  }
+
+  return result && input instanceof Model
     ? Model.assign(input, result)
-    : result;
+    : Array.from(Model.relationshipNames).reduce((result: JSObject, relationshipName: string) => {
+      if (relationshipName in input) {
+        result[relationshipName] = input[relationshipName];
+      }
+
+      return result;
+    }, result);
 }
