@@ -133,6 +133,8 @@ export default class MemoryAdapter {
       }
 
       return RelationshipDB.cache(target, "update", record);
+    } else if (record && record instanceof Model && !record.isBuilt) {
+      Object.seal(record);
     }
 
     let cachedRecord = Model.build(record, targetOptions); // NOTE: pure object here creates no extra revision for "insert" just "build"
