@@ -1,7 +1,7 @@
 import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, InstanceDB, RelationshipPromise } from "@memoria/model";
 import { module, test, skip } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
-import generateModels from "../../helpers/models-with-relations/sql/uuid/index.js";
+import setupSQLModels from "../../helpers/models-with-relations/sql/uuid/index.js";
 
 const RANDOM_GROUP_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f21";
 const SECOND_RANDOM_GROUP_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f22";
@@ -24,7 +24,7 @@ module(
       }
 
       test("set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let { targetPhoto, targetPhotoCopy } = await setupTargetModels(context);
 
@@ -61,7 +61,7 @@ module(
       });
 
       test("set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
 
         let group = SQLGroup.build({ name: "First Group" });
@@ -107,7 +107,7 @@ module(
       });
 
       test("set model with instance fkey (that exists) to null works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let group = SQLGroup.build({ name: "First Group" });
         let insertedGroup = await SQLGroup.insert(group);
@@ -186,7 +186,7 @@ module(
       });
 
       test("set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
 
         let group = SQLGroup.build({ name: "First Group" });
@@ -257,7 +257,7 @@ module(
       });
 
       test("set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let group = SQLGroup.build({ name: "First Group" });
         let insertedGroup = await SQLGroup.insert(group);
@@ -323,7 +323,7 @@ module(
       });
 
       test("set model with instance fkey (that doesnt exist) to null works", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let group = SQLGroup.build({ name: "First Group" });
         let insertedGroup = await SQLGroup.insert(group);
@@ -351,7 +351,7 @@ module(
       });
 
       test("set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let group = SQLGroup.build({ name: "First Group" });
         let insertedGroup = await SQLGroup.insert(group);
@@ -430,7 +430,7 @@ module(
       });
 
       test("set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
-        let context = generateModels();
+        let context = setupSQLModels();
         let { SQLPhoto, SQLGroup } = context;
         let group = SQLGroup.build({ name: "First Group" });
         let insertedGroup = await SQLGroup.insert(group);
