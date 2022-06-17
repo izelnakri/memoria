@@ -12,3 +12,4 @@ import "./relationships/belongs-to-uuid-for-has-one-test.js";
 import "./relationships/foreign-key-id-test.js";
 import "./relationships/foreign-key-uuid-test.js";
 import "./relationships/has-one-id-test.js";
+import "./relationships/has-one-uuid-test.js";
