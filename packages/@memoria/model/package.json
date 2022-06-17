@@ -1,7 +1,7 @@
 {
   "name": "@memoria/model",
   "type": "module",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "",
   "author": "Izel Nakri <contact@izelnakri.com>",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "dist/*"
   ],
   "dependencies": {
-    "@memoria/adapters": "0.0.26",
+    "@memoria/adapters": "0.0.27",
     "inflected": "^2.1.0"
   }
 }
