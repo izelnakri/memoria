@@ -302,7 +302,7 @@ function buildQueryPath(queryObject?: JSObject) {
   }
 
   let findByKeys = queryObject instanceof MemoriaModel ?
-    (queryObject.constructor as typeof MemoriaModel).columnNames :
+    Array.from((queryObject.constructor as typeof MemoriaModel).columnNames) :
     Object.keys(queryObject);
   if (findByKeys.length > 0) {
     let arrayParams = {};

@@ -174,7 +174,7 @@ module("@memoria/adapters | RESTAdapter | Find API", function (hooks) {
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
       assert.propEqual(await RESTPhoto.findBy({ is_public: false }), firstPhoto);
-      assert.propEqual(await RESTPhoto.findBy(firstPhoto), firstPhoto);
+      assert.propEqual(await RESTPhoto.findBy({ id: firstPhoto.id }), firstPhoto);
       assert.propEqual(await RESTPhoto.findBy({ name: "Family photo", href: "family-photo.jpeg" }), RESTPhoto.build({
         id: 2,
         name: "Family photo",
