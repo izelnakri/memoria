@@ -36,8 +36,10 @@ export default function generateRESTModels() {
         }
       });
 
-      this.get("/photos", async () => {
-        let photos = await Photo.findAll();
+      this.get("/photos", async ({ queryParams }) => {
+        let photos = queryParams.group_id
+          ? await Photo.findAll({ group_id: queryParams.group_id })
+          : await Photo.findAll();
 
         return { photos: Photo.serializer(photos) };
       });

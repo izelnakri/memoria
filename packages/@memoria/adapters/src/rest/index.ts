@@ -269,11 +269,9 @@ export default class RESTAdapter extends MemoryAdapter {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
-            return resolve(
-              await RelationshipClass.findBy({
-                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-              })
-            );
+            return resolve(await RelationshipClass.findBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            }) || null)
           }
 
           return reject();
