@@ -48,6 +48,9 @@ export {
   set,
   getProperties,
   setProperties,
+  printSchema,
+  printColumns,
+  printRelationships
 } from "./utils/index.js";
 export {
   Column,

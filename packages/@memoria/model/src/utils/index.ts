@@ -2,6 +2,7 @@ import type Model from "../index.js";
 import { Changeset, RuntimeError } from "../index.js";
 
 export { get, set, getProperties, setProperties } from "./object.js";
+export { printSchema, printColumns, printRelationships } from "./print-schema.js";
 
 interface AnyObject {
   [key: string]: any;
