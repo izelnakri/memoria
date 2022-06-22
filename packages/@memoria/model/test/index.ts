@@ -1,5 +1,6 @@
 import "./build-test.js";
 import "./cache-test.js";
+import "./has-many-array-test.js";
 import "./index-test.js";
 import "./new-test.js";
 import "./promises-test.js";
