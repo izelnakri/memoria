@@ -39,15 +39,8 @@ export default class HasManyArray extends Array {
   }
 
   #relationshipMetadata; // -> relationshipMetadata: this could cache the lookup for remaining stuff
-  #spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
+  spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
-
-  get spliceCallOnNullSetting() {
-    return this.#spliceCallOnNullSetting;
-  }
-  set spliceCallOnNullSetting(value) {
-    this.#spliceCallOnNullSetting = value;
-  }
 
   constructor(array?: Array<Model> | Set<Model>) {
     super();
