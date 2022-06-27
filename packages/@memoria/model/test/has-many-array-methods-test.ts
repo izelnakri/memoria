@@ -146,7 +146,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
       let firstPhoto = Photo.build({ name: "First photo" });
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
-      let thirdPhotoCopy = Photo.build(thirdPhoto);
       let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
       let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
       let array = new HasManyArray([firstPhoto, secondPhoto, fourthPhoto, fifthPhoto]);
@@ -193,7 +192,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
       let firstPhoto = Photo.build({ name: "First photo" });
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
-      let thirdPhotoCopy = Photo.build(thirdPhoto);
       let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
       let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
       let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
@@ -212,14 +210,13 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
       let firstPhoto = Photo.build({ name: "First photo" });
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
-      let thirdPhotoCopy = Photo.build(thirdPhoto);
       let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
       let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
       let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
-      let result = array.fill(fifthPhoto, 1, 2) // it should add it to the startIndex!! not the end!
+      let result = array.fill(fifthPhoto, 1, 2);
 
       assert.deepEqual(array, [firstPhoto, fifthPhoto, fourthPhoto]);
       assert.strictEqual(array, result);
@@ -231,7 +228,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
       let firstPhoto = Photo.build({ name: "First photo" });
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
-      let thirdPhotoCopy = Photo.build(thirdPhoto);
       let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
       let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
       let fifthPhotoCopy = Photo.build({ id: 5, name: "Fifth photo copy" });
@@ -240,7 +236,7 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhotoCopy, sixthPhoto]);
 
-      let result = array.fill(fifthPhoto, 1, 2) // it should add it to the startIndex!! not the end!
+      let result = array.fill(fifthPhoto, 1, 2);
 
       assert.deepEqual(array, [firstPhoto, fifthPhoto, fourthPhoto, sixthPhoto]);
       assert.strictEqual(array, result);
@@ -303,8 +299,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
     });
 
     test('emptyHasManyArray.pop() should return undefined', function (assert) {
-      const { Photo } = generateModels();
-
       let array = new HasManyArray();
 
       assert.deepEqual(array, []);
@@ -344,8 +338,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
       let firstPhoto = Photo.build({ name: "First photo" });
       let array = new HasManyArray([firstPhoto]);
 
-      class SomeClass {};
-
       assert.deepEqual(array, [firstPhoto]);
 
       [undefined, false, 0].forEach((value) => {
@@ -365,8 +357,6 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
 
       let firstPhoto = Photo.build({ name: "First photo" });
       let array = new HasManyArray([firstPhoto]);
-
-      class SomeClass {};
 
       assert.deepEqual(array, [firstPhoto]);
 
@@ -490,13 +480,384 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
     });
   });
 
-  // module('shift', function() {
+  module('shift', function() {
+    test('array.shift() works correctly can can clear the item iteratively', function (assert) {
+      const { Photo } = generateModels();
 
-  // });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
 
-  // module('splice', function() {
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      assert.strictEqual(array.shift(), firstPhoto);
+      assert.deepEqual(array, [secondPhoto, thirdPhoto]);
+      assert.strictEqual(array.shift(), secondPhoto);
+      assert.deepEqual(array, [thirdPhoto]);
+      assert.strictEqual(array.shift(), thirdPhoto);
+      assert.deepEqual(array, []);
+      assert.strictEqual(array.shift(), undefined);
+      assert.deepEqual(array, []);
+      assert.strictEqual(array.shift(), undefined);
+      assert.deepEqual(array, []);
+    });
 
-  // });
+    test('emptyHasManyArray.shift() should return undefined', function (assert) {
+      const { Photo } = generateModels();
+
+      let array = new HasManyArray();
+
+      assert.deepEqual(array, []);
+      assert.strictEqual(array.shift(), undefined);
+      assert.deepEqual(array, []);
+      assert.strictEqual(array.shift(), undefined);
+      assert.deepEqual(array, []);
+    });
+  });
+
+  module('splice', function() {
+    test('emptyHasManyArray.splice(x) works correctly for possible x integer values', function (assert) {
+      let array = new HasManyArray();
+
+      assert.deepEqual(array, []);
+      assert.deepEqual(array.splice(), []);
+      assert.deepEqual(array, []);
+      [-2, 0, 2].forEach((value) => {
+        assert.deepEqual(array.splice(value), []);
+        assert.deepEqual(array, []);
+      });
+    });
+
+    test('emptyHasManyArray.splice(x, y) works correctly for possible x and y integer values', function (assert) {
+      let array = new HasManyArray();
+
+      [-2, 0, 2].forEach((value) => {
+        assert.deepEqual(array.splice(-2, value), []);
+        assert.deepEqual(array.splice(0, value), []);
+        assert.deepEqual(array.splice(2, value), []);
+        assert.deepEqual(array, []);
+      });
+    });
+
+    test('emptyHasManyArray.splice(x, y, z) works correctly for possible x and y and z integer values', function (assert) {
+      const { Photo } = generateModels();
+      let firstPhoto = Photo.build({ name: "First photo" });
+
+      [-2, 0, 2].forEach((value) => {
+        [-2, 0, 2].forEach((secondParam) => {
+          let array = new HasManyArray();
+          let result = array.splice(value, value, firstPhoto);
+          assert.deepEqual(result, []);
+          assert.notOk(result instanceof HasManyArray);
+          assert.deepEqual(array, [firstPhoto]);
+        });
+      });
+    });
+
+    test('emptyHasManyArray.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b', function (assert) {
+      const { Photo } = generateModels();
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let secondPhotoCopy = Photo.build({ id: 2, name: "Second photo copy" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+
+      [-2, 0, 2].forEach((value) => {
+        [-2, 0, 2].forEach((secondParam) => {
+          let array = new HasManyArray();
+          let result = array.splice(value, value, firstPhoto, null, secondPhoto, thirdPhoto);
+          assert.deepEqual(result, []);
+          assert.notOk(result instanceof HasManyArray);
+          assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+        });
+      });
+    });
+
+    test('array.splice(x) works correctly for possible x integer values', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(), []);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(0), [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, []);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2), [thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto]);
+    });
+
+    test('array.splice(x, y) works correctly for possible x and y integer values', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+
+      [-2, 0, 2].forEach((param) => {
+        [-2, 0].forEach((secondParam) => {
+          let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+          assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+          assert.deepEqual(array.splice(param, secondParam), []);
+          assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+        });
+      });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array.splice(-2, 2), [fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array.splice(0, 2), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array.splice(2, 2), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, fifthPhoto, sixthPhoto]);
+    });
+
+    test('array.splice(x, y, newModel) works correctly for possible x and y and z integer values', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(-2, param, sixthPhoto), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, sixthPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 2, sixthPhoto), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, sixthPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(0, param, sixthPhoto), []);
+        assert.deepEqual(array, [sixthPhoto, firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(0, 2, sixthPhoto), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [sixthPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(2, param, sixthPhoto), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, sixthPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2, 2, sixthPhoto), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, sixthPhoto, fifthPhoto]);
+    });
+
+    test('array.splice(x, y, existingModel) works correctly for possible x and y and z integer values', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(-2, param, thirdPhoto), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 2, thirdPhoto), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(0, param, thirdPhoto), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(0, 2, thirdPhoto), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(2, param, thirdPhoto), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2, 2, thirdPhoto), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fifthPhoto]);
+    });
+
+    test('array.splice(x, y, existingInstanceGroupAnotherModel) works correctly for possible x and y and z integer values', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let thirdPhotoCopy = Photo.build({ id: 3, name: "Third photo copy" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(-2, param, thirdPhotoCopy), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 2, thirdPhotoCopy), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(0, param, thirdPhotoCopy), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(0, 2, thirdPhotoCopy), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(2, param, thirdPhotoCopy), []);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2, 2, thirdPhotoCopy), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fifthPhoto]);
+    });
+
+    test('array.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let secondPhotoCopy = Photo.build({ id: 2, name: "Second photo copy" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let thirdPhotoCopy = Photo.build({ id: 3, name: "Third photo copy" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+      let anotherPhoto = Photo.build({ id: 7, name: "Another photo" });
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(-2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
+        assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto, fourthPhoto, fifthPhoto]);
+      });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(0, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
+        assert.deepEqual(array, [sixthPhoto, anotherPhoto, firstPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(0, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [sixthPhoto, anotherPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+
+      [-2, 0].forEach((param) => {
+        let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(array.splice(2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
+        assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      });
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fifthPhoto]);
+    });
+
+    test('array.splice(x, y, z, a, b) works correctly for possible out of bound x and y ->(99, -99) and z integer values and adds z, a & b', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let secondPhotoCopy = Photo.build({ id: 2, name: "Second photo copy" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let thirdPhotoCopy = Photo.build({ id: 3, name: "Third photo copy" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+      let anotherPhoto = Photo.build({ id: 7, name: "Another photo" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-99, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array, [sixthPhoto, anotherPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(2, -99, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
+      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 99, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto]);
+
+      array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(99, -2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
+      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto, sixthPhoto, anotherPhoto]);
+    });
+  });
 
   // module('unshift', function() {
 

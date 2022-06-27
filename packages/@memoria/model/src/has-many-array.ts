@@ -173,7 +173,7 @@ export default class HasManyArray extends Array {
     return filterInstancesToAdd(super.concat.apply(this, [...arguments]));
   }
 
-  fill(value: void | Model, start?: number, end?: number): HasManyArray {
+  fill(value: void | Model, start?: number, end?: number): this {
     let [targetStart, targetEnd] = [start || 0, end || this.length - 1]; // NOTE: maybe this should be this.length - 1;
     let endIndex = targetEnd < 0 ? this.length + targetEnd : targetEnd;
     let startIndex = targetStart < 0 ? this.length + targetStart : targetStart;
@@ -197,7 +197,7 @@ export default class HasManyArray extends Array {
     return this;
   }
 
-  pop(): Element | undefined {
+  pop(): Model | undefined {
     if (this.length === 0) {
       return;
     }
@@ -216,36 +216,42 @@ export default class HasManyArray extends Array {
       return;
     }
 
-    let [removedElement] = this.splice(0, 1);
-
-    return removedElement;
+    return this.splice(0, 1)[0];
   }
 
-  // test it for (0, 1)
-  // TODO: this sometimes changes the length(?)
-  splice(startIndex: number, deleteCount?: number, _item1?: Model): Array<Model> {
-    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
-    this.spliceCallOnNullSetting = false;
+  // TODO: startIndex -2 doesnt work correctly
+  // lol = ['a', 'b', 'c', 'd', 'e', 'f']; lol.splice(-2) [last two removed], lol.splice(-2, 1) [last 2nd only removed], lol.splice(-2, 2) [last 2 removed], lol.splice(-2, 2+) [last 2 removed]
+  splice(startIndex: number, deleteCount?: number, ..._items: Model[]): Model[] {
+    let targetStartIndex = startIndex >= 0 ? startIndex : this.length + (startIndex || 0); // NOTE: start index could be -2 is that legit(?)
+    if (targetStartIndex < 0) {
+      targetStartIndex = 0;
+    }
+
+    let targetDeleteCount = (isNumber(deleteCount) ? deleteCount : this.length - targetStartIndex) as number;
+    if (targetDeleteCount > this.length) {
+      targetDeleteCount = this.length - targetStartIndex;
+    }
 
     let deletedElements: Array<Model> = [];
-    if (deleteCount && deleteCount > 0) {
-      // TODO: maybe limit this to this.length here:
-      for (let i = 0; i < deleteCount; i++) {
-        let targetIndex = startIndex + i;
-        deletedElements.push(this[targetIndex]);
-        this[targetIndex] = null; // NOTE: move this to delete this[startIndex + i] ?
+    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
+
+    this.spliceCallOnNullSetting = false;
+
+    if (targetDeleteCount > 0) {
+      for (let i = 0; i < this.length && i < targetDeleteCount; i++) {
+        deletedElements.push(this[targetStartIndex + i]);
+        this[targetStartIndex + i] = null; // NOTE: move this to delete this[targetStartIndex + i] ?
       }
 
       if (deletedElements.length > 0) {
-        let elementsToMoveAfterDelete = this.length - (startIndex + deleteCount);
+        let deleteIndex = targetStartIndex + targetDeleteCount;
+        let elementsToMoveAfterDelete = this.length - deleteIndex;
         if (elementsToMoveAfterDelete > 0) {
           for (let i = 0; i < elementsToMoveAfterDelete; i++) {
-            let targetIndex = startIndex + deleteCount + i; // NOTE: this needs to start from far right
-            let model = this[targetIndex];
-            debugger;
-            this[targetIndex] = null; // TODO: does this ever change length(?)
-            debugger;
-            this[startIndex + i] = model;
+            let model = this[deleteIndex + i];
+
+            this[targetStartIndex + targetDeleteCount + i] = null;
+            this[targetStartIndex + i] = model;
           }
         }
 
@@ -253,12 +259,24 @@ export default class HasManyArray extends Array {
       }
     }
 
+    let shouldMoveAddedItems = targetStartIndex >= 0 && targetStartIndex < this.length;
     let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
-    // debugger;
-    itemsToAdd.forEach((item, index) => {
-      this[this.length] = item;
-      this[startIndex + index + 1] = item;  // because this should add to the end of the array
-      // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
+    let indexForAdd = -1;
+    itemsToAdd.forEach((item: Model) => {
+      if (item instanceof Model) {
+        let oldLength = this.length;
+
+        this[this.length] = item;
+
+        if (oldLength === this.length) {
+          return;
+        } else if (shouldMoveAddedItems) {
+          indexForAdd = indexForAdd + 1;
+          debugger;
+          this[targetStartIndex + indexForAdd] = item;
+        }
+        // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
+      }
     });
 
     this.spliceCallOnNullSetting = oldSpliceCallOnNullSetting;
@@ -266,11 +284,16 @@ export default class HasManyArray extends Array {
     return deletedElements;
   }
 
-  unshift(_element0?: Model, _element1?: Model): number {
-    let elements = [...arguments].reverse();
-
-    elements.forEach((element) => {
-      this.splice(-1, 0, element);
+  unshift(..._models: Model[]): number {
+    // let elements = [...arguments].reverse();
+    // elements.forEach((element) => {
+    //   this.splice(-1, 0, element);
+    // });
+    [...arguments].forEach((element: Model, index: number) => {
+      if (element instanceof Model) {
+        this[this.length] = element;
+        this[index] = element;
+      }
     });
 
     return this.length;
@@ -282,7 +305,7 @@ export default class HasManyArray extends Array {
 
   // TODO: Built for DX and optimized RelationshipDB operations here:
   // TODO: rename this to add and make it accept Model or Array<Model>
-  add(param: Model | Model[]): HasManyArray {
+  add(param: Model | Model[]): this {
     Array.isArray(param)
       ? filterInstancesToAdd(param).forEach((model) => this.push(model))
       : this.push(param)
@@ -294,7 +317,7 @@ export default class HasManyArray extends Array {
 
   // }
 
-  remove(param: Model | Model[]): HasManyArray {
+  remove(param: Model | Model[]): boolean {
     let index = this.indexOf(param);
     if (index > -1) {
       this.splice(index, 1);
@@ -305,9 +328,7 @@ export default class HasManyArray extends Array {
   }
 
   clear() {
-    this.length = 0;
-
-    return this;
+    return this.fill(); // NOTE: this.fill so it triggers removals
   }
 
   // NOTE: investigate .get(), .getProperties, is .reverseObjects() needed(?)
@@ -335,10 +356,10 @@ export default class HasManyArray extends Array {
 
 // NOTE: maybe this isnt needed based on the array, but we also dont want to change the arrays existing results for no reason
 
-function filterInstancesToAdd(instancesToLookup: Model[] | HasManyArray) {
+function filterInstancesToAdd(instancesToLookup: Model[]) {
   let arraysModelType;
 
-  return instancesToLookup.reduce((result, instanceToLookup) => {
+  return instancesToLookup.reduce((result: [Model[], Set<Set<Model>>], instanceToLookup: Model) => {
     let instancesToAdd = result[0];
     if (!(instanceToLookup instanceof Model)) {
       throw new Error('HasManyArray cannot have non memoria Model instance inside!');
@@ -348,7 +369,7 @@ function filterInstancesToAdd(instancesToLookup: Model[] | HasManyArray) {
       throw new Error('HasManyArray cannot be instantiated with model types different than one another!');
     }
 
-    let instanceReferences = InstanceDB.getReferences(instanceToLookup);
+    let instanceReferences = InstanceDB.getReferences(instanceToLookup) as Set<Model>;
     if (result[1].has(instanceReferences)) {
       let existingInstance = instancesToAdd
         .find((instance) => InstanceDB.getReferences(instance) === instanceReferences) as Model;
@@ -360,12 +381,17 @@ function filterInstancesToAdd(instancesToLookup: Model[] | HasManyArray) {
       return result;
     }
 
-    result[0].push(instanceToLookup);
-    result[1].add(instanceReferences);
+    result[0].push(instanceToLookup as Model);
+    result[1].add(instanceReferences as Set<Model>);
 
-    return result;
-  }, [[] as Model[], new Set()])[0];
+    return result as [Model[], Set<Set<Model>>];
+  }, [[] as Model[], new Set()])[0] as Model[];
 }
+
+function isNumber(value) {
+  return typeof value === 'number' && isFinite(value);
+}
+
 
 // Atomic operations
 // function replaceExistingModelFromArray(newModel: Model, existingModelIndex: number, hasManyArray: Model[]) {
