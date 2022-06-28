@@ -42,7 +42,7 @@ const DEFAULT_TIMEOUT_IN_MS = 30000;
 
 export default class HTTP {
   static host: string =
-    typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+    typeof window === "undefined" ? "http://localhost:3000" : window.location?.origin;
   static headers: HTTPHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json",
