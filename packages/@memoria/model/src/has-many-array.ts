@@ -1,4 +1,3 @@
-// TODO: add splice tests directly before anything
 import InstanceDB from "./stores/instance/db.js";
 import Model from "./model.js";
 
@@ -8,7 +7,6 @@ import Model from "./model.js";
 // Adding should do Model check and duplication check(from the instance group):
 // - push -> probably done
 // - unshift
-// - concat -> this could add to the end(multiple)
 // - splice(?) -> this could add to the end(multiple)
 // - add(?) -> this could add to the end multiple -> same/uses splice
 
@@ -17,8 +15,6 @@ import Model from "./model.js";
 // - pop -> from end
 // - shift -> from beginning
 // - splice(?) -> from anywhere, multiple
-
-// TODO: tests for push(void), push(newModel), push(modelWithExistingInstance), push(modelWrongInstance), pop, shift, splice, unshift, clear, addObjects, remove/delete(?)
 
 // NOTE: do we want to batch also relationships assignments(?) -> probably not for now
 
@@ -33,6 +29,7 @@ import Model from "./model.js";
 // - add() -> //-> added or replaced(true | false)
 // - replace() // -> actual removal count, actual addition, actual replacementIndexes[]
 // - remove -> // -> [Model] // found and removed models
+
 export default class HasManyArray extends Array {
   static get [Symbol.species]() {
     return Array;
@@ -87,7 +84,7 @@ export default class HasManyArray extends Array {
               throw new Error(`This HasManyArray accepts ${self[0].constructor.name} instances, you tried to assign ${value.constructor.name} instance!`);
             }
 
-            self.forEach((existingInstance, existingInstanceIndex) => { // NOTE: this makes adding to list very slow because array.push() also triggers it
+            self.forEach((existingInstance, existingInstanceIndex) => { // NOTE: this makes adding to list slow, array.push() also triggers it
               if (existingInstance && instanceToAddReferencesSet === InstanceDB.getReferences(existingInstance)) {
                 instancesToAdd.length = 0; // make this remove it instead in future for extensibility super.splice(existingInstanceIndex, 1);
 
@@ -105,7 +102,7 @@ export default class HasManyArray extends Array {
                   self[targetIndex] = value;
                 } else {
                   for (let i = 0; i < targetIndex - existingInstanceIndex; i++) {
-                    let model = self[existingInstanceIndex + i + 1]; // does this ow
+                    let model = self[existingInstanceIndex + i + 1];
                     self[existingInstanceIndex + i] = model;
                   }
 
@@ -174,7 +171,7 @@ export default class HasManyArray extends Array {
   }
 
   fill(value: void | Model, start?: number, end?: number): this {
-    let [targetStart, targetEnd] = [start || 0, end || this.length - 1]; // NOTE: maybe this should be this.length - 1;
+    let [targetStart, targetEnd] = [start || 0, end || this.length - 1];
     let endIndex = targetEnd < 0 ? this.length + targetEnd : targetEnd;
     let startIndex = targetStart < 0 ? this.length + targetStart : targetStart;
     if (startIndex > 0 && startIndex > this.length - 1) {
@@ -198,11 +195,7 @@ export default class HasManyArray extends Array {
   }
 
   pop(): Model | undefined {
-    if (this.length === 0) {
-      return;
-    }
-
-    return this.splice(this.length - 1, 1)[0];
+    return this.length === 0 ? undefined : this.splice(this.length - 1, 1)[0];
   }
 
   push(model: Model): number {
@@ -212,17 +205,11 @@ export default class HasManyArray extends Array {
   }
 
   shift(): Model | undefined {
-    if (this.length === 0) {
-      return;
-    }
-
-    return this.splice(0, 1)[0];
+    return this.length === 0 ? undefined : this.splice(0, 1)[0];
   }
 
-  // TODO: startIndex -2 doesnt work correctly
-  // lol = ['a', 'b', 'c', 'd', 'e', 'f']; lol.splice(-2) [last two removed], lol.splice(-2, 1) [last 2nd only removed], lol.splice(-2, 2) [last 2 removed], lol.splice(-2, 2+) [last 2 removed]
   splice(startIndex: number, deleteCount?: number, ..._items: Model[]): Model[] {
-    let targetStartIndex = startIndex >= 0 ? startIndex : this.length + (startIndex || 0); // NOTE: start index could be -2 is that legit(?)
+    let targetStartIndex = startIndex >= 0 ? startIndex : this.length + (startIndex || 0);
     if (targetStartIndex < 0) {
       targetStartIndex = 0;
     }
@@ -240,14 +227,14 @@ export default class HasManyArray extends Array {
     if (targetDeleteCount > 0) {
       for (let i = 0; i < this.length && i < targetDeleteCount; i++) {
         deletedElements.push(this[targetStartIndex + i]);
-        this[targetStartIndex + i] = null; // NOTE: move this to delete this[targetStartIndex + i] ?
+        this[targetStartIndex + i] = null;
       }
 
       if (deletedElements.length > 0) {
         let deleteIndex = targetStartIndex + targetDeleteCount;
-        let elementsToMoveAfterDelete = this.length - deleteIndex;
-        if (elementsToMoveAfterDelete > 0) {
-          for (let i = 0; i < elementsToMoveAfterDelete; i++) {
+        let numberOfModelsToMoveAfterDelete = this.length - deleteIndex;
+        if (numberOfModelsToMoveAfterDelete > 0) {
+          for (let i = 0; i < numberOfModelsToMoveAfterDelete; i++) {
             let model = this[deleteIndex + i];
 
             this[targetStartIndex + targetDeleteCount + i] = null;
@@ -260,8 +247,8 @@ export default class HasManyArray extends Array {
     }
 
     let shouldMoveAddedItems = targetStartIndex >= 0 && targetStartIndex < this.length;
-    let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
     let indexForAdd = -1;
+    let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
     itemsToAdd.forEach((item: Model) => {
       if (item instanceof Model) {
         let oldLength = this.length;
@@ -272,7 +259,6 @@ export default class HasManyArray extends Array {
           return;
         } else if (shouldMoveAddedItems) {
           indexForAdd = indexForAdd + 1;
-          debugger;
           this[targetStartIndex + indexForAdd] = item;
         }
         // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
@@ -285,10 +271,6 @@ export default class HasManyArray extends Array {
   }
 
   unshift(..._models: Model[]): number {
-    // let elements = [...arguments].reverse();
-    // elements.forEach((element) => {
-    //   this.splice(-1, 0, element);
-    // });
     [...arguments].forEach((element: Model, index: number) => {
       if (element instanceof Model) {
         this[this.length] = element;
@@ -299,7 +281,7 @@ export default class HasManyArray extends Array {
     return this.length;
   }
 
-  any(predicate) {
+  any(predicate: any) {
     return super.some(predicate);
   }
 
@@ -313,7 +295,7 @@ export default class HasManyArray extends Array {
     return this;
   }
 
-  // replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): HasManyArray {
+  // replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): this {
 
   // }
 
@@ -330,8 +312,6 @@ export default class HasManyArray extends Array {
   clear() {
     return this.fill(); // NOTE: this.fill so it triggers removals
   }
-
-  // NOTE: investigate .get(), .getProperties, is .reverseObjects() needed(?)
 
   get metadata() {
     return this.#relationshipMetadata || {
@@ -354,10 +334,8 @@ export default class HasManyArray extends Array {
   }
 }
 
-// NOTE: maybe this isnt needed based on the array, but we also dont want to change the arrays existing results for no reason
-
 function filterInstancesToAdd(instancesToLookup: Model[]) {
-  let arraysModelType;
+  let arraysModelType: any;
 
   return instancesToLookup.reduce((result: [Model[], Set<Set<Model>>], instanceToLookup: Model) => {
     let instancesToAdd = result[0];
@@ -388,7 +366,7 @@ function filterInstancesToAdd(instancesToLookup: Model[]) {
   }, [[] as Model[], new Set()])[0] as Model[];
 }
 
-function isNumber(value) {
+function isNumber(value: any) {
   return typeof value === 'number' && isFinite(value);
 }
 
@@ -406,7 +384,6 @@ function isNumber(value) {
 // function removeFromHasManyArray(existingModelIndex: number, hasManyArray: Model[]) {
 //   return array.splice(existingModelIndex, 1);
 // }
-
 
 // NOTE: For later: Array utils/mixins from ember:
 // toArray, toJSON()[is it the same?], reduceRight

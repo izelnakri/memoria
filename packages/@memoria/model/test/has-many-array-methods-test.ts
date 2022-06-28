@@ -1,10 +1,10 @@
 // TODO: Refactor tests with mock/spies calledOnceWith(RelationshipDB.cacheMethod, params)
-import { HasManyArray, printSchema } from "@memoria/model";
+import { HasManyArray } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 import generateModels from "./helpers/relationship-test-models/index.js";
 
-module("@memoria/model | HasManyArray methods", function (hooks) {
+module("@memoria/model | HasManyArray Array.prototype methods", function (hooks) {
   setupMemoria(hooks);
 
   module('concat', function() {
@@ -859,30 +859,174 @@ module("@memoria/model | HasManyArray methods", function (hooks) {
     });
   });
 
-  // module('unshift', function() {
+  module('unshift', function() {
+    test('array.unshift($invalidParam) throws', function (assert) {
+      const { Photo } = generateModels();
 
-  // });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let array = new HasManyArray([firstPhoto]);
 
-  // module('any', function() {
+      class SomeClass {};
 
-  // });
+      assert.deepEqual(array, [firstPhoto]);
 
-  // TODO: DX Utils/optimized RelationshipDB mutation tests:
-  // module('add', function() {
+      [true, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
+        try {
+          array.unshift(value);
+        } catch (error) {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+        }
+      });
 
-  // });
+      assert.deepEqual(array, [firstPhoto]);
+    });
 
-  // module('delete', function() {
+    test('array.unshift($falsyValue) does nothing', function (assert) {
+      const { Photo } = generateModels();
 
-  // });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let array = new HasManyArray([firstPhoto]);
 
-  // module('replace', function() {
+      assert.deepEqual(array, [firstPhoto]);
 
-  // });
+      [undefined, false, 0].forEach((value) => {
+        try {
+          array.unshift(value);
+        } catch (error) {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+        }
+      });
 
-  // module('clear', function() {
+      assert.deepEqual(array, [firstPhoto]);
+    });
 
-  // });
+    test('array.unshift($wrongModelInstance) throws', function (assert) {
+      const { Photo, User } = generateModels();
 
-  // TODO: array mixin methods
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let array = new HasManyArray([firstPhoto]);
+
+      assert.deepEqual(array, [firstPhoto]);
+
+      try {
+        array.unshift(User.build({ first_name: "Izel" }));
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+      }
+
+      assert.deepEqual(array, [firstPhoto]);
+    });
+
+    test('emptyHasManyArray.unshift(x) works correctly', function (assert) {
+      const { Photo, User } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let array = new HasManyArray();
+
+      assert.deepEqual(array, []);
+      assert.equal(array.length, 0);
+
+      let result = array.unshift(firstPhoto);
+
+      assert.equal(result, 1);
+      assert.equal(array.length, 1);
+      assert.deepEqual(array, [firstPhoto]);
+
+      let resultTwo = array.unshift(secondPhoto);
+
+      assert.equal(resultTwo, 2);
+      assert.equal(array.length, 2);
+      assert.deepEqual(array, [secondPhoto, firstPhoto]);
+
+      try {
+        array.unshift(User.build({ first_name: "Izel" }));
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+      }
+
+      assert.equal(array.length, 2);
+    });
+
+    test('array.unshift($model) works correctly', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      assert.equal(array.length, 3);
+
+      let result = array.unshift(fourthPhoto);
+
+      assert.equal(result, 4);
+      assert.equal(array.length, 4);
+      assert.deepEqual(array, [fourthPhoto, firstPhoto, secondPhoto, thirdPhoto]);
+
+      let resultTwo = array.unshift(fifthPhoto);
+
+      assert.equal(resultTwo, 5);
+      assert.equal(array.length, 5);
+      assert.deepEqual(array, [fifthPhoto, fourthPhoto, firstPhoto, secondPhoto, thirdPhoto]);
+    });
+
+    test('array.unshift($model) pushing an existing item just moves it to first position', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      assert.equal(array.length, 3);
+
+      let result = array.unshift(secondPhoto);
+
+      assert.equal(result, 3);
+      assert.equal(array.length, 3);
+      assert.deepEqual(array, [secondPhoto, firstPhoto, thirdPhoto]);
+
+      let resultTwo = array.unshift(thirdPhoto);
+
+      assert.equal(resultTwo, 3);
+      assert.equal(array.length, 3);
+      assert.deepEqual(array, [thirdPhoto, secondPhoto, firstPhoto]);
+    });
+
+    test('array.unshift($model) pushing an existing instance group item replaces it and moves it to first position', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let firstPhotoCopy = Photo.build(firstPhoto);
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let secondPhotoCopy = Photo.build({ id: 2, name: "Second photo copy" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let array = new HasManyArray([firstPhotoCopy, secondPhotoCopy, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhotoCopy, secondPhotoCopy, thirdPhoto]);
+      assert.equal(array.length, 3);
+
+      let result = array.unshift(secondPhoto);
+
+      assert.equal(result, 3);
+      assert.equal(array.length, 3);
+      assert.deepEqual(array, [secondPhoto, firstPhotoCopy, thirdPhoto]);
+      assert.notDeepEqual(array, [secondPhotoCopy, firstPhotoCopy, thirdPhoto]);
+
+      let resultTwo = array.unshift(firstPhoto);
+
+      assert.equal(resultTwo, 3);
+      assert.equal(array.length, 3);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+    });
+  });
 });
