@@ -1,8 +1,8 @@
 // TODO: Refactor tests with mock/spies calledOnceWith(RelationshipDB.cacheMethod, params)
 import { HasManyArray } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
-import generateModels from "./helpers/relationship-test-models/index.js";
+import setupMemoria from "../helpers/setup-memoria.js";
+import generateModels from "../helpers/relationship-test-models/index.js";
 
 module("@memoria/model | HasManyArray Array.prototype methods", function (hooks) {
   setupMemoria(hooks);

@@ -1,7 +1,9 @@
 import "./build-test.js";
 import "./cache-test.js";
-import "./has-many-array-methods-test.js";
-import "./has-many-array-test.js";
+import "./has-many-array/dx-enumeration-methods-test.js";
+import "./has-many-array/dx-mutation-methods-test.js";
+import "./has-many-array/index-test.js";
+import "./has-many-array/methods-test.js";
 import "./index-test.js";
 import "./new-test.js";
 import "./promises-test.js";

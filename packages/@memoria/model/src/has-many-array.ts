@@ -286,7 +286,6 @@ export default class HasManyArray extends Array {
   }
 
   // TODO: Built for DX and optimized RelationshipDB operations here:
-  // TODO: rename this to add and make it accept Model or Array<Model>
   add(param: Model | Model[]): this {
     Array.isArray(param)
       ? filterInstancesToAdd(param).forEach((model) => this.push(model))
@@ -299,7 +298,7 @@ export default class HasManyArray extends Array {
 
   // }
 
-  remove(param: Model | Model[]): boolean {
+  delete(param: Model | Model[]): boolean {
     let index = this.indexOf(param);
     if (index > -1) {
       this.splice(index, 1);
@@ -344,7 +343,7 @@ function filterInstancesToAdd(instancesToLookup: Model[]) {
     } else if (!arraysModelType) {
       arraysModelType = instanceToLookup.constructor;
     } else if (arraysModelType !== instanceToLookup.constructor) {
-      throw new Error('HasManyArray cannot be instantiated with model types different than one another!');
+      throw new Error('HasManyArray cannot be instantiated or added with model types different than one another!');
     }
 
     let instanceReferences = InstanceDB.getReferences(instanceToLookup) as Set<Model>;

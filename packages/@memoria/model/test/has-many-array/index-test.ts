@@ -1,8 +1,8 @@
 // TODO: Refactor tests with mock/spies calledOnceWith(RelationshipDB.cacheMethod, params)
-import { HasManyArray, printSchema } from "@memoria/model";
+import { HasManyArray } from "@memoria/model";
 import { module, test } from "qunitx";
-import setupMemoria from "./helpers/setup-memoria.js";
-import generateModels from "./helpers/relationship-test-models/index.js";
+import setupMemoria from "../helpers/setup-memoria.js";
+import generateModels from "../helpers/relationship-test-models/index.js";
 
 module("@memoria/model | HasManyArray", function (hooks) {
   setupMemoria(hooks);
@@ -58,14 +58,14 @@ module("@memoria/model | HasManyArray", function (hooks) {
         new HasManyArray([firstPhoto, user]);
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, "HasManyArray cannot be instantiated with model types different than one another!");
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
       }
 
       try {
         new HasManyArray([user, firstPhoto, secondPhoto]);
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, "HasManyArray cannot be instantiated with model types different than one another!");
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
       }
     });
 
