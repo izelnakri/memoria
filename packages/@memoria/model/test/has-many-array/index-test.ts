@@ -295,11 +295,10 @@ module("@memoria/model | HasManyArray", function (hooks) {
 
       assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
 
-      secondPhoto[2] = null;
+      secondArray[2] = null;
 
       assert.deepEqual(secondArray, [firstPhoto, secondPhoto]);
     });
-
 
     test('hasManyArray[hasManyArray.length] = x; replaces a model on the right index when x reference already exists', async function (assert) {
       const { Photo } = generateModels();
