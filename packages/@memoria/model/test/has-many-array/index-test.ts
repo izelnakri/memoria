@@ -82,8 +82,6 @@ module("@memoria/model | HasManyArray", function (hooks) {
     });
 
     test('new HasManyArray(param) throws on wrong param types', async function (assert) {
-      const { Photo } = generateModels();
-
       class SomeClass {};
 
       [undefined, true, false, 0, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
@@ -103,6 +101,92 @@ module("@memoria/model | HasManyArray", function (hooks) {
           assert.equal(error.message, "HasManyArray cannot have non memoria Model instance inside!");
         }
       });
+    });
+  });
+
+  module('HasManyArray.of() tests', function() {
+    test('HasManyArray.of() creates an empty HasManyArray', function (assert) {
+      let result = HasManyArray.of();
+
+      assert.ok(result instanceof HasManyArray);
+      assert.deepEqual(result, []);
+    });
+
+    test('HasManyArray.of(model) creates an HasManyArray with only model', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ name: "Second photo" });
+      let thirdPhoto = Photo.build({ name: "Third photo" });
+      let result = HasManyArray.of(firstPhoto);
+
+      assert.ok(result instanceof HasManyArray);
+      assert.deepEqual(result, [firstPhoto]);
+
+      let anotherResult = HasManyArray.of(secondPhoto, firstPhoto, thirdPhoto);
+
+      assert.ok(anotherResult instanceof HasManyArray);
+      assert.deepEqual(anotherResult, [secondPhoto, firstPhoto, thirdPhoto]);
+    });
+
+    test('HasManyArray.of(models) creates HasManyArray with models', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ name: "Second photo" });
+      let thirdPhoto = Photo.build({ name: "Third photo" });
+      let result = HasManyArray.of([secondPhoto, thirdPhoto]);
+
+      assert.ok(result instanceof HasManyArray);
+      assert.deepEqual(result, [secondPhoto, thirdPhoto]);
+
+      let anotherResult = HasManyArray.of([secondPhoto, firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.ok(anotherResult instanceof HasManyArray);
+      assert.deepEqual(anotherResult, [secondPhoto, firstPhoto, thirdPhoto]);
+
+    });
+
+    test('HasManyArray.of(invalidValue) throws', function (assert) {
+      assert.expect(20);
+
+      class SomeClass {};
+      [undefined, true, false, 0, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
+        try {
+          HasManyArray.of(value);
+        } catch (error) {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, "HasManyArray cannot have non memoria Model instance inside!");
+        }
+      });
+    });
+
+    test('HasManyArray.of(invalidModels) creates an HasManyArray with valid models', function (assert) {
+      const { User, Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ name: "Second photo" });
+      let thirdPhoto = Photo.build({ name: "Third photo" });
+      let user = User.build({ first_name: "Izel", last_name: "Nakri" });
+
+      class SomeClass {};
+
+      let inputArray = [undefined, true, false, 0, 1, 'a', 100, {}, SomeClass, new SomeClass()];
+      inputArray.forEach((value, index) => {
+        try {
+          HasManyArray.of([value, inputArray[inputArray.length - index]]);
+        } catch (error) {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, "HasManyArray cannot have non memoria Model instance inside!");
+        }
+      });
+
+      try {
+        HasManyArray.of([firstPhoto, user, secondPhoto, thirdPhoto]);
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
+      }
     });
   });
 
@@ -260,11 +344,8 @@ module("@memoria/model | HasManyArray", function (hooks) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
-      let firstPhotoCopy = Photo.build(firstPhoto);
       let secondPhoto = await Photo.insert({ id: 2, name: "Second photo" });
-      let secondPhotoCopy = Photo.build({ id: 2, name: "Second photo copy" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
-      let thirdPhotoCopy = Photo.build(thirdPhoto);
       let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);

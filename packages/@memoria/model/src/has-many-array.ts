@@ -1,8 +1,6 @@
 import InstanceDB from "./stores/instance/db.js";
 import Model from "./model.js";
 
-// TODO: check HasManyArray.of() call
-
 // TODO: trigger relationship adds here
 // Adding should do Model check and duplication check(from the instance group):
 // - push -> probably done
@@ -35,6 +33,12 @@ export default class HasManyArray extends Array {
     return Array;
   }
 
+  static of(_input?: Model | Model[], ..._otherInputs: Model[]) {
+    let args = [...arguments];
+
+    return Array.isArray(args[0]) ? new HasManyArray(args[0]) : new HasManyArray(args);
+  }
+
   #relationshipMetadata; // -> relationshipMetadata: this could cache the lookup for remaining stuff
   spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
@@ -50,9 +54,10 @@ export default class HasManyArray extends Array {
       throw new Error('Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements');
     }
 
-    let self = this;
     let pushLengthCall = false;
-    return new Proxy(self, {
+    let self = this;
+
+    return new Proxy(this, {
       set(target, propertyName, value) {
         console.log('propertyName', propertyName);
 
