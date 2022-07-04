@@ -32,6 +32,8 @@ const TYPE_MAP: Record<string, TypeName> = {
   '[object FileList]': 'filelist',
 } as const;
 
+export const OBJECT_TYPES = ['class', 'instance', 'object', 'error'];
+
 const { toString } = Object.prototype;
 
 //   Returns a consistent type for the passed object.
@@ -94,7 +96,6 @@ export default function typeOf(item: unknown): TypeName {
   }
 
   let ret = TYPE_MAP[toString.call(item)] || 'object';
-  debugger;
   if (ret === 'function') {
     let itemsPropertyNames = Object.getOwnPropertyNames(item);
     if (!itemsPropertyNames.includes('arguments') && !itemsPropertyNames.includes('caller')) {
