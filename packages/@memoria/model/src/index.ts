@@ -43,6 +43,7 @@ import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
 export {
   clearObject,
+  compare,
   generateUUID,
   primaryKeyTypeSafetyCheck,
   get,
@@ -51,7 +52,8 @@ export {
   setProperties,
   printSchema,
   printColumns,
-  printRelationships
+  printRelationships,
+  typeOf
 } from "./utils/index.js";
 export {
   Column,

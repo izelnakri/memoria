@@ -2,7 +2,10 @@ import type Model from "../index.js";
 import { Changeset, RuntimeError } from "../index.js";
 
 export { get, set, getProperties, setProperties } from "./object.js";
+import compare from "./compare.js";
+import typeOf from "./type-of.js";
 export { printSchema, printColumns, printRelationships } from "./print-schema.js";
+export { compare, typeOf };
 
 interface AnyObject {
   [key: string]: any;
