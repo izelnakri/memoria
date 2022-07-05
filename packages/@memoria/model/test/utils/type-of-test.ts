@@ -39,5 +39,9 @@ module("@memoria/model | Utils | typeOf", function (hooks) {
     assert.equal(typeOf(User.build()), 'instance'); // 'instance'
     assert.equal(typeOf(new Error('teamocil')), 'error');
     assert.equal(typeOf({ a: 'b' }), 'object');
+    assert.equal(typeOf(NaN), 'nan');
+    assert.equal(typeOf(new Map()), 'map');
+    assert.equal(typeOf(new Set()), 'set');
+    assert.equal(typeOf(Symbol('a')), 'symbol');
   });
 });

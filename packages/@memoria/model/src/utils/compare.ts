@@ -6,12 +6,16 @@ import { assert } from './index.js';
 
 const TYPE_ORDER: Record<TypeName, number> = {
   undefined: 0,
+  nan: 0,
   null: 1,
   boolean: 2,
   number: 3,
   string: 4,
+  symbol: 4,
   array: 5,
+  set: 5,
   object: 6,
+  map: 6,
   instance: 7,
   function: 8,
   class: 9,
