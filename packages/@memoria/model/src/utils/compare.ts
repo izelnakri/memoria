@@ -47,6 +47,8 @@ function spaceship(a: number, b: number): -1 | 0 | 1 {
   compare(2, 1);              // 1
   ```
 */
+
+// NOTE: this on purpose doesnt rank non-array object types:
 export default function compare(v: any, w: any): -1 | 0 | 1 {
   if (v === w) {
     return 0;
@@ -98,12 +100,16 @@ export default function compare(v: any, w: any): -1 | 0 | 1 {
       assert('both are dates', v instanceof Date && w instanceof Date);
 
       return spaceship(v.getTime(), w.getTime());
+    case 'regexp':
+      assert('both are regexps', v instanceof RegExp && w instanceof RegExp);
+
+      return spaceship(v.toString(), w.toString());
     default:
-      if (OBJECT_TYPES.includes(type1)) {
+      if (OBJECT_TYPES.has(type1)) {
         assert('both are same object types', type1 === type2);
 
-        let wKeyAmount = Object.keys(w).length;
-        let vKeyAmount = Object.keys(v).length;
+        let wKeyAmount = Object.getOwnPropertyNames(w).length;
+        let vKeyAmount = Object.getOwnPropertyNames(v).length;
         if (vKeyAmount !== wKeyAmount) {
           return spaceship(vKeyAmount, wKeyAmount);
         }
