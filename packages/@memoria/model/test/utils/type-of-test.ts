@@ -1,10 +1,7 @@
 import { module, test } from "qunitx";
-import setupMemoria from "../helpers/setup-memoria.js";
 import Model, { typeOf, PrimaryGeneratedColumn, HasManyArray } from "@memoria/model";
 
 module("@memoria/model | Utils | typeOf", function (hooks) {
-  setupMemoria(hooks);
-
   test('typeof() works for different types of values', function (assert) {
     function someFunction() {
 
@@ -31,17 +28,37 @@ module("@memoria/model | Utils | typeOf", function (hooks) {
     assert.equal(typeOf([1, 2, 90]), 'array');
     assert.equal(typeOf(/abc/), 'regexp');
     assert.equal(typeOf(new Date()), 'date');
-    assert.equal(typeOf(Human), 'class'); // 'class'
-    assert.equal(typeOf(User), 'class'); // 'class'
+    assert.equal(typeOf(Human), 'class');
+    assert.equal(typeOf(User), 'class');
     assert.equal(typeOf(HasManyArray), 'class');
-    assert.equal(typeOf(new Human()), 'instance'); // 'instance'
-    assert.equal(typeOf(new User()), 'instance'); // 'instance'
-    assert.equal(typeOf(User.build()), 'instance'); // 'instance'
+    assert.equal(typeOf(new Human()), 'instance');
+    assert.equal(typeOf(new User()), 'instance');
+    assert.equal(typeOf(User.build()), 'instance');
     assert.equal(typeOf(new Error('teamocil')), 'error');
     assert.equal(typeOf({ a: 'b' }), 'object');
     assert.equal(typeOf(NaN), 'nan');
     assert.equal(typeOf(new Map()), 'map');
     assert.equal(typeOf(new Set()), 'set');
     assert.equal(typeOf(Symbol('a')), 'symbol');
+    assert.equal(typeOf(() => {}), 'function');
+  });
+
+  test('typeof() basic primative classes should return class type', function (assert) {
+    assert.equal(typeOf(Boolean), 'class');
+    assert.equal(typeOf(Number), 'class');
+    assert.equal(typeOf(Object), 'class');
+    assert.equal(typeOf(Map), 'class');
+    assert.equal(typeOf(Array), 'class');
+    assert.equal(typeOf(Set), 'class');
+    assert.equal(typeOf(Date), 'class');
+    assert.equal(typeOf(Symbol), 'class');
+    assert.equal(typeOf(Function), 'class');
+    assert.equal(typeOf(BigInt), 'class');
+    assert.equal(typeOf(NaN), 'nan');
+    assert.equal(typeOf(Promise), 'class');
+    assert.equal(typeOf(RegExp), 'class');
+    assert.equal(typeOf(Error), 'class');
+    assert.equal(typeOf(WeakMap), 'class');
+    assert.equal(typeOf(WeakSet), 'class');
   });
 });
