@@ -79,8 +79,7 @@ export default class InstanceDB {
     }
 
     // NOTE: maybe do this findLast for perf improvement(?)
-    let existingInstancedByLastAdded = Array.from(existingInstances.values())
-      .reverse();
+    let existingInstancedByLastAdded = Array.from(existingInstances.values()).reverse();
 
     return existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted)
       || existingInstancedByLastAdded[0]

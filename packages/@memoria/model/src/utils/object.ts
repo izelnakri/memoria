@@ -2,11 +2,11 @@ import { assert } from "./index.js";
 import Cache from "../cache.js";
 import { RuntimeError } from "../index.js";
 
-interface AnyObject {
+export interface JSObject {
   [key: string]: any;
 }
 
-export function get(obj: AnyObject, keyName: string) {
+export function get(obj: JSObject, keyName: string) {
   assert(
     `.get() must be called with two arguments; an object and a property key`,
     arguments.length === 2
@@ -31,7 +31,7 @@ export function get(obj: AnyObject, keyName: string) {
   return isPath(keyName) ? getPath(obj, keyName) : obj[keyName];
 }
 
-function getPath(obj: AnyObject, keyName: string | string[]) {
+function getPath(obj: JSObject, keyName: string | string[]) {
   let parts = typeof keyName === "string" ? keyName.split(".") : keyName; // NOTE: create here RuntimeError
   for (let i = 0; i < parts.length; i++) {
     if (obj === undefined || obj === null) {

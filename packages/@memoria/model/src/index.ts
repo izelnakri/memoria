@@ -1,5 +1,7 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
+import Enum from "./enum.js";
+import HasManyArray from "./has-many-array.js";
 export { Schema, DB, InstanceDB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 export type {
   RelationshipType,
@@ -41,12 +43,17 @@ import Serializer from "./serializer.js";
 export { transformValue } from "./serializer.js";
 export {
   clearObject,
+  compare,
   generateUUID,
   primaryKeyTypeSafetyCheck,
   get,
   set,
   getProperties,
   setProperties,
+  printSchema,
+  printColumns,
+  printRelationships,
+  typeOf
 } from "./utils/index.js";
 export {
   Column,
@@ -87,7 +94,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Changeset, Serializer };
+export { Changeset, Enum, Serializer, HasManyArray };
 
 // User.getErrors(userInstance or Instances) // -> same array
 // pushRecord(json);
