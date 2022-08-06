@@ -41,6 +41,7 @@ module("@memoria/model | Utils | typeOf", function (hooks) {
     assert.equal(typeOf(new Set()), 'set');
     assert.equal(typeOf(Symbol('a')), 'symbol');
     assert.equal(typeOf(() => {}), 'function');
+    assert.equal(typeOf(Object.create(null)), 'object');
   });
 
   test('typeof() basic primative classes should return class type', function (assert) {

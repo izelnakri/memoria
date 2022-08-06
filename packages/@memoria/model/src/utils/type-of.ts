@@ -71,7 +71,9 @@ export default function typeOf(item: unknown): TypeName {
 
     return ret;
   } else if (ret === 'object') {
-    if (item instanceof Error) {
+    if (!item.constructor) {
+      return 'object';
+    } else if (item instanceof Error) {
       return 'error';
     } else if (item instanceof Date) {
       return 'date';

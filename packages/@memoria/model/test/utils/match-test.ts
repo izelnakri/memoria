@@ -97,6 +97,8 @@ module("@memoria/model | Utils | match", function (hooks) {
       assert.ok(match(new Human(), Human));
       assert.ok(match(new SuperHuman(), Human));
       assert.ok(match(new SuperHuman(), SuperHuman));
+      assert.ok(Object.create(null), Object);
+      assert.ok(Object.create(null), {});
     });
 
     test('match() returns false for primitive values that are not same', function (assert) {
@@ -161,8 +163,15 @@ module("@memoria/model | Utils | match", function (hooks) {
       map2.set('b', 22);
 
       assert.notOk(match(map1, map2));
+      assert.notOk(match(map2, map1));
       assert.ok(match(map2, Map));
       assert.ok(match(map2, { 'a': 'b', 'b': 22 }));
+      assert.ok(match(map2, { 'a': 'b' }));
+
+      map1.set('b', 22);
+
+      assert.notOk(match(map1, map2));
+      assert.ok(match(map2, map1));
 
       let newMap = new Map();
 
@@ -373,6 +382,52 @@ module("@memoria/model | Utils | match", function (hooks) {
           }
         ]
       }));
+    });
+  });
+
+  module('Edge input tests', function () {
+    test('Object prototype constructor is null', function (assert) {
+      function NullObject () {}
+      NullObject.prototype = Object.create(null, {
+        constructor: {
+          value: null
+        }
+      });
+
+      var a = new NullObject();
+      a.foo = 1;
+      var b = { foo: 1 };
+
+      assert.notOk(match(a, NullObject));
+      assert.notOk(match(b, NullObject));
+      assert.true(match(a, b));
+      assert.true(match(b, a));
+    });
+
+   test('Functions', function (assert) {
+      var f0 = function () {};
+      var f1 = function () {};
+
+      // f2 and f3 have the same code, formatted differently
+      var f2 = function () { return 0; };
+      var f3 = function () {
+        // eslint-disable-next-line semi
+        return 0 // this comment and no semicoma as difference
+      };
+
+      assert.equal(match(function () {}, function () {}), true, 'Anonymous functions'); // exact source code
+      assert.equal(match(function () {}, function () {
+        return true;
+      }), false, 'Anonymous functions');
+
+      assert.equal(match(f0, f0), true, 'Function references'); // same references
+      assert.equal(match(f0, f1), true, 'Function references'); // exact source code, different references
+      assert.equal(match(f2, f3), true, 'Function references'); // equivalent source code, different references
+      assert.equal(match(f1, f2), false, 'Function references'); // different source code, different references
+      assert.equal(match(function () {}, true), false);
+      assert.equal(match(function () {}, undefined), false);
+      assert.equal(match(function () {}, null), false);
+      assert.equal(match(function () {}, {}), false);
     });
   });
 
@@ -587,5 +642,97 @@ module("@memoria/model | Utils | match", function (hooks) {
         ]
       }, MATCH_TEST_EXAMPLES]));
     });
+  });
+
+  // TODO: do all circular tests & getter, Set test case
+  module('Circular references tests', function() {
+    test('Object with circular references', function (assert) {
+      let circularA = { abc: null };
+      let circularB = { abc: null };
+      circularA.abc = circularA;
+      circularB.abc = circularB;
+
+      assert.true(match(circularA, Object));
+      assert.true(match(circularB, Object));
+      assert.true(match(circularA, circularB), 'Should not repeat test on object (ambiguous test)');
+
+      circularA.def = 1;
+      circularB.def = 1;
+
+      assert.true(match(circularA, circularB), 'Should not repeat test on object (ambiguous test)');
+
+      circularA.def = 1;
+      circularB.def = 0;
+
+      assert.equal(match(circularA, circularB), false, 'Should not repeat test on object (unambiguous test)');
+    });
+
+    test('Object with circular references', function (assert) {
+      var circularA = { abc: null };
+      var circularB = { abc: null };
+      circularA.abc = circularA;
+      circularB.abc = circularB;
+
+      assert.equal(match(circularA, circularB), true,
+        'Should not repeat test on object (ambiguous test)'
+      );
+
+      circularA.def = 1;
+      circularB.def = 1;
+      assert.equal(match(circularA, circularB), true,
+        'Should not repeat test on object (ambiguous test)'
+      );
+
+      circularA.def = 1;
+      circularB.def = 0;
+      assert.equal(match(circularA, circularB), false,
+        'Should not repeat test on object (unambiguous test)'
+      );
+    });
+
+    test('Objects with multiple references to the same containers', function (assert) {
+      var i;
+      var x = {};
+      var y = {};
+
+      for (i = 0; i < 3; i++) {
+        x = { foo: x, bar: x, baz: x };
+        y = { foo: y, bar: y, baz: y };
+      }
+
+      assert.true(match(x, y));
+      assert.true(match(y, x));
+
+      x.foo.foo.foo = y.foo;
+
+      assert.notOk(match(x, y));
+      assert.notOk(match(y, x));
+
+      x.foo.foo.foo = null;
+      y.foo.foo.foo = null;
+
+      assert.true(match(x, y));
+      assert.true(match(y, x));
+    });
+
+    // test('Objects that has cyclical references to itself in array should return true', function (assert) {
+    //   let circularA = { id: 1, name: 'Izel', records: [] };
+    //   let circularB = { id: 2, name: 'Moris', records: [] };
+
+    //   assert.true(match(circularA, { id: 1, records: [] }));
+    //   assert.true(match(circularB, { id: 2, records: [] }));
+
+    //   circularA.records.push(circularA);
+    //   circularB.records.push(circularB);
+
+    //   assert.true(match(circularA, { records: [circularA] }));
+    //   assert.true(match(circularB, { records: [circularB] }));
+
+    //   circularA.records.push(circularA);
+    //   circularB.records.push(circularB);
+
+    //   assert.true(match(circularA, { records: [circularA, circularA] }));
+    //   assert.true(match(circularA, { records: [circularB, circularB] }));
+    // });
   });
 });
