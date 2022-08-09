@@ -3,9 +3,14 @@ import { Changeset, RuntimeError } from "../index.js";
 
 export { get, set, getProperties, setProperties } from "./object.js";
 import compare from "./compare.js";
+import deepEqual from "./deep-equal.js";
+import match from "./match.js";
 import typeOf from "./type-of.js";
+import isCyclical from "./is-cyclical.js";
+import getCyclicalReferences from "./get-cyclical-references.js";
 export { printSchema, printColumns, printRelationships } from "./print-schema.js";
-export { compare, typeOf };
+
+export { compare, deepEqual, getCyclicalReferences, isCyclical, match, typeOf };
 
 interface AnyObject {
   [key: string]: any;
