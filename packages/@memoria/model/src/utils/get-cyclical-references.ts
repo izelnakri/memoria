@@ -15,19 +15,14 @@ export default function getCyclicalReferences(
   shouldFilterToObject: boolean = true,
   seenMap: WeakMap<JSObject, ParentReferenceMap> = new WeakMap(),
   resultInput?: any,
-  targetSourceObject?: JSObject | Map<any, any>,
-  parentObject?: JSObject,
+  targetSourceObject?: JSObject | Map<any, any>, // TODO: check if this is really needed
   currentKeyName: string = ''
 ) {
   let result = resultInput || createResultObject(currentObject);
   let sourceObject = targetSourceObject || currentObject;
   if (!currentObject || typeof currentObject !== 'object') {
     return result;
-  } else if (currentObject === parentObject) {
-    setDeeplyNestedObject(result, sourceObject, currentKeyName, parentObject as JSObject);
-
-    return result;
-  } else if (parentObject) {
+  } else if (currentKeyName !== '') {
     let existingReferenceMap = seenMap.get(currentObject);
     if (!existingReferenceMap) {
       seenMap.set(currentObject, { [currentKeyName as string]: currentObject as JSObject });
@@ -53,11 +48,11 @@ export default function getCyclicalReferences(
 
   if (currentObject instanceof Map || currentObject instanceof Set) {
     for (let [keyName, currentValue] of currentObject) {
-      getCyclicalReferences(currentValue, shouldFilterToObject, seenMap, result, sourceObject, currentObject, buildKeyName(currentKeyName, keyName));
+      getCyclicalReferences(currentValue, shouldFilterToObject, seenMap, result, sourceObject, buildKeyName(currentKeyName, keyName));
     }
   } else {
     for (let key in currentObject) {
-      getCyclicalReferences(currentObject[key], shouldFilterToObject, seenMap, result, sourceObject, currentObject, buildKeyName(currentKeyName, key));
+      getCyclicalReferences(currentObject[key], shouldFilterToObject, seenMap, result, sourceObject, buildKeyName(currentKeyName, key));
     }
   }
 
