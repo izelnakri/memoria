@@ -15,7 +15,7 @@ export default function getCyclicalReferences(
   shouldFilterToObject: boolean = true,
   seenMap: WeakMap<JSObject, ParentReferenceMap> = new WeakMap(),
   resultInput?: any,
-  targetSourceObject?: JSObject | Map<any, any>, // TODO: check if this is really needed
+  targetSourceObject?: JSObject | Map<any, any>,
   currentKeyName: string = ''
 ) {
   let result = resultInput || createResultObject(currentObject);
@@ -35,7 +35,6 @@ export default function getCyclicalReferences(
             ? fullReference
             : getCyclicalReferences(fullReference, false);
 
-            debugger;
           setDeeplyNestedObject(result, sourceObject, cyclicalKeyName, reference);
         }
 
@@ -85,7 +84,7 @@ function buildKeyName(currentKeyName: string, nextKeyName: string): string {
   return currentKeyName === '' ? nextKeyName : `${currentKeyName}.${nextKeyName}`;
 }
 
-function setDeeplyNestedObject(targetObject: JSObject, targetSourceObject: JSObject, keyName: string, cyclicalValue: JSObject) { // value should be parentObject
+function setDeeplyNestedObject(targetObject: JSObject, targetSourceObject: JSObject, keyName: string, cyclicalValue: JSObject) {
   let sourceObject = targetSourceObject || cyclicalValue;
   let keyNames = keyName.split('.');
   let lastObject = keyNames.reduce((result: JSObject, keyName: string, index: number) => {
