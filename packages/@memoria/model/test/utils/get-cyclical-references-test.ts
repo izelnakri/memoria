@@ -417,8 +417,8 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
 
       circularA.relationship = circularA;
 
-      assert.deepEqual(getCyclicalReferences([obj, objTwo, objThree, [obj, circularA]]), [
-        [{ relationship: circularA }],
+      assert.deepEqual(getCyclicalReferences([obj, objTwo, objThree, [obj, [circularA]]]), [
+        [[{ relationship: circularA }]]
       ]);
       assert.deepEqual(getCyclicalReferences([obj, objTwo, objThree, [obj, circularB, [circularB, circularB]]]), []);
     });
