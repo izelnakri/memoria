@@ -50,7 +50,6 @@
     "fake-xml-http-request": "^2.1.2",
     "inflected": "^2.1.0",
     "kleur": "4.1.4",
-    "object-inspect": "^1.11.0",
     "pretender": "^3.4.7",
     "route-recognizer": "^0.3.4"
   },
@@ -82,7 +81,7 @@
     "webpack-dev-server": "4.5.0"
   },
   "prettier": {
-    "printWidth": 100,
+    "printWidth": 120,
     "arrowParens": "always"
   },
   "volta": {

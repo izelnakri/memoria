@@ -3,10 +3,10 @@ export interface JSObject {
 }
 
 interface ParentReferenceMap {
-  [keyName: string]: JSObject
+  [keyName: string]: JSObject;
 }
 
-import { get } from './object.js';
+import { get } from "./object.js";
 
 // NOTE: This should receive a function to execute in the future it doesnt play well with .every due to return value, instead make something with this predicate function(?)
 // { x: SOMETHING, y: SOMETHING2, z: [SOMETHING3, { a: { b: { c: [SOMETHING4] } } }] }
@@ -16,35 +16,38 @@ export default function getCyclicalReferences(
   seenMap: WeakMap<JSObject, ParentReferenceMap> = new WeakMap(),
   result: JSObject = createResultObject(currentObject),
   sourceObject: JSObject | Map<any, any> = currentObject,
-  currentKeyName: string = ''
+  currentKeyName: string = ""
 ) {
-  if (!currentObject || typeof currentObject !== 'object') {
+  if (!currentObject || typeof currentObject !== "object") {
     return result;
-  } else if (currentKeyName !== '') {
-    let existingReferenceMap = seenMap.get(currentObject);
-    if (!existingReferenceMap) {
+  } else if (currentKeyName !== "") {
+    let existingReferences = seenMap.get(currentObject);
+    if (!existingReferences) {
       seenMap.set(currentObject, { [currentKeyName as string]: currentObject as JSObject });
-    } else if (currentKeyName !== '') {
-      let cyclicalKeyName = Object.keys(existingReferenceMap).find((key) => currentKeyName.startsWith(key)) as string;
+    } else {
+      let cyclicalKeyName = Object.keys(existingReferences).find((key) => currentKeyName.startsWith(key)) as string;
       if (cyclicalKeyName) {
         if (!get(result, cyclicalKeyName as string)) {
-          let fullReference = existingReferenceMap[cyclicalKeyName as string];
-          let reference = hasFirstLevelCyclicalReferenceToParent(fullReference, sourceObject) || !shouldFilterToObject
-            ? fullReference
-            : getCyclicalReferences(fullReference, false);
+          let targetReference = filterListsForCyclicalReferences(existingReferences[cyclicalKeyName], seenMap);
+          let reference =
+            hasFirstLevelCyclicalReferenceToParent(targetReference, sourceObject) || !shouldFilterToObject
+              ? targetReference
+              : getCyclicalReferences(targetReference, false);
 
-          return setDeeplyNestedObject(result, cyclicalKeyName, reference);
+          debugger;
+          return setDeeplyNestedObject(result, cyclicalKeyName, sourceObject, reference);
         }
 
+        debugger;
         return result;
       }
 
-      existingReferenceMap[currentKeyName as string] = currentObject as JSObject;
+      existingReferences[currentKeyName as string] = currentObject as JSObject;
     }
   }
 
-  if (currentObject instanceof Map || currentObject instanceof Set) {
-    for (let [key, currentValue] of currentObject) {
+  if (currentObject instanceof Map) {
+    for (let [key, currentValue] of currentObject.entries()) {
       getCyclicalReferences(
         currentValue,
         shouldFilterToObject,
@@ -52,6 +55,17 @@ export default function getCyclicalReferences(
         result,
         sourceObject,
         buildKeyName(currentKeyName, key)
+      );
+    }
+  } else if (currentObject instanceof Set) {
+    for (let [key, currentValue] of Array.from(currentObject).entries()) {
+      getCyclicalReferences(
+        currentValue,
+        shouldFilterToObject,
+        seenMap,
+        result,
+        sourceObject,
+        buildKeyName(currentKeyName, String(key))
       );
     }
   } else {
@@ -67,12 +81,31 @@ export default function getCyclicalReferences(
     }
   }
 
-  return cleanupEmptyValuesInResult(result);
+  if (currentObject === sourceObject && currentKeyName === "" && shouldFilterToObject) {
+    debugger;
+  }
+
+  return currentObject === sourceObject && currentKeyName === "" && shouldFilterToObject
+    ? cleanupEmptyValuesInResult(result)
+    : result;
+}
+
+function filterListsForCyclicalReferences(
+  reference: JSObject,
+  seenMap: WeakMap<JSObject, ParentReferenceMap>
+): JSObject {
+  if (reference instanceof Array) {
+    return reference.filter((item) => seenMap.get(item));
+  } else if (reference instanceof Set) {
+    return new Set(Array.from(reference).filter((item) => seenMap.get(item)));
+  }
+
+  return reference;
 }
 
 function hasFirstLevelCyclicalReferenceToParent(fullReference: JSObject, parentObject: JSObject) {
   if (fullReference instanceof Map || fullReference instanceof Set) {
-    for (let [_, currentValue] of fullReference) {
+    for (let [_, currentValue] of fullReference.entries()) {
       if (currentValue === parentObject) {
         return true;
       }
@@ -93,56 +126,74 @@ function createResultObject(currentObject: any) {
 }
 
 function buildKeyName(currentKeyName: string, nextKeyName: string): string {
-  return currentKeyName === '' ? nextKeyName : `${currentKeyName}.${nextKeyName}`;
+  return currentKeyName === "" ? nextKeyName : `${currentKeyName}.${nextKeyName}`;
 }
 
-function setDeeplyNestedObject(targetObject: JSObject, keyName: string, cyclicalValue: JSObject): JSObject {
-  let keyNames = keyName.split('.');
-  let lastObject = keyNames.reduce((result: JSObject, keyName: string, index: number) => {
-    if (result[keyName]) {
-      return result[keyName];
-    } else if (index === keyNames.length - 1) {
-      return result;
-    }
+function setDeeplyNestedObject(
+  targetObject: JSObject,
+  keyName: string,
+  sourceObject: JSObject | Map<any, any>,
+  cyclicalValue: JSObject
+): JSObject {
+  let keyNames = keyName.split(".");
+  let [lastObject] = keyNames.reduce(
+    ([result, targetSourceObject], keyName: string, index: number) => {
+      if (result[keyName]) {
+        return [result[keyName], getValue(targetSourceObject, keyName)];
+      } else if (index === keyNames.length - 1) {
+        return [result, targetSourceObject];
+      }
 
-    let valueToSet = Array.isArray(result) ? [] : {};
+      let reference = getValue(targetSourceObject, keyName);
+      let resultIsAList = Array.isArray(reference) || reference instanceof Set;
+      let valueToSet = resultIsAList ? [] : {};
 
-    if (Array.isArray(result)) {
-      result.push(valueToSet);
-    } else {
-      result[keyNames.slice(0, index + 1).join('.')] = valueToSet;
-    }
+      if (resultIsAList) {
+        result.push(valueToSet);
+      } else {
+        result[keyNames.slice(0, index + 1).join(".")] = valueToSet;
+      }
 
-    return valueToSet;
-  }, targetObject);
+      return [valueToSet, reference];
+    },
+    [targetObject, sourceObject]
+  );
 
-  if (Array.isArray(lastObject)) {
-    lastObject.push(cyclicalValue);
-  } else {
-    lastObject[keyName.split('.').pop() as string] = cyclicalValue;
-  }
+  lastObject[keyName.split(".").pop() as string] = cyclicalValue;
 
   return targetObject;
 }
 
+function getValue(object: JSObject, keyName: string): any {
+  if (object instanceof Set) {
+    return Array.from(object)[keyName];
+  } else if (object instanceof Map) {
+    return object.get(keyName);
+  }
+
+  return object[keyName];
+}
+
 function cleanupEmptyValuesInResult(result: JSObject, map = new WeakMap()) {
-  if (!result || typeof result !== 'object' || map.get(result)) {
+  if (!result || typeof result !== "object" || map.get(result)) {
     return result;
   }
 
   map.set(result, true);
 
   if (result instanceof Map || result instanceof Set) {
-    for (let [_, currentValue] of result) {
+    for (let [_, currentValue] of result.entries()) {
       cleanupEmptyValuesInResult(currentValue, map);
     }
   } else if (Array.isArray(result)) {
-    for (let currentValue of result) {
-      cleanupEmptyValuesInResult(currentValue, map);
-      if (currentValue === undefined) {
-        result = result.filter((value: any) => value !== undefined);
+    for (let [index, currentValue] of result.entries()) {
+      if (currentValue) {
+        cleanupEmptyValuesInResult(currentValue, map);
+      } else {
+        result.splice(index, 1);
       }
     }
+    result = result.filter((x) => x !== undefined); // NOTE: this is an unfortunate need, couldnt find a more optimize way to do this
   } else {
     for (let key in result) {
       cleanupEmptyValuesInResult(result[key], map);
