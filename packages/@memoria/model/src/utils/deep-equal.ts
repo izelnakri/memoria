@@ -1,36 +1,25 @@
-import objectType from './type-of.js';
+import objectType from "./type-of.js";
 
-// deepEqual checks constructor, propEqual doesnt check the constructor chain
+const CONTAINER_TYPES = new Set(["object", "array", "map", "set", "class", "instance"]);
 
-// Value pairs queued for comparison. Used for breadth-first processing order, recursion
-// detection and avoiding repeated comparison (see below for details).
-// Elements are { a: val, b: val }.
-let pairs = [];
-
-function useStrictEquality (a, b) {
-  // This only gets called if a and b are not strict equal, and is used to compare on
-  // the primitive values inside object wrappers. For example:
-  // `var i = 1;`
-  // `var j = new Number(1);`
-  // Neither a nor b can be null, as a !== b and they have the same type.
-  if (typeof a === 'object') {
+function useStrictEquality(a, b) {
+  if (typeof a === "object") {
     a = a.valueOf();
   }
-  if (typeof b === 'object') {
+  if (typeof b === "object") {
     b = b.valueOf();
   }
 
   return a === b;
 }
 
-function compareConstructors (a, b) {
-  let protoA = Object.getPrototypeOf(a);
-  let protoB = Object.getPrototypeOf(b);
-
-  // Comparing constructors is more strict than using `instanceof`
+function compareConstructors(a, b) {
   if (a.constructor === b.constructor) {
     return true;
   }
+
+  let protoA = Object.getPrototypeOf(a);
+  let protoB = Object.getPrototypeOf(b);
 
   // Ref #851
   // If the obj prototype descends from a null constructor, treat it
@@ -44,40 +33,31 @@ function compareConstructors (a, b) {
 
   // Allow objects with no prototype to be equivalent to
   // objects with Object as their constructor.
-  if (
-    (protoA === null && protoB === Object.prototype) ||
-    (protoB === null && protoA === Object.prototype)
-  ) {
+  if ((protoA === null && protoB === Object.prototype) || (protoB === null && protoA === Object.prototype)) {
     return true;
   }
 
   return false;
 }
 
-function getRegExpFlags (regexp) {
-  return 'flags' in regexp ? regexp.flags : regexp.toString().match(/[gimuy]*$/)[0];
+function getRegExpFlags(regexp) {
+  return "flags" in regexp ? regexp.flags : regexp.toString().match(/[gimuy]*$/)[0];
 }
 
-function isContainer (val) {
-  return ['object', 'array', 'map', 'set', 'class', 'instance'].indexOf(objectType(val)) !== -1;
-}
-
-function breadthFirstCompareChild (a, b) {
+// TODO: Investigate typeEquiv & pairs mutation on every here
+function breadthFirstCompareChild(a, b, pairs) {
   // If a is a container not reference-equal to b, postpone the comparison to the
   // end of the pairs queue -- unless (a, b) has been seen before, in which case skip
   // over the pair.
   if (a === b) {
     return true;
-  }
-  if (!isContainer(a)) {
-    return typeEquiv(a, b);
-  }
-  if (pairs.every(function (pair) {
-    return pair.a !== a || pair.b !== b;
-  })) {
+  } else if (!CONTAINER_TYPES.has(objectType(a))) {
+    return typeEquiv(a, b, pairs);
+  } else if (pairs.every((pair) => pair.a !== a || pair.b !== b)) {
     // Not yet started comparing this pair
-    pairs.push({ a: a, b: b });
+    pairs.push({ a, b });
   }
+
   return true;
 }
 
@@ -89,45 +69,40 @@ const callbacks = {
   undefined: useStrictEquality,
   symbol: useStrictEquality,
   date: useStrictEquality,
-
-  nan: function () {
+  nan() {
     return true;
   },
-
-  regexp: function (a, b) {
-    return a.source === b.source &&
-
+  regexp(a, b) {
+    return (
+      a.source === b.source &&
       // Include flags in the comparison
-      getRegExpFlags(a) === getRegExpFlags(b);
+      getRegExpFlags(a) === getRegExpFlags(b)
+    );
   },
-
   // abort (identical references / instance methods were skipped earlier)
-  function: function () {
+  function() {
     return false;
   },
-
-  array: function (a, b) {
-    const len = a.length;
-    if (len !== b.length) {
-      // Safe and faster
+  array(a, b, pairs) {
+    if (a.length !== b.length) {
       return false;
     }
 
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < a.length; i++) {
       // Compare non-containers; queue non-reference-equal containers
-      if (!breadthFirstCompareChild(a[i], b[i])) {
+      if (!breadthFirstCompareChild(a[i], b[i], pairs)) {
         return false;
       }
     }
+
     return true;
   },
-
   // Define sets a and b to be equivalent if for each element aVal in a, there
   // is some element bVal in b such that aVal and bVal are equivalent. Element
   // repetitions are not counted, so these are equivalent:
   // a = new Set( [ {}, [], [] ] );
   // b = new Set( [ {}, {}, [] ] );
-  set: function (a, b) {
+  set(a, b, pairs) {
     if (a.size !== b.size) {
       // This optimization has certain quirks because of the lack of
       // repetition counting. For instance, adding the same
@@ -137,8 +112,7 @@ const callbacks = {
     }
 
     let outerEq = true;
-
-    a.forEach(function (aVal) {
+    a.forEach((aVal) => {
       // Short-circuit if the result is already known. (Using for...of
       // with a break clause would be cleaner here, but it would cause
       // a syntax error on older JavaScript implementations even if
@@ -148,8 +122,7 @@ const callbacks = {
       }
 
       let innerEq = false;
-
-      b.forEach(function (bVal) {
+      b.forEach((bVal) => {
         // Likewise, short-circuit if the result is already known
         if (innerEq) {
           return;
@@ -158,7 +131,7 @@ const callbacks = {
         // Swap out the global pairs list, as the nested call to
         // innerEquiv will clobber its contents
         const parentPairs = pairs;
-        if (innerEquiv(bVal, aVal)) {
+        if (innerEquiv(bVal, aVal, pairs)) {
           innerEq = true;
         }
 
@@ -173,14 +146,13 @@ const callbacks = {
 
     return outerEq;
   },
-
   // Define maps a and b to be equivalent if for each key-value pair (aKey, aVal)
   // in a, there is some key-value pair (bKey, bVal) in b such that
   // [ aKey, aVal ] and [ bKey, bVal ] are equivalent. Key repetitions are not
   // counted, so these are equivalent:
   // a = new Map( [ [ {}, 1 ], [ {}, 1 ], [ [], 1 ] ] );
   // b = new Map( [ [ {}, 1 ], [ [], 1 ], [ [], 1 ] ] );
-  map: function (a, b) {
+  map(a, b, pairs) {
     if (a.size !== b.size) {
       // This optimization has certain quirks because of the lack of
       // repetition counting. For instance, adding the same
@@ -190,8 +162,7 @@ const callbacks = {
     }
 
     let outerEq = true;
-
-    a.forEach(function (aVal, aKey) {
+    a.forEach((aVal, aKey) => {
       // Short-circuit if the result is already known. (Using for...of
       // with a break clause would be cleaner here, but it would cause
       // a syntax error on older JavaScript implementations even if
@@ -201,8 +172,7 @@ const callbacks = {
       }
 
       let innerEq = false;
-
-      b.forEach(function (bVal, bKey) {
+      b.forEach((bVal, bKey) => {
         // Likewise, short-circuit if the result is already known
         if (innerEq) {
           return;
@@ -211,7 +181,7 @@ const callbacks = {
         // Swap out the global pairs list, as the nested call to
         // innerEquiv will clobber its contents
         const parentPairs = pairs;
-        if (innerEquiv([bVal, bKey], [aVal, aKey])) {
+        if (innerEquiv([bVal, bKey], [aVal, aKey], pairs)) {
           innerEq = true;
         }
 
@@ -226,8 +196,13 @@ const callbacks = {
 
     return outerEq;
   },
-
-  object: function (a, b) {
+  class(a, b, pairs) {
+    return this.object(a, b, pairs);
+  },
+  instance(a, b, pairs) {
+    return this.object(a, b, pairs);
+  },
+  object(a, b, pairs) {
     if (compareConstructors(a, b) === false) {
       return false;
     }
@@ -243,16 +218,16 @@ const callbacks = {
       // Skip OOP methods that look the same
       if (
         a.constructor !== Object &&
-        typeof a.constructor !== 'undefined' &&
-        typeof a[i] === 'function' &&
-        typeof b[i] === 'function' &&
+        typeof a.constructor !== "undefined" &&
+        typeof a[i] === "function" &&
+        typeof b[i] === "function" &&
         a[i].toString() === b[i].toString()
       ) {
         continue;
       }
 
       // Compare non-containers; queue non-reference-equal containers
-      if (!breadthFirstCompareChild(a[i], b[i])) {
+      if (!breadthFirstCompareChild(a[i], b[i], pairs)) {
         return false;
       }
     }
@@ -263,57 +238,33 @@ const callbacks = {
     }
 
     // Ensures identical properties name
-    return typeEquiv(aProperties.sort(), bProperties.sort());
-  }
+    return typeEquiv(aProperties.sort(), bProperties.sort(), pairs);
+  },
 };
 
-function typeEquiv (a, b) {
-  const type = ['class', 'instance'].includes(objectType(a)) ? 'object' : objectType(a);
-  const typeB = ['class', 'instance'].includes(objectType(b)) ? 'object' : objectType(b);
+function typeEquiv(a, b, pairs) {
+  const type = objectType(a);
 
-  // Callbacks for containers will append to the pairs queue to achieve breadth-first
-  // search order. The pairs queue is also used to avoid reprocessing any pair of
-  // containers that are reference-equal to a previously visited pair (a special case
-  // this being recursion detection).
-  //
-  // Because of this approach, once typeEquiv returns a false value, it should not be
-  // called again without clearing the pair queue else it may wrongly report a visited
-  // pair as being equivalent.
-  return typeB === type && callbacks[type](a, b);
+  return type === objectType(b) && callbacks[type](a, b, pairs);
 }
 
-function innerEquiv (a, b) {
-  // We're done when there's nothing more to compare
+function innerEquiv(a, b, pairs) {
   if (arguments.length < 2) {
     return true;
   }
 
-  // Clear the global pair queue and add the top-level values being compared
-  pairs = [{ a: a, b: b }];
-
+  pairs = [{ a, b }];
   for (let i = 0; i < pairs.length; i++) {
     const pair = pairs[i];
 
-    // Perform type-specific comparison on any pairs that are not strictly
-    // equal. For container types, that comparison will postpone comparison
-    // of any sub-container pair to the end of the pair queue. This gives
-    // breadth-first search order. It also avoids the reprocessing of
-    // reference-equal siblings, cousins etc, which can have a significant speed
-    // impact when comparing a container of small objects each of which has a
-    // reference to the same (singleton) large object.
-    if (pair.a !== pair.b && !typeEquiv(pair.a, pair.b)) {
+    if (pair.a !== pair.b && !typeEquiv(pair.a, pair.b, pairs)) {
       return false;
     }
   }
 
-  // ...across all consecutive argument pairs
-  return arguments.length === 2 || innerEquiv.apply(this, [].slice.call(arguments, 1));
+  return true;
 }
 
-export default function deepEqual(...args) {
-  const result = innerEquiv(...args);
-
-  // Release any retained objects
-  pairs.length = 0;
-  return result;
-};
+export default function deepEqual(a, b) {
+  return innerEquiv(a, b);
+}
