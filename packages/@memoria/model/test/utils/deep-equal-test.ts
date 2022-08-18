@@ -137,57 +137,6 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     );
   });
 
-  // NOTE: redundant test case/feature:
-  test("Consecutive argument pairs", function (assert) {
-    // degenerate cases with <2 inputs
-    assert.equal(deepEqual(), true);
-    assert.equal(deepEqual(1), true);
-
-    // otherwise every "consecutive pair" must be equivalent
-    assert.equal(deepEqual(1, 1, 1), true);
-    assert.equal(deepEqual(1, 1, 2), false);
-    assert.equal(deepEqual(1, 1, 1, 1), true);
-    assert.equal(deepEqual(1, 1, 1, 2), false);
-    assert.equal(deepEqual(1, 1, 1, 1, 1), true);
-  });
-
-  test("Objects basics", function (assert) {
-    assert.equal(deepEqual({}, {}), true);
-    assert.equal(deepEqual({}, null), false);
-    assert.equal(deepEqual({}, undefined), false);
-    assert.equal(deepEqual({}, 0), false);
-    assert.equal(deepEqual({}, false), false);
-
-    // This test is a hard one, it is very important
-    // REASONS:
-    // 1) They are of the same type "object"
-    // 2) [] instanceof Object is true
-    // 3) Their properties are the same (doesn't exists)
-    assert.equal(deepEqual({}, []), false);
-
-    assert.equal(deepEqual({ a: 1 }, { a: 1 }), true);
-    assert.equal(deepEqual({ a: 1 }, { a: "1" }), false);
-    assert.equal(deepEqual({ a: [] }, { a: [] }), true);
-    assert.equal(deepEqual({ a: {} }, { a: null }), false);
-    assert.equal(deepEqual({ a: 1 }, {}), false);
-    assert.equal(deepEqual({}, { a: 1 }), false);
-
-    // Hard ones
-    assert.equal(deepEqual({ a: undefined }, {}), false);
-    assert.equal(deepEqual({}, { a: undefined }), false);
-    assert.equal(
-      deepEqual(
-        {
-          a: [{ bar: undefined }],
-        },
-        {
-          a: [{ bat: undefined }],
-        }
-      ),
-      false
-    );
-  });
-
   test("Objects with null prototypes", function (assert) {
     var nonEmptyWithNoProto;
 
