@@ -1,5 +1,6 @@
 // NOTE: Code copied from QUnit's deepEqual(best one in JS): https://github.com/qunitjs/qunit/blob/main/src/equiv.js
-import typeOf from "./type-of";
+import { getConstructor } from "./constructor.js";
+import typeOf from "./type-of.js";
 
 const CONTAINER_TYPES = new Set(["object", "array", "map", "set"]);
 
@@ -133,12 +134,6 @@ function valueOf(a) {
 
 function useStrictEquality(a, b) {
   return valueOf(a) === valueOf(b);
-}
-
-function getConstructor(obj) {
-  const proto = Object.getPrototypeOf(obj);
-
-  return !proto || proto.constructor === null ? Object : proto.constructor;
 }
 
 function compareConstructors(a, b) {

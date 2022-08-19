@@ -2,6 +2,7 @@ import type Model from "../index.js";
 import { Changeset, RuntimeError } from "../index.js";
 
 export { get, set, getProperties, setProperties } from "./object.js";
+export { getConstructor, instanceOf } from "./constructor.js";
 import compare from "./compare.js";
 import deepEqual from "./deep-equal.js";
 import match from "./match.js";

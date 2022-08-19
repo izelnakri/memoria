@@ -7,22 +7,13 @@ export interface JSObject {
 }
 
 export function get(obj: JSObject, keyName: string) {
-  assert(
-    `.get() must be called with two arguments; an object and a property key`,
-    arguments.length === 2
-  );
-  assert(
-    `.get() cannot call get with '${keyName}' on an undefined object.`,
-    obj !== undefined && obj !== null
-  );
+  assert(`.get() must be called with two arguments; an object and a property key`, arguments.length === 2);
+  assert(`.get() cannot call get with '${keyName}' on an undefined object.`, obj !== undefined && obj !== null);
   assert(
     `.get() the key provided to get must be a string or number, you passed ${keyName}`,
     typeof keyName === "string" || (typeof keyName === "number" && !isNaN(keyName))
   );
-  assert(
-    `'this' in paths is not supported`,
-    typeof keyName !== "string" || keyName.lastIndexOf("this.", 0) !== 0
-  );
+  assert(`'this' in paths is not supported`, typeof keyName !== "string" || keyName.lastIndexOf("this.", 0) !== 0);
 
   // NOTE: removed isDestroyed check
   // NOTE: this used to always call _getProp and refresh glimmer tracking consumeTag(tagFor(obj, keyName)):
@@ -75,9 +66,7 @@ export function set<T = unknown>(obj: object, keyName: string, value: T, toleran
     if (root !== null && root !== undefined) {
       return set(root, targetKeyName, value);
     } else if (!tolerant) {
-      throw new RuntimeError(
-        `.set() property set failed: object in path "${parts.join(".")}" could not be found.`
-      );
+      throw new RuntimeError(`.set() property set failed: object in path "${parts.join(".")}" could not be found.`);
     }
   }
 

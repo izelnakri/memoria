@@ -9,7 +9,7 @@ import Model, {
 } from "@memoria/model";
 import { module, test } from "qunitx";
 
-module("@memoria/model | Util functions", function (hooks) {
+module("@memoria/model | Utils | object", function (hooks) {
   const PHOTO_FIXTURES = [
     {
       id: 1,
@@ -28,32 +28,6 @@ module("@memoria/model | Util functions", function (hooks) {
       name: "Selfie",
       href: "selfie.jpeg",
       is_public: false,
-    },
-  ];
-  const PHOTO_COMMENT_FIXTURES = [
-    {
-      uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-      content: "What a nice photo!",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
-      content: "I agree",
-      photo_id: 1,
-      user_id: 2,
-    },
-    {
-      uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-      content: "I was kidding",
-      photo_id: 1,
-      user_id: 1,
-    },
-    {
-      uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-      content: "Interesting indeed",
-      photo_id: 2,
-      user_id: 1,
     },
   ];
 
@@ -282,44 +256,36 @@ module("@memoria/model | Util functions", function (hooks) {
   });
 
   test("setProperties() works", async function (assert) {
-    assert.deepEqual(setProperties(null, null), null, 'noop for null properties and null object');
+    assert.deepEqual(setProperties(null, null), null, "noop for null properties and null object");
     assert.deepEqual(
       setProperties(undefined, undefined),
       undefined,
-      'noop for undefined properties and undefined object'
+      "noop for undefined properties and undefined object"
     );
 
-    assert.deepEqual(setProperties({}), undefined, 'noop for no properties');
-    assert.deepEqual(setProperties({}, undefined), undefined, 'noop for undefined');
-    assert.deepEqual(setProperties({}, null), null, 'noop for null');
-    assert.deepEqual(setProperties({}, NaN), NaN, 'noop for NaN');
-    assert.deepEqual(setProperties({}, {}), {}, 'meh');
+    assert.deepEqual(setProperties({}), undefined, "noop for no properties");
+    assert.deepEqual(setProperties({}, undefined), undefined, "noop for undefined");
+    assert.deepEqual(setProperties({}, null), null, "noop for null");
+    assert.deepEqual(setProperties({}, NaN), NaN, "noop for NaN");
+    assert.deepEqual(setProperties({}, {}), {}, "meh");
 
     let props = setProperties({}, { foo: undefined });
-    assert.deepEqual(props, { foo: undefined }, 'Setting undefined value');
-    assert.ok('foo' in props, 'Setting undefined value');
-    assert.deepEqual(Object.keys(props), ['foo'], 'Setting undefined value');
+    assert.deepEqual(props, { foo: undefined }, "Setting undefined value");
+    assert.ok("foo" in props, "Setting undefined value");
+    assert.deepEqual(Object.keys(props), ["foo"], "Setting undefined value");
 
-    assert.deepEqual(setProperties({}, { foo: 1 }), { foo: 1 }, 'Set a single property');
+    assert.deepEqual(setProperties({}, { foo: 1 }), { foo: 1 }, "Set a single property");
 
-    assert.deepEqual(
-      setProperties({}, { foo: 1, bar: 1 }),
-      { foo: 1, bar: 1 },
-      'Set multiple properties'
-    );
+    assert.deepEqual(setProperties({}, { foo: 1, bar: 1 }), { foo: 1, bar: 1 }, "Set multiple properties");
 
-    assert.deepEqual(
-      setProperties({ foo: 2, baz: 2 }, { foo: 1 }),
-      { foo: 1 },
-      'Set one of multiple properties'
-    );
+    assert.deepEqual(setProperties({ foo: 2, baz: 2 }, { foo: 1 }), { foo: 1 }, "Set one of multiple properties");
 
     assert.deepEqual(
       setProperties({ foo: 2, baz: 2 }, { bar: 2 }),
       {
         bar: 2,
       },
-      'Set an additional, previously unset property'
+      "Set an additional, previously unset property"
     );
   });
 });
