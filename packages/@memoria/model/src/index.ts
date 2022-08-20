@@ -44,16 +44,22 @@ export { transformValue } from "./serializer.js";
 export {
   clearObject,
   compare,
+  deepEqual,
   generateUUID,
   primaryKeyTypeSafetyCheck,
+  match,
   get,
+  instanceOf,
+  isCyclical,
+  getCyclicalReferences,
+  getConstructor,
   set,
   getProperties,
   setProperties,
   printSchema,
   printColumns,
   printRelationships,
-  typeOf
+  typeOf,
 } from "./utils/index.js";
 export {
   Column,

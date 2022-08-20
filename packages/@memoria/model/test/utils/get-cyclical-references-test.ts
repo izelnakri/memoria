@@ -25,6 +25,9 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
 
       assert.deepEqual(getCyclicalReferences(circularA), { abc: circularA });
       assert.deepEqual(getCyclicalReferences(circularB), { abc: circularB, another: circularB });
+
+      assert.deepEqual(getCyclicalReferences(circularA.abc), { abc: circularA });
+      assert.deepEqual(getCyclicalReferences(circularB.abc), { abc: circularB, another: circularB });
     });
 
     test("objects that are cyclical to another object should show references correctly", function (assert) {
@@ -480,7 +483,7 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
       assert.deepEqual(getCyclicalReferences(new Set([obj, obj, objTwo, objThree, objFour])), []);
     });
 
-    test("array that has objects that has cyclical references to itself in array should be shown correctly", function (assert) {
+    test("array that has objects that has cyclical references to itself twice in array should be shown correctly", function (assert) {
       let circularA = new Human();
       let circularB = new Animal();
 
@@ -493,6 +496,21 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
         { records: new Set([circularA]) },
         { records: new Set([circularB]) },
       ]);
+
+      let anotherA = { id: 1, name: "Izel", records: [] };
+      let anotherB = { id: 2, name: "Moris", records: [] };
+
+      anotherA.records.push(anotherA);
+      anotherB.records.push(anotherB);
+
+      assert.deepEqual(getCyclicalReferences(anotherA), { records: [anotherA] });
+      assert.deepEqual(getCyclicalReferences(anotherB), { records: [anotherB] });
+
+      anotherA.records.push(anotherA);
+      anotherB.records.push(anotherB);
+
+      assert.deepEqual(getCyclicalReferences(anotherA), { records: [anotherA, anotherA] });
+      assert.deepEqual(getCyclicalReferences(anotherB), { records: [anotherB, anotherB] });
     });
 
     test("array element duplication circular references should be shown correctly", function (assert) {
@@ -561,6 +579,38 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
         getCyclicalReferences(new Set([obj, objTwo, objThree, [obj, circularB, [circularB, circularB]]])),
         []
       );
+    });
+  });
+
+  module("Edge cases", function () {
+    test("array with object creation inside works correctly", function (assert) {
+      let circularA = { id: 1, name: "Izel", records: [] };
+      let circularB = { id: 2, name: "Moris", records: [] };
+
+      circularA.records.push(circularA);
+      circularB.records.push(circularB);
+
+      assert.deepEqual(getCyclicalReferences(circularA), { records: [circularA] });
+      assert.deepEqual(getCyclicalReferences([{ records: [circularA] }]), [{ records: [{ records: [circularA] }] }]);
+      assert.deepEqual(getCyclicalReferences([{ records: [circularB] }]), [{ records: [{ records: [circularB] }] }]);
+
+      circularA.records.push(circularA);
+      circularB.records.push(circularB);
+
+      assert.deepEqual(getCyclicalReferences([{ records: [circularA, circularA] }]), [
+        { records: [{ records: [circularA, circularA] }, { records: [circularA, circularA] }] },
+      ]);
+      assert.deepEqual(getCyclicalReferences([{ records: [circularB, circularB] }]), [
+        { records: [{ records: [circularB, circularB] }, { records: [circularB, circularB] }] },
+      ]);
+      assert.deepEqual(getCyclicalReferences([circularA, circularA]), [
+        { records: [circularA, circularA] },
+        { records: [circularA, circularA] },
+      ]);
+      assert.deepEqual(getCyclicalReferences([circularB, circularB]), [
+        { records: [circularB, circularB] },
+        { records: [circularB, circularB] },
+      ]);
     });
   });
 });

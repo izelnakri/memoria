@@ -8,8 +8,11 @@ interface ParentReferenceMap {
 
 import { get } from "./object.js";
 
+// NOTE: make this breadth-first
+
 // NOTE: This should receive a function to execute in the future it doesnt play well with .every due to return value, instead make something with this predicate function(?)
 // { x: SOMETHING, y: SOMETHING2, z: [SOMETHING3, { a: { b: { c: [SOMETHING4] } } }] }
+// OR it could be: { x: SOMETHING, y: SOMETHING2, z.$actualIndex: SOMETHING3, z.$actualIndex2.a.b.c.$actualIndex3
 export default function getCyclicalReferences(
   currentObject: any,
   shouldFilterToObject: boolean = true,
@@ -34,11 +37,9 @@ export default function getCyclicalReferences(
               ? targetReference
               : getCyclicalReferences(targetReference, false);
 
-          debugger;
           return setDeeplyNestedObject(result, cyclicalKeyName, sourceObject, reference);
         }
 
-        debugger;
         return result;
       }
 
@@ -79,10 +80,6 @@ export default function getCyclicalReferences(
         buildKeyName(currentKeyName, key)
       );
     }
-  }
-
-  if (currentObject === sourceObject && currentKeyName === "" && shouldFilterToObject) {
-    debugger;
   }
 
   return currentObject === sourceObject && currentKeyName === "" && shouldFilterToObject
@@ -148,10 +145,10 @@ function setDeeplyNestedObject(
       let resultIsAList = Array.isArray(reference) || reference instanceof Set;
       let valueToSet = resultIsAList ? [] : {};
 
-      if (resultIsAList) {
+      if (Array.isArray(result)) {
         result.push(valueToSet);
       } else {
-        result[keyNames.slice(0, index + 1).join(".")] = valueToSet;
+        result[keyName] = valueToSet;
       }
 
       return [valueToSet, reference];
@@ -159,7 +156,7 @@ function setDeeplyNestedObject(
     [targetObject, sourceObject]
   );
 
-  lastObject[keyName.split(".").pop() as string] = cyclicalValue;
+  lastObject[keyNames.pop() as string] = cyclicalValue;
 
   return targetObject;
 }

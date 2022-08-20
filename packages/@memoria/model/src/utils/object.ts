@@ -109,3 +109,6 @@ function isPath(path: any): boolean {
   return typeof path === "string" && firstDotIndexCache.get(path) !== -1;
 }
 
+// delete, drop, equal, fetch(also !), filter, from, get, getAndUpdate(also !),
+// hasKey, assign, freeze(can create frozen object), pop, put, putNew, reject, replace(also 1), split, take,
+// update(also !), to_list(sm like [[]]) values(?)
