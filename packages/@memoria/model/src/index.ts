@@ -1,6 +1,7 @@
 import Changeset from "./changeset.js";
 export type { ChangesetErrorItem } from "./changeset.js";
 import Enum from "./enum.js";
+import EnumFreeze from "./enum-freeze.js";
 import HasManyArray from "./has-many-array.js";
 export { Schema, DB, InstanceDB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
 export type {
@@ -100,7 +101,7 @@ export interface QueryObject {
 }
 export default Model;
 
-export { Changeset, Enum, Serializer, HasManyArray };
+export { Changeset, Enum, EnumFreeze, Serializer, HasManyArray };
 
 // User.getErrors(userInstance or Instances) // -> same array
 // pushRecord(json);
