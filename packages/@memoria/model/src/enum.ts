@@ -1,13 +1,20 @@
-// NOTE: should create EnumFreeze.method() that freezes the return value of the method?
+import compare from "./utils/compare.js";
+import { get } from "./utils/object.js";
+import deepEqual from "./utils/deep-equal.js";
+import match from "./utils/match.js";
 
+// NOTE: maybe get the Array.prototype functions here directly(?)
 export default class Enum {
-  // NOTE: maybe get the Array.prototype functions here directly(?)
-
   static uniqBy(array: Array<any>, key: string): any[] {
-    let foundValues: string[] = [];
+    let foundValues = [] as any[];
     return array.reduce((result, element) => {
-      if (key in element && foundValues.indexOf(element[key]) === -1) {
-        foundValues.push(element[key]);
+      if (!Reflect.has(element, key)) {
+        throw new Error(`Enum.uniqBy: Key ${key} not found in an element of the array.`);
+      }
+
+      let targetValue = get(element, key);
+      if (!isInFoundValues(foundValues, targetValue)) {
+        foundValues.push(targetValue);
         result.push(element);
       }
 
@@ -16,46 +23,62 @@ export default class Enum {
   }
 
   static mapBy(array: Array<any>, key: string): any[] {
-    return array.map((element) => element[key]);
+    return array.map((element) => {
+      if (!Reflect.has(element, key)) {
+        throw new Error(`Enum.uniqBy: Key ${key} not found in an element of the array.`);
+      }
+
+      return get(element, key);
+    });
   }
 
-  // arr.objectsAt([2, 3, 4]);  // ['c', 'd', undefined]
   static objectsAt(array: Array<any>, indexes: number[]): any[] {
     return indexes.map((index) => array[index]);
   }
 
-  static sortBy<T>(array: Array<T>, key: string): Array<T> {
-    return array.map((element) => element)
-      .sort((a, b) => a[key] - b[key]);
+  // NOTE: Currently ignores objects values, however does for array
+  // Probably doesnt work for multi keys sortBy due to early return(?)
+  static sortBy<T>(array: Array<T>, ..._key: string[]): Array<T> {
+    let sortKeys = Array.isArray(arguments[1]) ? arguments[1] : Array.from(arguments).slice(1);
+
+    return Array.from(array).sort((elementOne, elementTwo) => {
+      for (let i = 0; i < sortKeys.length; i++) {
+        let key = sortKeys[i];
+        let compareValue = compare(get(elementOne, key), get(elementTwo, key));
+        if (compareValue) {
+          return compareValue; // return 1 or -1 else continue to the next sortKey
+        }
+      }
+
+      return 0;
+    });
   }
 
   static findBy(array: Array<any>, key: string, value: any): any {
-    return array.find((element) => element[key] === value);
+    return array.find((element) => match(get(element, key), value)) || null;
   }
 
   static filterBy<T>(array: Array<T>, key: string, value: any): Array<T> {
-    return array.filter((element) => element[key] === value);
+    return array.filter((element) => match(get(element, key), value));
   }
 
   static getProperties(array: Array<any>, keys: Array<string>): any[] {
     return array.map((element) => {
-      return keys.reduce((result, key) => {
-        return Object.assign(result, { [key]: element[key] });
-      }, {});
+      return keys.reduce((result, key) => Object.assign(result, { [key]: element[key] }), {});
     });
   }
 
-  static invoke(array: Array<any>, methodName: string, ...args: Array<any>): any[] {
-    return array.map((element) => element[methodName](...args));
-  }
-
   static isAny(array: Array<any>, key: string, value: any): boolean {
-    return array.some((element) => element[key] === value);
+    return array.some((element) => match(get(element, key), value));
   }
 
   static isEvery(array: Array<any>, key: string, value: any): boolean {
-    return array.every((element) => element[key] === value);
+    return array.every((element) => match(get(element, key), value));
   }
+}
+
+function isInFoundValues(foundValues: any[], value: any): boolean {
+  return foundValues.some((foundValue) => deepEqual(foundValue, value));
 }
 
 // NOTE: maybe in future when |> in JS: add concat, find, includes, filter, indexOf, at, reverse, get, set, shift,
