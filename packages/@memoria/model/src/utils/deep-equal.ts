@@ -22,8 +22,8 @@ const callbacks = {
   },
 
   // abort (identical references / instance methods were skipped earlier)
-  function() {
-    return false;
+  function(a, b) {
+    return a.toString() === b.toString();
   },
 
   array(a, b, pairs) {

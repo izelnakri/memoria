@@ -19,6 +19,25 @@ export type TypeName =
   | "map";
 // NOTE: add weakmap, weakset, weakreference
 
+const DEFAULT_OBJECT_CONSTRUCTOR_NAMES = new Set([
+  "Object",
+  "Boolean",
+  "String",
+  "Number",
+  "BigInt",
+  "NaN",
+  "Promise",
+  "Array",
+  "Date",
+  "RegExp",
+  "Function",
+  "Error",
+  "Symbol",
+  "Map",
+  "WeakMap",
+  "Set",
+  "WeakSet",
+]);
 export const NULL_TYPES = new Set(["undefined", "null", "nan"]);
 export const PRIMITIVE_TYPES = new Set(["string", "number", "boolean", "symbol"]);
 export const SPECIAL_PRIMITIVE_TYPES = new Set(["date", "regexp"]);
@@ -61,12 +80,7 @@ export default function typeOf(item: unknown): TypeName {
 
   let foundType = TYPE_MAP[toString.call(item)] || "object";
   if (foundType === "function") {
-    let itemsPropertyNames = Object.getOwnPropertyNames(item);
-    if (
-      !itemsPropertyNames.includes("arguments") &&
-      !itemsPropertyNames.includes("caller") &&
-      itemsPropertyNames.includes("prototype")
-    ) {
+    if (DEFAULT_OBJECT_CONSTRUCTOR_NAMES.has(item.name) || /^class\s/.test(Function.prototype.toString.call(item))) {
       return "class";
     }
 

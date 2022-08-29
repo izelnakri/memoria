@@ -711,7 +711,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
         function () {},
         function () {}
       ),
-      false,
+      true,
       "Anonymous functions"
     ); // exact source code
     assert.equal(
@@ -726,8 +726,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     );
 
     assert.equal(deepEqual(f0, f0), true, "Function references"); // same references
-    assert.equal(deepEqual(f0, f1), false, "Function references"); // exact source code, different references
-    assert.equal(deepEqual(f2, f3), false, "Function references"); // equivalent source code, different references
+    assert.equal(deepEqual(f0, f1), true, "Function references"); // exact source code, different references
     assert.equal(deepEqual(f1, f2), false, "Function references"); // different source code, different references
     assert.equal(
       deepEqual(function () {}, true),
@@ -1893,7 +1892,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
         function () {},
         function () {}
       ),
-      false
+      true
     );
 
     // Hoozit inherit from Gizmo
@@ -1915,7 +1914,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
         function () {},
         function () {}
       ),
-      false
+      true
     );
 
     // Make sure this is still true !important
@@ -1935,7 +1934,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
         function () {},
         function () {}
       ),
-      false
+      true
     );
   });
 
@@ -1971,7 +1970,6 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     // b1.fn and b2.fn are functions but they are different references
     // But we decided to skip function for instances.
     assert.equal(deepEqual(b1, b2), true, "Same property, same constructor");
-
     assert.equal(deepEqual(c1, c2), false, "Same property with different reference and different function");
     assert.equal(deepEqual(c1, c3), true, "Same property with different reference but same function");
 
@@ -2114,11 +2112,11 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
 
     d1 = new D(function () {});
     d2 = new D(function () {});
-    assert.equal(deepEqual(d1, d2), false);
+    assert.equal(deepEqual(d1, d2), true);
 
     e1 = new E(function () {});
     e2 = new E(function () {});
-    assert.equal(deepEqual(e1, e2), false);
+    assert.equal(deepEqual(e1, e2), true);
   });
 
   test("Object with circular references", function (assert) {
