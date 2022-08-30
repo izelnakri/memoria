@@ -290,7 +290,7 @@ module("@memoria/model | Enum", function (hooks) {
       try {
         Enum.uniqBy([{ id: 1 }, { name: "something" }, { id: 2 }], "id");
       } catch (error) {
-        assert.equal(error.message, "Enum.uniqBy: Key id not found in an element of the array.");
+        assert.equal(error.message, "uniqBy: Key id not found in an element of the array.");
       }
     });
   });
@@ -374,7 +374,7 @@ module("@memoria/model | Enum", function (hooks) {
       try {
         Enum.mapBy([{ id: 1 }, { name: "something" }, { id: 2 }], "id");
       } catch (error) {
-        assert.equal(error.message, "Enum.uniqBy: Key id not found in an element of the array.");
+        assert.equal(error.message, "mapBy: Key id not found in an element of the array.");
       }
     });
   });

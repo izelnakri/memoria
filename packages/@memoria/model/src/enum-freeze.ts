@@ -30,10 +30,6 @@ export default class EnumFreeze {
     return Object.freeze(Enum.getProperties(array, keys));
   }
 
-  static invoke(array: Array<any>, methodName: string, ...args: Array<any>): readonly any[] {
-    return Object.freeze(array.map((element) => Object.freeze(element[methodName](...args))));
-  }
-
   static isAny(array: Array<any>, key: string, value: any): boolean {
     return Object.freeze(Enum.isAny(array, key, value));
   }

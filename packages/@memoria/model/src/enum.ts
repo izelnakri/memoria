@@ -3,13 +3,15 @@ import { get } from "./utils/object.js";
 import deepEqual from "./utils/deep-equal.js";
 import match from "./utils/match.js";
 
+// TODO: provide object interface for these:
+// mapBy(array), findBy(object), uniqBy(array), sortBy(array), filterBy(object), isAny(object), isEvery(object)
 // NOTE: maybe get the Array.prototype functions here directly(?)
 export default class Enum {
   static uniqBy(array: Array<any>, key: string): any[] {
     let foundValues = [] as any[];
     return array.reduce((result, element) => {
       if (!Reflect.has(element, key)) {
-        throw new Error(`Enum.uniqBy: Key ${key} not found in an element of the array.`);
+        throw new Error(`uniqBy: Key ${key} not found in an element of the array.`);
       }
 
       let targetValue = get(element, key);
@@ -25,7 +27,7 @@ export default class Enum {
   static mapBy(array: Array<any>, key: string): any[] {
     return array.map((element) => {
       if (!Reflect.has(element, key)) {
-        throw new Error(`Enum.uniqBy: Key ${key} not found in an element of the array.`);
+        throw new Error(`mapBy: Key ${key} not found in an element of the array.`);
       }
 
       return get(element, key);
