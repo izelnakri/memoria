@@ -1,5 +1,7 @@
+// TODO: Do we want some of these properties/structure in $Model.findAll, insertAll(?) returns(?), maybe a ModelArray<Model>
 import InstanceDB from "./stores/instance/db.js";
 import Model from "./model.js";
+import Enum from "./enum.js";
 
 // TODO: trigger relationship adds here
 // Adding should do Model check and duplication check(from the instance group):
@@ -16,18 +18,11 @@ import Model from "./model.js";
 
 // NOTE: do we want to batch also relationships assignments(?) -> probably not for now
 
-// NOTE: things that can return *this*:
-// - HasManyArray.add
-// - HasManyArray.replace
-// - HasManyArray.remove
-// - Mixin functions could also be here, they should be in instance too because thats JS.
-
 // NOTE: things that can return mutation metadata(these could be the actual optimized relationship mutation paths(?)):
 // should they return metadata or this(?)
 // - add() -> //-> added or replaced(true | false)
 // - replace() // -> actual removal count, actual addition, actual replacementIndexes[]
 // - remove -> // -> [Model] // found and removed models
-
 export default class HasManyArray extends Array {
   static get [Symbol.species]() {
     return Array;
@@ -43,6 +38,28 @@ export default class HasManyArray extends Array {
   spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
 
+  get metadata() {
+    return (
+      this.#relationshipMetadata || {
+        RelationshipClass: this[0] && this[0].constructor,
+        relationshipName: null,
+        relationshipType: null,
+        foreignKeyColumnName: null,
+        reverseRelationshipName: null,
+        reverseRelationshipType: null,
+        reverseRelationshipForeignKeyColumnName: null,
+      }
+    );
+  }
+
+  get firstObject() {
+    return this[0];
+  }
+
+  get lastObject() {
+    return this[this.length - 1];
+  }
+
   constructor(array?: Array<Model> | Set<Model>) {
     super();
 
@@ -51,7 +68,9 @@ export default class HasManyArray extends Array {
     } else if (array && array instanceof Set) {
       filterInstancesToAdd(Array.from(array)).forEach((element) => this.push(element));
     } else if (array) {
-      throw new Error('Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements');
+      throw new Error(
+        "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements"
+      );
     }
 
     let pushLengthCall = false;
@@ -59,15 +78,17 @@ export default class HasManyArray extends Array {
 
     return new Proxy(this, {
       set(target, propertyName, value) {
-        console.log('propertyName', propertyName);
+        console.log("propertyName", propertyName);
 
-        if (typeof propertyName !== 'symbol') {
+        if (typeof propertyName !== "symbol") {
           let targetIndex = Number(propertyName);
           if (!isNaN(targetIndex)) {
-            console.log('SET[x] CALLED for x:index');
+            console.log("SET[x] CALLED for x:index");
 
             if (targetIndex > self.length) {
-              throw new Error(`You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`);
+              throw new Error(
+                `You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`
+              );
             } else if (!(value instanceof Model)) {
               if (value) {
                 throw new Error(`HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
@@ -86,14 +107,17 @@ export default class HasManyArray extends Array {
             let instancesToAdd = [value];
             let instanceToAddReferencesSet = InstanceDB.getReferences(value);
             if (self[0] && self[0].constructor !== value.constructor) {
-              throw new Error(`This HasManyArray accepts ${self[0].constructor.name} instances, you tried to assign ${value.constructor.name} instance!`);
+              throw new Error(
+                `This HasManyArray accepts ${self[0].constructor.name} instances, you tried to assign ${value.constructor.name} instance!`
+              );
             }
 
-            self.forEach((existingInstance, existingInstanceIndex) => { // NOTE: this makes adding to list slow, array.push() also triggers it
+            self.forEach((existingInstance, existingInstanceIndex) => {
+              // NOTE: this makes adding to list slow, array.push() also triggers it
               if (existingInstance && instanceToAddReferencesSet === InstanceDB.getReferences(existingInstance)) {
                 instancesToAdd.length = 0; // make this remove it instead in future for extensibility super.splice(existingInstanceIndex, 1);
 
-                if ((value === existingInstance) && (targetIndex === existingInstance)) {
+                if (value === existingInstance && targetIndex === existingInstance) {
                   return;
                 } else if (targetIndex === existingInstanceIndex || targetIndex === self.length) {
                   // RelationshipDB.replaceExistingModelFromHasManyArray(value, existingModelIndex, self) || RelationshipDB.addModel , in other words branch this out
@@ -127,14 +151,16 @@ export default class HasManyArray extends Array {
             });
 
             return true;
-          } else if (propertyName === 'length') {
+          } else if (propertyName === "length") {
             if (value < self.length) {
               // TODO: register model removals here
               target[propertyName] = value;
 
               return true;
             } else if (value !== self.length && !pushLengthCall) {
-              throw new Error(`You cant change the length of an hasManyArray to ${value} is actual length is ${self.length}`); // TODO: is this needed(?) check this;
+              throw new Error(
+                `You cant change the length of an hasManyArray to ${value} is actual length is ${self.length}`
+              ); // TODO: is this needed(?) check this;
             }
 
             pushLengthCall = false;
@@ -146,17 +172,19 @@ export default class HasManyArray extends Array {
         return true;
       },
       get(target, propertyName) {
-        if (propertyName === 'push') {
+        if (propertyName === "push") {
           pushLengthCall = true;
         }
 
         return target[propertyName];
       },
       deleteProperty(self, propertyName) {
-        let propertyAsNumber = typeof propertyName !== 'symbol' && Number(propertyName);
+        let propertyAsNumber = typeof propertyName !== "symbol" && Number(propertyName);
         if (!isNaN(propertyAsNumber as number)) {
           if (propertyAsNumber >= self.length) {
-            throw new Error(`You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`);
+            throw new Error(
+              `You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`
+            );
           }
 
           self.splice(propertyAsNumber as number, 1);
@@ -167,8 +195,16 @@ export default class HasManyArray extends Array {
         delete self[propertyName];
 
         return true;
-      }
+      },
     });
+  }
+
+  toArray() {
+    return this.map((model) => model);
+  }
+
+  toJSON() {
+    return this.map((model) => model.toJSON());
   }
 
   concat(_otherHasManyArrays: Model[] | HasManyArray): Array<Model> {
@@ -182,7 +218,7 @@ export default class HasManyArray extends Array {
     if (startIndex > 0 && startIndex > this.length - 1) {
       return this;
     } else if (value && !(value instanceof Model)) {
-      throw new Error('hasManyArray.fill(value) value has to be falsy value or a memoria Model');
+      throw new Error("hasManyArray.fill(value) value has to be falsy value or a memoria Model");
     }
 
     let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
@@ -286,22 +322,37 @@ export default class HasManyArray extends Array {
     return this.length;
   }
 
-  any(predicate: any) {
-    return super.some(predicate);
-  }
-
-  // TODO: Built for DX and optimized RelationshipDB operations here:
   add(param: Model | Model[]): this {
-    Array.isArray(param)
-      ? filterInstancesToAdd(param).forEach((model) => this.push(model))
-      : this.push(param)
+    Array.isArray(param) ? filterInstancesToAdd(param).forEach((model) => this.push(model)) : this.push(param);
 
     return this;
   }
 
-  // replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): this {
+  replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): this {
+    let referencesToRemove = Array.isArray(existingReference)
+      ? existingReference.map((model) => model)
+      : [existingReference];
+    let referencesToAdd = Array.isArray(targetToReplace) ? targetToReplace.map((model) => model) : [targetToReplace];
 
-  // }
+    this.forEach((model, index) => {
+      if (referencesToRemove.length > 0 && referencesToRemove.includes(model)) {
+        referencesToRemove.shift();
+
+        this[index] = null;
+
+        let referenceToAdd = referencesToAdd.shift();
+        if (referenceToAdd) {
+          this[this.length] = referenceToAdd;
+          this[index] = referenceToAdd;
+        }
+      }
+    });
+    referencesToAdd.forEach((model) => {
+      this[this.length] = model;
+    });
+
+    return this;
+  }
 
   delete(param: Model | Model[]): boolean {
     let index = this.indexOf(param);
@@ -313,67 +364,149 @@ export default class HasManyArray extends Array {
     return false;
   }
 
-  clear() {
+  clear(): this {
     return this.fill(); // NOTE: this.fill so it triggers removals
   }
 
-  get metadata() {
-    return this.#relationshipMetadata || {
-      RelationshipClass: this[0] && this[0].constructor,
-      relationshipName: null,
-      relationshipType: null,
-      foreignKeyColumnName: null,
-      reverseRelationshipName: null,
-      reverseRelationshipType: null,
-      reverseRelationshipForeignKeyColumnName: null
-    };
+  insertAt(index: number, input: Model | Model[]): this {
+    let amountToAdd = Array.isArray(input) ? input.length : 1;
+    let targetIndex = index >= 0 ? index : this.length + amountToAdd + index;
+    if (targetIndex < 0 || targetIndex > this.length - 1 + amountToAdd) {
+      throw new Error(`insertAt: index ${index} is not a valid index when length of the array is ${this.length}`);
+    } else if (Array.isArray(input)) {
+      this.splice(targetIndex, 0, ...input);
+    } else {
+      this[this.length] = input;
+      this[targetIndex] = input;
+    }
+
+    return this;
   }
 
-  get firstObject() {
-    return this[0];
+  deleteAt(index: number, amount: number = 1): this {
+    let targetIndex = index >= 0 ? index : this.length + index;
+    if (targetIndex < 0 || targetIndex > this.length - 1) {
+      throw new Error(`deleteAt: index ${index} is not a valid index when length of the array is ${this.length}`);
+    }
+
+    let maxAmountToDelete = this.length - targetIndex;
+    if (amount > 0) {
+      this.splice(targetIndex, amount > maxAmountToDelete ? maxAmountToDelete : amount);
+    }
+
+    return this;
   }
 
-  get lastObject() {
-    return this[this.length - 1];
+  // TODO: should mutate correctly on tests
+  filterBy(key: string, value: any): this {
+    this.forEach((model, index) => {
+      if (model[key] !== value) {
+        this[index] = null;
+      }
+    });
+
+    return this;
+  }
+
+  // TODO: should mutate correctly on tests
+  uniqBy(key: string): this {
+    let foundValues: Model[] = [];
+    this.forEach((model: Model, index) => {
+      if (foundValues.includes(model[key])) {
+        this[index] = null;
+      }
+    });
+
+    return this;
+  }
+
+  // NOTE: Do I need spaceship operation(?) packages/@ember/-internals/runtime/lib/compare.ts
+  // sortBy(_key: string): this {
+  //   let sortKeys = arguments;
+
+  //   return this.sort((a: Model, b: Model) => {
+  //     for (let i = 0; i < sortKeys.length; i++) {
+  //       let key = sortKeys[i];
+
+  //       // TODO: do I need this spaceship operation(?)
+  //       let compareValue = compare(a[key], b[key]); // packages/@ember/-internals/runtime/lib/compare.ts
+  //       if (compareValue) {
+  //         return compareValue;
+  //       }
+  //     }
+
+  //     return 0;
+  //   });
+  // }
+
+  any(predicate: any): boolean {
+    return super.some(predicate);
+  }
+
+  mapBy(key: string): Model[] {
+    return Enum.mapBy(this, key);
+  }
+
+  objectsAt(indexes: number[]): Model[] {
+    return Enum.objectsAt(this, indexes);
+  }
+
+  findBy(key: string, value: any): Model | void {
+    return Enum.findBy(this, key, value);
+  }
+
+  getProperties(keys: string[]): Array<any> {
+    return Enum.getProperties(this, keys);
+  }
+
+  isAny(key: string, value: any): boolean {
+    return Enum.isAny(this, key, value);
+  }
+
+  isEvery(key: string, value: any): boolean {
+    return Enum.isEvery(this, key, value);
   }
 }
 
 function filterInstancesToAdd(instancesToLookup: Model[]) {
   let arraysModelType: any;
 
-  return instancesToLookup.reduce((result: [Model[], Set<Set<Model>>], instanceToLookup: Model) => {
-    let instancesToAdd = result[0];
-    if (!(instanceToLookup instanceof Model)) {
-      throw new Error('HasManyArray cannot have non memoria Model instance inside!');
-    } else if (!arraysModelType) {
-      arraysModelType = instanceToLookup.constructor;
-    } else if (arraysModelType !== instanceToLookup.constructor) {
-      throw new Error('HasManyArray cannot be instantiated or added with model types different than one another!');
-    }
-
-    let instanceReferences = InstanceDB.getReferences(instanceToLookup) as Set<Model>;
-    if (result[1].has(instanceReferences)) {
-      let existingInstance = instancesToAdd
-        .find((instance) => InstanceDB.getReferences(instance) === instanceReferences) as Model;
-      let instanceReferencesArray = Array.from(instanceReferences);
-      if (instanceReferencesArray.indexOf(instanceToLookup) > instanceReferencesArray.indexOf(existingInstance)) {
-        instancesToAdd[instancesToAdd.indexOf(existingInstance)] = instanceToLookup;
+  return instancesToLookup.reduce(
+    (result: [Model[], Set<Set<Model>>], instanceToLookup: Model) => {
+      let instancesToAdd = result[0];
+      if (!(instanceToLookup instanceof Model)) {
+        throw new Error("HasManyArray cannot have non memoria Model instance inside!");
+      } else if (!arraysModelType) {
+        arraysModelType = instanceToLookup.constructor;
+      } else if (arraysModelType !== instanceToLookup.constructor) {
+        throw new Error("HasManyArray cannot be instantiated or added with model types different than one another!");
       }
 
-      return result;
-    }
+      let instanceReferences = InstanceDB.getReferences(instanceToLookup) as Set<Model>;
+      if (result[1].has(instanceReferences)) {
+        let existingInstance = instancesToAdd.find(
+          (instance) => InstanceDB.getReferences(instance) === instanceReferences
+        ) as Model;
+        let instanceReferencesArray = Array.from(instanceReferences);
+        if (instanceReferencesArray.indexOf(instanceToLookup) > instanceReferencesArray.indexOf(existingInstance)) {
+          instancesToAdd[instancesToAdd.indexOf(existingInstance)] = instanceToLookup;
+        }
 
-    result[0].push(instanceToLookup as Model);
-    result[1].add(instanceReferences as Set<Model>);
+        return result;
+      }
 
-    return result as [Model[], Set<Set<Model>>];
-  }, [[] as Model[], new Set()])[0] as Model[];
+      result[0].push(instanceToLookup as Model);
+      result[1].add(instanceReferences as Set<Model>);
+
+      return result as [Model[], Set<Set<Model>>];
+    },
+    [[] as Model[], new Set()]
+  )[0] as Model[];
 }
 
 function isNumber(value: any) {
-  return typeof value === 'number' && isFinite(value);
+  return typeof value === "number" && isFinite(value);
 }
-
 
 // Atomic operations
 // function replaceExistingModelFromArray(newModel: Model, existingModelIndex: number, hasManyArray: Model[]) {
@@ -388,15 +521,6 @@ function isNumber(value: any) {
 // function removeFromHasManyArray(existingModelIndex: number, hasManyArray: Model[]) {
 //   return array.splice(existingModelIndex, 1);
 // }
-
-// NOTE: For later: Array utils/mixins from ember:
-// toArray, toJSON()[is it the same?], reduceRight
-// uniqBy(keyOrFunc), mapBy(key), objectsAt, sortBy, uniqBy, findBy, filterBy('food', 'beans') or filterBy('isFruit')
-// getProperties, insertAt, invoke, objectsAt(is this needed(?)), replace(basically splice but array of inserts)
-// insertAt[Error: Index out of range], isAny, isEvery, removeAt[Error: Index out of range], addObjects and add could be strict/throw something
-// addObjects, [compact(?) probably shouldnt need as its automatically done]
-// arr.objectsAt([2, 3, 4]);  // ['c', 'd', undefined]
-// .get('0'), people.invoke('greet') , set('3', model);, toString() person.toString(); //=> "<Person:ember1024>", .without()[alias for delete(?)]
 
 // type exactInstanceAlreadyInHasManyArray = boolean;
 // type instanceGroupAlreadyInHasManyArray = boolean;

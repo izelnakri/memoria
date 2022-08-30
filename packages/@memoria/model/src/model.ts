@@ -5,7 +5,15 @@ import Changeset from "./changeset.js";
 import RevisionHistory from "./revision-history.js";
 import Serializer, { transformValue } from "./serializer.js";
 import { CacheError, ModelError, RuntimeError } from "./errors/index.js";
-import { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipUtils, RelationshipQuery, InstanceDB } from "./stores/index.js";
+import {
+  Schema,
+  DB,
+  RelationshipSchema,
+  RelationshipDB,
+  RelationshipUtils,
+  RelationshipQuery,
+  InstanceDB,
+} from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
@@ -37,6 +45,8 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
+// Make params use match() internally: Email.findBy({ user: userInstance });
+
 // Document .cache() replaces existing cached record! doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
 // TODO: it can also be that InstanceDB null primaryKey instances need to be moved over on isNew when building or setting.
@@ -59,9 +69,7 @@ export default class Model {
   }
 
   static get primaryKeyType(): "uuid" | "id" {
-    return Schema.getColumnsMetadataFrom(this)[this.primaryKeyName].generated === "uuid"
-      ? "uuid"
-      : "id";
+    return Schema.getColumnsMetadataFrom(this)[this.primaryKeyName].generated === "uuid" ? "uuid" : "id";
   }
 
   static get columnNames(): Set<string> {
@@ -86,9 +94,7 @@ export default class Model {
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
-        throw new Error(
-          "You should not provide an instantiated but not built model to $Model.build(model)"
-        );
+        throw new Error("You should not provide an instantiated but not built model to $Model.build(model)");
       } else if (options && options.copy === false) {
         return buildObject;
       }
@@ -130,7 +136,9 @@ export default class Model {
             if (this[columnName] === targetValue) {
               return;
             } else if (Class.Cache.get(primaryKey)) {
-              throw new Error(`${Class.name}:${primaryKey} exists in persisted cache, you can't make this records ${columnName}: null without unloading it from cache`);
+              throw new Error(
+                `${Class.name}:${primaryKey} exists in persisted cache, you can't make this records ${columnName}: null without unloading it from cache`
+              );
             } else if (targetValue === null) {
               let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);
               if (foundKnownReferences) {
@@ -151,7 +159,9 @@ export default class Model {
 
             let knownReferencesForTargetValue = InstanceDB.getAllKnownReferences(Class).get(targetValue);
             if (knownReferencesForTargetValue && knownReferencesForTargetValue !== existingInstances) {
-              throw new Error(`${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`);
+              throw new Error(
+                `${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`
+              );
             }
 
             let oldPrimaryKey = primaryKey;
@@ -165,7 +175,7 @@ export default class Model {
               return;
             } else if (oldPrimaryKey) {
               InstanceDB.getAllKnownReferences(Class).delete(oldPrimaryKey);
-              InstanceDB.getAllKnownReferences(Class).set(primaryKey, existingInstances)
+              InstanceDB.getAllKnownReferences(Class).set(primaryKey, existingInstances);
 
               return existingInstances.forEach((instance) => {
                 if (instance !== this) {
@@ -186,7 +196,7 @@ export default class Model {
 
               InstanceDB.getAllKnownReferences(Class).set(targetValue, existingInstances as Set<Model>);
             }
-          }
+          },
         });
       } else if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
         let cache = getTransformedValue(model, columnName, buildObject);
@@ -200,11 +210,7 @@ export default class Model {
           set(value) {
             if (this[columnName] === value) {
               return;
-            } else if (
-              value instanceof Date &&
-              this[columnName] &&
-              this[columnName].toJSON() === value.toJSON()
-            ) {
+            } else if (value instanceof Date && this[columnName] && this[columnName].toJSON() === value.toJSON()) {
               return;
             }
 
@@ -218,20 +224,36 @@ export default class Model {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
 
               // cache(foreign_key) cant be a number or null, but can mutate when passed in to these functions:
-              let relationshipCache = RelationshipDB.findRelationshipCacheFor(this.constructor as typeof Model, relationshipName, "BelongsTo");
+              let relationshipCache = RelationshipDB.findRelationshipCacheFor(
+                this.constructor as typeof Model,
+                relationshipName,
+                "BelongsTo"
+              );
               let existingRelationship = relationshipCache.get(this);
-              let existingRelationshipPrimaryKey = existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
+              let existingRelationshipPrimaryKey =
+                existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
 
               if (!relationshipCache.has(this)) {
                 // if (cache === null) {
                 //   return relationshipCache.set(this, null)
                 // }
-
                 // check if relationship with photo.group_id = 5 exists, clean it and set it here(?)
               } else if (existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(this.constructor as typeof Model, relationshipName);
-                let reflectionCache = RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "OneToOne")
-                  || RelationshipDB.findRelationshipCacheFor(metadata.RelationshipClass, metadata.reverseRelationshipName as string, "HasMany");
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(
+                  this.constructor as typeof Model,
+                  relationshipName
+                );
+                let reflectionCache =
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "OneToOne"
+                  ) ||
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "HasMany"
+                  );
                 if (existingRelationship) {
                   RelationshipUtils.cleanRelationshipsOn(
                     this,
@@ -258,11 +280,7 @@ export default class Model {
     Object.keys(relationshipTable).forEach((relationshipName) => {
       if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-      } else if (
-        buildObject &&
-        buildObject instanceof this &&
-        RelationshipDB.has(buildObject, relationshipName)
-      ) {
+      } else if (buildObject && buildObject instanceof this && RelationshipDB.has(buildObject, relationshipName)) {
         // NOTE: this messes up nulled belongsTo relationship with foreignKey value
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
       }
@@ -298,10 +316,7 @@ export default class Model {
 
   // NOTE: this proxies to adapter because JSONAPIAdapter could do its own for example, even when 2nd arg is model instance not payload
   // That payload parsing can happen in the Adapter.cache() the method can recursively call itself & handle payloads in 2nd arg
-  static cache(
-    model: ModelRefOrInstance | ModelRefOrInstance[],
-    options?: ModelBuildOptions
-  ): Model | Model[] {
+  static cache(model: ModelRefOrInstance | ModelRefOrInstance[], options?: ModelBuildOptions): Model | Model[] {
     if (Array.isArray(model)) {
       return model.map((singleModel) => this.cache(singleModel, options)) as Model[];
     } else if (!model[this.primaryKeyName]) {
@@ -326,23 +341,15 @@ export default class Model {
     return this.Adapter.resetCache(this, targetState, options);
   }
 
-  static async resetRecords(
-    targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
-  ): Promise<Model[]> {
+  static async resetRecords(targetState?: ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
     checkProvidedFixtures(this, targetState, options);
 
     return await this.Adapter.resetRecords(this, targetState, options);
   }
 
-  static peek(
-    primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
-  ): Model | Model[] | void {
+  static peek(primaryKey: PrimaryKey | PrimaryKey[], options?: ModelBuildOptions): Model | Model[] | void {
     if (!primaryKey) {
-      throw new RuntimeError(
-        `${this.name}.find(id) or ${this.name}.peek(id) cannot be called without a valid id`
-      );
+      throw new RuntimeError(`${this.name}.find(id) or ${this.name}.peek(id) cannot be called without a valid id`);
     }
 
     return this.Adapter.peek(this, primaryKey, options);
@@ -369,30 +376,21 @@ export default class Model {
     }
   }
 
-  static async findBy(
-    queryObject: QueryObject,
-    options?: ModelBuildOptions
-  ): Promise<Model | void> {
+  static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | void> {
     let result = await this.Adapter.findBy(this, queryObject, options);
     if (result) {
       return RelationshipDB.cache(result, "update", queryObject);
     }
   }
 
-  static async findAll(
-    queryObject: QueryObject = {},
-    options?: ModelBuildOptions
-  ): Promise<Model[] | void> {
+  static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | void> {
     let result = await this.Adapter.findAll(this, queryObject, options);
     if (result) {
       return result.map((model) => RelationshipDB.cache(model, "update"));
     }
   }
 
-  static async insert(
-    record?: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
-  ): Promise<Model> {
+  static async insert(record?: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (record && record[this.primaryKeyName]) {
       primaryKeyTypeSafetyCheck(record, this);
     }
@@ -439,10 +437,7 @@ export default class Model {
     return model;
   }
 
-  static async save(
-    record: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
-  ): Promise<Model> {
+  static async save(record: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     return shouldInsertOrUpdateARecord(this, record) === "insert"
       ? await this.Adapter.insert(this, record, options)
       : await this.Adapter.update(this, record, options);
@@ -450,10 +445,7 @@ export default class Model {
 
   static unload(record: ModelRefOrInstance, options?: ModelBuildOptions): Model {
     if (!record) {
-      throw new RuntimeError(
-        new Changeset(this.build(record)),
-        "unload() called without a valid record"
-      );
+      throw new RuntimeError(new Changeset(this.build(record)), "unload() called without a valid record");
     }
 
     return this.Adapter.unload(this, record, options);
@@ -481,10 +473,7 @@ export default class Model {
     return result as Model;
   }
 
-  static async saveAll(
-    records: QueryObject[] | ModelRefOrInstance[],
-    options?: ModelBuildOptions
-  ): Promise<Model[]> {
+  static async saveAll(records: QueryObject[] | ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
     return records.every((record) => shouldInsertOrUpdateARecord(this, record) === "update")
       ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[], options)
       : await this.Adapter.insertAll(this, records, options);
@@ -533,10 +522,7 @@ export default class Model {
     return models;
   }
 
-  static async updateAll(
-    records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
-  ): Promise<Model[]> {
+  static async updateAll(records: ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.updateAll(records) called without records");
     }
@@ -570,10 +556,7 @@ export default class Model {
     return this.Adapter.unloadAll(this, records, options);
   }
 
-  static async deleteAll(
-    records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
-  ): Promise<Model[]> {
+  static async deleteAll(records: ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
     if (!records || records.length === 0) {
       throw new RuntimeError("$Model.deleteAll(records) called without records");
     }
@@ -611,9 +594,7 @@ export default class Model {
     if (!objectOrArray) {
       return;
     } else if (Array.isArray(objectOrArray)) {
-      return (objectOrArray as Array<Model>).map((object) =>
-        this.Serializer.serialize(this, object)
-      );
+      return (objectOrArray as Array<Model>).map((object) => this.Serializer.serialize(this, object));
     }
 
     return this.Serializer.serialize(this, objectOrArray as Model);
@@ -706,7 +687,8 @@ export default class Model {
     return new Changeset(this, this.changes);
   }
 
-  get fetchedRelationships() { // TODO: this wont take the null records(!!!)
+  get fetchedRelationships() {
+    // TODO: this wont take the null records(!!!)
     let Class = this.constructor as typeof Model;
     let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
 
@@ -718,9 +700,7 @@ export default class Model {
 
   changedAttributes() {
     if (this.revisionHistory.length === 0) {
-      throw new RuntimeError(
-        "Tried to call model.changedAttributes() on untracked model, use $Model.build()"
-      );
+      throw new RuntimeError("Tried to call model.changedAttributes() on untracked model, use $Model.build()");
     }
 
     return Object.keys(this.changes).reduce((result, keyName) => {
@@ -730,9 +710,7 @@ export default class Model {
 
   rollbackAttributes() {
     if (this.revisionHistory.length === 0) {
-      throw new RuntimeError(
-        "Tried to call model.rollbackAttributes() on untracked model, use $Model.build()"
-      );
+      throw new RuntimeError("Tried to call model.rollbackAttributes() on untracked model, use $Model.build()");
     }
 
     return Object.keys(this.changes).reduce((result, columnName) => {
@@ -742,20 +720,14 @@ export default class Model {
   }
 
   toObject() {
-    return Array.from((this.constructor as typeof Model).columnNames).reduce(
-      (result, columnName) => {
-        result[columnName] = this.revision[columnName];
-        return result;
-      },
-      Object.create(null)
-    );
+    return Array.from((this.constructor as typeof Model).columnNames).reduce((result, columnName) => {
+      result[columnName] = this.revision[columnName];
+      return result;
+    }, Object.create(null));
   }
 
   toJSON() {
-    return (this.constructor as typeof Model).Serializer.serialize(
-      this.constructor as typeof Model,
-      this
-    );
+    return (this.constructor as typeof Model).Serializer.serialize(this.constructor as typeof Model, this);
   }
 
   async reload() {
