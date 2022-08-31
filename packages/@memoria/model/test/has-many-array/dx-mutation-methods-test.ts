@@ -783,17 +783,220 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
     });
   });
 
-  // module('uniqBy', function() {
+  module('uniqBy', function() {
+    test('uniqBy works correctly', function(assert) {
+      const { Photo } = generateModels();
 
-  // });
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
 
-  // module('sortBy', function() {
+      let array = new HasManyArray([
+        firstPhoto,
+        secondPhoto,
+        thirdPhoto,
+        fourthPhoto,
+        fifthPhoto,
+        sixthPhoto,
+        seventhPhoto,
+      ]);
 
-  // });
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto]);
+      assert.deepEqual(array.uniqBy('name'), [
+        firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array.uniqBy('owner_id'), [firstPhoto, secondPhoto, thirdPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fifthPhoto, sixthPhoto]);
+      assert.deepEqual(array.uniqBy('is_public'), [firstPhoto, secondPhoto, fifthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, fifthPhoto]);
+    });
 
-  // module("filterBy", function() {
+    test("fails when called with an array that has the key missing", function (assert) {
+      const { Photo } = generateModels();
 
-  // });
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array.uniqBy('some_id');
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "uniqBy: Key some_id not found in a model inside the array!");
+      }
+    });
+  });
+
+  module('sortBy', function() {
+    test('it works correctly for single sortBy parameters', function(assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
+
+      let array = new HasManyArray([
+        thirdPhoto,
+        fifthPhoto,
+        firstPhoto,
+        secondPhoto,
+        seventhPhoto,
+        fourthPhoto,
+        sixthPhoto,
+      ]);
+
+      assert.deepEqual(array, [thirdPhoto, fifthPhoto, firstPhoto, secondPhoto, seventhPhoto, fourthPhoto, sixthPhoto]);
+      assert.deepEqual(array.sortBy('name'), [
+        fifthPhoto, firstPhoto, fourthPhoto, secondPhoto, seventhPhoto, sixthPhoto, thirdPhoto
+      ]);
+      assert.deepEqual(array, [fifthPhoto, firstPhoto, fourthPhoto, secondPhoto, seventhPhoto, sixthPhoto, thirdPhoto]);
+      assert.deepEqual(array.sortBy('name'), [
+        fifthPhoto, firstPhoto, fourthPhoto, secondPhoto, seventhPhoto, sixthPhoto, thirdPhoto
+      ]);
+      assert.deepEqual(array.sortBy('id'), [
+        firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto]);
+    });
+
+    test('it works correctly for multiple sortBy parameters', function(assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
+
+      let array = new HasManyArray([
+        thirdPhoto,
+        fifthPhoto,
+        firstPhoto,
+        secondPhoto,
+        seventhPhoto,
+        fourthPhoto,
+        sixthPhoto,
+      ]);
+
+      assert.deepEqual(array, [thirdPhoto, fifthPhoto, firstPhoto, secondPhoto, seventhPhoto, fourthPhoto, sixthPhoto]);
+      assert.deepEqual(array.sortBy('owner_id', 'id'), [
+        thirdPhoto, fourthPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [thirdPhoto, fourthPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto]);
+      assert.deepEqual(array.sortBy('owner_id', 'name'), [
+        fourthPhoto, thirdPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [
+        fourthPhoto, thirdPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+    });
+
+    test('it works correctly for array sortBy parameters', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
+
+      let array = new HasManyArray([
+        thirdPhoto,
+        fifthPhoto,
+        firstPhoto,
+        secondPhoto,
+        seventhPhoto,
+        fourthPhoto,
+        sixthPhoto,
+      ]);
+
+      assert.deepEqual(array, [thirdPhoto, fifthPhoto, firstPhoto, secondPhoto, seventhPhoto, fourthPhoto, sixthPhoto]);
+      assert.deepEqual(array.sortBy(['owner_id', 'id']), [
+        thirdPhoto, fourthPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [thirdPhoto, fourthPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto]);
+      assert.deepEqual(array.sortBy(['owner_id', 'name']), [
+        fourthPhoto, thirdPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [
+        fourthPhoto, thirdPhoto, firstPhoto, secondPhoto, sixthPhoto, fifthPhoto, seventhPhoto
+      ]);
+    });
+  });
+
+  module("filterBy", function() {
+    test("it works and filters the array for various keys", function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
+
+      let array = new HasManyArray([
+        firstPhoto,
+        secondPhoto,
+        thirdPhoto,
+        fourthPhoto,
+        fifthPhoto,
+        sixthPhoto,
+        seventhPhoto
+      ]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto]);
+      assert.deepEqual(array.filterBy('name', String), [
+        firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array.filterBy('id', Number), [
+        secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto
+      ]);
+      assert.deepEqual(array, [secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto]);
+      assert.deepEqual(array.filterBy('is_public', false), [secondPhoto, fourthPhoto]);
+      assert.deepEqual(array, [secondPhoto, fourthPhoto]);
+      assert.deepEqual(array.filterBy('name', 'Fourth photo'), [fourthPhoto]);
+      assert.deepEqual(array, [fourthPhoto]);
+    });
+
+    test("it clears the array when it cant find elements for matching value", function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo", is_public: true, owner_id: 1 });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo", is_public: false, owner_id: 2 });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo", is_public: true });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo", is_public: false });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo", owner_id: 5 });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo", owner_id: 3 });
+      let seventhPhoto = Photo.build({ id: 7, name: "Seventh photo", owner_id: 5 });
+
+      let array = new HasManyArray([
+        firstPhoto,
+        secondPhoto,
+        thirdPhoto,
+        fourthPhoto,
+        fifthPhoto,
+        sixthPhoto,
+        seventhPhoto
+      ]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto, seventhPhoto]);
+      assert.deepEqual(array.filterBy('something', true), []);
+    });
+  });
 });
-
-// filterBy(it needs to mutate),

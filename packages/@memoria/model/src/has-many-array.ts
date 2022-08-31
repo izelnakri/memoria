@@ -2,6 +2,7 @@
 import InstanceDB from "./stores/instance/db.js";
 import Model from "./model.js";
 import Enum from "./enum.js";
+import { compare, get, match } from "./utils/index.js";
 
 // TODO: trigger relationship adds here
 // Adding should do Model check and duplication check(from the instance group):
@@ -365,7 +366,7 @@ export default class HasManyArray extends Array {
   }
 
   clear(): this {
-    return this.fill(); // NOTE: this.fill so it triggers removals
+    return this.fill();
   }
 
   insertAt(index: number, input: Model | Model[]): this {
@@ -397,47 +398,57 @@ export default class HasManyArray extends Array {
     return this;
   }
 
-  // TODO: should mutate correctly on tests
   filterBy(key: string, value: any): this {
+    let indexesToRemove: number[] = [];
+
     this.forEach((model, index) => {
-      if (model[key] !== value) {
-        this[index] = null;
+      if (!match(get(model, key), value)) {
+        indexesToRemove.push(index);
       }
     });
+
+    for (let index = indexesToRemove.length - 1; index >= 0; index--) {
+      this[indexesToRemove[index]] = null;
+    }
 
     return this;
   }
 
-  // TODO: should mutate correctly on tests
   uniqBy(key: string): this {
-    let foundValues: Model[] = [];
-    this.forEach((model: Model, index) => {
-      if (foundValues.includes(model[key])) {
-        this[index] = null;
+    let indexesToRemove: number[] = [];
+
+    this.reduce((foundValues, model: Model, index) => {
+      if (!Reflect.has(model, key)) {
+        throw new Error(`uniqBy: Key ${key} not found in a model inside the array!`);
+      } else if (foundValues.has(model[key])) {
+        indexesToRemove.push(index);
       }
-    });
+
+      return foundValues.add(model[key]);
+    }, new Set());
+
+    for (let index = indexesToRemove.length - 1; index >= 0; index--) {
+      this[indexesToRemove[index]] = null;
+    }
 
     return this;
   }
 
-  // NOTE: Do I need spaceship operation(?) packages/@ember/-internals/runtime/lib/compare.ts
-  // sortBy(_key: string): this {
-  //   let sortKeys = arguments;
+  sortBy(_key: string): this {
+    let sortKeys = Array.isArray(arguments[0]) ? arguments[0] : Array.from(arguments);
 
-  //   return this.sort((a: Model, b: Model) => {
-  //     for (let i = 0; i < sortKeys.length; i++) {
-  //       let key = sortKeys[i];
+    return this.sort((elementOne, elementTwo) => {
+      for (let i = 0; i < sortKeys.length; i++) {
+        let key = sortKeys[i];
+        let compareValue = compare(get(elementOne, key), get(elementTwo, key));
+        if (compareValue) {
+          return compareValue; // return 1 or -1 else continue to the next sortKey
+        }
+      }
 
-  //       // TODO: do I need this spaceship operation(?)
-  //       let compareValue = compare(a[key], b[key]); // packages/@ember/-internals/runtime/lib/compare.ts
-  //       if (compareValue) {
-  //         return compareValue;
-  //       }
-  //     }
-
-  //     return 0;
-  //   });
-  // }
+      return 0;
+    });
+  }
 
   any(predicate: any): boolean {
     return super.some(predicate);
