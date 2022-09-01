@@ -71,7 +71,7 @@ const TYPE_MAP: Record<string, TypeName> = {
 
 const { toString } = Object.prototype;
 
-export default function typeOf(item: unknown): TypeName {
+export default function typeOf(item: any): TypeName {
   if (item === null) {
     return "null";
   } else if (item === undefined) {

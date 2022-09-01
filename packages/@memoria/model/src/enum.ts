@@ -38,8 +38,6 @@ export default class Enum {
     return indexes.map((index) => array[index]);
   }
 
-  // NOTE: Currently ignores objects values, however does for array
-  // Probably doesnt work for multi keys sortBy due to early return(?)
   static sortBy<T>(array: Array<T>, ..._key: string[]): Array<T> {
     let sortKeys = Array.isArray(arguments[1]) ? arguments[1] : Array.from(arguments).slice(1);
 

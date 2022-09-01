@@ -1,7 +1,7 @@
 import "./has-many-array/dx-enumeration-methods-test.js";
 import "./has-many-array/dx-mutation-methods-test.js";
 import "./has-many-array/index-test.js";
-import "./has-many-array/methods-test.js";
+import "./has-many-array/prototype-methods-test.js";
 import "./utils/compare-test.js";
 import "./utils/constructor-test.js";
 import "./utils/deep-equal-test.js";

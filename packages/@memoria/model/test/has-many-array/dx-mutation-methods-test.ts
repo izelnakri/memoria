@@ -341,64 +341,274 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
     });
   });
 
-  // module('replace', function() {
-  //   test('replace(emptyExistingReference, newModel) works correctly', function (assert) {
+  module('replace', function() {
+    test('replace(emptyExistingReference, newModel) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let newModel = Photo.build({ name: "Third photo" });
 
-  //   test('replace(emptyExistingReference, models) works correctly', function (assert) {
+      let array = new HasManyArray([firstPhoto, secondPhoto]);
 
-  //   });
+      assert.deepEqual(array.replace([], newModel), [firstPhoto, secondPhoto, newModel]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, newModel]);
+      assert.equal(array.length, 3);
+    });
 
-  //   test('replace(existingReference, model) works correctly', function (assert) {
+    test('replace(emptyExistingReference, models) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
 
-  //   test('replace(existingReference, existingModel) works correctly', function (assert) {
+      let array = new HasManyArray([firstPhoto, secondPhoto]);
 
-  //   });
+      assert.deepEqual(array.replace([], [fourthPhoto, fifthPhoto, thirdPhoto]), [
+        firstPhoto, secondPhoto, fourthPhoto, fifthPhoto, thirdPhoto
+      ]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, fourthPhoto, fifthPhoto, thirdPhoto]);
+      assert.equal(array.length, 5);
+    });
 
-  //   test('replace(existingReference, modelWithExistingInstanceGroup) works correctly', function (assert) {
+    test('replace(existingReference, model) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
 
-  //   test('replace(existingReference, models) works correctly', function (assert) {
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
-  //   });
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array.replace(thirdPhoto, fifthPhoto), [firstPhoto, secondPhoto, fifthPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, fifthPhoto, fourthPhoto]);
+    });
 
-  //   test('replace(existingReference, invalidValues) throws', function (assert) {
+    test('replace(existingReference, existingModel) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
 
-  //   test('replace(existingReference, invalidValue) throws', function (assert) {
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
-  //   });
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array.replace(thirdPhoto, thirdPhoto), [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+    });
 
-  //   test('replace(existingReferences, model) works correctly', function (assert) {
+    test('replace(existingReference, modelWithExistingInstanceGroup) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let thirdPhotoCopy = Photo.build({ id: 3, name: "Third photo copy" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
 
-  //   test('replace(existingReferences, existingModel) works correctly', function (assert) {
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
-  //   });
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array.replace(thirdPhoto, thirdPhotoCopy), [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto]);
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto]);
 
-  //   test('replace(existingReferences, modelWithExistingInstanceGroup) works correctly', function (assert) {
+    });
 
-  //   });
+    test('replace(existingReference, models) works correctly', function (assert) {
+      const { Photo } = generateModels();
 
-  //   // NOTE: make it more than models: firstPhoto, secondPhoto, existingReference, referenceWithExistingInstanceGroup, thirdPhoto,
-  //   test('replace(existingReferences, models) works correctly', function (assert) {
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let thirdPhotoCopy = Photo.build({ id: 3, name: "Third photo copy" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
 
-  //   });
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
 
-  //   test('replace(existingReferences, invalidValues) throws', function (assert) {
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array.replace(thirdPhoto, [fifthPhoto, thirdPhotoCopy, sixthPhoto]), [
+        firstPhoto, secondPhoto, fifthPhoto, fourthPhoto, thirdPhotoCopy, sixthPhoto
+      ]);
+    });
 
-  //   });
+    test('replace(existingReference, invalidValues) throws', function (assert) {
+      assert.expect(4);
 
-  //   test('replace(existingReferences, invalidValue) throws', function (assert) {
+      const { Photo, User } = generateModels();
 
-  //   });
-  // });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let user = User.build({ id: 1, name: "John" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array.replace(thirdPhoto, [fourthPhoto, fifthPhoto, user]);
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
+      }
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+    });
+
+    test('replace(existingReference, invalidValue) throws', function (assert) {
+      const { Photo, User } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let user = User.build({ id: 1, name: "John" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array.replace(thirdPhoto, user);
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
+      }
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+    });
+
+    test('replace(existingReferences, model) works correctly', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.replace([firstPhoto, fourthPhoto, secondPhoto], sixthPhoto), [
+        sixthPhoto, thirdPhoto, fifthPhoto
+      ]);
+      assert.deepEqual(array, [sixthPhoto, thirdPhoto, fifthPhoto]);
+    });
+
+    test('replace(existingReferences, existingModel) works correctly', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.replace([firstPhoto, fourthPhoto, secondPhoto], fourthPhoto), [
+        fourthPhoto, thirdPhoto, fifthPhoto
+      ]);
+      assert.deepEqual(array, [fourthPhoto, thirdPhoto, fifthPhoto]);
+    });
+
+    test('replace(existingReferences, modelWithExistingInstanceGroup) works correctly', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fourthPhotoCopy = Photo.build({ id: 4, name: "Fourth photo copy" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.replace([firstPhoto, fourthPhoto, secondPhoto], fourthPhotoCopy), [
+        fourthPhotoCopy, thirdPhoto, fifthPhoto
+      ]);
+      assert.deepEqual(array, [fourthPhotoCopy, thirdPhoto, fifthPhoto]);
+    });
+
+    test('replace(existingReferences, models) works correctly', function (assert) {
+      const { Photo } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let fourthPhoto = Photo.build({ id: 4, name: "Fourth photo" });
+      let fourthPhotoCopy = Photo.build({ id: 4, name: "Fourth photo copy" });
+      let fifthPhoto = Photo.build({ id: 5, name: "Fifth photo" });
+      let sixthPhoto = Photo.build({ id: 6, name: "Sixth photo" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.replace([firstPhoto, fourthPhoto, secondPhoto], [
+        sixthPhoto, fourthPhotoCopy, thirdPhoto
+      ]), [sixthPhoto, fourthPhotoCopy, thirdPhoto, fifthPhoto]);
+      assert.deepEqual(array, [sixthPhoto, fourthPhotoCopy, thirdPhoto, fifthPhoto]);
+    });
+
+    test('replace(existingReferences, invalidValues) throws', function (assert) {
+      const { Photo, User } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let user = User.build({ id: 1, name: "John" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array.replace([firstPhoto, secondPhoto, thirdPhoto], [firstPhoto, user, thirdPhoto]);
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
+      }
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+    });
+
+    test('replace(existingReferences, invalidValue) throws', function (assert) {
+      const { Photo, User } = generateModels();
+
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
+      let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+      let user = User.build({ id: 1, name: "John" });
+
+      let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto]);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+
+      try {
+        array.replace([firstPhoto, secondPhoto, thirdPhoto], user);
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "HasManyArray cannot be instantiated or added with model types different than one another!");
+      }
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+    });
+  });
 
   module("delete", function () {
     test("array.delete($model) works correctly can can clear the items iteratively", function (assert) {

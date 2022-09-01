@@ -7,18 +7,21 @@ import generateModels from "../helpers/relationship-test-models/index.js";
 module("@memoria/model | HasManyArray Array.prototype methods", function (hooks) {
   setupMemoria(hooks);
 
-  module('concat', function() {
-    test('array.concat(array) works, creates an array for array of models', function (assert) {
+  module("concat", function () {
+    test("array.concat(array) works, creates an array for array of models", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
       let firstPhotoCopy = Photo.build(firstPhoto);
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
+
       let array = new HasManyArray([firstPhoto, secondPhoto]);
+
       let inputArray = [firstPhotoCopy, thirdPhoto];
       let result = array.concat(inputArray);
 
+      debugger;
       assert.deepEqual(array, [firstPhoto, secondPhoto]);
       assert.deepEqual(inputArray, [firstPhotoCopy, thirdPhoto]);
       assert.notOk(inputArray instanceof HasManyArray);
@@ -26,7 +29,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.notOk(result instanceof HasManyArray);
     });
 
-    test('array.concat(array) works, creates an array for hasManyArray of models', function (assert) {
+    test("array.concat(array) works, creates an array for hasManyArray of models", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -45,7 +48,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.notOk(result instanceof HasManyArray);
     });
 
-    test('array.concat(invalidParams) throws when array has invalid parameteres', function (assert) {
+    test("array.concat(invalidParams) throws when array has invalid parameteres", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -53,7 +56,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       let thirdPhoto = Photo.build({ id: 3, name: "Third photo" });
       let array = new HasManyArray([firstPhoto, secondPhoto]);
 
-      class SomeClass {};
+      class SomeClass {}
 
       try {
         let result = array.concat([thirdPhoto, new SomeClass()]);
@@ -65,8 +68,8 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
     });
   });
 
-  module('fill', function() {
-    test('array.fill(null) resets the array', function (assert) {
+  module("fill", function () {
+    test("array.fill(null) resets the array", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -84,7 +87,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.strictEqual(result, array);
     });
 
-    test('array.fill(Model) resets the array and sets the array with one element', function (assert) {
+    test("array.fill(Model) resets the array and sets the array with one element", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -121,7 +124,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.strictEqual(lastResult, lastArray);
     });
 
-    test('array.fill(null, index) resets the array from set index', function (assert) {
+    test("array.fill(null, index) resets the array from set index", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -134,13 +137,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
 
-      let result = array.fill(null, 2)
+      let result = array.fill(null, 2);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto]);
       assert.strictEqual(array, result);
     });
 
-    test('array.fill(Model, index) resets the array at set index and adds Model do set index if it isnt exist', function (assert) {
+    test("array.fill(Model, index) resets the array at set index and adds Model do set index if it isnt exist", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -152,13 +155,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, fourthPhoto, fifthPhoto]);
 
-      let result = array.fill(thirdPhoto, 2)
+      let result = array.fill(thirdPhoto, 2);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
       assert.strictEqual(array, result);
     });
 
-    test('array.fill(Model, index) resets the array at set index and replaces the Model from its instance group in another index', function (assert) {
+    test("array.fill(Model, index) resets the array at set index and replaces the Model from its instance group in another index", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -171,7 +174,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
 
-      let result = array.fill(thirdPhotoCopy, 3)
+      let result = array.fill(thirdPhotoCopy, 3);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy]);
       assert.strictEqual(array, result);
@@ -180,13 +183,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       assert.deepEqual(anotherArray, [firstPhoto, secondPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
 
-      let lastResult = anotherArray.fill(thirdPhoto, 3)
+      let lastResult = anotherArray.fill(thirdPhoto, 3);
 
       assert.deepEqual(anotherArray, [firstPhoto, secondPhoto, thirdPhoto]);
       assert.strictEqual(anotherArray, lastResult);
     });
 
-    test('array.fill(null, index, end) resets the array from set index until the end index', function (assert) {
+    test("array.fill(null, index, end) resets the array from set index until the end index", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -198,13 +201,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
 
-      let result = array.fill(null, 2, 3)
+      let result = array.fill(null, 2, 3);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, fifthPhoto]);
       assert.strictEqual(array, result);
     });
 
-    test('array.fill(Model, index, end) resets the array at set index and the end index adds Model do set index if it isnt exist', function (assert) {
+    test("array.fill(Model, index, end) resets the array at set index and the end index adds Model do set index if it isnt exist", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -222,7 +225,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.strictEqual(array, result);
     });
 
-    test('array.fill(Model, index, end) resets the array at set index and end index and replaces the Model from its instance group in another index', function (assert) {
+    test("array.fill(Model, index, end) resets the array at set index and end index and replaces the Model from its instance group in another index", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -243,8 +246,8 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
     });
   });
 
-  module('slice', function() {
-    test('array.slice(-3, -1) creates a new array from array with last 2nd and last 3rd item, array.slice(-3, -2) creates a new array with only third last item',  function (assert) {
+  module("slice", function () {
+    test("array.slice(-3, -1) creates a new array from array with last 2nd and last 3rd item, array.slice(-3, -2) creates a new array with only third last item", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -273,11 +276,11 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto, sixthPhoto]);
       assert.deepEqual(secondResult, [fourthPhoto]);
       assert.notStrictEqual(array, result);
-    })
+    });
   });
 
-  module('pop', function() {
-    test('array.pop() works correctly can can clear the item iteratively', function (assert) {
+  module("pop", function () {
+    test("array.pop() works correctly can can clear the item iteratively", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -298,7 +301,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, []);
     });
 
-    test('emptyHasManyArray.pop() should return undefined', function (assert) {
+    test("emptyHasManyArray.pop() should return undefined", function (assert) {
       let array = new HasManyArray();
 
       assert.deepEqual(array, []);
@@ -309,30 +312,33 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
     });
   });
 
-  module('push', function() {
-    test('array.push($invalidParam) throws', function (assert) {
+  module("push", function () {
+    test("array.push($invalidParam) throws", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
       let array = new HasManyArray([firstPhoto]);
 
-      class SomeClass {};
+      class SomeClass {}
 
       assert.deepEqual(array, [firstPhoto]);
 
-      [true, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
+      [true, 1, "a", 100, {}, SomeClass, new SomeClass()].forEach((value) => {
         try {
           array.push(value);
         } catch (error) {
           assert.ok(error instanceof Error);
-          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+          assert.equal(
+            error.message,
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+          );
         }
       });
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('array.push($falsyValue) does nothing', function (assert) {
+    test("array.push($falsyValue) does nothing", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -345,14 +351,17 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           array.push(value);
         } catch (error) {
           assert.ok(error instanceof Error);
-          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+          assert.equal(
+            error.message,
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+          );
         }
       });
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('array.push($wrongModelInstance) throws', function (assert) {
+    test("array.push($wrongModelInstance) throws", function (assert) {
       const { Photo, User } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -364,13 +373,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
         array.push(User.build({ first_name: "Izel" }));
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign User instance!");
       }
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('emptyHasManyArray.push(x) works correctly', function (assert) {
+    test("emptyHasManyArray.push(x) works correctly", function (assert) {
       const { Photo, User } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -396,13 +405,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
         array.push(User.build({ first_name: "Izel" }));
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign User instance!");
       }
 
       assert.equal(array.length, 2);
     });
 
-    test('array.push($model) works correctly', function (assert) {
+    test("array.push($model) works correctly", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -428,7 +437,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
     });
 
-    test('array.push($model) pushing an existing item does nothing', function (assert) {
+    test("array.push($model) pushing an existing item does nothing", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -452,7 +461,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
     });
 
-    test('array.push($model) pushing an existing instance group item replaces it', function (assert) {
+    test("array.push($model) pushing an existing instance group item replaces it", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -480,8 +489,8 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
     });
   });
 
-  module('shift', function() {
-    test('array.shift() works correctly can can clear the item iteratively', function (assert) {
+  module("shift", function () {
+    test("array.shift() works correctly can can clear the item iteratively", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -502,7 +511,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, []);
     });
 
-    test('emptyHasManyArray.shift() should return undefined', function (assert) {
+    test("emptyHasManyArray.shift() should return undefined", function (assert) {
       const { Photo } = generateModels();
 
       let array = new HasManyArray();
@@ -515,8 +524,8 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
     });
   });
 
-  module('splice', function() {
-    test('emptyHasManyArray.splice(x) works correctly for possible x integer values', function (assert) {
+  module("splice", function () {
+    test("emptyHasManyArray.splice(x) works correctly for possible x integer values", function (assert) {
       let array = new HasManyArray();
 
       assert.deepEqual(array, []);
@@ -528,7 +537,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       });
     });
 
-    test('emptyHasManyArray.splice(x, y) works correctly for possible x and y integer values', function (assert) {
+    test("emptyHasManyArray.splice(x, y) works correctly for possible x and y integer values", function (assert) {
       let array = new HasManyArray();
 
       [-2, 0, 2].forEach((value) => {
@@ -539,7 +548,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       });
     });
 
-    test('emptyHasManyArray.splice(x, y, z) works correctly for possible x and y and z integer values', function (assert) {
+    test("emptyHasManyArray.splice(x, y, z) works correctly for possible x and y and z integer values", function (assert) {
       const { Photo } = generateModels();
       let firstPhoto = Photo.build({ name: "First photo" });
 
@@ -554,7 +563,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       });
     });
 
-    test('emptyHasManyArray.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b', function (assert) {
+    test("emptyHasManyArray.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b", function (assert) {
       const { Photo } = generateModels();
       let firstPhoto = Photo.build({ name: "First photo" });
       let secondPhoto = Photo.build({ id: 2, name: "Second photo" });
@@ -572,7 +581,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       });
     });
 
-    test('array.splice(x) works correctly for possible x integer values', function (assert) {
+    test("array.splice(x) works correctly for possible x integer values", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -599,7 +608,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto]);
     });
 
-    test('array.splice(x, y) works correctly for possible x and y integer values', function (assert) {
+    test("array.splice(x, y) works correctly for possible x and y integer values", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -634,7 +643,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, fifthPhoto, sixthPhoto]);
     });
 
-    test('array.splice(x, y, newModel) works correctly for possible x and y and z integer values', function (assert) {
+    test("array.splice(x, y, newModel) works correctly for possible x and y and z integer values", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -681,7 +690,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, sixthPhoto, fifthPhoto]);
     });
 
-    test('array.splice(x, y, existingModel) works correctly for possible x and y and z integer values', function (assert) {
+    test("array.splice(x, y, existingModel) works correctly for possible x and y and z integer values", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -727,7 +736,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fifthPhoto]);
     });
 
-    test('array.splice(x, y, existingInstanceGroupAnotherModel) works correctly for possible x and y and z integer values', function (assert) {
+    test("array.splice(x, y, existingInstanceGroupAnotherModel) works correctly for possible x and y and z integer values", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -774,7 +783,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhotoCopy, fifthPhoto]);
     });
 
-    test('array.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b', function (assert) {
+    test("array.splice(x, y, z, a, b) works correctly for possible x and y and z integer values and adds z, a & b", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -790,41 +799,83 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       [-2, 0].forEach((param) => {
         let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
         assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-        assert.deepEqual(array.splice(-2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
-        assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(
+          array.splice(-2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
+          []
+        );
+        assert.deepEqual(array, [
+          firstPhoto,
+          secondPhotoCopy,
+          thirdPhotoCopy,
+          sixthPhoto,
+          anotherPhoto,
+          fourthPhoto,
+          fifthPhoto,
+        ]);
       });
 
       let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-      assert.deepEqual(array.splice(-2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [
+        fourthPhoto,
+        fifthPhoto,
+      ]);
       assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto]);
 
       [-2, 0].forEach((param) => {
         let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
         assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-        assert.deepEqual(array.splice(0, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
-        assert.deepEqual(array, [sixthPhoto, anotherPhoto, firstPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(
+          array.splice(0, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
+          []
+        );
+        assert.deepEqual(array, [
+          sixthPhoto,
+          anotherPhoto,
+          firstPhoto,
+          secondPhotoCopy,
+          thirdPhotoCopy,
+          fourthPhoto,
+          fifthPhoto,
+        ]);
       });
 
       array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-      assert.deepEqual(array.splice(0, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array.splice(0, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [
+        firstPhoto,
+        secondPhoto,
+      ]);
       assert.deepEqual(array, [sixthPhoto, anotherPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
 
       [-2, 0].forEach((param) => {
         let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
         assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-        assert.deepEqual(array.splice(2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
-        assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+        assert.deepEqual(
+          array.splice(2, param, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
+          []
+        );
+        assert.deepEqual(array, [
+          firstPhoto,
+          secondPhotoCopy,
+          sixthPhoto,
+          anotherPhoto,
+          thirdPhotoCopy,
+          fourthPhoto,
+          fifthPhoto,
+        ]);
       });
 
       array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-      assert.deepEqual(array.splice(2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [thirdPhoto, fourthPhoto]);
+      assert.deepEqual(array.splice(2, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [
+        thirdPhoto,
+        fourthPhoto,
+      ]);
       assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fifthPhoto]);
     });
 
-    test('array.splice(x, y, z, a, b) works correctly for possible out of bound x and y ->(99, -99) and z integer values and adds z, a & b', function (assert) {
+    test("array.splice(x, y, z, a, b) works correctly for possible out of bound x and y ->(99, -99) and z integer values and adds z, a & b", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -839,50 +890,75 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
       let array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-      assert.deepEqual(array.splice(-99, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [firstPhoto, secondPhoto]);
+      assert.deepEqual(array.splice(-99, 2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [
+        firstPhoto,
+        secondPhoto,
+      ]);
       assert.deepEqual(array, [sixthPhoto, anotherPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
 
       array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array.splice(2, -99, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
-      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, sixthPhoto, anotherPhoto, thirdPhotoCopy, fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array, [
+        firstPhoto,
+        secondPhotoCopy,
+        sixthPhoto,
+        anotherPhoto,
+        thirdPhotoCopy,
+        fourthPhoto,
+        fifthPhoto,
+      ]);
 
       array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
-      assert.deepEqual(array.splice(-2, 99, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [fourthPhoto, fifthPhoto]);
+      assert.deepEqual(array.splice(-2, 99, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), [
+        fourthPhoto,
+        fifthPhoto,
+      ]);
       assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, sixthPhoto, anotherPhoto]);
 
       array = new HasManyArray([firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto, fourthPhoto, fifthPhoto]);
       assert.deepEqual(array.splice(99, -2, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy), []);
-      assert.deepEqual(array, [firstPhoto, secondPhotoCopy, thirdPhotoCopy, fourthPhoto, fifthPhoto, sixthPhoto, anotherPhoto]);
+      assert.deepEqual(array, [
+        firstPhoto,
+        secondPhotoCopy,
+        thirdPhotoCopy,
+        fourthPhoto,
+        fifthPhoto,
+        sixthPhoto,
+        anotherPhoto,
+      ]);
     });
   });
 
-  module('unshift', function() {
-    test('array.unshift($invalidParam) throws', function (assert) {
+  module("unshift", function () {
+    test("array.unshift($invalidParam) throws", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
       let array = new HasManyArray([firstPhoto]);
 
-      class SomeClass {};
+      class SomeClass {}
 
       assert.deepEqual(array, [firstPhoto]);
 
-      [true, 1, 'a', 100, {}, SomeClass, new SomeClass()].forEach((value) => {
+      [true, 1, "a", 100, {}, SomeClass, new SomeClass()].forEach((value) => {
         try {
           array.unshift(value);
         } catch (error) {
           assert.ok(error instanceof Error);
-          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+          assert.equal(
+            error.message,
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+          );
         }
       });
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('array.unshift($falsyValue) does nothing', function (assert) {
+    test("array.unshift($falsyValue) does nothing", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -895,14 +971,17 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           array.unshift(value);
         } catch (error) {
           assert.ok(error instanceof Error);
-          assert.equal(error.message, `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
+          assert.equal(
+            error.message,
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+          );
         }
       });
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('array.unshift($wrongModelInstance) throws', function (assert) {
+    test("array.unshift($wrongModelInstance) throws", function (assert) {
       const { Photo, User } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -914,13 +993,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
         array.unshift(User.build({ first_name: "Izel" }));
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign User instance!");
       }
 
       assert.deepEqual(array, [firstPhoto]);
     });
 
-    test('emptyHasManyArray.unshift(x) works correctly', function (assert) {
+    test("emptyHasManyArray.unshift(x) works correctly", function (assert) {
       const { Photo, User } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -946,13 +1025,13 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
         array.unshift(User.build({ first_name: "Izel" }));
       } catch (error) {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, 'This HasManyArray accepts Photo instances, you tried to assign User instance!');
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign User instance!");
       }
 
       assert.equal(array.length, 2);
     });
 
-    test('array.unshift($model) works correctly', function (assert) {
+    test("array.unshift($model) works correctly", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -978,7 +1057,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [fifthPhoto, fourthPhoto, firstPhoto, secondPhoto, thirdPhoto]);
     });
 
-    test('array.unshift($model) pushing an existing item just moves it to first position', function (assert) {
+    test("array.unshift($model) pushing an existing item just moves it to first position", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
@@ -1002,7 +1081,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       assert.deepEqual(array, [thirdPhoto, secondPhoto, firstPhoto]);
     });
 
-    test('array.unshift($model) pushing an existing instance group item replaces it and moves it to first position', function (assert) {
+    test("array.unshift($model) pushing an existing instance group item replaces it and moves it to first position", function (assert) {
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });

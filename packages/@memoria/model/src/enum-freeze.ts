@@ -1,6 +1,5 @@
 import Enum from "./enum.js";
 
-// NOTE: only guarantees return value is frozen, not that the object is frozen
 export default class EnumFreeze {
   static uniqBy(array: Array<any>, key: string): readonly any[] {
     return Object.freeze(Enum.uniqBy(array, key));
