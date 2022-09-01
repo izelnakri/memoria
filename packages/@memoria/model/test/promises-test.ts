@@ -60,12 +60,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
       isLoaded: true,
       isError: false,
     });
-    assert.deepEqual(steps, [
-      "promise created",
-      "executor called",
-      "then-handler called",
-      "then-handler-2 called",
-    ]);
+    assert.deepEqual(steps, ["promise created", "executor called", "then-handler called", "then-handler-2 called"]);
   });
 
   test("executor rejects", async function (assert) {
@@ -270,11 +265,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
 
     steps.push("lazyPromise await finish");
 
-    assert.deepEqual(steps, [
-      "promise created",
-      "catch handlers registered",
-      "lazyPromise await finish",
-    ]);
+    assert.deepEqual(steps, ["promise created", "catch handlers registered", "lazyPromise await finish"]);
     assert.propContains(lazyPromise, {
       isStarted: true,
       isLoading: false,
@@ -459,9 +450,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
         isAborted: false,
       });
 
-      deferred.promise
-        .then((result) => assert.equal(result, "something"))
-        .catch((result) => assert.notOk(true));
+      deferred.promise.then((result) => assert.equal(result, "something")).catch((result) => assert.notOk(true));
 
       await deferred.resolve("something");
 

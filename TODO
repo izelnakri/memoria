@@ -1,8 +1,4 @@
-make foreignKey tests run on each adapter
-make has-one uuid and each adapter tests
-
 check delete and unload interface tests & implementation for relationship references
-make CRUD assert.equal relationship/instance checks either strictEqual or deepEqual
 
 Design decisions:
 1- Should we always return a RelationshipPromise when instance.relationship gets accessed(?) - Current we dont for DX. This might also conflict with BelongTo setting logic. in-memory cache lookup only happens after remote call

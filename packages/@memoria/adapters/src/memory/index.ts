@@ -14,6 +14,7 @@ import MemoriaModel, {
   UpdateError,
   transformValue,
   clearObject,
+  match,
 } from "@memoria/model";
 import { prepareTargetObjectFromInstance } from "../utils.js";
 import type {
@@ -33,9 +34,7 @@ export default class MemoryAdapter {
 
   static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
-      let targetSchemaIndex = Schema.Schemas.findIndex(
-        (schema) => schema.target.name === Model.name
-      );
+      let targetSchemaIndex = Schema.Schemas.findIndex((schema) => schema.target.name === Model.name);
       if (Schema.Models.get(Model)) {
         DB._DB.delete(Model.name);
         DB._defaultValuesCache.delete(Model.name);
@@ -89,8 +88,9 @@ export default class MemoryAdapter {
   ): Promise<MemoriaModel[]> {
     if (Model) {
       if (targetState && targetState.length > 0) {
-        let newTargetState =
-          targetState.map((model: ModelRefOrInstance) => assignDefaultValuesForInsert(model || {}, Model));
+        let newTargetState = targetState.map((model: ModelRefOrInstance) =>
+          assignDefaultValuesForInsert(model || {}, Model)
+        );
 
         return this.resetCache(Model, newTargetState, options);
       }
@@ -103,11 +103,7 @@ export default class MemoryAdapter {
     return [];
   }
 
-  static cache(
-    Model: typeof MemoriaModel,
-    record: ModelRefOrInstance,
-    options?: ModelBuildOptions
-  ): MemoriaModel {
+  static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance, options?: ModelBuildOptions): MemoriaModel {
     let targetOptions = { ...options, isNew: false };
     let existingModelInCache = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel | void;
     if (existingModelInCache) {
@@ -159,9 +155,7 @@ export default class MemoryAdapter {
       return (primaryKey as PrimaryKey[]).reduce((result, targetKey) => {
         let foundModel = Model.Cache.get(targetKey);
 
-        return foundModel
-          ? result.concat([this.returnWithCacheEviction(foundModel, options)])
-          : result;
+        return foundModel ? result.concat([this.returnWithCacheEviction(foundModel, options)]) : result;
       }, [] as MemoriaModel[]);
     } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
       let model = Model.Cache.get(primaryKey) || null;
@@ -172,34 +166,22 @@ export default class MemoryAdapter {
     throw new RuntimeError(`${Model.name}.peek() called without a valid primaryKey`);
   }
 
-  static peekBy(
-    Model: typeof MemoriaModel,
-    queryObject: object,
-    options?: ModelBuildOptions
-  ): MemoriaModel | void {
+  static peekBy(Model: typeof MemoriaModel, queryObject: object, options?: ModelBuildOptions): MemoriaModel | void {
     let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
-    let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) =>
-      comparison(model, queryObject, keys, 0)
-    ) || null;
+    let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) => match(model, queryObject)) || null;
 
     return model && this.returnWithCacheEviction(model, options);
   }
 
-  static peekAll(
-    Model: typeof MemoriaModel,
-    queryObject: object = {},
-    options?: ModelBuildOptions
-  ): MemoriaModel[] {
+  static peekAll(Model: typeof MemoriaModel, queryObject: object = {}, options?: ModelBuildOptions): MemoriaModel[] {
     let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
     if (keys.length === 0) {
-      return Array.from(Model.Cache.values()).map((model) =>
-        this.returnWithCacheEviction(model, options)
-      );
+      return Array.from(Model.Cache.values()).map((model) => this.returnWithCacheEviction(model, options));
     }
 
     let results = [] as MemoriaModel[];
     for (const model of Model.Cache.values()) {
-      if (comparison(model, queryObject, keys, 0)) {
+      if (match(model, queryObject)) {
         results.push(this.returnWithCacheEviction(model, options));
       }
     }
@@ -286,33 +268,35 @@ export default class MemoryAdapter {
     let defaultColumnsForUpdate = DB.getDefaultValues(Model, "update");
 
     if (record instanceof Model) {
-      let target = Object.keys(defaultColumnsForUpdate).reduce((result, attributeName) => {
-        record[attributeName] = defaultColumnsForUpdate[attributeName](Model);
+      let target = Object.keys(defaultColumnsForUpdate).reduce(
+        (result, attributeName) => {
+          record[attributeName] = defaultColumnsForUpdate[attributeName](Model);
 
-        return result;
-      }, record.isFrozen ? Model.build(record) : record);
+          return result;
+        },
+        record.isFrozen ? Model.build(record) : record
+      );
 
       return this.cache(Model, target, options);
     }
 
-    let target = Array.from(Model.columnNames).reduce((result, attribute: string) => {
-      if (defaultColumnsForUpdate.hasOwnProperty(attribute)) {
-        result[attribute] = defaultColumnsForUpdate[attribute](Model);
-      } else if (record.hasOwnProperty(attribute)) {
-        result[attribute] = record[attribute];
-      }
+    let target = Array.from(Model.columnNames).reduce(
+      (result, attribute: string) => {
+        if (defaultColumnsForUpdate.hasOwnProperty(attribute)) {
+          result[attribute] = defaultColumnsForUpdate[attribute](Model);
+        } else if (record.hasOwnProperty(attribute)) {
+          result[attribute] = record[attribute];
+        }
 
-      return result;
-    }, { ...record }) as ModelRefOrInstance;
+        return result;
+      },
+      { ...record }
+    ) as ModelRefOrInstance;
 
     return this.cache(Model, target, options);
   }
 
-  static unload(
-    Model: typeof MemoriaModel,
-    record: ModelRefOrInstance,
-    options?: ModelBuildOptions
-  ): MemoriaModel {
+  static unload(Model: typeof MemoriaModel, record: ModelRefOrInstance, options?: ModelBuildOptions): MemoriaModel {
     let targetRecord = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel;
     if (!targetRecord) {
       throw new DeleteError(new Changeset(Model.build(record, { ...options, isNew: false })), {
@@ -377,10 +361,7 @@ export default class MemoryAdapter {
     return await Promise.all(models.map((model) => this.unload(Model, model, options)));
   }
 
-  protected static returnWithCacheEviction(
-    model: MemoriaModel,
-    options: ModelBuildOptions | undefined
-  ) {
+  protected static returnWithCacheEviction(model: MemoriaModel, options: ModelBuildOptions | undefined) {
     if (options && "cache" in options && Number.isInteger(options.cache)) {
       DB.setTimeout(model, options.cache || 0);
     }
@@ -388,15 +369,9 @@ export default class MemoryAdapter {
     return (model.constructor as typeof MemoriaModel).build(model, { ...options, isNew: false });
   }
 
-  static fetchRelationship(
-    model: MemoriaModel,
-    relationshipName: string,
-    relationshipMetadata?: RelationshipMetadata
-  ) {
+  static fetchRelationship(model: MemoriaModel, relationshipName: string, relationshipMetadata?: RelationshipMetadata) {
     let Model = model.constructor as typeof MemoriaModel;
-    let metadata =
-      relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
+    let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     // NOTE: these always create new instances, we want this to happen
@@ -415,8 +390,8 @@ export default class MemoryAdapter {
           return resolve(
             model[Model.primaryKeyName]
               ? RelationshipClass.peekBy({
-                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-              })
+                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+                })
               : null
           );
         }
@@ -426,9 +401,7 @@ export default class MemoryAdapter {
         if (reverseRelationshipName) {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
 
-          return resolve(
-            RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
-          );
+          return resolve(RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] }));
         }
 
         return reject();
@@ -437,18 +410,6 @@ export default class MemoryAdapter {
       return null; // TODO: ManyToMany not implemented because of this, implement this
     });
   }
-}
-
-function comparison(model: MemoriaModel, options: QueryObject, keys: string[], index = 0): boolean {
-  const key = keys[index];
-
-  if (keys.length === index) {
-    return model[key] === options[key];
-  } else if (model[key] === options[key]) {
-    return comparison(model, options, keys, index + 1);
-  }
-
-  return false;
 }
 
 // NOTE: maybe move to DB(?)

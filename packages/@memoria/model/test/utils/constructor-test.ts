@@ -266,7 +266,6 @@ module("@memoria/model | Utils | constructor", function (hooks) {
 
     test("instanceOf works custom inherited classes", async function (assert) {
       assert.true(instanceOf(Human, Function));
-      debugger;
       assert.true(instanceOf(Person, Human));
       assert.true(instanceOf(Human, Object));
       assert.true(instanceOf(Person, Object));

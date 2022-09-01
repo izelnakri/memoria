@@ -82,13 +82,9 @@ export default class HasManyArray extends Array {
 
     return new Proxy(this, {
       set(target, propertyName, value) {
-        console.log("propertyName", propertyName);
-
         if (typeof propertyName !== "symbol") {
           let targetIndex = Number(propertyName);
           if (!isNaN(targetIndex)) {
-            console.log("SET[x] CALLED for x:index");
-
             if (targetIndex > self.length) {
               throw new Error(
                 `You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`

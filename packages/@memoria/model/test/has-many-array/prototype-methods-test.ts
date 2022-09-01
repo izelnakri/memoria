@@ -21,7 +21,6 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
       let inputArray = [firstPhotoCopy, thirdPhoto];
       let result = array.concat(inputArray);
 
-      debugger;
       assert.deepEqual(array, [firstPhoto, secondPhoto]);
       assert.deepEqual(inputArray, [firstPhotoCopy, thirdPhoto]);
       assert.notOk(inputArray instanceof HasManyArray);
