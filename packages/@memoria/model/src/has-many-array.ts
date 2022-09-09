@@ -1,8 +1,9 @@
 // TODO: Do we want some of these properties/structure in $Model.findAll, insertAll(?) returns(?), maybe a ModelArray<Model>
 import InstanceDB from "./stores/instance/db.js";
+import RelationshipUtils from "./stores/relationship/utils.js";
 import Model from "./model.js";
 import Enum from "./enum.js";
-import { compare, get, match } from "./utils/index.js";
+import { compare, get, match, SetUtils } from "./utils/index.js";
 
 // TODO: trigger relationship adds here
 // Adding should do Model check and duplication check(from the instance group):
@@ -37,7 +38,7 @@ export default class HasManyArray extends Array {
   }
 
   RelationshipClass: typeof Model;
-  spliceCallOnNullSetting = true; // NOTE: Maybe make this a public thing already
+  spliceCallWhenSettingNull = true; // NOTE: Maybe make this a public thing already
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
 
   get metadata() {
@@ -68,9 +69,15 @@ export default class HasManyArray extends Array {
     super();
 
     if (Array.isArray(array)) {
-      filterInstancesToAddFor(this, array).forEach((element) => this.push(element));
+      filterInstancesToAddFor(this, array).forEach((model) => {
+        RelationshipUtils.addHasManyRelationshipFor(this, model); // TODO: this should not be needed, instead done in push
+        this.push(model);
+      });
     } else if (array && array instanceof Set) {
-      filterInstancesToAddFor(this, Array.from(array)).forEach((element) => this.push(element));
+      filterInstancesToAddFor(this, Array.from(array)).forEach((model) => {
+        RelationshipUtils.addHasManyRelationshipFor(this, model); // TODO: this should not be needed, instead done in push
+        this.push(model);
+      });
     } else if (array) {
       throw new Error(
         "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements"
@@ -93,9 +100,8 @@ export default class HasManyArray extends Array {
               if (value) {
                 throw new Error(`HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
               } else if (targetIndex !== self.length) {
-                // NOTE: following if check needed because no way to differentiate user generated null setting and internal generated null setting
-                if (self.spliceCallOnNullSetting) {
-                  self.splice(targetIndex, 1); // TODO: splice should do this: RelationshipDB.removeFromHasManyArray(targetIndex, self);
+                if (self.spliceCallWhenSettingNull) {
+                  self.splice(targetIndex, 1);
                 } else {
                   self[targetIndex] = null;
                 }
@@ -113,12 +119,25 @@ export default class HasManyArray extends Array {
             }
 
             self.forEach((existingInstance, existingInstanceIndex) => {
-              // NOTE: this makes adding to list slow, array.push() also triggers it
-              if (existingInstance && instanceToAddReferencesSet === InstanceDB.getReferences(existingInstance)) {
+              if (
+                existingInstance === value &&
+                (existingInstanceIndex === targetIndex || targetIndex === self.length)
+              ) {
+                instancesToAdd.length = 0;
+
+                return true;
+              } else if (
+                existingInstance &&
+                instanceToAddReferencesSet === InstanceDB.getReferences(existingInstance)
+              ) {
                 instancesToAdd.length = 0; // make this remove it instead in future for extensibility super.splice(existingInstanceIndex, 1);
 
+                if (existingInstance !== value) {
+                  RelationshipUtils.removeHasManyRelationshipFor(self, existingInstance);
+                  RelationshipUtils.addHasManyRelationshipFor(self, value);
+                }
+
                 if (targetIndex === existingInstanceIndex || targetIndex === self.length) {
-                  // RelationshipDB.replaceExistingModelFromHasManyArray(value, existingModelIndex, self) || RelationshipDB.addModel , in other words branch this out
                   self[existingInstanceIndex] = value;
                 } else if (targetIndex < existingInstanceIndex) {
                   for (let i = 0; i < existingInstanceIndex - targetIndex; i++) {
@@ -139,10 +158,12 @@ export default class HasManyArray extends Array {
             });
 
             instancesToAdd.forEach((instanceToAdd) => {
-              if (targetIndex === self.length) {
-                // RelationshipDB.addModelToHasManyArray(value, self);
-              } else {
-                // RelationshipDB.replaceExistingModelFromHasManyArray(value, targetIndex, self);
+              if (self.spliceCallWhenSettingNull) {
+                RelationshipUtils.addHasManyRelationshipFor(self, value);
+
+                if (self[propertyName] && targetIndex !== self.length) {
+                  RelationshipUtils.removeHasManyRelationshipFor(self, self[propertyName]);
+                }
               }
 
               target[propertyName] = instanceToAdd;
@@ -151,13 +172,18 @@ export default class HasManyArray extends Array {
             return true;
           } else if (propertyName === "length") {
             if (value < self.length) {
-              // TODO: register model removals here
+              for (let i = self.length - 1; i >= value; i--) {
+                if (self[i]) {
+                  RelationshipUtils.removeHasManyRelationshipFor(self, self[i]); // NOTE: maybe move it to deleteProperty check it later
+                }
+              }
+
               target[propertyName] = value;
 
               return true;
             } else if (value !== self.length && !pushLengthCall) {
               throw new Error(
-                `You cant change the length of an hasManyArray to ${value} is actual length is ${self.length}`
+                `You cant change the length of an hasManyArray to ${value} when actual length is ${self.length}`
               ); // TODO: is this needed(?) check this;
             }
 
@@ -219,11 +245,11 @@ export default class HasManyArray extends Array {
       throw new Error("hasManyArray.fill(value) value has to be falsy value or a memoria Model");
     }
 
-    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
+    let oldSpliceCallOnNullSetting = this.spliceCallWhenSettingNull;
 
-    this.spliceCallOnNullSetting = false;
+    this.spliceCallWhenSettingNull = false;
     this.splice(startIndex, endIndex - startIndex + 1);
-    this.spliceCallOnNullSetting = oldSpliceCallOnNullSetting;
+    this.spliceCallWhenSettingNull = oldSpliceCallOnNullSetting;
 
     if (value && value instanceof Model) {
       this[this.length] = value;
@@ -258,18 +284,18 @@ export default class HasManyArray extends Array {
       targetDeleteCount = this.length - targetStartIndex;
     }
 
-    let deletedElements: Array<Model> = [];
-    let oldSpliceCallOnNullSetting = this.spliceCallOnNullSetting;
+    let deletedModels: Array<Model> = [];
+    let oldSpliceCallOnNullSetting = this.spliceCallWhenSettingNull;
 
-    this.spliceCallOnNullSetting = false;
+    this.spliceCallWhenSettingNull = false;
 
     if (targetDeleteCount > 0) {
       for (let i = 0; i < this.length && i < targetDeleteCount; i++) {
-        deletedElements.push(this[targetStartIndex + i]);
+        deletedModels.push(this[targetStartIndex + i]);
         this[targetStartIndex + i] = null;
       }
 
-      if (deletedElements.length > 0) {
+      if (deletedModels.length > 0) {
         let deleteIndex = targetStartIndex + targetDeleteCount;
         let numberOfModelsToMoveAfterDelete = this.length - deleteIndex;
         if (numberOfModelsToMoveAfterDelete > 0) {
@@ -281,32 +307,35 @@ export default class HasManyArray extends Array {
           }
         }
 
-        this.length = this.length - deletedElements.length;
+        deletedModels.forEach((deletedModel) => RelationshipUtils.removeHasManyRelationshipFor(this, deletedModel));
+        this.length = this.length - deletedModels.length;
       }
     }
 
-    let shouldMoveAddedItems = targetStartIndex >= 0 && targetStartIndex < this.length;
-    let indexForAdd = -1;
+    let shouldMoveAddedItems = targetStartIndex < this.length;
     let itemsToAdd = Array.prototype.slice.call(arguments).slice(2);
-    itemsToAdd.forEach((item: Model) => {
+    itemsToAdd.reduce((indexForAdd: number, item: Model) => {
       if (item instanceof Model) {
         let oldLength = this.length;
 
         this[this.length] = item;
 
         if (oldLength === this.length) {
-          return;
+          return indexForAdd;
         } else if (shouldMoveAddedItems) {
-          indexForAdd = indexForAdd + 1;
           this[targetStartIndex + indexForAdd] = item;
+          indexForAdd = indexForAdd + 1;
         }
-        // TODO: also what about RelationshipDB.addModelToHasManyArray()?, currently it would replace the existing one instead of actually adding
+
+        RelationshipUtils.addHasManyRelationshipFor(this, item);
       }
-    });
 
-    this.spliceCallOnNullSetting = oldSpliceCallOnNullSetting;
+      return indexForAdd;
+    }, 0);
 
-    return deletedElements;
+    this.spliceCallWhenSettingNull = oldSpliceCallOnNullSetting;
+
+    return deletedModels;
   }
 
   unshift(..._models: Model[]): number {
@@ -327,20 +356,22 @@ export default class HasManyArray extends Array {
   }
 
   replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): this {
-    let referencesToRemove = Array.isArray(existingReference) ? existingReference : [existingReference];
-    let referencesToAdd = filterInstancesToAddFor(
-      this,
-      Array.isArray(targetToReplace) ? targetToReplace : [targetToReplace]
+    let referencesToRemove = new Set(Array.isArray(existingReference) ? existingReference : [existingReference]);
+    let referencesToAdd = new Set(
+      filterInstancesToAddFor(this, Array.isArray(targetToReplace) ? targetToReplace : [targetToReplace])
     );
 
     this.forEach((model, index) => {
-      let referencesIndex = referencesToRemove.indexOf(model);
-      if (referencesIndex !== -1) {
-        referencesToRemove.splice(referencesIndex, 1);
+      if (referencesToRemove.has(model)) {
+        referencesToRemove.delete(model);
+
+        if (referencesToAdd.has(model)) {
+          return referencesToAdd.delete(model);
+        }
 
         this[index] = null;
 
-        let referenceToAdd = referencesToAdd.shift();
+        let referenceToAdd = SetUtils.shift(referencesToAdd);
         if (referenceToAdd) {
           this[this.length] = referenceToAdd;
           this[index] = referenceToAdd;
