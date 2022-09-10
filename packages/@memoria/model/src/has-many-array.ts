@@ -235,6 +235,7 @@ export default class HasManyArray extends Array {
     return filterInstancesToAddFor(this, super.concat.apply(this, [...arguments]));
   }
 
+  // NOTE: in future maybe make it optimized for existing records
   fill(value: void | Model, start?: number, end?: number): this {
     let [targetStart, targetEnd] = [start || 0, end || this.length - 1];
     let endIndex = targetEnd < 0 ? this.length + targetEnd : targetEnd;
@@ -245,11 +246,7 @@ export default class HasManyArray extends Array {
       throw new Error("hasManyArray.fill(value) value has to be falsy value or a memoria Model");
     }
 
-    let oldSpliceCallOnNullSetting = this.spliceCallWhenSettingNull;
-
-    this.spliceCallWhenSettingNull = false;
     this.splice(startIndex, endIndex - startIndex + 1);
-    this.spliceCallWhenSettingNull = oldSpliceCallOnNullSetting;
 
     if (value && value instanceof Model) {
       this[this.length] = value;
@@ -273,6 +270,7 @@ export default class HasManyArray extends Array {
     return this.length === 0 ? undefined : this.splice(0, 1)[0];
   }
 
+  // NOTE: diff between toAdd and toRemove not optimized on purpose to mimic native array behavior
   splice(startIndex: number, deleteCount?: number, ..._items: Model[]): Model[] {
     let targetStartIndex = startIndex >= 0 ? startIndex : this.length + (startIndex || 0);
     if (targetStartIndex < 0) {
