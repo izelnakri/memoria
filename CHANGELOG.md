@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.27](https://github.com/izelnakri/memoria/compare/0.0.27...0.0.27)
+#### [0.0.28](https://github.com/izelnakri/memoria/compare/0.0.28...0.0.28)
+
+- Bump actions/checkout from 2.4.0 to 3.0.2 [`#44`](https://github.com/izelnakri/memoria/pull/44)
+- Bump docker/login-action from 1.12.0 to 2.0.0 [`#46`](https://github.com/izelnakri/memoria/pull/46)
+- Bump docker/setup-buildx-action from 1.6.0 to 2.0.0 [`#48`](https://github.com/izelnakri/memoria/pull/48)
+- Bump docker/build-push-action from 2.9.0 to 3.1.1 [`#52`](https://github.com/izelnakri/memoria/pull/52)
+- HasManyArray tracking test spies [`#53`](https://github.com/izelnakri/memoria/pull/53)
+- test tracking on HasManyArray prototype mutations [`da34d84`](https://github.com/izelnakri/memoria/commit/da34d84a20a9d1c16dab8fb62fc87aba1ceded94)
+- HasManyArray adjustments for hasMany tracking [`bac42e0`](https://github.com/izelnakri/memoria/commit/bac42e0dcc48c56040f512cfe61625ccb4a3333f)
+- cleanup HasManyArray implementation [`87c1bed`](https://github.com/izelnakri/memoria/commit/87c1bedb36b4ceac9bcd935faeaeb8c36819bead)
+- TODO note add [`225e1a7`](https://github.com/izelnakri/memoria/commit/225e1a7212edbc556ae6461b02ff7e95057b495a)
+
+#### [0.0.28](https://github.com/izelnakri/memoria/compare/0.0.27...0.0.28)
+
+> 1 September 2022
 
 - HasManyArray implementation [`#50`](https://github.com/izelnakri/memoria/pull/50)
 - refactor/optimize deepEqual [`2fbbf8c`](https://github.com/izelnakri/memoria/commit/2fbbf8ce5ec80cd36632c4276768d18bd896db28)
@@ -37,6 +51,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - utils: printSchema,printColumns,printRelationships [`a371525`](https://github.com/izelnakri/memoria/commit/a371525f0f1171f5b659eb76e9923e6bdeecd723)
 - Enum ala Elixir Enum module added [`0cd0a2a`](https://github.com/izelnakri/memoria/commit/0cd0a2ae4cab015c364346f47669fcaa05b10d6f)
 - setup HasManyArray with notes [`8e12dc1`](https://github.com/izelnakri/memoria/commit/8e12dc17a59698bd356bbabb2a7802e225b626bc)
+- Release 0.0.28 [`f361fc3`](https://github.com/izelnakri/memoria/commit/f361fc3b519b12a756a84cb07b9daa6364dee163)
 - add EnumFreeze module [`dbf053a`](https://github.com/izelnakri/memoria/commit/dbf053adbe1eb308d21ebf36114df3d2a57f9ea3)
 - optimize deep setting of getCyclicalReferences [`087f0ad`](https://github.com/izelnakri/memoria/commit/087f0ad776dc1dde4bdfca7ce2733330f3da6059)
 - additional typeOf tests for classes [`b6ce8d6`](https://github.com/izelnakri/memoria/commit/b6ce8d6a38cb8c7042ba07bc3124751a49a7d9ae)
