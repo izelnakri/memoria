@@ -1,30 +1,11 @@
 // TODO: Do we want some of these properties/structure in $Model.findAll, insertAll(?) returns(?), maybe a ModelArray<Model>
+// NOTE: do we want to batch also relationships assignments(?) -> probably not for now
 import InstanceDB from "./stores/instance/db.js";
 import RelationshipUtils from "./stores/relationship/utils.js";
 import Model from "./model.js";
 import Enum from "./enum.js";
 import { compare, get, match, SetUtils } from "./utils/index.js";
 
-// TODO: trigger relationship adds here
-// Adding should do Model check and duplication check(from the instance group):
-// - push -> probably done
-// - unshift
-// - splice(?) -> this could add to the end(multiple)
-// - add(?) -> this could add to the end multiple -> same/uses splice
-
-// TODO: trigger relationship deletes here
-// Removing logic:
-// - pop -> from end
-// - shift -> from beginning
-// - splice(?) -> from anywhere, multiple
-
-// NOTE: do we want to batch also relationships assignments(?) -> probably not for now
-
-// NOTE: things that can return mutation metadata(these could be the actual optimized relationship mutation paths(?)):
-// should they return metadata or this(?)
-// - add() -> //-> added or replaced(true | false)
-// - replace() // -> actual removal count, actual addition, actual replacementIndexes[]
-// - remove -> // -> [Model] // found and removed models
 // @ts-ignore
 export default class HasManyArray extends Array {
   static get [Symbol.species]() {
@@ -37,8 +18,8 @@ export default class HasManyArray extends Array {
     return Array.isArray(args[0]) ? new HasManyArray(args[0]) : new HasManyArray(args);
   }
 
-  RelationshipClass: typeof Model;
-  spliceCallWhenSettingNull = true; // NOTE: Maybe make this a public thing already
+  private RelationshipClass: typeof Model;
+  private spliceCallWhenSettingNull = true;
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
 
   get metadata() {
@@ -70,12 +51,12 @@ export default class HasManyArray extends Array {
 
     if (Array.isArray(array)) {
       filterInstancesToAddFor(this, array).forEach((model) => {
-        RelationshipUtils.addHasManyRelationshipFor(this, model); // TODO: this should not be needed, instead done in push
+        RelationshipUtils.addHasManyRelationshipFor(this, model);
         this.push(model);
       });
     } else if (array && array instanceof Set) {
       filterInstancesToAddFor(this, Array.from(array)).forEach((model) => {
-        RelationshipUtils.addHasManyRelationshipFor(this, model); // TODO: this should not be needed, instead done in push
+        RelationshipUtils.addHasManyRelationshipFor(this, model);
         this.push(model);
       });
     } else if (array) {
@@ -84,7 +65,6 @@ export default class HasManyArray extends Array {
       );
     }
 
-    let pushLengthCall = false;
     let self = this;
 
     return new Proxy(this, {
@@ -130,7 +110,7 @@ export default class HasManyArray extends Array {
                 existingInstance &&
                 instanceToAddReferencesSet === InstanceDB.getReferences(existingInstance)
               ) {
-                instancesToAdd.length = 0; // make this remove it instead in future for extensibility super.splice(existingInstanceIndex, 1);
+                instancesToAdd.length = 0;
 
                 if (existingInstance !== value) {
                   RelationshipUtils.removeHasManyRelationshipFor(self, existingInstance);
@@ -161,7 +141,7 @@ export default class HasManyArray extends Array {
               if (self.spliceCallWhenSettingNull) {
                 RelationshipUtils.addHasManyRelationshipFor(self, value);
 
-                if (self[propertyName] && targetIndex !== self.length) {
+                if (targetIndex !== self.length) {
                   RelationshipUtils.removeHasManyRelationshipFor(self, self[propertyName]);
                 }
               }
@@ -174,33 +154,24 @@ export default class HasManyArray extends Array {
             if (value < self.length) {
               for (let i = self.length - 1; i >= value; i--) {
                 if (self[i]) {
-                  RelationshipUtils.removeHasManyRelationshipFor(self, self[i]); // NOTE: maybe move it to deleteProperty check it later
+                  RelationshipUtils.removeHasManyRelationshipFor(self, self[i]);
                 }
               }
 
               target[propertyName] = value;
 
               return true;
-            } else if (value !== self.length && !pushLengthCall) {
+            } else if (value !== self.length) {
               throw new Error(
                 `You cant change the length of an hasManyArray to ${value} when actual length is ${self.length}`
-              ); // TODO: is this needed(?) check this;
+              );
             }
-
-            pushLengthCall = false;
           }
         }
 
         target[propertyName] = value;
 
         return true;
-      },
-      get(target, propertyName) {
-        if (propertyName === "push") {
-          pushLengthCall = true;
-        }
-
-        return target[propertyName];
       },
       deleteProperty(self, propertyName) {
         let propertyAsNumber = typeof propertyName !== "symbol" && Number(propertyName);
@@ -561,20 +532,6 @@ function throwError(shouldThrow: boolean, message: string, result: any) {
 function isNumber(value: any) {
   return typeof value === "number" && isFinite(value);
 }
-
-// Atomic operations
-// function replaceExistingModelFromArray(newModel: Model, existingModelIndex: number, hasManyArray: Model[]) {
-
-// }
-
-// // TODO: this will be push instead(push does filtering itself(?)
-// function addToHasManyArray(newModel: Model, hasManyArray: Model[]) {
-
-// }
-
-// function removeFromHasManyArray(existingModelIndex: number, hasManyArray: Model[]) {
-//   return array.splice(existingModelIndex, 1);
-// }
 
 // type exactInstanceAlreadyInHasManyArray = boolean;
 // type instanceGroupAlreadyInHasManyArray = boolean;

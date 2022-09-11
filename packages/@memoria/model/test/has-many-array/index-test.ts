@@ -1066,6 +1066,8 @@ module("@memoria/model | HasManyArray", function (hooks) {
       sinon.spy(RelationshipUtils, "addHasManyRelationshipFor");
       sinon.spy(RelationshipUtils, "removeHasManyRelationshipFor");
 
+      assert.expect(8);
+
       const { Photo } = generateModels();
 
       let firstPhoto = Photo.build({ name: "First photo" });
