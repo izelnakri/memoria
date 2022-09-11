@@ -3,7 +3,7 @@ export type { ChangesetErrorItem } from "./changeset.js";
 import Enum from "./enum.js";
 import EnumFreeze from "./enum-freeze.js";
 import HasManyArray from "./has-many-array.js";
-export { Schema, DB, InstanceDB, RelationshipSchema, RelationshipDB } from "./stores/index.js";
+export { Schema, DB, InstanceDB, RelationshipSchema, RelationshipDB, RelationshipUtils } from "./stores/index.js";
 export type {
   RelationshipType,
   RelationshipSummary,

@@ -6,12 +6,13 @@ export { getConstructor, instanceOf } from "./constructor.js";
 import compare from "./compare.js";
 import deepEqual from "./deep-equal.js";
 import match from "./match.js";
+import SetUtils from "./set-utils.js";
 import typeOf from "./type-of.js";
 import isCyclical from "./is-cyclical.js";
 import getCyclicalReferences from "./get-cyclical-references.js";
 export { printSchema, printColumns, printRelationships } from "./print-schema.js";
 
-export { compare, deepEqual, getCyclicalReferences, isCyclical, match, typeOf };
+export { compare, deepEqual, getCyclicalReferences, isCyclical, match, SetUtils, typeOf };
 
 interface AnyObject {
   [key: string]: any;
@@ -33,10 +34,7 @@ export function generateUUID() {
 }
 // typeorm uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(msg) if false reimplement
 
-export function primaryKeyTypeSafetyCheck(
-  model: Model | AnyObject,
-  ModelDefinition?: typeof Model
-) {
+export function primaryKeyTypeSafetyCheck(model: Model | AnyObject, ModelDefinition?: typeof Model) {
   let Class = ModelDefinition || (model.constructor as typeof Model);
   let primaryKeyIsValid =
     Class.primaryKeyType === "id"
@@ -46,9 +44,9 @@ export function primaryKeyTypeSafetyCheck(
   if (!primaryKeyIsValid) {
     throw new RuntimeError(
       new Changeset(Class.build(model)),
-      `Wrong ${Class.primaryKeyName} input type: entered ${typeof model[
-        Class.primaryKeyName
-      ]} instead of ${Class.primaryKeyType}`
+      `Wrong ${Class.primaryKeyName} input type: entered ${typeof model[Class.primaryKeyName]} instead of ${
+        Class.primaryKeyType
+      }`
     );
   }
 
