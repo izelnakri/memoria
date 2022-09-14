@@ -31,7 +31,10 @@ export default class RelationshipUtils {
       ? targetRelationship[metadata.RelationshipClass.primaryKeyName]
       : null;
 
-    this.setReflectiveSideRelationship(targetRelationship, model, metadata, reverseRelationshipCache);
+    if (reverseRelationshipType === "OneToOne") {
+      this.setReflectiveSideRelationship(targetRelationship, model, metadata, reverseRelationshipCache);
+    }
+    // TODO: also implement a strategy for HasMany
   }
 
   static cleanAndSetOneToOneRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
@@ -148,13 +151,33 @@ export default class RelationshipUtils {
   }
 
   static addHasManyRelationshipFor(relationshipArray, targetRelationship) {
-    console.log("called addHasManyRelationshipFor");
-    let model, metadata, relationshipCache;
+    if (relationshipArray.belongsTo && relationshipArray.metadata.reverseRelationshipName) {
+      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = relationshipArray.belongsTo; // this is not reflexive
+      // let { RelationshipClass, reverseRelationshipName } = relationshipArray.metadata;
+      // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
+      //   RelationshipClass,
+      //   reverseRelationshipName,
+      //   "BelongsTo"
+      // );
+      // let previousRelationship = reverseRelationshipCache.get(targetRelationship);
+      // if (previousRelationship) {
+      //   this.cleanRelationshipsOn(
+      //     previousRelationship,
+      //     targetRelationship,
+      //     relationshipArray.metadata,
+      //     reverseRelationshipCache,
+      //     null,
+      //     false
+      //   );
+      // }
+    }
   }
 
   static removeHasManyRelationshipFor(relationshipArray, targetRelationship) {
-    console.log("called removeHasManyRelationshipFor");
-    let model, metadata, relationshipCache;
+    if (relationshipArray.belongsTo && relationshipArray.metadata.reverseRelationshipName) {
+      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = null; // TODO: instead, resort to another possible reference(?)
+      // TODO: clean reflexive references(?)
+    }
   }
 }
 
