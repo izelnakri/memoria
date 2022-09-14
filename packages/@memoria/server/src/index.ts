@@ -11,10 +11,7 @@ import Pretender from "pretender/dist/pretender.js";
 import hackPretender from "./pretender-hacks.js"; // NOTE: check this
 
 const HTTP_VERBS = ["get", "post", "put", "delete"];
-const DEFAULT_PASSTHROUGHS = [
-  "http://localhost:0/chromecheckurl",
-  "http://localhost:30820/socket.io",
-];
+const DEFAULT_PASSTHROUGHS = ["http://localhost:0/chromecheckurl", "http://localhost:30820/socket.io"];
 
 interface MemserverOptions {
   logging?: boolean;
@@ -62,9 +59,7 @@ function startPretender(routes, options) {
       if (options.logging) {
         this.handledRequest = function (verb, path, request) {
           let method = verb.toUpperCase();
-          let requestURL = request.url.startsWith("localhost/")
-            ? request.url.replace("localhost/", "/")
-            : request.url;
+          let requestURL = request.url.startsWith("localhost/") ? request.url.replace("localhost/", "/") : request.url;
 
           console.log(Memserver, colorStatusCode(request.status), method, requestURL);
 
@@ -75,9 +70,7 @@ function startPretender(routes, options) {
           console.log(JSON.parse(request.responseText));
         };
         this.passthroughRequest = function (verb, path, request) {
-          let requestURL = request.url.startsWith("localhost/")
-            ? request.url.replace("localhost/", "/")
-            : request.url;
+          let requestURL = request.url.startsWith("localhost/") ? request.url.replace("localhost/", "/") : request.url;
 
           console.log(Memserver, kleur.yellow("[PASSTHROUGH]"), verb, requestURL);
         };

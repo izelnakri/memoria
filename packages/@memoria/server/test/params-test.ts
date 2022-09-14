@@ -183,9 +183,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
             } else if (queryParams.nonce === 123123123) {
               const photo = Photo.peekBy({ id: params.id, user_id: user.id });
 
-              return photo
-                ? { photo: Photo.serializer(photo) }
-                : Response(404, { error: "Not found" });
+              return photo ? { photo: Photo.serializer(photo) } : Response(404, { error: "Not found" });
             }
 
             return Response(404, { error: "Not found" });
@@ -194,9 +192,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
           this.put("/photos/:id", async ({ headers, params, queryParams }) => {
             const user = User.findFromHeaderToken(headers);
             const validRequest =
-              user &&
-              queryParams.nonce === 123123123 &&
-              (await Photo.findBy({ id: params.id, user_id: user.id }));
+              user && queryParams.nonce === 123123123 && (await Photo.findBy({ id: params.id, user_id: user.id }));
 
             if (validRequest) {
               return { photo: Photo.serializer(await Photo.update(params.photo)) };
@@ -389,14 +385,10 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
         address: string;
       }
 
-      await Promise.all(
-        ETHEREUM_ACCOUNT_FIXTURES.map((ethereumAccount) => EthereumAccount.insert(ethereumAccount))
-      );
+      await Promise.all(ETHEREUM_ACCOUNT_FIXTURES.map((ethereumAccount) => EthereumAccount.insert(ethereumAccount)));
       await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
       await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
-      await Promise.all(
-        PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-      );
+      await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
       const Server = new Memoria({
         routes() {
@@ -550,8 +542,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
 
       await $.ajax({
         type: "GET",
-        url:
-          "/ethereum-accounts/0x7be8315acfef37816c9ad4dc5e82195f2a52934c5d0c74883f9978675e26d600",
+        url: "/ethereum-accounts/0x7be8315acfef37816c9ad4dc5e82195f2a52934c5d0c74883f9978675e26d600",
       }).then((data, textStatus, jqXHR) => {
         assert.equal(jqXHR.status, 200);
         assert.deepEqual(data, { ethereum_account: EthereumAccount.serializer(targetAccount) });
@@ -571,8 +562,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
 
       await $.ajax({
         type: "GET",
-        url:
-          "/ethereum-accounts?address=0x7be8315acfef37816c9ad4dc5e82195f2a52934c5d0c74883f9978675e26d600",
+        url: "/ethereum-accounts?address=0x7be8315acfef37816c9ad4dc5e82195f2a52934c5d0c74883f9978675e26d600",
       }).then((data, textStatus, jqXHR) => {
         assert.equal(jqXHR.status, 200);
         assert.deepEqual(data, { ethereum_accounts: EthereumAccount.serializer(targetAccounts) });

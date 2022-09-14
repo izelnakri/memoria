@@ -1,10 +1,4 @@
-import Model, {
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  CacheError,
-  RuntimeError,
-} from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn, CacheError, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";

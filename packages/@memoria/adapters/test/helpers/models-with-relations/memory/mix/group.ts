@@ -15,13 +15,13 @@ export default function generateGroup() {
   class MemoryGroup extends Model {
     static Serializer = class GroupSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
     @Column()
     name: string;
 
-    @Column('int')
+    @Column("int")
     owner_id: number;
 
     @ManyToMany(User)

@@ -1,10 +1,4 @@
-import Model, {
-  Changeset,
-  PrimaryGeneratedColumn,
-  Column,
-  RuntimeError,
-  Serializer,
-} from "@memoria/model";
+import Model, { Changeset, PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 

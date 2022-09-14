@@ -1,12 +1,12 @@
-import fs from 'fs/promises';
-import util from 'util';
-import kleur from 'kleur';
+import fs from "fs/promises";
+import util from "util";
+import kleur from "kleur";
 import { classify, dasherize, underscore, pluralize, singularize } from "inflected";
-import getMemServerDirectory from '../utils/get-memserver-directory.js';
-import createFixtureAndModelFoldersIfNeeded from '../utils/create-fixture-and-model-folders-if-needed.js';
-import startMemserver from '../index.js';
+import getMemServerDirectory from "../utils/get-memserver-directory.js";
+import createFixtureAndModelFoldersIfNeeded from "../utils/create-fixture-and-model-folders-if-needed.js";
+import startMemserver from "../index.js";
 
-import helpCommand from './help.js';
+import helpCommand from "./help.js";
 
 export default async function generateCommand() {
   const memserverDirectory = await getMemServerDirectory();
@@ -14,14 +14,10 @@ export default async function generateCommand() {
   const modelName = process.argv[4] ? process.argv[4].toLocaleLowerCase() : null;
 
   if (!memserverDirectory) {
-    return console.log(
-      kleur.red("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?")
-    );
+    return console.log(kleur.red("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
   } else if (!generationType) {
     return console.log(
-      kleur.red(
-        "[Memserver CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures"
-      )
+      kleur.red("[Memserver CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures")
     );
   } else if (generationType === "model") {
     return await generateModel(modelName, memserverDirectory);
@@ -88,15 +84,11 @@ async function generateFixtures(modelName, memserverDirectory) {
   const modelFiles = await fs.readdir(`${memserverDirectory}/models`);
   const IS_TYPESCRIPT = modelFiles.some((modelFile) => modelFile.endsWith(".ts"));
   // TODO: this should be absolute path!
-  const memserverImportDirectory = IS_TYPESCRIPT
-    ? await buildTmpDirectory(memserverDirectory)
-    : memserverDirectory;
+  const memserverImportDirectory = IS_TYPESCRIPT ? await buildTmpDirectory(memserverDirectory) : memserverDirectory;
 
   const Server = await startMemserver(memserverDirectory); // TODO: this will be from cli/index.js
   const ModelDefinitions = await importModelDefinitions(memserverImportDirectory, modelFiles, IS_TYPESCRIPT);
-  const targetModels = modelName
-    ? [classify(singularize(modelName))]
-    : Object.keys(ModelDefinitions);
+  const targetModels = modelName ? [classify(singularize(modelName))] : Object.keys(ModelDefinitions);
 
   await Promise.all(
     targetModels.map(async (Model) => {
@@ -157,9 +149,9 @@ async function importModelDefinitions(esmDirectory, modelFiles, isTypescript) {
 
 function formatExtension(modelPath, isTypescript) {
   if (isTypescript) {
-    let paths = modelPath.split('/');
+    let paths = modelPath.split("/");
 
-    return paths.slice(0, paths.length - 1).concat([paths[paths.length - 1].replace('.ts', '.js')]);
+    return paths.slice(0, paths.length - 1).concat([paths[paths.length - 1].replace(".ts", ".js")]);
   }
 
   return modelPath;

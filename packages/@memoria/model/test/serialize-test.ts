@@ -104,9 +104,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const photo = await Photo.find(1);
     const photoComment = await PhotoComment.findBy({
@@ -131,9 +129,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const { Photo, PhotoComment, User } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const photos = await Photo.findAll({ is_public: false });
     const photoComments = await PhotoComment.findAll({ photo_id: 1 });
@@ -178,9 +174,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const { Photo, PhotoComment, User } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const notFoundPhoto = await Photo.find(99);
     const notFoundPhotos = await Photo.findAll({ name: "Wubba lubba dub" });
@@ -211,9 +205,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const { Photo, PhotoComment, User } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     await User.insert({ id: 1, first_name: "Izel", last_name: "Nakri" });
     await User.insert({ id: 2, first_name: "Benjamin", last_name: "Graham" });

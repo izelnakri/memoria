@@ -699,16 +699,24 @@ module("@memoria/model | LazyPromise", function (hooks) {
       this.Server = Server;
 
       let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
+      // TODO: this should make owner_id not null before inserting data to store!!
+      debugger;
       let photos = await MemoryPhoto.insertAll([
         { name: "Family photo", owner: users[0] },
         { name: "Trip photo", owner: users[1] },
       ]);
+      debugger;
 
       try {
+        // TODO: this owner relationship is not working
         let result = await LazyPromise.hash({
           photos: RESTPhoto.findAll(),
           users: RESTUser.findAll(),
         });
+
+        debugger;
+        console.log(result.photos.owner);
+        debugger;
 
         assert.propEqual(result, { users, photos });
         assert.equal(photos.length, 2);

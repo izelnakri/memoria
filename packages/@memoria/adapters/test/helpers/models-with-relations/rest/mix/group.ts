@@ -25,7 +25,7 @@ export default function generateGroup() {
       }
     };
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
     @Column()

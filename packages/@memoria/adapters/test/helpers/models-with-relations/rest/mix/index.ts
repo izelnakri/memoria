@@ -38,9 +38,7 @@ export default function generateRESTModels() {
 
       this.get("/photos", async ({ queryParams }) => {
         if (queryParams) {
-          let photos = queryParams.ids
-            ? await Photo.find(queryParams.ids)
-            : await Photo.findAll(queryParams);
+          let photos = queryParams.ids ? await Photo.find(queryParams.ids) : await Photo.findAll(queryParams);
 
           return { photos: Photo.serializer(photos) };
         }
@@ -165,9 +163,7 @@ export default function generateRESTModels() {
       });
 
       this.get("/photo-comments/:uuid", async (request) => {
-        let photoComment = (await PhotoComment.find(
-          request.params.uuid
-        )) as PhotoComment;
+        let photoComment = (await PhotoComment.find(request.params.uuid)) as PhotoComment;
 
         return { photoComment: PhotoComment.serializer(photoComment) };
       });
@@ -182,7 +178,7 @@ export default function generateRESTModels() {
         }
       });
 
-      this.delete('/photo-comments/:uuid', async (request) => {
+      this.delete("/photo-comments/:uuid", async (request) => {
         try {
           await PhotoComment.delete(request.params.photoComment);
         } catch (changeset) {

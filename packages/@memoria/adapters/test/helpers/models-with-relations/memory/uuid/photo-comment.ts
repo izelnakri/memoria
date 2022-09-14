@@ -1,4 +1,11 @@
-import Model, { PrimaryGeneratedColumn, Serializer, Column, CreateDateColumn, UpdateDateColumn, BelongsTo } from "@memoria/model";
+import Model, {
+  PrimaryGeneratedColumn,
+  Serializer,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  BelongsTo,
+} from "@memoria/model";
 import User from "./user.js";
 import Photo from "./photo.js";
 

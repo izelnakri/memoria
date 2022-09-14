@@ -67,8 +67,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     {
       id: 1,
       authentication_token: "1RQFPDXxNBvhGwZAEOj8ztGFItejDusXJw_F1FAg5-GknxhqrcfH9h4p9NGCiCVG",
-      password_digest:
-        "tL4rJzy3GrjSQ7K0ZMNqKsgMthsikbWfIEPTi/HJXD3lme7q6HT57RpuCKJOcAC9DFb3lXtEONmkB3fO0q3zWA==",
+      password_digest: "tL4rJzy3GrjSQ7K0ZMNqKsgMthsikbWfIEPTi/HJXD3lme7q6HT57RpuCKJOcAC9DFb3lXtEONmkB3fO0q3zWA==",
       primary_email_id: 1,
     },
   ];
@@ -185,17 +184,8 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(ACITIVITY_FIXTURES.map((activity) => Activity.insert(activity)));
 
-    const activity = Photo.Serializer.getEmbeddedRelationship(
-      Photo,
-      Photo.peek(1),
-      "activity",
-      Activity
-    );
-    const activityLookupWithoutModel = Photo.Serializer.getEmbeddedRelationship(
-      Photo,
-      Photo.peek(1),
-      "activity"
-    );
+    const activity = Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(1), "activity", Activity);
+    const activityLookupWithoutModel = Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(1), "activity");
     const activityLookupWithDifferentReferenceName = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       Photo.peek(1),
@@ -206,27 +196,19 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     assert.deepEqual(activity, activityLookupWithoutModel);
     assert.deepEqual(activity, activityLookupWithDifferentReferenceName);
     assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
-    assert.equal(
-      Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(2), "activity", Activity),
-      undefined
-    );
+    assert.equal(Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(2), "activity", Activity), undefined);
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
       await Photo.find(1)
     );
-    assert.equal(
-      Activity.Serializer.getEmbeddedRelationship(Activity, Activity.peek(2), "photo", Photo),
-      undefined
-    );
+    assert.equal(Activity.Serializer.getEmbeddedRelationship(Activity, Activity.peek(2), "photo", Photo), undefined);
   });
 
   test("$Model.Serializer.getEmbeddedRelationship() works for hasMany/belongsTo id relationships both sides on id relationships", async function (assert) {
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -284,12 +266,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     }
 
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        firstPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments[0], "photo", Photo),
       {
         id: 1,
         name: "Ski trip",
@@ -298,12 +275,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       }
     );
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        secondPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
       {
         id: 2,
         name: "Family photo",
@@ -321,33 +293,20 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     await Promise.all(USER_FIXTURES.map((user) => User.insert(user)));
     await Promise.all(EMAIL_FIXTURES.map((email) => Email.insert(email)));
 
-    const activity = Photo.Serializer.getEmbeddedRelationship(
-      Photo,
-      await Photo.find(1),
-      "userActivity",
-      Activity
-    );
+    const activity = Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(1), "userActivity", Activity);
 
     assert.propEqual(activity, { id: 1, user_id: 1, photo_id: 1 });
-    assert.propEqual(
-      User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email),
-      {
-        id: 1,
-        address: "contact@izelnakri.com",
-        is_public: false,
-        confirmed_at: "2018-02-25T23:00:00.000Z",
-        confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
-        confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
-        person_id: 1,
-      }
-    );
+    assert.propEqual(User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email), {
+      id: 1,
+      address: "contact@izelnakri.com",
+      is_public: false,
+      confirmed_at: "2018-02-25T23:00:00.000Z",
+      confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
+      confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
+      person_id: 1,
+    });
     assert.equal(
-      Photo.Serializer.getEmbeddedRelationship(
-        Photo,
-        await Photo.find(2),
-        "userActivity",
-        Activity
-      ),
+      Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(2), "userActivity", Activity),
       undefined
     );
     assert.deepEqual(
@@ -355,12 +314,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       await Photo.find(1)
     );
     assert.equal(
-      Activity.Serializer.getEmbeddedRelationship(
-        Activity,
-        await Activity.find(2),
-        "userPhoto",
-        Photo
-      ),
+      Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "userPhoto", Photo),
       undefined
     );
     assert.deepEqual(
@@ -373,9 +327,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -427,23 +379,13 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     assert.deepEqual(thirdPhotoComments, []);
 
     try {
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        firstPhotoComments,
-        "photo",
-        Photo
-      );
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments, "photo", Photo);
     } catch (error) {
       assert.ok(error instanceof RuntimeError);
     }
 
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        firstPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments[0], "photo", Photo),
       {
         id: 1,
         name: "Ski trip",
@@ -452,12 +394,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       }
     );
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        secondPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
       {
         id: 2,
         name: "Family photo",

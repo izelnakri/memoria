@@ -7,7 +7,7 @@ export function prepareTargetObjectFromInstance(model, Model: typeof MemoriaMode
     return model;
   }
 
-  let target = {}
+  let target = {};
   Model.columnNames.forEach((columnName) => {
     target[columnName] = model[columnName];
   });

@@ -153,9 +153,7 @@ export default function generateRESTModels() {
       });
 
       this.get("/photo-comments/:id", async (request) => {
-        let photoComment = (await PhotoComment.find(
-          request.params.id
-        )) as PhotoComment;
+        let photoComment = (await PhotoComment.find(request.params.id)) as PhotoComment;
 
         return { photoComment: PhotoComment.serializer(photoComment) };
       });
@@ -170,7 +168,7 @@ export default function generateRESTModels() {
         }
       });
 
-      this.delete('/photo-comments/:id', async (request) => {
+      this.delete("/photo-comments/:id", async (request) => {
         try {
           await PhotoComment.delete(request.params.photoComment);
         } catch (changeset) {

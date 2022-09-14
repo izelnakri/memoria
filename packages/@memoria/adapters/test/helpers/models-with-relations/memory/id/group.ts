@@ -21,7 +21,7 @@ export default function generateGroup() {
     @Column()
     name: string;
 
-    @Column('int')
+    @Column("int")
     owner_id: number;
 
     @ManyToMany(User)

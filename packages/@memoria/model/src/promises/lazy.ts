@@ -61,9 +61,7 @@ export default class LazyPromise extends Promise<void> {
   #runRejectHandlers(error) {
     this.isLoading = false;
 
-    let result = Promise.all(
-      this.#rejectHandlers.map((rejectHandler: (unknown) => void) => rejectHandler(error))
-    );
+    let result = Promise.all(this.#rejectHandlers.map((rejectHandler: (unknown) => void) => rejectHandler(error)));
     this.#rejectHandlers.length = 0;
 
     return result;

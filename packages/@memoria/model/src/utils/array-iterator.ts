@@ -66,7 +66,7 @@ export function includes(iterator, targetElement: any, fromIndex?: number) {
 
 export function last(iterator) {
   let value;
-  for(value of iterator);
+  for (value of iterator);
   return value;
 }
 
@@ -95,5 +95,5 @@ export default {
   includes,
   last,
   map,
-  reduce
+  reduce,
 };

@@ -3,18 +3,18 @@ import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
 import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
-import FIXTURES from "../helpers/fixtures/mix/index.js"
+import FIXTURES from "../helpers/fixtures/mix/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
   setupMemoria(hooks);
 
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     await DB.resetRecords();
   });
 
-  module('$Model.find() tests', function() {
+  module("$Model.find() tests", function () {
     test("$Model.find() throws without a number id or ids", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -46,18 +46,24 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
 
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
 
-      assert.propEqual(await SQLPhoto.find(1), SQLPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
-      assert.propEqual(await SQLPhoto.find(3), SQLPhoto.build({
-        id: 3,
-        name: "Selfie",
-        href: "selfie.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        await SQLPhoto.find(1),
+        SQLPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
+      assert.propEqual(
+        await SQLPhoto.find(3),
+        SQLPhoto.build({
+          id: 3,
+          name: "Selfie",
+          href: "selfie.jpeg",
+          is_public: false,
+        })
+      );
     });
 
     test("$Model.find(id) gets a new instance each time", async function (assert) {
@@ -67,35 +73,44 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
 
       let firstModel = await SQLPhoto.find(1);
-      assert.propEqual(firstModel, SQLPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        firstModel,
+        SQLPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
       let secondModel = await SQLPhoto.find(1);
       assert.notEqual(firstModel, secondModel);
       assert.deepEqual([secondModel.isNew, secondModel.isPersisted], [false, true]);
 
-      secondModel.name = 'Some name';
-      assert.equal(secondModel.name, 'Some name');
+      secondModel.name = "Some name";
+      assert.equal(secondModel.name, "Some name");
 
       let thirdModel = await SQLPhoto.find(1);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
-      assert.propEqual(thirdModel, SQLPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
-      assert.propEqual(secondModel, SQLPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        thirdModel,
+        SQLPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
+      assert.propEqual(
+        secondModel,
+        SQLPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.notEqual(secondModel, thirdModel);
     });
 
@@ -107,11 +122,11 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
 
       assert.propEqual(await SQLPhoto.find([1, 3]), [
         SQLPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.propEqual(await SQLPhoto.find([2, 3]), [
         SQLPhoto.build({ id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
     });
 
@@ -124,7 +139,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
       let firstModels = await SQLPhoto.find([1, 3]);
       assert.deepEqual(firstModels, [
         SQLPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([firstModels[0].isNew, firstModels[0].isPersisted], [false, true]);
       assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
@@ -133,24 +148,30 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
       assert.notEqual(firstModels, secondModels);
       assert.propEqual(secondModels, [
         SQLPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].name = 'Some name';
-      assert.deepEqual(secondModels[0], SQLPhoto.build({
-        id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false
-      }));
+      secondModels[0].name = "Some name";
+      assert.deepEqual(
+        secondModels[0],
+        SQLPhoto.build({
+          id: 1,
+          name: "Some name",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
 
       let thirdModels = await SQLPhoto.find([1, 3]);
       assert.deepEqual(secondModels, [
         SQLPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual(thirdModels, [
         SQLPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        SQLPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.notEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
@@ -158,7 +179,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
     });
   });
 
-  module('$Model.findBy() tests', function() {
+  module("$Model.findBy() tests", function () {
     test("$Model.findBy(attributes) returns a single model for the options", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -170,21 +191,27 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
 
       assert.propEqual(await SQLPhoto.findBy({ is_public: false }), firstPhoto);
       assert.propEqual(await SQLPhoto.findBy(firstPhoto), firstPhoto);
-      assert.propEqual(await SQLPhoto.findBy({ name: "Family photo", href: "family-photo.jpeg" }), SQLPhoto.build({
-        id: 2,
-        name: "Family photo",
-        href: "family-photo.jpeg",
-        is_public: true,
-      }));
-      assert.propEqual(await SQLPhotoComment.findBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), SQLPhotoComment.build({
-        uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-        content: "I was kidding",
-        is_important: true,
-        inserted_at: "2015-10-25T20:54:04.447Z",
-        updated_at: "2015-10-25T20:54:04.447Z",
-        photo_id: 1,
-        user_id: 1,
-      }));
+      assert.propEqual(
+        await SQLPhoto.findBy({ name: "Family photo", href: "family-photo.jpeg" }),
+        SQLPhoto.build({
+          id: 2,
+          name: "Family photo",
+          href: "family-photo.jpeg",
+          is_public: true,
+        })
+      );
+      assert.propEqual(
+        await SQLPhotoComment.findBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
+        SQLPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
+          updated_at: "2015-10-25T20:54:04.447Z",
+          photo_id: 1,
+          user_id: 1,
+        })
+      );
     });
 
     test("$Model.findBy(attributes) returns a new instance from the actual cache each time", async function (assert) {
@@ -197,7 +224,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
 
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
@@ -211,7 +238,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
       assert.propContains(secondResponse, firstPhoto);
       assert.deepEqual([secondResponse.isNew, secondResponse.isPersisted], [false, true]);
 
-      secondResponse.name = 'Some unique name';
+      secondResponse.name = "Some unique name";
 
       assert.equal(await SQLPhoto.findBy({ name: "Some unique name" }), null);
 
@@ -223,7 +250,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
     });
   });
 
-  module('$Model.findAll() tests', function() {
+  module("$Model.findAll() tests", function () {
     test("$Model.findAll() without parameters returns all the models in the database", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -413,13 +440,13 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].content = 'Whatever';
-      assert.equal(secondModels[0].content, 'Whatever');
+      secondModels[0].content = "Whatever";
+      assert.equal(secondModels[0].content, "Whatever");
 
       let thirdModels = await SQLPhotoComment.findAll({ photo_id: 1, user_id: 1 });
       assert.deepEqual(secondModels, [
@@ -440,7 +467,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual(thirdModels, [
         SQLPhotoComment.build({
@@ -460,7 +487,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);

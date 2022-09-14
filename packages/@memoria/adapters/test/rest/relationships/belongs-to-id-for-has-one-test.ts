@@ -6,7 +6,7 @@ import Model, {
   UnauthorizedError,
   NotFoundError,
   RelationshipPromise,
-  RelationshipDB
+  RelationshipDB,
 } from "@memoria/model";
 import { HTTP } from "@memoria/adapters";
 import ServerResponse from "@memoria/response";
@@ -158,7 +158,7 @@ module(
       assert.equal(deletedPhoto.group_id, null);
     });
 
-    test('when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model', async function (assert) {
+    test("when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
       let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
       this.Server = Server;
 
@@ -409,10 +409,7 @@ module(
         await photo.group;
       } catch (error) {
         assert.ok(error instanceof UnauthorizedError);
-        assert.equal(
-          error.message,
-          `Server responds with unauthorized access to GET ${HTTP.host}/groups/44`
-        );
+        assert.equal(error.message, `Server responds with unauthorized access to GET ${HTTP.host}/groups/44`);
       }
 
       assert.ok(photo.group instanceof RelationshipPromise);
@@ -427,10 +424,7 @@ module(
         await photo.group;
       } catch (error) {
         assert.ok(error instanceof NotFoundError);
-        assert.equal(
-          error.message,
-          `Server responded with not found for GET ${HTTP.host}/groups/44`
-        );
+        assert.equal(error.message, `Server responded with not found for GET ${HTTP.host}/groups/44`);
       }
 
       assert.ok(photo.group instanceof RelationshipPromise);

@@ -1,5 +1,5 @@
-import path from 'path';
-import fs from 'fs/promises';
+import path from "path";
+import fs from "fs/promises";
 
 export default async function recursiveCopy(sourcePath, targetPath) {
   try {
@@ -17,9 +17,7 @@ export default async function recursiveCopy(sourcePath, targetPath) {
       let entries = await fs.readdir(sourcePath);
 
       await Promise.all(
-        entries.map((entry) =>
-          recursiveCopy(path.join(sourcePath, entry), path.join(targetPath, entry))
-        )
+        entries.map((entry) => recursiveCopy(path.join(sourcePath, entry), path.join(targetPath, entry)))
       );
     } else {
       await fs.copyFile(sourcePath, targetPath);

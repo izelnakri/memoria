@@ -1,10 +1,4 @@
-import Model, {
-  Serializer,
-  PrimaryGeneratedColumn,
-  Column,
-  BelongsTo,
-  HasMany,
-} from "@memoria/model";
+import Model, { Serializer, PrimaryGeneratedColumn, Column, BelongsTo, HasMany } from "@memoria/model";
 import User from "./user.js";
 import Group from "./group.js";
 import PhotoComment from "./photo-comment.js";

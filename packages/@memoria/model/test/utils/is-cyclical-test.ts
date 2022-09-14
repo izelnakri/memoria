@@ -463,12 +463,7 @@ module("@memoria/model | Utils | isCyclical", function (hooks) {
       let obj = { abc: null };
       let objTwo = { abc: obj };
 
-      let array = new Set([
-        objTwo,
-        objTwo,
-        objTwo,
-        [objTwo, objTwo, [objTwo, objTwo, objTwo], objTwo],
-      ]);
+      let array = new Set([objTwo, objTwo, objTwo, [objTwo, objTwo, [objTwo, objTwo, objTwo], objTwo]]);
 
       assert.notOk(isCyclical(array));
 
@@ -521,9 +516,7 @@ module("@memoria/model | Utils | isCyclical", function (hooks) {
       circularA.relationship = circularA;
 
       assert.ok(isCyclical(new Set([obj, objTwo, objThree, new Set([obj, new Set([circularA])])])));
-      assert.notOk(
-        isCyclical(new Set([obj, objTwo, objThree, [obj, circularB, [circularB, circularB]]]))
-      );
+      assert.notOk(isCyclical(new Set([obj, objTwo, objThree, [obj, circularB, [circularB, circularB]]])));
     });
   });
 });

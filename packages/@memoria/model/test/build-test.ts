@@ -21,7 +21,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     return { Post };
   }
 
-  module('metadata tests', function() {
+  module("metadata tests", function () {
     test("default metadata assignments are correct", function (assert) {
       let { Post } = prepare();
 
@@ -53,10 +53,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.propEqual(model, { id: null, isPublic: false, name: "something" });
 
-      let anotherModel = Post.build(
-        { isPublic: false, name: "something else" },
-        { isNew: false, isDeleted: true }
-      );
+      let anotherModel = Post.build({ isPublic: false, name: "something else" }, { isNew: false, isDeleted: true });
 
       assert.propEqual(anotherModel, { id: null, isPublic: false, name: "something else" });
       assert.equal(anotherModel.isNew, false);
@@ -85,7 +82,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     });
   });
 
-  module('instantiation/casting attribute tests', function () {
+  module("instantiation/casting attribute tests", function () {
     test("it can cast dates and undefined value correctly", function (assert) {
       class Book extends Model {
         @PrimaryGeneratedColumn("uuid")
@@ -196,7 +193,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
         await ownerPromise;
       } catch (error) {
         assert.ok(error.message.includes(`Web server responds with an error for GET`));
-        assert.ok(error.message.includes('/users/44'));
+        assert.ok(error.message.includes("/users/44"));
       }
 
       assert.ok(RESTPhoto.build(photo));
@@ -205,9 +202,23 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.propContains(insertedUser, { id: 44, first_name: "Izel", last_name: "Nakri" });
       assert.propEqual(photo.owner, insertedUser);
     });
+
+    test("$Model.build(objectWithModel) sets foreign key relationships correctly", async function (assert) {
+      let { Server, MemoryUser, MemoryPhoto } = setupRESTModels();
+      this.Server = Server;
+
+      let users = await MemoryUser.insertAll([{ first_name: "Izel" }, { first_name: "Moris" }]);
+      let firstPhoto = MemoryPhoto.build({ name: "Family photo", owner: users[0] });
+      let secondPhoto = MemoryPhoto.build({ name: "Trip photo", owner: users[1] });
+
+      assert.propEqual(firstPhoto.owner, users[0]);
+      assert.equal(firstPhoto.owner_id, users[0].id);
+      assert.propEqual(secondPhoto.owner, users[1]);
+      assert.equal(secondPhoto.owner_id, users[1].id);
+    });
   });
 
-  module('dirty tracking & revision tests', function () {
+  module("dirty tracking & revision tests", function () {
     test("model tracking works correctly for empty builds", function (assert) {
       let { Post } = prepare();
 
@@ -216,9 +227,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.notOk(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, {});
       assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel));
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {});
 
@@ -226,13 +235,8 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, { name: "some new name" });
-      assert.matchChangeset(
-        emptyModel.changeset,
-        new Changeset(emptyModel, { name: "some new name" })
-      );
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, { name: "some new name" }));
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {
         name: ["Imported photo", "some new name"],
@@ -242,13 +246,8 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, { name: "some new name", isPublic: true });
-      assert.matchChangeset(
-        emptyModel.changeset,
-        new Changeset(emptyModel, { name: "some new name", isPublic: true })
-      );
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, { name: "some new name", isPublic: true }));
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {
         name: ["Imported photo", "some new name"],
@@ -263,9 +262,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
         emptyModel.changeset,
         new Changeset(emptyModel, { name: "another new name", isPublic: true })
       );
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {
         name: ["Imported photo", "another new name"],
@@ -276,10 +273,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, { name: "another new name" });
-      assert.matchChangeset(
-        emptyModel.changeset,
-        new Changeset(emptyModel, { name: "another new name" })
-      );
+      assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, { name: "another new name" }));
       assert.deepEqual(emptyModel.changedAttributes(), {
         name: ["Imported photo", "another new name"],
       });
@@ -319,10 +313,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(model.isDirty);
       assert.deepEqual(model.changes, { name: "some new name", isPublic: true });
-      assert.matchChangeset(
-        model.changeset,
-        new Changeset(model, { name: "some new name", isPublic: true })
-      );
+      assert.matchChangeset(model.changeset, new Changeset(model, { name: "some new name", isPublic: true }));
       assert.deepEqual(model.revisionHistory, [{ id: null, isPublic: null, name: "Izel Nakri" }]);
       assert.deepEqual(model.revision, { id: null, isPublic: null, name: "Izel Nakri" });
       assert.deepEqual(model.changedAttributes(), {
@@ -334,10 +325,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(model.isDirty);
       assert.deepEqual(model.changes, { name: "another new name", isPublic: true });
-      assert.matchChangeset(
-        model.changeset,
-        new Changeset(model, { name: "another new name", isPublic: true })
-      );
+      assert.matchChangeset(model.changeset, new Changeset(model, { name: "another new name", isPublic: true }));
       assert.deepEqual(model.revisionHistory, [{ id: null, isPublic: null, name: "Izel Nakri" }]);
       assert.deepEqual(model.revision, { id: null, isPublic: null, name: "Izel Nakri" });
       assert.deepEqual(model.changedAttributes(), {
@@ -380,10 +368,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(model.isDirty);
       assert.deepEqual(model.changes, { isPublic: false, name: "some new name" });
-      assert.matchChangeset(
-        model.changeset,
-        new Changeset(model, { isPublic: false, name: "some new name" })
-      );
+      assert.matchChangeset(model.changeset, new Changeset(model, { isPublic: false, name: "some new name" }));
       assert.deepEqual(model.revisionHistory, [{ id: 5, isPublic: true, name: "Imported photo" }]);
       assert.deepEqual(model.revision, { id: 5, isPublic: true, name: "Imported photo" });
       assert.deepEqual(model.changedAttributes(), {
@@ -414,17 +399,14 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     });
   });
 
-  module('.rollbackAttributes() tests', function () {
-
+  module(".rollbackAttributes() tests", function () {
     test(".rollbackAttributes() work for empty built models", function (assert) {
       let { Post } = prepare();
 
       let emptyModel = Post.build();
 
       assert.notOk(emptyModel.isDirty);
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {});
 
@@ -434,13 +416,8 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, { id: 22, name: "some new name" });
-      assert.matchChangeset(
-        emptyModel.changeset,
-        new Changeset(emptyModel, { id: 22, name: "some new name" })
-      );
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, { id: 22, name: "some new name" }));
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {
         id: [null, 22],
@@ -452,9 +429,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.notOk(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, {});
       assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, {}));
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {});
 
@@ -462,13 +437,8 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(emptyModel.isDirty);
       assert.deepEqual(emptyModel.changes, { name: "some new name" });
-      assert.matchChangeset(
-        emptyModel.changeset,
-        new Changeset(emptyModel, { name: "some new name" })
-      );
-      assert.deepEqual(emptyModel.revisionHistory, [
-        { id: null, isPublic: null, name: "Imported photo" },
-      ]);
+      assert.matchChangeset(emptyModel.changeset, new Changeset(emptyModel, { name: "some new name" }));
+      assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });
       assert.deepEqual(emptyModel.changedAttributes(), {
         name: ["Imported photo", "some new name"],
@@ -493,10 +463,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.ok(model.isDirty);
       assert.deepEqual(model.changes, { isPublic: false, name: "some new name" });
-      assert.matchChangeset(
-        model.changeset,
-        new Changeset(model, { isPublic: false, name: "some new name" })
-      );
+      assert.matchChangeset(model.changeset, new Changeset(model, { isPublic: false, name: "some new name" }));
       assert.deepEqual(model.revisionHistory, [{ id: 5, isPublic: true, name: "Imported photo" }]);
       assert.deepEqual(model.revision, { id: 5, isPublic: true, name: "Imported photo" });
       assert.deepEqual(model.changedAttributes(), {

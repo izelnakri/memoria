@@ -21,8 +21,7 @@ export default function hackPretender(Pretender) {
       }, {});
 
       let newParamsFromBody =
-        tryConvertingJSONStringToObject(request.requestBody) ||
-        tryConvertingQueryStringToObject(request.requestBody);
+        tryConvertingJSONStringToObject(request.requestBody) || tryConvertingQueryStringToObject(request.requestBody);
       if (newParamsFromBody) {
         request.params = Object.assign(request.params, castCorrectType(newParamsFromBody));
       }
@@ -185,9 +184,7 @@ export default function hackPretender(Pretender) {
         : handler;
       if (!targetHandler) {
         this.shutdown();
-        throw new Error(
-          kleur.red(`[Memoria] ${verb} ${path} route handler cannot be generated automatically`)
-        );
+        throw new Error(kleur.red(`[Memoria] ${verb} ${path} route handler cannot be generated automatically`));
       }
       const timing = async ? async.timing || this.timing : this.timing;
 

@@ -1,4 +1,11 @@
-import Model, { PrimaryGeneratedColumn, Serializer, Column, CreateDateColumn, UpdateDateColumn, BelongsTo } from "@memoria/model";
+import Model, {
+  PrimaryGeneratedColumn,
+  Serializer,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  BelongsTo,
+} from "@memoria/model";
 import User from "./user.js";
 import Photo from "./photo.js";
 
@@ -6,7 +13,7 @@ export default function generatePhotoComment() {
   class MemoryPhotoComment extends Model {
     static Serializer = class PhotoCommentSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
     @Column()

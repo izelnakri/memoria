@@ -1,9 +1,4 @@
-import Model, {
-  Column,
-  CreateDateColumn,
-  PrimaryGeneratedColumn,
-  RuntimeError,
-} from "@memoria/model";
+import Model, { Column, CreateDateColumn, PrimaryGeneratedColumn, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 import wait from "./helpers/wait.js";
@@ -94,9 +89,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
   test("$Model.cache(json) inserts json records correctly when not existing in the cache", async function (assert) {
     const { Photo, PhotoComment } = prepare();
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
     assert.deepEqual(
       (await Photo.findAll()).map((photo) => photo.id),
       [1, 2, 3]
@@ -113,9 +106,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     assert.notOk(model.isDeleted);
     assert.deepEqual(model.changes, {});
     assert.propEqual(model.revision, { id: 99, is_public: null, name: "just adding this" });
-    assert.deepEqual(model.revisionHistory, [
-      { id: 99, is_public: null, name: "just adding this" },
-    ]);
+    assert.deepEqual(model.revisionHistory, [{ id: 99, is_public: null, name: "just adding this" }]);
     assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
@@ -139,9 +130,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
       },
     ]);
 
-    const initialCommentUUIDs = (await PhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map((photoComment) => photoComment.uuid);
     assert.deepEqual(initialCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -185,9 +174,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     ]);
     assert.equal(await PhotoComment.count(), 5);
 
-    const lastCommentUUIDs = (await PhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
+    const lastCommentUUIDs = (await PhotoComment.findAll()).map((photoComment) => photoComment.uuid);
     assert.deepEqual(lastCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -214,9 +201,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
   test("$Model.cache(json) updates json record correctly when existing in the cache", async function (assert) {
     const { Photo, PhotoComment } = prepare();
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
     assert.propEqual(await Photo.findAll(), [
       {
         id: 1,
@@ -268,9 +253,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
       },
     ]);
 
-    const initialCommentUUIDs = (await PhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
+    const initialCommentUUIDs = (await PhotoComment.findAll()).map((photoComment) => photoComment.uuid);
     assert.deepEqual(initialCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -333,9 +316,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
 
     assert.equal(await PhotoComment.count(), 4);
 
-    const lastCommentUUIDs = (await PhotoComment.findAll()).map(
-      (photoComment) => photoComment.uuid
-    );
+    const lastCommentUUIDs = (await PhotoComment.findAll()).map((photoComment) => photoComment.uuid);
     assert.deepEqual(lastCommentUUIDs, [
       "499ec646-493f-4eea-b92e-e383d94182f4",
       "77653ad3-47e4-4ec2-b49f-57ea36a627e7",

@@ -1,15 +1,6 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, {
-  RuntimeError,
-  RelationshipPromise,
-  RelationshipSchema,
-} from "@memoria/model";
-import type {
-  PrimaryKey,
-  ModelReference,
-  ModelBuildOptions,
-  RelationshipMetadata,
-} from "@memoria/model";
+import MemoriaModel, { RuntimeError, RelationshipPromise, RelationshipSchema } from "@memoria/model";
+import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
 
@@ -24,8 +15,7 @@ type ModelRefOrInstance = ModelReference | MemoriaModel;
 
 // TODO: also provide APIActions
 export default class RESTAdapter extends MemoryAdapter {
-  static host: string =
-    typeof window === "undefined" ? "http://localhost:3000" : window.location?.origin;
+  static host: string = typeof window === "undefined" ? "http://localhost:3000" : window.location?.origin;
   static headers: HTTPHeaders = {
     Accept: "application/json",
   };
@@ -245,15 +235,9 @@ export default class RESTAdapter extends MemoryAdapter {
     return this.unloadAll(Model, records);
   }
 
-  static fetchRelationship(
-    model: MemoriaModel,
-    relationshipName: string,
-    relationshipMetadata?: RelationshipMetadata
-  ) {
+  static fetchRelationship(model: MemoriaModel, relationshipName: string, relationshipMetadata?: RelationshipMetadata) {
     let Model = model.constructor as typeof MemoriaModel;
-    let metadata =
-      relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
+    let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
@@ -269,9 +253,11 @@ export default class RESTAdapter extends MemoryAdapter {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
-            return resolve(await RelationshipClass.findBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            }) || null)
+            return resolve(
+              (await RelationshipClass.findBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })) || null
+            );
           }
 
           return reject();
@@ -301,9 +287,10 @@ function buildQueryPath(queryObject?: JSObject) {
     return "";
   }
 
-  let findByKeys = queryObject instanceof MemoriaModel ?
-    Array.from((queryObject.constructor as typeof MemoriaModel).columnNames) :
-    Object.keys(queryObject);
+  let findByKeys =
+    queryObject instanceof MemoriaModel
+      ? Array.from((queryObject.constructor as typeof MemoriaModel).columnNames)
+      : Object.keys(queryObject);
   if (findByKeys.length > 0) {
     let arrayParams = {};
     let queryParams = new URLSearchParams(

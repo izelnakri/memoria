@@ -16,7 +16,7 @@ export default function generateModels() {
     static Adapter = SQLAdapter;
     static Serializer = class GroupSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn("uuid")
     uuid: string;
 
     @Column("varchar", { nullable: true })
@@ -41,7 +41,7 @@ export default function generateModels() {
     static Adapter = SQLAdapter;
     static Serializer = class PhotoCommentSerializer extends Serializer {};
 
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn("uuid")
     uuid: number;
 
     @Column("varchar", { nullable: true })

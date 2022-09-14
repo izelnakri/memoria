@@ -1,9 +1,9 @@
-import fs from 'fs/promises';
-import kleur from 'kleur';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import getMemServerDirectory from '../utils/get-memserver-directory.js';
-import createFixtureAndModelFoldersIfNeeded from '../utils/create-fixture-and-model-folders-if-needed.js';
+import fs from "fs/promises";
+import kleur from "kleur";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import getMemServerDirectory from "../utils/get-memserver-directory.js";
+import createFixtureAndModelFoldersIfNeeded from "../utils/create-fixture-and-model-folders-if-needed.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

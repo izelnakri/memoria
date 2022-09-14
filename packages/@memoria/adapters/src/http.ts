@@ -41,8 +41,7 @@ interface HTTPMemoriaOptions extends ModelBuildOptions {
 const DEFAULT_TIMEOUT_IN_MS = 30000;
 
 export default class HTTP {
-  static host: string =
-    typeof window === "undefined" ? "http://localhost:3000" : window.location?.origin;
+  static host: string = typeof window === "undefined" ? "http://localhost:3000" : window.location?.origin;
   static headers: HTTPHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -55,11 +54,7 @@ export default class HTTP {
   }
 
   static buildHeaders(headers: JSObject) {
-    return Object.assign(
-      { Accept: "application/json", "Content-Type": "application/json" },
-      this.headers,
-      headers
-    );
+    return Object.assign({ Accept: "application/json", "Content-Type": "application/json" }, this.headers, headers);
   }
 
   static async get(url: string, headers: JSObject = {}, options?: HTTPMemoriaOptions) {
@@ -75,12 +70,7 @@ export default class HTTP {
     );
   }
 
-  static async post(
-    url: string,
-    body: JSObject = {},
-    headers: JSObject = {},
-    options?: HTTPMemoriaOptions
-  ) {
+  static async post(url: string, body: JSObject = {}, headers: JSObject = {}, options?: HTTPMemoriaOptions) {
     return await makeFetchRequest(
       {
         headers: this.buildHeaders(headers),
@@ -94,12 +84,7 @@ export default class HTTP {
     );
   }
 
-  static async put(
-    url: string,
-    body: JSObject = {},
-    headers: JSObject = {},
-    options?: HTTPMemoriaOptions
-  ) {
+  static async put(url: string, body: JSObject = {}, headers: JSObject = {}, options?: HTTPMemoriaOptions) {
     return await makeFetchRequest(
       {
         headers: this.buildHeaders(headers),
@@ -113,12 +98,7 @@ export default class HTTP {
     );
   }
 
-  static async delete(
-    url: string,
-    body: JSObject = {},
-    headers: JSObject = {},
-    options?: HTTPMemoriaOptions
-  ) {
+  static async delete(url: string, body: JSObject = {}, headers: JSObject = {}, options?: HTTPMemoriaOptions) {
     return await makeFetchRequest(
       {
         headers: this.buildHeaders(headers),
@@ -193,9 +173,7 @@ async function makeFetchRequest(
     if (httpOptions.method !== "DELETE" && Model) {
       let Adapter = Model.Adapter;
       let modelRequestKeyName = Model.Serializer.modelKeyNameForPayload(Model);
-      let input = inputBody
-        ? inputBody[modelRequestKeyName] || inputBody[pluralize(modelRequestKeyName)]
-        : inputBody;
+      let input = inputBody ? inputBody[modelRequestKeyName] || inputBody[pluralize(modelRequestKeyName)] : inputBody;
       let modelResponseKeyName = Model.Serializer.modelKeyNameFromPayload(Model);
       let results = json[modelResponseKeyName] || json[pluralize(modelResponseKeyName)];
       let deserializedResponse = deserializeModel(Model, input, results);
@@ -203,21 +181,13 @@ async function makeFetchRequest(
       // TODO: if result is empty throw an error
       if (Array.isArray(results)) {
         return deserializedResponse.map((result) => {
-          return Adapter.cache(
-            Model as typeof MemoriaModel,
-            result,
-            options
-          );
+          return Adapter.cache(Model as typeof MemoriaModel, result, options);
         }) as MemoriaModel[];
       } else if (!deserializedResponse) {
         return null; // NOTE: maybe throw here in the future(?)
       }
 
-      return Adapter.cache(
-        Model,
-        deserializedResponse,
-        options
-      ) as MemoriaModel;
+      return Adapter.cache(Model, deserializedResponse, options) as MemoriaModel;
     }
 
     return json;
@@ -270,10 +240,7 @@ function isObject(value) {
   return typeof value === "object" && !Array.isArray(value) && value !== null;
 }
 
-function getModelFromPayload(
-  jsonBody: JSObject,
-  Model: typeof MemoriaModel
-): undefined | MemoriaModel {
+function getModelFromPayload(jsonBody: JSObject, Model: typeof MemoriaModel): undefined | MemoriaModel {
   if (!jsonBody) {
     return;
   } else if (!Model.Serializer.modelKeyNameForPayload) {
@@ -323,10 +290,10 @@ function synchronizePayloadForBuild(Model, input, result) {
   return result && input instanceof Model
     ? Model.assign(input, result)
     : Array.from(Model.relationshipNames).reduce((result: JSObject, relationshipName: string) => {
-      if (relationshipName in input) {
-        result[relationshipName] = input[relationshipName];
-      }
+        if (relationshipName in input) {
+          result[relationshipName] = input[relationshipName];
+        }
 
-      return result;
-    }, result);
+        return result;
+      }, result);
 }

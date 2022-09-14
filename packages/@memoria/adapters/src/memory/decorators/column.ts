@@ -1,12 +1,7 @@
 import Model from "@memoria/model";
 import type { ColumnDefinition } from "@memoria/model";
 
-export function Column(
-  _target: typeof Model,
-  _propertyKey: string,
-  _options: ColumnDefinition,
-  _descriptor: any
-) {
+export function Column(_target: typeof Model, _propertyKey: string, _options: ColumnDefinition, _descriptor: any) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 
@@ -47,11 +42,7 @@ export function PrimaryColumn(
 ) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
-export function PrimaryGeneratedColumn(
-  _target: typeof Model,
-  _propertyKey: string,
-  _strategy: string
-) {
+export function PrimaryGeneratedColumn(_target: typeof Model, _propertyKey: string, _strategy: string) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
 

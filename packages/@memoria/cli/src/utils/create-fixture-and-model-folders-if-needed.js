@@ -1,9 +1,9 @@
-import fs from 'fs/promises';
-import kleur from 'kleur';
-import recursiveCopy from './recursive-copy.js';
+import fs from "fs/promises";
+import kleur from "kleur";
+import recursiveCopy from "./recursive-copy.js";
 
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

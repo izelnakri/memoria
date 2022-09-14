@@ -1,8 +1,8 @@
-import fs from 'fs/promises';
+import fs from "fs/promises";
 import { module, test } from "qunitx";
 import util from "util";
 import child_process from "child_process";
-import transpileImport from './../../helpers/transpile-import.js';
+import transpileImport from "./../../helpers/transpile-import.js";
 
 const CWD = process.cwd();
 const PKG_PATH = `${CWD}/packages/@memserver/cli`;
@@ -11,12 +11,12 @@ const CLI_JS = `${PKG_PATH}/src/cli.js`;
 const shell = util.promisify(child_process.exec);
 
 module("@memserver/cli | g fixtures command", function (hooks) {
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     await fs.rm(`${CWD}/memserver`, { force: true, recursive: true });
     await fs.rm(`${CWD}/tmp`, { force: true, recursive: true });
   });
 
-  test("$ memserver g fixtures | without memserver directory raises error", async function(assert) {
+  test("$ memserver g fixtures | without memserver directory raises error", async function (assert) {
     assert.expect(3);
 
     const folderExistence = await pathExists(`${CWD}/memserver`);
@@ -25,22 +25,14 @@ module("@memserver/cli | g fixtures command", function (hooks) {
 
     let result = await shell(`node ${CLI_JS} generate fixtures`);
 
-    assert.ok(
-      result.stdout.includes(
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"
-      )
-    );
+    assert.ok(result.stdout.includes("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
 
     result = await shell(`node ${CLI_JS} g fixtures`);
 
-    assert.ok(
-      result.stdout.includes(
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"
-      )
-    );
+    assert.ok(result.stdout.includes("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
   });
 
-  test("$ memserver g fixtures [modelName] | without memserver directory raises error", async function(assert) {
+  test("$ memserver g fixtures [modelName] | without memserver directory raises error", async function (assert) {
     assert.expect(3);
 
     const folderExistence = await pathExists(`${CWD}/memserver`);
@@ -49,22 +41,14 @@ module("@memserver/cli | g fixtures command", function (hooks) {
 
     let result = await shell(`node ${CLI_JS} generate fixtures user`);
 
-    assert.ok(
-      result.stdout.includes(
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"
-      )
-    );
+    assert.ok(result.stdout.includes("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
 
     result = await shell(`node ${CLI_JS} g fixtures`);
 
-    assert.ok(
-      result.stdout.includes(
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"
-      )
-    );
+    assert.ok(result.stdout.includes("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
   });
 
-  test("$ memserver g fixtures | works for the entire state", async function(assert) {
+  test("$ memserver g fixtures | works for the entire state", async function (assert) {
     assert.expect(9);
 
     await generateMemServerState();
@@ -78,12 +62,7 @@ module("@memserver/cli | g fixtures command", function (hooks) {
 
     const fixturesPath = `${CWD}/memserver/fixtures`;
 
-    assert.deepEqual(await fs.readdir(fixturesPath), [
-      "likes.ts",
-      "photo-comments.ts",
-      "photos.ts",
-      "users.ts",
-    ]);
+    assert.deepEqual(await fs.readdir(fixturesPath), ["likes.ts", "photo-comments.ts", "photos.ts", "users.ts"]);
     // TODO: how to check these?
     assert.deepEqual(await transpileImport(`${fixturesPath}/users.ts`), [
       {
@@ -135,7 +114,7 @@ module("@memserver/cli | g fixtures command", function (hooks) {
     assert.deepEqual(await transpileImport(`${fixturesPath}/likes.ts`), []);
   });
 
-  test("$ memserver generate fixtures [modelName] works", async function(assert) {
+  test("$ memserver generate fixtures [modelName] works", async function (assert) {
     assert.expect(12);
 
     await generateMemServerState();
@@ -206,7 +185,14 @@ module("@memserver/cli | g fixtures command", function (hooks) {
     let result = await shell(`node ${CLI_JS} generate fixtures photos`);
     assert.ok(result.stdout.includes("[MemServer] data written to /fixtures/photos.ts"));
 
-    assert.deepEqual(await fs.readdir(fixturesPath), ["photo-comments.js", "photo-comments.ts", "photos.js", "photos.ts", "users.js", "users.ts"]);
+    assert.deepEqual(await fs.readdir(fixturesPath), [
+      "photo-comments.js",
+      "photo-comments.ts",
+      "photos.js",
+      "photos.ts",
+      "users.js",
+      "users.ts",
+    ]);
     assert.deepEqual(await transpileImport(`${fixturesPath}/users.ts`), [
       {
         password: "123456",
@@ -255,7 +241,7 @@ module("@memserver/cli | g fixtures command", function (hooks) {
     assert.ok(!(await pathExists(`${fixturesPath}/likes.ts`)));
   });
 
-  test("$ memserver g fixtures [modelName] works", async function(assert) {
+  test("$ memserver g fixtures [modelName] works", async function (assert) {
     assert.expect(12);
 
     await generateMemServerState();
@@ -327,7 +313,14 @@ module("@memserver/cli | g fixtures command", function (hooks) {
 
     assert.ok(result.stdout.includes("[MemServer] data written to /fixtures/photos.ts"));
 
-    assert.deepEqual(await fs.readdir(fixturesPath), ["photo-comments.js", "photo-comments.ts", "photos.js", "photos.ts", "users.js", "users.ts"]);
+    assert.deepEqual(await fs.readdir(fixturesPath), [
+      "photo-comments.js",
+      "photo-comments.ts",
+      "photos.js",
+      "photos.ts",
+      "users.js",
+      "users.ts",
+    ]);
     assert.deepEqual(await transpileImport(`${fixturesPath}/users.ts`), [
       {
         password: "123456",

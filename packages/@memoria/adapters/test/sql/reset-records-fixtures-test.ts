@@ -1,11 +1,4 @@
-import Model, {
-  DB,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  CacheError,
-  RuntimeError,
-} from "@memoria/model";
+import Model, { DB, PrimaryGeneratedColumn, Column, CreateDateColumn, CacheError, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
