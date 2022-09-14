@@ -5,20 +5,20 @@ import Model, {
   DeleteError,
   RuntimeError,
   InstanceDB,
-  RelationshipDB
+  RelationshipDB,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
 import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
-import FIXTURES from "../helpers/fixtures/mix/index.js"
+import FIXTURES from "../helpers/fixtures/mix/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
   setupMemoria(hooks);
 
-  module('Primary key tests', function () {
+  module("Primary key tests", function () {
     test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -71,7 +71,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
     });
   });
 
-  module('Attribute tests', function () {
+  module("Attribute tests", function () {
     test("$Model.delete() can delete existing items", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -80,12 +80,15 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
       let deletedPhoto = await SQLPhoto.delete({ id: 2 });
-      assert.propEqual(deletedPhoto, SQLPhoto.build({
-        id: 2,
-        name: "Family photo",
-        href: "family-photo.jpeg",
-        is_public: true,
-      }));
+      assert.propEqual(
+        deletedPhoto,
+        SQLPhoto.build({
+          id: 2,
+          name: "Family photo",
+          href: "family-photo.jpeg",
+          is_public: true,
+        })
+      );
       assert.notOk(deletedPhoto.isNew);
       assert.ok(deletedPhoto.isPersisted);
       assert.ok(deletedPhoto.isDeleted);
@@ -97,7 +100,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
         href: "family-photo.jpeg",
         is_public: true,
         group_uuid: null,
-        owner_id: null
+        owner_id: null,
       });
       assert.deepEqual(deletedPhoto.revisionHistory, [
         {
@@ -106,22 +109,25 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           href: "family-photo.jpeg",
           is_public: true,
           group_uuid: null,
-          owner_id: null
+          owner_id: null,
         },
       ]);
 
       let deletedComment = await SQLPhotoComment.delete({
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       });
-      assert.propEqual(deletedComment, SQLPhotoComment.build({
-        uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-        content: "What a nice photo!",
-        is_important: true,
-        inserted_at: deletedComment.inserted_at,
-        updated_at: deletedComment.updated_at,
-        photo_id: null,
-        user_id: null,
-      }));
+      assert.propEqual(
+        deletedComment,
+        SQLPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "What a nice photo!",
+          is_important: true,
+          inserted_at: deletedComment.inserted_at,
+          updated_at: deletedComment.updated_at,
+          photo_id: null,
+          user_id: null,
+        })
+      );
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
 
       await SQLPhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
@@ -163,7 +169,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
     });
   });
 
-  module('Reference tests', function () {
+  module("Reference tests", function () {
     test("$Model.delete($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
       const { SQLPhoto } = generateModels();
       await DB.resetRecords();
@@ -175,12 +181,15 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       let insertedPhoto = await SQLPhoto.insert(photo);
 
       assert.notEqual(insertedPhoto, photo);
-      assert.propEqual(insertedPhoto, SQLPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.propEqual(
+        insertedPhoto,
+        SQLPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
       assert.equal(InstanceDB.getReferences(photo).size, 4);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
@@ -223,8 +232,8 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 3);
 
       let cachedReference = SQLGroup.Cache.get(insertedGroup.uuid);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
@@ -240,18 +249,24 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 0);
       assert.equal(InstanceDB.getReferences(deletedGroup).size, 0);
 
-      assert.deepEqual(deletedGroup, SQLGroup.build({
-        uuid: group.uuid,
-        name: "Hacker Log",
-        owner: null,
-        photo: null
-      }));
-      assert.deepEqual(insertedGroup, SQLGroup.build({
-        uuid: group.uuid,
-        name: "Hacker Log",
-        owner: null,
-        photo: null
-      }));
+      assert.deepEqual(
+        deletedGroup,
+        SQLGroup.build({
+          uuid: group.uuid,
+          name: "Hacker Log",
+          owner: null,
+          photo: null,
+        })
+      );
+      assert.deepEqual(
+        insertedGroup,
+        SQLGroup.build({
+          uuid: group.uuid,
+          name: "Hacker Log",
+          owner: null,
+          photo: null,
+        })
+      );
       assert.equal(groupPhoto.group, null);
       assert.equal(groupPhoto.group_id, null);
     });

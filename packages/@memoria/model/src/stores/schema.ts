@@ -1,12 +1,7 @@
 // NOTE: investigate connection.entityMetadatas;
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // vs without CASCADE
 import Model from "../model.js";
-import type {
-  ModuleDatabase,
-  SchemaDefinition,
-  ColumnSchemaDefinition,
-  ColumnDefinition,
-} from "../types";
+import type { ModuleDatabase, SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "../types";
 import type { MemoryAdapter } from "@memoria/adapters";
 
 export default class Schema {
@@ -63,9 +58,7 @@ export default class Schema {
   static getColumnsMetadataFrom(Class: typeof Model): ColumnSchemaDefinition {
     let schema = this.getSchema(Class);
     if (!schema) {
-      throw new Error(
-        `[@memoria/model] No Schema available for ${Class.name}. Did you add the column decorators?`
-      );
+      throw new Error(`[@memoria/model] No Schema available for ${Class.name}. Did you add the column decorators?`);
     }
 
     return schema.columns;

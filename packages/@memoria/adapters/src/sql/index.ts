@@ -14,12 +14,7 @@ import MemoriaModel, {
   NotFoundError,
 } from "@memoria/model";
 import { prepareTargetObjectFromInstance } from "../utils.js";
-import type {
-  PrimaryKey,
-  ModelReference,
-  ModelBuildOptions,
-  RelationshipMetadata,
-} from "@memoria/model";
+import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
 
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | MemoriaModel;
@@ -68,9 +63,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
   static async resetSchemas(Schema, Model?: typeof MemoriaModel): Promise<Schema> {
     if (Model) {
-      throw new RuntimeError(
-        "$Model.resetSchemas($Model) not supported for SQLAdapter yet. Use $Model.resetSchemas()"
-      );
+      throw new RuntimeError("$Model.resetSchemas($Model) not supported for SQLAdapter yet. Use $Model.resetSchemas()");
     }
     let connection = await this.getConnection();
 
@@ -102,11 +95,7 @@ export default class SQLAdapter extends MemoryAdapter {
       if (targetState) {
         let records = await this.insertAll(Model, targetState, options);
 
-        return await this.resetCache(
-          Model,
-          records,
-          Object.assign({}, options, { revision: false })
-        );
+        return await this.resetCache(Model, records, Object.assign({}, options, { revision: false }));
       }
 
       return await this.resetCache(Model, [], options);
@@ -246,9 +235,9 @@ export default class SQLAdapter extends MemoryAdapter {
 
         throw new RuntimeError(
           new Changeset(Model.build(target)),
-          `Wrong ${Model.primaryKeyName} input type: entered ${typeof target[
-            Model.primaryKeyName
-          ]} instead of ${Model.primaryKeyType}`
+          `Wrong ${Model.primaryKeyName} input type: entered ${typeof target[Model.primaryKeyName]} instead of ${
+            Model.primaryKeyType
+          }`
         );
       }
 
@@ -295,11 +284,7 @@ export default class SQLAdapter extends MemoryAdapter {
         return await super.update(Model, Model.assign(record, result), options);
       }
 
-      return this.cache(
-        Model,
-        Model.assign(record, result) as ModelRefOrInstance,
-        options
-      ) as MemoriaModel;
+      return this.cache(Model, Model.assign(record, result) as ModelRefOrInstance, options) as MemoriaModel;
     } catch (error) {
       throw error;
     }
@@ -333,11 +318,7 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       if (Model.Cache.get(result[Model.primaryKeyName])) {
-        return await super.delete(
-          Model,
-          Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance,
-          options
-        );
+        return await super.delete(Model, Model.assign(result, resultRaw.raw[0]) as ModelRefOrInstance, options);
       }
 
       return Model.build(
@@ -413,9 +394,7 @@ export default class SQLAdapter extends MemoryAdapter {
   ): Promise<MemoriaModel[]> {
     // TODO: model always expects them to be instance!! Do not use save function!
     let Manager = await this.getEntityManager();
-    let results = await Manager.save(
-      records.map((model) => cleanRelationships(Model, Model.build(model)))
-    );
+    let results = await Manager.save(records.map((model) => cleanRelationships(Model, Model.build(model))));
 
     return results.map((result, index) =>
       this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options)
@@ -446,15 +425,9 @@ export default class SQLAdapter extends MemoryAdapter {
     );
   }
 
-  static fetchRelationship(
-    model: MemoriaModel,
-    relationshipName: string,
-    relationshipMetadata?: RelationshipMetadata
-  ) {
+  static fetchRelationship(model: MemoriaModel, relationshipName: string, relationshipMetadata?: RelationshipMetadata) {
     let Model = model.constructor as typeof MemoriaModel;
-    let metadata =
-      relationshipMetadata ||
-      RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
+    let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
@@ -521,8 +494,7 @@ function cleanRelationships(Model, instance) {
   Object.keys(relationshipTable).forEach((relationshipKey) => {
     if (relationshipKey in instance) {
       let { relationshipType } = relationshipTable[relationshipKey];
-      RelationshipDB.findRelationshipCacheFor(Model, relationshipKey, relationshipType)
-        .set(instance, undefined);
+      RelationshipDB.findRelationshipCacheFor(Model, relationshipKey, relationshipType).set(instance, undefined);
     }
   });
 

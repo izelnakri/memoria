@@ -292,8 +292,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).catch((jqXHR) => {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
-        error:
-          "[Memoria] POST /photos route handler did not return anything to respond to the request!",
+        error: "[Memoria] POST /photos route handler did not return anything to respond to the request!",
       });
       assert.equal(Photo.Cache.size, 3);
     });
@@ -323,8 +322,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).catch((jqXHR) => {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
-        error:
-          "[Memoria] GET /photos route handler did not return anything to respond to the request!",
+        error: "[Memoria] GET /photos route handler did not return anything to respond to the request!",
       });
     });
   });
@@ -353,8 +351,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).catch((jqXHR) => {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
-        error:
-          "[Memoria] GET /photos/1 route handler did not return anything to respond to the request!",
+        error: "[Memoria] GET /photos/1 route handler did not return anything to respond to the request!",
       });
     });
   });
@@ -384,8 +381,7 @@ module("@memoria/server| handler defaults", function (hooks) {
     }).catch((jqXHR) => {
       assert.equal(jqXHR.status, 500);
       assert.deepEqual(jqXHR.responseJSON, {
-        error:
-          "[Memoria] PUT /photos/1 route handler did not return anything to respond to the request!",
+        error: "[Memoria] PUT /photos/1 route handler did not return anything to respond to the request!",
       });
     });
   });

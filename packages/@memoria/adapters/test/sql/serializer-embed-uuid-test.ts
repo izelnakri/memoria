@@ -1,11 +1,4 @@
-import Model, {
-  Schema,
-  DB,
-  PrimaryGeneratedColumn,
-  Column,
-  RuntimeError,
-  Serializer,
-} from "@memoria/model";
+import Model, { Schema, DB, PrimaryGeneratedColumn, Column, RuntimeError, Serializer } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -75,8 +68,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
     {
       id: 1,
       authentication_token: "1RQFPDXxNBvhGwZAEOj8ztGFItejDusXJw_F1FAg5-GknxhqrcfH9h4p9NGCiCVG",
-      password_digest:
-        "tL4rJzy3GrjSQ7K0ZMNqKsgMthsikbWfIEPTi/HJXD3lme7q6HT57RpuCKJOcAC9DFb3lXtEONmkB3fO0q3zWA==",
+      password_digest: "tL4rJzy3GrjSQ7K0ZMNqKsgMthsikbWfIEPTi/HJXD3lme7q6HT57RpuCKJOcAC9DFb3lXtEONmkB3fO0q3zWA==",
       primary_email_uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
     },
   ];
@@ -242,9 +234,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
     const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -305,12 +295,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
     }
 
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        firstPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments[0], "photo", Photo),
       {
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
         name: "Ski trip",
@@ -319,12 +304,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       }
     );
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        secondPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
       {
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         name: "Family photo",
@@ -356,18 +336,15 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       user_id: 1,
       photo_uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
     });
-    assert.propEqual(
-      User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email),
-      {
-        uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
-        address: "contact@izelnakri.com",
-        is_public: false,
-        confirmed_at: "2018-02-25T23:00:00.000Z",
-        confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
-        confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
-        person_id: 1,
-      }
-    );
+    assert.propEqual(User.Serializer.getEmbeddedRelationship(User, await User.find(1), "primaryEmail", Email), {
+      uuid: "8a80e7f1-825c-4641-a3e4-c9a43022c18c",
+      address: "contact@izelnakri.com",
+      is_public: false,
+      confirmed_at: "2018-02-25T23:00:00.000Z",
+      confirmation_token: "951d3321-9e66-4099-a4a5-cc1e4795d4ss",
+      confirmation_token_sent_at: "2018-02-25T22:16:01.133Z",
+      person_id: 1,
+    });
     assert.equal(
       Photo.Serializer.getEmbeddedRelationship(
         Photo,
@@ -395,9 +372,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
     const { Photo, PhotoComment } = await prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     const firstPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -461,12 +436,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
     }
 
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        firstPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, firstPhotoComments[0], "photo", Photo),
       {
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
         name: "Ski trip",
@@ -475,12 +445,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       }
     );
     assert.propEqual(
-      PhotoComment.Serializer.getEmbeddedRelationship(
-        PhotoComment,
-        secondPhotoComments[0],
-        "photo",
-        Photo
-      ),
+      PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
       {
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         name: "Family photo",

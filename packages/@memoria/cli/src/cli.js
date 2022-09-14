@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import fs from "fs/promises";
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import kleur from 'kleur';
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import kleur from "kleur";
 
-import generateCommand from './commands/generate.js';
-import helpCommand from './commands/help.js';
-import initCommand from './commands/init.js';
+import generateCommand from "./commands/generate.js";
+import helpCommand from "./commands/help.js";
+import initCommand from "./commands/init.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -38,4 +38,3 @@ CLI.command(["version", "v"], async () => {
     JSON.parse((await fs.readFile(`${__dirname}/../package.json`)).toString()).version
   );
 });
-

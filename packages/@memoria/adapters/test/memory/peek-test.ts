@@ -2,14 +2,14 @@ import Model, { Column, PrimaryGeneratedColumn, RuntimeError } from "@memoria/mo
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import generateModels from "../helpers/models-with-relations/memory/mix/index.js";
-import FIXTURES from "../helpers/fixtures/mix/index.js"
+import FIXTURES from "../helpers/fixtures/mix/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
   setupMemoria(hooks);
 
-  module('$Model.peek() tests', function() {
+  module("$Model.peek() tests", function () {
     test("$Model.peek() throws without a number id or ids", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -45,7 +45,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
       assert.propContains(MemoryPhoto.peek(3), {
         id: 3,
@@ -53,7 +53,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         href: "selfie.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
     });
 
@@ -63,33 +63,42 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
 
       let firstModel = MemoryPhoto.peek(1);
-      assert.propEqual(firstModel, MemoryPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        firstModel,
+        MemoryPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
       let secondModel = MemoryPhoto.peek(1);
       assert.notEqual(firstModel, secondModel);
       assert.deepEqual([secondModel.isNew, secondModel.isPersisted], [false, true]);
 
-      secondModel.name = 'Some name';
+      secondModel.name = "Some name";
 
       let thirdModel = MemoryPhoto.peek(1);
-      assert.propEqual(thirdModel, MemoryPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
-      assert.propEqual(secondModel, MemoryPhoto.build({
-        id: 1,
-        name: "Some name",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        thirdModel,
+        MemoryPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
+      assert.propEqual(
+        secondModel,
+        MemoryPhoto.build({
+          id: 1,
+          name: "Some name",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.notEqual(secondModel, thirdModel);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
     });
@@ -101,12 +110,12 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
 
       assert.propEqual(MemoryPhoto.peek([1, 3]), [
         MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
 
       assert.propEqual(MemoryPhoto.peek([2, 3]), [
         MemoryPhoto.build({ id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
     });
 
@@ -118,7 +127,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
       let firstModels = MemoryPhoto.peek([1, 3]);
       assert.deepEqual(firstModels, [
         MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([firstModels[0].isNew, firstModels[0].isPersisted], [false, true]);
       assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
@@ -127,21 +136,21 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
       assert.notEqual(firstModels, secondModels);
       assert.propEqual(secondModels, [
         MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].name = 'Some name';
+      secondModels[0].name = "Some name";
 
       let thirdModels = MemoryPhoto.peek([1, 3]);
       assert.deepEqual(secondModels, [
         MemoryPhoto.build({ id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual(thirdModels, [
         MemoryPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        MemoryPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.notDeepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
@@ -149,7 +158,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
     });
   });
 
-  module('$Model.peekBy() tests', function() {
+  module("$Model.peekBy() tests", function () {
     test("$Model.peekBy(attributes) returns a single model for the options", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -159,7 +168,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       };
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
@@ -173,17 +182,20 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         href: "family-photo.jpeg",
         is_public: true,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
-      assert.propContains(MemoryPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), MemoryPhotoComment.build({
-        uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-        content: "I was kidding",
-        inserted_at: "2015-10-25T20:54:04.447Z",
-        updated_at: "2015-10-25T20:54:04.447Z",
-        is_important: true,
-        photo_id: 1,
-        user_id: 1,
-      }));
+      assert.propContains(
+        MemoryPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
+        MemoryPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          inserted_at: "2015-10-25T20:54:04.447Z",
+          updated_at: "2015-10-25T20:54:04.447Z",
+          is_important: true,
+          photo_id: 1,
+          user_id: 1,
+        })
+      );
     });
 
     test("$Model.peekBy(attributes) returns a new instance from the actual cache each time", async function (assert) {
@@ -195,7 +207,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
@@ -210,7 +222,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
       assert.propContains(secondResponse, firstPhoto);
       assert.deepEqual([secondResponse.isNew, secondResponse.isPersisted], [false, true]);
 
-      secondResponse.name = 'Some unique name';
+      secondResponse.name = "Some unique name";
 
       assert.equal(MemoryPhoto.peekBy({ name: "Some unique name" }), null);
 
@@ -222,7 +234,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
     });
   });
 
-  module('$Model.peekAll() tests', function() {
+  module("$Model.peekAll() tests", function () {
     test("$Model.peekAll() without parameters returns all the models in the cache", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -302,7 +314,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           href: "ski-trip.jpeg",
           is_public: false,
           owner_id: null,
-          group_uuid: null
+          group_uuid: null,
         }),
         MemoryPhoto.build({
           id: 3,
@@ -310,7 +322,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           href: "selfie.jpeg",
           is_public: false,
           owner_id: null,
-          group_uuid: null
+          group_uuid: null,
         }),
       ]);
       assert.propEqual(MemoryPhotoComment.peekAll({ photo_id: 1, user_id: 1 }), [
@@ -413,12 +425,12 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].content = 'Whatever';
+      secondModels[0].content = "Whatever";
 
       let thirdModels = MemoryPhotoComment.peekAll({ photo_id: 1, user_id: 1 });
       assert.deepEqual(secondModels, [
@@ -439,7 +451,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual(thirdModels, [
         MemoryPhotoComment.build({
@@ -459,7 +471,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.notDeepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);

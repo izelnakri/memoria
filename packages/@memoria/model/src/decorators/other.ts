@@ -18,10 +18,7 @@ export function Generated(generateFunction) {
 export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOptions?) {
   return function (target: any, propertyName: string, descriptor: any) {
     let name = typeof nameOrFieldsOrOptions === "string" ? nameOrFieldsOrOptions : undefined;
-    let fields =
-      typeof nameOrFieldsOrOptions === "string"
-        ? maybeFieldsOrOptions
-        : (nameOrFieldsOrOptions as string[]);
+    let fields = typeof nameOrFieldsOrOptions === "string" ? maybeFieldsOrOptions : (nameOrFieldsOrOptions as string[]);
     let options =
       typeof nameOrFieldsOrOptions === "object" && !Array.isArray(nameOrFieldsOrOptions)
         ? nameOrFieldsOrOptions
@@ -38,8 +35,7 @@ export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOption
       target: Class,
       name: name,
       columns: propertyName ? [propertyName] : fields,
-      synchronize:
-        options && (options as { synchronize: false }).synchronize === false ? false : true,
+      synchronize: options && (options as { synchronize: false }).synchronize === false ? false : true,
       where: options ? options.where : undefined,
       unique: options && options.unique ? true : false,
       spatial: options && options.spatial ? true : false,
@@ -50,11 +46,11 @@ export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOption
       expireAfterSeconds: options ? options.expireAfterSeconds : undefined,
     });
 
-    return target.constructor.Adapter.Decorators.Index(
-      nameOrFieldsOrOptions,
-      maybeFieldsOrOptions,
-      maybeOptions
-    )(target.constructor, propertyName, descriptor);
+    return target.constructor.Adapter.Decorators.Index(nameOrFieldsOrOptions, maybeFieldsOrOptions, maybeOptions)(
+      target.constructor,
+      propertyName,
+      descriptor
+    );
   };
 }
 

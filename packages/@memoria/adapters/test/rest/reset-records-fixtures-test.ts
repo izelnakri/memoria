@@ -164,9 +164,7 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         });
 
         this.get("/photo-comments/:uuid", async (request) => {
-          let photoComment = (await ServerPhotoComment.find(
-            request.params.uuid
-          )) as ServerPhotoComment;
+          let photoComment = (await ServerPhotoComment.find(request.params.uuid)) as ServerPhotoComment;
 
           return { photoComment: ServerPhotoComment.serializer(photoComment) };
         });

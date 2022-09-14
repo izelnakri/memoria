@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column, DeleteError, RuntimeError, InstanceDB, RelationshipDB } from "@memoria/model";
+import { DeleteError, RuntimeError, InstanceDB, RelationshipDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
@@ -9,7 +9,7 @@ const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
   setupMemoria(hooks);
 
-  module('Primary key tests', function () {
+  module("Primary key tests", function () {
     test("$Model.delete(model) throws when the model primaryKey doesnt exist in the database", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -25,9 +25,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       }
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
-      await Promise.all(
-        PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment))
-      );
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
       await MemoryPhoto.delete({ id: 1 });
 
@@ -62,7 +60,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
     });
   });
 
-  module('Attribute tests', function () {
+  module("Attribute tests", function () {
     test("$Model.delete() can delete existing items", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -71,12 +69,15 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
 
       let deletedPhoto = await MemoryPhoto.delete({ id: 2 });
 
-      assert.propEqual(deletedPhoto, MemoryPhoto.build({
-        id: 2,
-        name: "Family photo",
-        href: "family-photo.jpeg",
-        is_public: true,
-      }));
+      assert.propEqual(
+        deletedPhoto,
+        MemoryPhoto.build({
+          id: 2,
+          name: "Family photo",
+          href: "family-photo.jpeg",
+          is_public: true,
+        })
+      );
       assert.notOk(deletedPhoto.isNew);
       assert.ok(deletedPhoto.isPersisted);
       assert.ok(deletedPhoto.isDeleted);
@@ -88,7 +89,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
         href: "family-photo.jpeg",
         is_public: true,
         group_uuid: null,
-        owner_id: null
+        owner_id: null,
       });
       assert.deepEqual(deletedPhoto.revisionHistory, [
         {
@@ -97,7 +98,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
           href: "family-photo.jpeg",
           is_public: true,
           group_uuid: null,
-          owner_id: null
+          owner_id: null,
         },
       ]);
 
@@ -105,15 +106,18 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       });
 
-      assert.propEqual(deletedComment, MemoryPhotoComment.build({
-        uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-        content: "What a nice photo!",
-        is_important: true,
-        inserted_at: deletedComment.inserted_at,
-        updated_at: deletedComment.updated_at,
-        photo_id: null,
-        user_id: null,
-      }));
+      assert.propEqual(
+        deletedComment,
+        MemoryPhotoComment.build({
+          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+          content: "What a nice photo!",
+          is_important: true,
+          inserted_at: deletedComment.inserted_at,
+          updated_at: deletedComment.updated_at,
+          photo_id: null,
+          user_id: null,
+        })
+      );
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
 
       await MemoryPhotoComment.delete({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" });
@@ -155,7 +159,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
     });
   });
 
-  module('Reference tests', function () {
+  module("Reference tests", function () {
     test("$Model.delete($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
@@ -166,12 +170,15 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
       assert.notEqual(insertedPhoto, photo);
-      assert.propEqual(insertedPhoto, MemoryPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.propEqual(
+        insertedPhoto,
+        MemoryPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
       assert.equal(InstanceDB.getReferences(photo).size, 4);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
@@ -213,8 +220,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 3);
 
       let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
@@ -230,18 +237,24 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 0);
       assert.equal(InstanceDB.getReferences(deletedGroup).size, 0);
 
-      assert.deepEqual(deletedGroup, MemoryGroup.build({
-        uuid: group.uuid,
-        name: "Hacker Log",
-        owner: null,
-        photo: null
-      }));
-      assert.deepEqual(insertedGroup, MemoryGroup.build({
-        uuid: group.uuid,
-        name: "Hacker Log",
-        owner: null,
-        photo: null
-      }));
+      assert.deepEqual(
+        deletedGroup,
+        MemoryGroup.build({
+          uuid: group.uuid,
+          name: "Hacker Log",
+          owner: null,
+          photo: null,
+        })
+      );
+      assert.deepEqual(
+        insertedGroup,
+        MemoryGroup.build({
+          uuid: group.uuid,
+          name: "Hacker Log",
+          owner: null,
+          photo: null,
+        })
+      );
       assert.equal(groupPhoto.group, null);
       assert.equal(groupPhoto.group_id, null);
     });

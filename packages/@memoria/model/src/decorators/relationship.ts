@@ -30,11 +30,7 @@ export function OneToOne<T>(
     if (!isLazy && Reflect && (Reflect as any).getMetadata) {
       // automatic determination
       let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
-      if (
-        reflectedType &&
-        typeof reflectedType.name === "string" &&
-        reflectedType.name.toLowerCase() === "promise"
-      ) {
+      if (reflectedType && typeof reflectedType.name === "string" && reflectedType.name.toLowerCase() === "promise") {
         isLazy = true;
       }
     }
@@ -97,11 +93,7 @@ export function ManyToOne<T>(
     if (!isLazy && Reflect && (Reflect as any).getMetadata) {
       // automatic determination
       let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
-      if (
-        reflectedType &&
-        typeof reflectedType.name === "string" &&
-        reflectedType.name.toLowerCase() === "promise"
-      ) {
+      if (reflectedType && typeof reflectedType.name === "string" && reflectedType.name.toLowerCase() === "promise") {
         isLazy = true;
       }
     }
@@ -132,10 +124,10 @@ export function ManyToOne<T>(
       orphanedRowAction: options.orphanedRowAction,
     });
 
-    if (targetType === 'many-to-one') {
-      RelationshipDB.persistedRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new Map());
+    if (targetType === "many-to-one") {
+      // RelationshipDB.persistedRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new Map());
       RelationshipDB.instanceRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-    } else if (targetType === 'one-to-one') {
+    } else if (targetType === "one-to-one") {
       RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
     }
 
@@ -161,11 +153,7 @@ export function OneToMany<T>(
     let isLazy = options && options.lazy === true;
     if (!isLazy && Reflect && (Reflect as any).getMetadata) {
       let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
-      if (
-        reflectedType &&
-        typeof reflectedType.name === "string" &&
-        reflectedType.name.toLowerCase() === "promise"
-      ) {
+      if (reflectedType && typeof reflectedType.name === "string" && reflectedType.name.toLowerCase() === "promise") {
         isLazy = true;
       }
     }
@@ -226,11 +214,7 @@ export function ManyToMany<T>(
     if (!isLazy && Reflect && (Reflect as any).getMetadata) {
       // automatic determination
       let reflectedType = (Reflect as any).getMetadata("design:type", target, propertyName);
-      if (
-        reflectedType &&
-        typeof reflectedType.name === "string" &&
-        reflectedType.name.toLowerCase() === "promise"
-      ) {
+      if (reflectedType && typeof reflectedType.name === "string" && reflectedType.name.toLowerCase() === "promise") {
         isLazy = true;
       }
     }
@@ -274,13 +258,9 @@ export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColum
   return function (target: any, propertyName: string, descriptor: any) {
     let targetRelationship = Schema.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
-      throw new Error(
-        `@JoinColumn() on ${target.constructor.name} requires relationship declaration first`
-      );
+      throw new Error(`@JoinColumn() on ${target.constructor.name} requires relationship declaration first`);
     }
-    let options = Array.isArray(optionsOrOptionsArray)
-      ? optionsOrOptionsArray
-      : [optionsOrOptionsArray || {}];
+    let options = Array.isArray(optionsOrOptionsArray) ? optionsOrOptionsArray : [optionsOrOptionsArray || {}];
 
     targetRelationship.joinColumn = options.map((options) => {
       return {
@@ -303,9 +283,7 @@ export function JoinTable(options: JoinTableOptions = {}) {
   return function (target: any, propertyName: string, descriptor: any) {
     let targetRelationship = Schema.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
-      throw new Error(
-        `@JoinTable() on ${target.constructor.name} requires relationship declaration first`
-      );
+      throw new Error(`@JoinTable() on ${target.constructor.name} requires relationship declaration first`);
     }
 
     targetRelationship.joinTable = {
@@ -313,18 +291,12 @@ export function JoinTable(options: JoinTableOptions = {}) {
       propertyName: propertyName,
       name: options.name,
       joinColumns: options.joinColumn ? [options.joinColumn] : options.joinColumns,
-      inverseJoinColumns: options.inverseJoinColumn
-        ? [options.inverseJoinColumn]
-        : options.inverseJoinColumns,
+      inverseJoinColumns: options.inverseJoinColumn ? [options.inverseJoinColumn] : options.inverseJoinColumns,
       schema: options && options.schema ? options.schema : undefined,
       database: options && options.database ? options.database : undefined,
     };
 
-    return target.constructor.Adapter.Decorators.JoinTable(options)(
-      target.constructor,
-      propertyName,
-      descriptor
-    );
+    return target.constructor.Adapter.Decorators.JoinTable(options)(target.constructor, propertyName, descriptor);
   };
 }
 

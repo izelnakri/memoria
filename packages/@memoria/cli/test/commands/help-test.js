@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from "fs/promises";
 import { module, test } from "qunitx";
 import util from "util";
 import child_process from "child_process";
@@ -10,7 +10,7 @@ const CLI_JS = `${PKG_PATH}/src/cli.js`;
 const shell = util.promisify(child_process.exec);
 
 module("@memserver/cli | help and version commands ", function (hooks) {
-  test("$ memserver | and $ memserver helper | and $ memserver h | without arguments shows help screen", async function(assert) {
+  test("$ memserver | and $ memserver helper | and $ memserver h | without arguments shows help screen", async function (assert) {
     let jsonDataBuffer = await fs.readFile(`${PKG_PATH}/package.json`);
     let version = JSON.parse(jsonDataBuffer.toString()).version;
     let expectedOutput = `[Memserver CLI v${version}] Usage: memserver <command (Default: help)>
@@ -46,4 +46,3 @@ memserver generate fixtures [ModelName] # Outputs your initial MemServer state f
     assert.equal(result.stdout, `[Memserver CLI] ${version}\n`);
   });
 });
-

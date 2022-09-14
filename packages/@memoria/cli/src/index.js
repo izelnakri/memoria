@@ -1,51 +1,44 @@
 import fs from "fs/promises";
-import { promisify } from 'util';
-import { exec } from 'child_process';
+import { promisify } from "util";
+import { exec } from "child_process";
 import kleur from "kleur";
 import { pluralize } from "inflected";
-import recursiveLookup from 'recursive-lookup';
+import recursiveLookup from "recursive-lookup";
 import setupDom from "@memserver/server/dist/setup-dom.js";
-import { transformAsync } from '@babel/core';
+import { transformAsync } from "@babel/core";
 
 const CWD = process.cwd();
 const shell = promisify(exec);
 
 // NOTE: Reads structure, builds the files, builds dom environment, runs the node.js environment with memserverDirectory and returns the Memserver
 export default async function startMemserver(memserverDirectory = `${CWD}/memserver`) {
-  let IS_TYPESCRIPT = (await fs.readdir(`${memserverDirectory}/models`))
-    .some((modelFile) => modelFile.endsWith(".ts"));
-  let outputDirectory = IS_TYPESCRIPT
-    ? await buildTmpDirectory(memserverDirectory)
-    : memserverDirectory;
+  let IS_TYPESCRIPT = (await fs.readdir(`${memserverDirectory}/models`)).some((modelFile) => modelFile.endsWith(".ts"));
+  let outputDirectory = IS_TYPESCRIPT ? await buildTmpDirectory(memserverDirectory) : memserverDirectory;
 
   if (IS_TYPESCRIPT) {
-    let entryPoints = await recursiveLookup(
-      memserverDirectory,
-      (path) => ['.js', '.ts'].some((extension) => path.endsWith(extension))
+    let entryPoints = await recursiveLookup(memserverDirectory, (path) =>
+      [".js", ".ts"].some((extension) => path.endsWith(extension))
     );
 
-    await Promise.all(entryPoints.map(async (entryPoint) => {
-      let codeBuffer = await fs.readFile(entryPoint);
-      let output = await transformAsync(codeBuffer.toString(), {
-        filename: entryPoint,
-        inputSourceMap: false,
-        presets: [
-          '@babel/preset-typescript',
-        ],
-        plugins: [
-          'babel-plugin-module-extension-resolver'
-        ]
-      });
+    await Promise.all(
+      entryPoints.map(async (entryPoint) => {
+        let codeBuffer = await fs.readFile(entryPoint);
+        let output = await transformAsync(codeBuffer.toString(), {
+          filename: entryPoint,
+          inputSourceMap: false,
+          presets: ["@babel/preset-typescript"],
+          plugins: ["babel-plugin-module-extension-resolver"],
+        });
 
-      let targetEntry = entryPoint
-        .replace(memserverDirectory, outputDirectory);
-      targetEntry = targetEntry.slice(0, targetEntry.length - 3) + '.js';
-      let targetPaths = targetEntry.split('/');
-      let targetFolder = targetPaths.slice(0, targetPaths.length - 1).join('/');
+        let targetEntry = entryPoint.replace(memserverDirectory, outputDirectory);
+        targetEntry = targetEntry.slice(0, targetEntry.length - 3) + ".js";
+        let targetPaths = targetEntry.split("/");
+        let targetFolder = targetPaths.slice(0, targetPaths.length - 1).join("/");
 
-      await fs.mkdir(targetFolder, { recursive: true });
-      await fs.writeFile(targetEntry, output.code);
-    }));
+        await fs.mkdir(targetFolder, { recursive: true });
+        await fs.writeFile(targetEntry, output.code);
+      })
+    );
   }
 
   if (!(await pathExists(`${memserverDirectory}`))) {

@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from "fs/promises";
 import { module, test } from "qunitx";
 import util from "util";
 import child_process from "child_process";
@@ -10,66 +10,50 @@ const CLI_JS = `${PKG_PATH}/src/cli.js`;
 const shell = util.promisify(child_process.exec);
 
 module("@memserver/cli | g model command", function (hooks) {
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     await fs.rm(`${CWD}/memserver`, { force: true, recursive: true });
   });
 
-  test(
-    "$ memserver g | and $ memserver generate | without memserver directory raises",
-    async function(assert) {
-      assert.expect(2);
+  test("$ memserver g | and $ memserver generate | without memserver directory raises", async function (assert) {
+    assert.expect(2);
 
-      const { stdout } = await shell(`node ${CLI_JS} generate`);
+    const { stdout } = await shell(`node ${CLI_JS} generate`);
 
-      assert.equal(stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
+    assert.equal(stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
 
-      let result = await shell(`node ${CLI_JS} g`);
+    let result = await shell(`node ${CLI_JS} g`);
 
-      assert.equal(
-        result.stdout,
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n"
-      );
-    }
-  );
+    assert.equal(result.stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
+  });
 
-  test(
-    "$ memserver g model | and $ memserver generate model | without memserver directory raises",
-    async function(assert) {
-      assert.expect(2);
+  test("$ memserver g model | and $ memserver generate model | without memserver directory raises", async function (assert) {
+    assert.expect(2);
 
-      const { stdout } = await shell(`node ${CLI_JS} generate model`);
+    const { stdout } = await shell(`node ${CLI_JS} generate model`);
 
-      assert.equal(stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
+    assert.equal(stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
 
-      let result = await shell(`node ${CLI_JS} g model`);
+    let result = await shell(`node ${CLI_JS} g model`);
 
-      assert.equal(
-        result.stdout,
-        "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n"
-      );
-    }
-  );
+    assert.equal(result.stdout, "[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?\n");
+  });
 
-  test(
-    "$ memserver g model | and $ memserver generate model | without model raises",
-    async function(assert) {
-      assert.expect(1);
+  test("$ memserver g model | and $ memserver generate model | without model raises", async function (assert) {
+    assert.expect(1);
 
-      await initializeMemServer();
-      const { stdout } = await shell(`node ${CLI_JS} generate model`);
+    await initializeMemServer();
+    const { stdout } = await shell(`node ${CLI_JS} generate model`);
 
-      assert.equal(
-        stdout,
-        "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user\n"
-      );
-    }
-  );
+    assert.equal(
+      stdout,
+      "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user\n"
+    );
+  });
 
   const EXPECTED_OUTPUT =
-    "[Memserver CLI] /memserver/models/email.ts created\n" +
-    "[Memserver CLI] /memserver/fixtures/emails.ts created\n";
+    "[Memserver CLI] /memserver/models/email.ts created\n" + "[Memserver CLI] /memserver/fixtures/emails.ts created\n";
 
-  test("$ memserver g [modelName] | works", async function(assert) {
+  test("$ memserver g [modelName] | works", async function (assert) {
     assert.expect(5);
 
     await initializeMemServer();
@@ -104,7 +88,7 @@ export default class Email extends Model {
     assert.equal(userFixturesBuffer.toString(), "export default [\n];");
   });
 
-  test("$ memserver generate [modelName] | works", async function(assert) {
+  test("$ memserver generate [modelName] | works", async function (assert) {
     assert.expect(5);
 
     await initializeMemServer();

@@ -26,18 +26,18 @@ export default class InstanceDB {
     return this.unknownInstances.get(Class.name) as Array<Set<Model>>;
   }
 
-  static getAllReferences(Class: typeof Model) : Array<Set<Model>> {
-    return Array.from(this.getAllKnownReferences(Class).values())
-      .concat(this.getAllUnknownInstances(Class));
+  static getAllReferences(Class: typeof Model): Array<Set<Model>> {
+    return Array.from(this.getAllKnownReferences(Class).values()).concat(this.getAllUnknownInstances(Class));
   }
 
-  static getReferences(model: Model): Set<Model> { // NOTE: this includes the model itself
+  static getReferences(model: Model): Set<Model> {
+    // NOTE: this includes the model itself
     let Class = model.constructor as typeof Model;
 
-    return model[Class.primaryKeyName] ?
-      this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model> :
-      this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model))
-        || Array.from(this.getAllKnownReferences(Class).values()).find((set) => set.has(model)) as Set<Model>;
+    return model[Class.primaryKeyName]
+      ? (this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model>)
+      : this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) ||
+          (Array.from(this.getAllKnownReferences(Class).values()).find((set) => set.has(model)) as Set<Model>);
   }
 
   static getOrCreateExistingInstancesSet(model: Model, buildObject: JSObject, primaryKey?: PrimaryKey) {
@@ -81,8 +81,10 @@ export default class InstanceDB {
     // NOTE: maybe do this findLast for perf improvement(?)
     let existingInstancedByLastAdded = Array.from(existingInstances.values()).reverse();
 
-    return existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted)
-      || existingInstancedByLastAdded[0]
-      || null;
+    return (
+      existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) ||
+      existingInstancedByLastAdded[0] ||
+      null
+    );
   }
 }

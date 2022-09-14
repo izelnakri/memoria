@@ -11,17 +11,17 @@ import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
-import FIXTURES from "../helpers/fixtures/mix/index.js"
+import FIXTURES from "../helpers/fixtures/mix/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
   setupMemoria(hooks);
 
-  module('$Model.peek() tests', function() {
+  module("$Model.peek() tests", function () {
     test("$Model.peek() throws without a number id or ids", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
@@ -46,75 +46,90 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
 
     test("$Model.peek(id) works correctly for different models", async function (assert) {
       const { RESTPhoto, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
 
-      assert.propEqual(RESTPhoto.peek(1), RESTPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
-      assert.propEqual(RESTPhoto.peek(3), RESTPhoto.build({
-        id: 3,
-        name: "Selfie",
-        href: "selfie.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        RESTPhoto.peek(1),
+        RESTPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
+      assert.propEqual(
+        RESTPhoto.peek(3),
+        RESTPhoto.build({
+          id: 3,
+          name: "Selfie",
+          href: "selfie.jpeg",
+          is_public: false,
+        })
+      );
     });
 
     test("$Model.peek(id) gets a new instance each time", async function (assert) {
       const { RESTPhoto, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
 
       let firstModel = RESTPhoto.peek(1);
-      assert.propEqual(firstModel, RESTPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        firstModel,
+        RESTPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
       let secondModel = RESTPhoto.peek(1);
       assert.notEqual(firstModel, secondModel);
       assert.deepEqual([secondModel.isNew, secondModel.isPersisted], [false, true]);
 
-      secondModel.name = 'Some name';
+      secondModel.name = "Some name";
 
       let thirdModel = RESTPhoto.peek(1);
-      assert.propEqual(thirdModel, RESTPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
-      assert.propEqual(secondModel, RESTPhoto.build({
-        id: 1,
-        name: "Some name",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        thirdModel,
+        RESTPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
+      assert.propEqual(
+        secondModel,
+        RESTPhoto.build({
+          id: 1,
+          name: "Some name",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.notEqual(secondModel, thirdModel);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
     });
 
     test("$Model.peek(ids) works for multiple ids", async function (assert) {
       const { RESTPhoto, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
 
       assert.propEqual(RESTPhoto.peek([1, 3]), [
         RESTPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.propEqual(RESTPhoto.peek([2, 3]), [
         RESTPhoto.build({ id: 2, name: "Family photo", href: "family-photo.jpeg", is_public: true }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
     });
 
@@ -127,7 +142,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
       let firstModels = RESTPhoto.peek([1, 3]);
       assert.deepEqual(firstModels, [
         RESTPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([firstModels[0].isNew, firstModels[0].isPersisted], [false, true]);
       assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
@@ -136,21 +151,21 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
       assert.notEqual(firstModels, secondModels);
       assert.propEqual(secondModels, [
         RESTPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].name = 'Some name';
+      secondModels[0].name = "Some name";
 
       let thirdModels = RESTPhoto.peek([1, 3]);
       assert.deepEqual(secondModels, [
         RESTPhoto.build({ id: 1, name: "Some name", href: "ski-trip.jpeg", is_public: false }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.deepEqual(thirdModels, [
         RESTPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false }),
-        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false })
+        RESTPhoto.build({ id: 3, name: "Selfie", href: "selfie.jpeg", is_public: false }),
       ]);
       assert.notDeepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);
@@ -158,10 +173,10 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
     });
   });
 
-  module('$Model.peekBy() tests', function() {
+  module("$Model.peekBy() tests", function () {
     test("$Model.peekBy(attributes) returns a single model for the options", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       const firstPhoto = RESTPhoto.build({ id: 1, name: "Ski trip", href: "ski-trip.jpeg", is_public: false });
 
@@ -170,21 +185,27 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
 
       assert.propEqual(RESTPhoto.peekBy({ is_public: false }), firstPhoto);
       assert.propEqual(RESTPhoto.peekBy(firstPhoto), firstPhoto);
-      assert.propEqual(RESTPhoto.peekBy({ name: "Family photo", href: "family-photo.jpeg" }), RESTPhoto.build({
-        id: 2,
-        name: "Family photo",
-        href: "family-photo.jpeg",
-        is_public: true,
-      }));
-      assert.propEqual(RESTPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }), RESTPhotoComment.build({
-        uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-        content: "I was kidding",
-        is_important: true,
-        inserted_at: "2015-10-25T20:54:04.447Z",
-        updated_at: "2015-10-25T20:54:04.447Z",
-        photo_id: 1,
-        user_id: 1,
-      }));
+      assert.propEqual(
+        RESTPhoto.peekBy({ name: "Family photo", href: "family-photo.jpeg" }),
+        RESTPhoto.build({
+          id: 2,
+          name: "Family photo",
+          href: "family-photo.jpeg",
+          is_public: true,
+        })
+      );
+      assert.propEqual(
+        RESTPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
+        RESTPhotoComment.build({
+          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          content: "I was kidding",
+          is_important: true,
+          inserted_at: "2015-10-25T20:54:04.447Z",
+          updated_at: "2015-10-25T20:54:04.447Z",
+          photo_id: 1,
+          user_id: 1,
+        })
+      );
     });
 
     test("$Model.peekBy(attributes) returns a new instance from the actual cache each time", async function (assert) {
@@ -197,7 +218,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
@@ -211,7 +232,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
       assert.propContains(secondResponse, firstPhoto);
       assert.deepEqual([secondResponse.isNew, secondResponse.isPersisted], [false, true]);
 
-      secondResponse.name = 'Some unique name';
+      secondResponse.name = "Some unique name";
 
       assert.equal(RESTPhoto.peekBy({ name: "Some unique name" }), null);
 
@@ -223,10 +244,10 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
     });
   });
 
-  module('$Model.peekAll() tests', function() {
+  module("$Model.peekAll() tests", function () {
     test("$Model.peekAll() without parameters returns all the models in the database", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
@@ -293,7 +314,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
 
     test("$Model.peekAll(attributes) returns right models in the database", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
-      this.Server = Server
+      this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
@@ -413,12 +434,12 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual([secondModels[0].isNew, secondModels[0].isPersisted], [false, true]);
       assert.deepEqual([secondModels[1].isNew, secondModels[1].isPersisted], [false, true]);
 
-      secondModels[0].content = 'Whatever';
+      secondModels[0].content = "Whatever";
 
       let thirdModels = RESTPhotoComment.peekAll({ photo_id: 1, user_id: 1 });
       assert.deepEqual(secondModels, [
@@ -439,7 +460,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.deepEqual(thirdModels, [
         RESTPhotoComment.build({
@@ -459,7 +480,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       ]);
       assert.notDeepEqual(secondModels, thirdModels);
       assert.deepEqual([thirdModels[0].isNew, thirdModels[0].isPersisted], [false, true]);

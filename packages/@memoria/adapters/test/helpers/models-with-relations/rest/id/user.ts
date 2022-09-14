@@ -1,10 +1,4 @@
-import Model, {
-  Serializer,
-  PrimaryGeneratedColumn,
-  Column,
-  HasMany,
-  ManyToMany,
-} from "@memoria/model";
+import Model, { Serializer, PrimaryGeneratedColumn, Column, HasMany, ManyToMany } from "@memoria/model";
 import { RESTAdapter } from "@memoria/adapters";
 import Group from "./group.js";
 import Photo from "./photo.js";

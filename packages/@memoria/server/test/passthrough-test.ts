@@ -105,10 +105,12 @@ module("@memoria/server | passthrough tests", function (hooks) {
       type: "GET",
       url: "http://localhost:4000/films",
       headers: { "Content-Type": "application/json" },
-    }).then((data, textStatus, jqXHR) => {
-      assert.equal(jqXHR.status, 200);
-      assert.deepEqual(jqXHR.responseJSON, { film: "responsed correctly" });
-    }).catch(console.log);
+    })
+      .then((data, textStatus, jqXHR) => {
+        assert.equal(jqXHR.status, 200);
+        assert.deepEqual(jqXHR.responseJSON, { film: "responsed correctly" });
+      })
+      .catch(console.log);
   });
 
   test("this.passthrough(url) shortcut works with wild cards", async function (assert) {

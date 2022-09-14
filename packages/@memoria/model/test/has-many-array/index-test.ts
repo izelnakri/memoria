@@ -47,6 +47,47 @@ module("@memoria/model | HasManyArray", function (hooks) {
       assert.deepEqual(RelationshipUtils.addHasManyRelationshipFor.lastCall.args, [newArray, model]);
     });
 
+    test("new HasManyArray([], belongsToModel, metadata) work when metadata passed-in", async function (assert) {
+      sinon.spy(RelationshipUtils, "addHasManyRelationshipFor");
+      sinon.spy(RelationshipUtils, "removeHasManyRelationshipFor");
+
+      const { Photo, User, Group } = generateModels();
+
+      let owner = User.build({ first_name: "Izel", last_name: "Nakri" });
+      let photo = Photo.build({ name: "Some model" });
+      let group = Group.build({ name: "Some group" });
+      let metadata = {
+        RelationshipClass: Photo,
+        relationshipName: "photos",
+        relationshipType: "HasMany",
+        SourceClass: User,
+        reverseRelationshipName: "owner",
+        reverseRelationshipType: "BelongsTo",
+        reverseRelationshipForeignKeyColumnName: "owner_id",
+      };
+      let array = new HasManyArray([], owner, metadata);
+
+      assert.deepEqual(array, []);
+      assert.strictEqual(array.belongsTo, owner);
+
+      try {
+        array[0] = group;
+      } catch (error) {
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign Group instance!");
+      }
+
+      assert.deepEqual(array, []);
+
+      array.push(photo);
+
+      assert.deepEqual(array, [photo]);
+      assert.strictEqual(array.belongsTo, owner);
+      assert.deepEqual(array.metadata, metadata);
+      assert.equal(RelationshipUtils.addHasManyRelationshipFor.callCount, 1);
+      assert.equal(RelationshipUtils.removeHasManyRelationshipFor.callCount, 0);
+      assert.deepEqual(RelationshipUtils.addHasManyRelationshipFor.lastCall.args, [array, photo]);
+    });
+
     test("new HasManyArray($models) work", async function (assert) {
       sinon.spy(RelationshipUtils, "addHasManyRelationshipFor");
       sinon.spy(RelationshipUtils, "removeHasManyRelationshipFor");
@@ -67,6 +108,55 @@ module("@memoria/model | HasManyArray", function (hooks) {
       array.push(thirdPhoto);
 
       assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      assert.equal(RelationshipUtils.addHasManyRelationshipFor.callCount, 3);
+      assert.equal(RelationshipUtils.removeHasManyRelationshipFor.callCount, 0);
+      assert.deepEqual(RelationshipUtils.addHasManyRelationshipFor.lastCall.args, [array, thirdPhoto]);
+    });
+
+    test("new HasManyArray(models, belongsToModel, metadata) work when metadata passed-in", async function (assert) {
+      sinon.spy(RelationshipUtils, "addHasManyRelationshipFor");
+      sinon.spy(RelationshipUtils, "removeHasManyRelationshipFor");
+
+      const { Photo, User, Group } = generateModels();
+
+      let owner = User.build({ first_name: "Izel", last_name: "Nakri" });
+      let firstPhoto = Photo.build({ name: "First photo" });
+      let secondPhoto = Photo.build({ name: "First photo" });
+      let thirdPhoto = Photo.build({ name: "First photo" });
+      let group = Group.build({ name: "Some group" });
+      let metadata = {
+        RelationshipClass: Photo,
+        relationshipName: "photos",
+        relationshipType: "HasMany",
+        SourceClass: User,
+        reverseRelationshipName: "owner",
+        reverseRelationshipType: "BelongsTo",
+        reverseRelationshipForeignKeyColumnName: "owner_id",
+      };
+      let array = new HasManyArray([firstPhoto, secondPhoto], owner, metadata);
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto]);
+      assert.strictEqual(array.belongsTo, owner);
+
+      try {
+        array[0] = group;
+      } catch (error) {
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign Group instance!");
+      }
+
+      try {
+        array[2] = group;
+      } catch (error) {
+        assert.equal(error.message, "This HasManyArray accepts Photo instances, you tried to assign Group instance!");
+      }
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto]);
+
+      array[2] = thirdPhoto;
+
+      assert.deepEqual(array, [firstPhoto, secondPhoto, thirdPhoto]);
+      assert.strictEqual(array.belongsTo, owner);
+      assert.deepEqual(array.metadata, metadata);
       assert.equal(RelationshipUtils.addHasManyRelationshipFor.callCount, 3);
       assert.equal(RelationshipUtils.removeHasManyRelationshipFor.callCount, 0);
       assert.deepEqual(RelationshipUtils.addHasManyRelationshipFor.lastCall.args, [array, thirdPhoto]);

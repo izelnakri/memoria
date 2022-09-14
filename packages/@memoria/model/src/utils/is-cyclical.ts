@@ -3,16 +3,16 @@ export interface JSObject {
 }
 
 interface ParentReferenceMap {
-  [keyName: string]: JSObject
+  [keyName: string]: JSObject;
 }
 
 export default function isCyclical(
   currentObject: any,
   seenMap: WeakMap<JSObject, ParentReferenceMap> = new WeakMap(),
   parentObject?: JSObject,
-  currentKeyName: string = ''
+  currentKeyName: string = ""
 ): boolean {
-  if (!currentObject || typeof currentObject !== 'object') {
+  if (!currentObject || typeof currentObject !== "object") {
     return false;
   } else if (currentObject === parentObject) {
     return true;
@@ -51,5 +51,5 @@ export default function isCyclical(
 }
 
 function buildKeyName(currentKeyName: string, nextKeyName: string) {
-  return currentKeyName === '' ? nextKeyName : `${currentKeyName}.${nextKeyName}`;
+  return currentKeyName === "" ? nextKeyName : `${currentKeyName}.${nextKeyName}`;
 }

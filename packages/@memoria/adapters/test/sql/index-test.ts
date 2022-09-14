@@ -119,9 +119,7 @@ module("@memoria/model | Public API", function (hooks) {
     }
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     assert.equal(Photo.primaryKeyName, "id");
     assert.equal(PhotoComment.primaryKeyName, "uuid");
@@ -143,26 +141,14 @@ module("@memoria/model | Public API", function (hooks) {
     await Promise.all([Photo, PhotoComment, User].map((model) => model.resetCache()));
 
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), [
-      "uuid",
-      "inserted_at",
-      "is_important",
-      "photo_id",
-    ]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important", "photo_id"]);
     assert.deepEqual(Array.from(User.columnNames), []);
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), [
-      "uuid",
-      "inserted_at",
-      "is_important",
-      "photo_id",
-    ]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important", "photo_id"]);
     assert.deepEqual(Array.from(User.columnNames), []);
   });
 
@@ -173,9 +159,7 @@ module("@memoria/model | Public API", function (hooks) {
     assert.equal(await PhotoComment.count(), 0);
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     assert.equal(await Photo.count(), 3);
     assert.equal(await PhotoComment.count(), 4);
@@ -185,16 +169,11 @@ module("@memoria/model | Public API", function (hooks) {
     const { Photo, PhotoComment } = prepare();
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    await Promise.all(
-      PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment))
-    );
+    await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     let photo = await Photo.find(1);
 
-    assert.deepEqual(
-      await PhotoComment.forPhoto(photo),
-      await PhotoComment.findAll({ photo_id: photo.id })
-    );
+    assert.deepEqual(await PhotoComment.forPhoto(photo), await PhotoComment.findAll({ photo_id: photo.id }));
     assert.deepEqual(await Photo.publicPhotos(), await Photo.findAll({ is_public: true }));
   });
 });

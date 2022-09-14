@@ -1,12 +1,7 @@
 import Model from "../model.js";
 import Schema from "./schema.js";
 import { generateUUID } from "../utils/index.js";
-import type {
-  PrimaryKey,
-  ModuleDatabase,
-  ColumnSchemaDefinition,
-  ColumnDefinition,
-} from "../types";
+import type { PrimaryKey, ModuleDatabase, ColumnSchemaDefinition, ColumnDefinition } from "../types";
 
 type ModuleSavedRecordDatabase<Value> = ModuleDatabase<Map<PrimaryKey, Value>>;
 
@@ -54,10 +49,7 @@ export default class DB {
     update: DefaultValueReferences;
     delete: DefaultValueReferences;
   }> = new Map();
-  static getDefaultValues(
-    Class: typeof Model,
-    operationType: "insert" | "update" | "delete"
-  ): DefaultValueReferences {
+  static getDefaultValues(Class: typeof Model, operationType: "insert" | "update" | "delete"): DefaultValueReferences {
     let defaultValues = this._defaultValuesCache.get(Class.name);
     if (defaultValues) {
       return defaultValues[operationType];
@@ -80,9 +72,7 @@ export default class DB {
         } else if (column.generated) {
           Object.assign(result.insert, {
             [columnName]:
-              column.generated === "uuid"
-                ? generateUUID
-                : (Class: typeof Model) => incrementId(Class.Cache),
+              column.generated === "uuid" ? generateUUID : (Class: typeof Model) => incrementId(Class.Cache),
           });
         }
 

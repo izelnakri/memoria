@@ -17,7 +17,7 @@ const PHOTOS = [
     href: "selfie.jpeg",
     is_public: false,
   },
-]
+];
 const PHOTO_COMMENTS = [
   {
     uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -55,5 +55,5 @@ const PHOTO_COMMENTS = [
 
 export default Object.freeze({
   PHOTOS: Object.freeze(PHOTOS.map((x) => Object.freeze(x))),
-  PHOTO_COMMENTS: Object.freeze(PHOTO_COMMENTS.map((x) => Object.freeze(x)))
+  PHOTO_COMMENTS: Object.freeze(PHOTO_COMMENTS.map((x) => Object.freeze(x))),
 });

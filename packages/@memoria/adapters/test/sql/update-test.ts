@@ -6,21 +6,21 @@ import Model, {
   UpdateDateColumn,
   UpdateError,
   InstanceDB,
-  RelationshipDB
+  RelationshipDB,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
 import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
 import generateIDModels from "../helpers/models-with-relations/sql/id/index.js";
-import FIXTURES from "../helpers/fixtures/mix/index.js"
+import FIXTURES from "../helpers/fixtures/mix/index.js";
 
 const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 
 module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
   setupMemoria(hooks);
 
-  module('Success cases', function () {
+  module("Success cases", function () {
     test("$Model.update(attributes) can update models", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
@@ -36,7 +36,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         is_important: true,
         content: "Interesting indeed",
         photo_id: 2,
-        user_id: 1
+        user_id: 1,
       });
       assert.ok(firstComment.inserted_at instanceof Date);
       assert.ok(firstComment.updated_at instanceof Date);
@@ -47,12 +47,15 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.deepEqual(firstComment.changes, {});
 
       let photo = await SQLPhoto.find(1);
-      assert.propEqual(photo, SQLPhoto.build({
-        id: 1,
-        name: "Ski trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        photo,
+        SQLPhoto.build({
+          id: 1,
+          name: "Ski trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
 
       let firstPhoto = await SQLPhoto.update({
         id: 1,
@@ -60,12 +63,15 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
       });
-      assert.propEqual(firstPhoto, SQLPhoto.build({
-        id: 1,
-        name: "S trip",
-        href: "ski-trip.jpeg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        firstPhoto,
+        SQLPhoto.build({
+          id: 1,
+          name: "S trip",
+          href: "ski-trip.jpeg",
+          is_public: false,
+        })
+      );
       assert.propEqual(firstPhoto, Object.assign(await SQLPhoto.find(1), { name: "S trip" }));
       assert.notOk(firstPhoto.isNew);
       assert.ok(firstPhoto.isPersisted);
@@ -78,7 +84,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         group_uuid: null,
-        owner_id: null
+        owner_id: null,
       });
       assert.deepEqual(firstPhoto.revisionHistory, [
         {
@@ -87,7 +93,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           href: "ski-trip.jpeg",
           is_public: false,
           group_uuid: null,
-          owner_id: null
+          owner_id: null,
         },
         {
           id: 1,
@@ -95,23 +101,21 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           href: "ski-trip.jpeg",
           is_public: false,
           group_uuid: null,
-          owner_id: null
+          owner_id: null,
         },
       ]);
 
       let secondPhoto = await SQLPhoto.update({ id: 2, href: "family-photo-2.jpeg", is_public: false });
-      assert.ok(
-        !secondPhoto.isNew &&
-          !secondPhoto.isDirty &&
-          secondPhoto.isPersisted &&
-          !secondPhoto.isDeleted
+      assert.ok(!secondPhoto.isNew && !secondPhoto.isDirty && secondPhoto.isPersisted && !secondPhoto.isDeleted);
+      assert.propEqual(
+        secondPhoto,
+        SQLPhoto.build({
+          id: 2,
+          name: "Family photo",
+          href: "family-photo-2.jpeg",
+          is_public: false,
+        })
       );
-      assert.propEqual(secondPhoto, SQLPhoto.build({
-        id: 2,
-        name: "Family photo",
-        href: "family-photo-2.jpeg",
-        is_public: false,
-      }));
       assert.propEqual(secondPhoto, await SQLPhoto.find(2));
 
       let comment = await SQLPhotoComment.update({
@@ -126,14 +130,11 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         is_important: true,
         content: "Cool",
         photo_id: 2,
-        user_id: 1
+        user_id: 1,
       });
       assert.ok(comment.inserted_at instanceof Date);
       assert.ok(comment.updated_at instanceof Date);
-      assert.propEqual(
-        comment,
-        await SQLPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" })
-      );
+      assert.propEqual(comment, await SQLPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }));
 
       assert.propEqual(firstComment.inserted_at, comment.inserted_at);
       assert.propEqual(firstComment.updated_at, comment.updated_at);
@@ -144,9 +145,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       await DB.resetRecords();
 
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
-      await Promise.all(
-        PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment))
-      );
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
       let photo = await SQLPhoto.update({ id: 1, name: "ME", is_verified: false });
 
@@ -156,7 +155,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         href: "ski-trip.jpeg",
         is_public: false,
         group_uuid: null,
-        owner_id: null
+        owner_id: null,
       });
 
       let photoComment = await SQLPhotoComment.update({
@@ -171,20 +170,18 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         is_important: true,
         content: "Interesting indeed",
         photo_id: 2,
-        user_id: 1
+        user_id: 1,
       });
     });
   });
 
-  module('Error cases', function () {
+  module("Error cases", function () {
     test("$Model.update(attributes) throws an exception when updating a nonexistent model", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
 
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
-      await Promise.all(
-        PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment))
-      );
+      await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
       try {
         await SQLPhoto.update({ id: 99, href: "family-photo-2.jpeg" });
@@ -200,20 +197,29 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
     });
   });
 
-  module('Reference tests', function () {
+  module("Reference tests", function () {
     test("$Model.update($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
       const { SQLPhoto } = generateModels();
       await DB.resetRecords();
 
       let insertedPhoto = await SQLPhoto.insert({
-        id: 2, name: "Something", href: "/something.jpg", is_public: false
+        id: 2,
+        name: "Something",
+        href: "/something.jpg",
+        is_public: false,
       });
 
       assert.equal(InstanceDB.getReferences(insertedPhoto).size, 2);
 
-      assert.propEqual(insertedPhoto, SQLPhoto.build({
-        id: 2, name: "Something", href: "/something.jpg", is_public: false
-      }));
+      assert.propEqual(
+        insertedPhoto,
+        SQLPhoto.build({
+          id: 2,
+          name: "Something",
+          href: "/something.jpg",
+          is_public: false,
+        })
+      );
 
       assert.equal(InstanceDB.getReferences(insertedPhoto).size, 3);
 
@@ -221,12 +227,15 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
 
       assert.notEqual(insertedPhoto, updatedPhoto);
       assert.equal(InstanceDB.getReferences(updatedPhoto).size, 4);
-      assert.propEqual(updatedPhoto, SQLPhoto.build({
-        id: 2,
-        name: "Another",
-        href: "/another.jpg",
-        is_public: false,
-      }));
+      assert.propEqual(
+        updatedPhoto,
+        SQLPhoto.build({
+          id: 2,
+          name: "Another",
+          href: "/another.jpg",
+          is_public: false,
+        })
+      );
 
       assert.deepEqual(SQLPhoto.peek(updatedPhoto.id), updatedPhoto);
       assert.equal(InstanceDB.getReferences(updatedPhoto).size, 6);
@@ -258,8 +267,8 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 3);
 
       let cachedReference = SQLGroup.Cache.get(insertedGroup.uuid);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
@@ -277,9 +286,9 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         }
       });
 
-      insertedGroup.name = 'Changed Hacker Log';
+      insertedGroup.name = "Changed Hacker Log";
 
-      assert.equal(insertedGroup.name, 'Changed Hacker Log');
+      assert.equal(insertedGroup.name, "Changed Hacker Log");
 
       let updatedGroup = await SQLGroup.update(insertedGroup);
 
@@ -291,15 +300,18 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.equal(InstanceDB.getReferences(group).size, 4);
 
       let lastCachedReference = SQLGroup.Cache.get(updatedGroup.uuid);
-      assert.equal(RelationshipDB.has(lastCachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(lastCachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(lastCachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(lastCachedReference, "photo"), false);
 
-      assert.deepEqual(updatedGroup, SQLGroup.build({
-        uuid: group.uuid,
-        name: "Changed Hacker Log",
-        owner: izel,
-        photo: groupPhoto
-      }));
+      assert.deepEqual(
+        updatedGroup,
+        SQLGroup.build({
+          uuid: group.uuid,
+          name: "Changed Hacker Log",
+          owner: izel,
+          photo: groupPhoto,
+        })
+      );
 
       assert.equal(InstanceDB.getReferences(group).size, 5);
 
@@ -308,7 +320,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.notEqual(peekedGroup, insertedGroup);
       assert.notEqual(peekedGroup, group);
       assert.notEqual(peekedGroup, updatedGroup);
-      assert.equal(peekedGroup.name, 'Changed Hacker Log');
+      assert.equal(peekedGroup.name, "Changed Hacker Log");
       assert.equal(InstanceDB.getReferences(group).size, 6);
 
       let fetchedGroup = await SQLGroup.find(group.uuid);
@@ -316,7 +328,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.notEqual(fetchedGroup, insertedGroup);
       assert.notEqual(fetchedGroup, group);
       assert.notEqual(fetchedGroup, peekedGroup);
-      assert.equal(fetchedGroup.name, 'Changed Hacker Log');
+      assert.equal(fetchedGroup.name, "Changed Hacker Log");
       assert.equal(InstanceDB.getReferences(group).size, 7);
 
       InstanceDB.getReferences(group).forEach((reference) => {

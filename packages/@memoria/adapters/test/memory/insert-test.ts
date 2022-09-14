@@ -5,7 +5,7 @@ import Model, {
   PrimaryGeneratedColumn,
   InsertError,
   RuntimeError,
-  RelationshipDB
+  RelationshipDB,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
@@ -19,17 +19,18 @@ const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
 
-  module('Primary key tests', function () {
+  module("Primary key tests", function () {
     test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
       let initialPhotos = await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
 
-      assert.propEqual(initialPhotos, PHOTOS.map((photo) => MemoryPhoto.build(photo)));
+      assert.propEqual(
+        initialPhotos,
+        PHOTOS.map((photo) => MemoryPhoto.build(photo))
+      );
       assert.ok(
-        initialPhotos.every(
-          (photo) => !photo.isNew && photo.isPersisted && !photo.isDirty && !photo.isDeleted
-        )
+        initialPhotos.every((photo) => !photo.isNew && photo.isPersisted && !photo.isDirty && !photo.isDeleted)
       );
 
       let initialPhotoComments = await Promise.all(
@@ -57,25 +58,28 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       await MemoryPhoto.insert();
 
       assert.equal(await MemoryPhoto.count(), 5);
-      assert.propEqual(await MemoryPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 4,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-          owner_id: null,
-          group_uuid: null
-        },
-        {
-          id: 5,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-          owner_id: null,
-          group_uuid: null
-        },
-      ].map((photo) => MemoryPhoto.build(photo)));
+      assert.propEqual(
+        await MemoryPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 4,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+            owner_id: null,
+            group_uuid: null,
+          },
+          {
+            id: 5,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+            owner_id: null,
+            group_uuid: null,
+          },
+        ].map((photo) => MemoryPhoto.build(photo))
+      );
 
       const initialCommentUUIDs = (await MemoryPhotoComment.findAll()).map((photoComment) => photoComment.uuid);
 
@@ -132,7 +136,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     });
   });
 
-  module('Attribute tests', function () {
+  module("Attribute tests", function () {
     test("$Model.insert(attributes) will insert a model with overriden default attributes", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
@@ -153,7 +157,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         href: "/baby.jpg",
         is_public: true,
         owner_id: null,
-        group_uuid: null
+        group_uuid: null,
       });
       assert.deepEqual(model.revisionHistory, [
         {
@@ -162,26 +166,29 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
           href: "/baby.jpg",
           is_public: true,
           owner_id: null,
-          group_uuid: null
+          group_uuid: null,
         },
       ]);
 
       assert.equal(await MemoryPhoto.count(), 5);
-      assert.propEqual(await MemoryPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 99,
-          is_public: false,
-          name: "Photo default name",
-          href: "/izel.html",
-        },
-        {
-          id: 100,
-          is_public: true,
-          name: "Baby photo",
-          href: "/baby.jpg",
-        },
-      ].map((photo) => MemoryPhoto.build(photo)));
+      assert.propEqual(
+        await MemoryPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 99,
+            is_public: false,
+            name: "Photo default name",
+            href: "/izel.html",
+          },
+          {
+            id: 100,
+            is_public: true,
+            name: "Baby photo",
+            href: "/baby.jpg",
+          },
+        ].map((photo) => MemoryPhoto.build(photo))
+      );
 
       const initialCommentUUIDs = (await MemoryPhotoComment.findAll()).map((comment) => comment.uuid);
       const commentOne = await MemoryPhotoComment.insert({
@@ -189,7 +196,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         inserted_at: new Date("2015-10-25T20:54:04.447Z"),
         updated_at: new Date("2015-10-25T20:54:04.447Z"),
         content: null,
-        user_id: null
+        user_id: null,
       });
       assert.notOk(commentOne.isNew);
       assert.ok(commentOne.isPersisted);
@@ -203,7 +210,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         photo_id: null,
-        user_id: null
+        user_id: null,
       });
       assert.deepEqual(commentOne.revisionHistory, [
         {
@@ -213,7 +220,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
           uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
           content: null,
           photo_id: null,
-          user_id: null
+          user_id: null,
         },
       ]);
 
@@ -221,7 +228,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         uuid: "6401f27c-49aa-4da7-9835-08f6f669e29f",
         is_important: false,
         content: null,
-        user_id: null
+        user_id: null,
       });
 
       assert.equal(await MemoryPhotoComment.count(), 6);
@@ -268,56 +275,83 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       await MemoryPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
       await MemoryPhotoComment.insert({ reply_id: 1 });
 
-      assert.deepEqual(Array.from(MemoryPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
-      assert.deepEqual(Array.from(MemoryPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "updated_at", "user_id", "photo_id"]);
-      assert.propEqual(await MemoryPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 4,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-        },
-        {
-          id: 5,
-          is_public: false,
-          name: "Photo default name",
-          href: null,
-        },
-      ].map((photo) => MemoryPhoto.build(photo)));
+      assert.deepEqual(Array.from(MemoryPhoto.columnNames), [
+        "id",
+        "name",
+        "href",
+        "is_public",
+        "owner_id",
+        "group_uuid",
+      ]);
+      assert.deepEqual(Array.from(MemoryPhotoComment.columnNames), [
+        "uuid",
+        "content",
+        "is_important",
+        "inserted_at",
+        "updated_at",
+        "user_id",
+        "photo_id",
+      ]);
+      assert.propEqual(
+        await MemoryPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 4,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+          },
+          {
+            id: 5,
+            is_public: false,
+            name: "Photo default name",
+            href: null,
+          },
+        ].map((photo) => MemoryPhoto.build(photo))
+      );
     });
   });
 
-  module('Reference tests', function () {
+  module("Reference tests", function () {
     test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "some name" });
 
-      assert.propEqual(photo, MemoryPhoto.build({
-        href: null,
-        id: null,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.propEqual(
+        photo,
+        MemoryPhoto.build({
+          href: null,
+          id: null,
+          is_public: null,
+          name: "some name",
+        })
+      );
 
       assert.equal(InstanceDB.getReferences(photo).size, 1);
 
       let insertedPhoto = await MemoryPhoto.insert(photo);
 
       assert.notEqual(insertedPhoto, photo);
-      assert.propEqual(insertedPhoto, MemoryPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
-      assert.propEqual(photo, MemoryPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.propEqual(
+        insertedPhoto,
+        MemoryPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
+      assert.propEqual(
+        photo,
+        MemoryPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
       assert.deepEqual(MemoryPhoto.peek(insertedPhoto.id), insertedPhoto);
       assert.equal(InstanceDB.getReferences(photo).size, 6);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
@@ -349,8 +383,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.equal(existingGroupReferences.size, 3);
 
       let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
@@ -367,7 +401,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         uuid: group.uuid,
         name: "Hacker Log",
         owner: izel,
-        photo: groupPhoto
+        photo: groupPhoto,
       });
 
       assert.deepEqual(insertedGroup, newBuiltReference);
@@ -375,8 +409,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.equal(insertedGroup.photo, groupPhoto);
 
       assert.equal(InstanceDB.getReferences(group).size, 5);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![somePeekedModel, cachedReference].includes(reference)) {
@@ -427,7 +461,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
     });
   });
 
-  module('Cache timeout tests', function () {
+  module("Cache timeout tests", function () {
     test("$Model.insert(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
       const { MemoryPhoto } = generateModels();
 

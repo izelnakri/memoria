@@ -140,7 +140,7 @@ module(
       assert.equal(deletedPhoto.group_uuid, null);
     });
 
-    test('when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model', async function (assert) {
+    test("when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
       let { MemoryPhoto, MemoryGroup } = generateModels();
 
       let group = await MemoryGroup.insert({ name: "Some group" });

@@ -1,8 +1,8 @@
 // TODO: implement if needed from packages/@ember/-internals/runtime/lib/compare.ts
-import type { TypeName } from './type-of.js';
-import typeOf from './type-of.js';
-import { OBJECT_TYPES } from './type-of.js';
-import { assert } from './index.js';
+import type { TypeName } from "./type-of.js";
+import typeOf from "./type-of.js";
+import { OBJECT_TYPES } from "./type-of.js";
+import { assert } from "./index.js";
 
 const TYPE_ORDER: Record<TypeName, number> = {
   undefined: 0,
@@ -66,20 +66,20 @@ export default function compare(v: any, w: any): -1 | 0 | 1 {
 
   // types are equal - so we have to check values now
   switch (type1) {
-    case 'boolean':
-      assert('both are boolean', typeof v === 'boolean' && typeof w === 'boolean');
+    case "boolean":
+      assert("both are boolean", typeof v === "boolean" && typeof w === "boolean");
 
       return spaceship(Number(v), Number(w));
-    case 'number':
-      assert('both are numbers', typeof v === 'number' && typeof w === 'number');
+    case "number":
+      assert("both are numbers", typeof v === "number" && typeof w === "number");
 
       return spaceship(v as number, w as number);
-    case 'string':
-      assert('both are strings', typeof v === 'string' && typeof w === 'string');
+    case "string":
+      assert("both are strings", typeof v === "string" && typeof w === "string");
 
       return spaceship((v as string).localeCompare(w as string), 0);
-    case 'array': {
-      assert('both are arrays', Array.isArray(v) && Array.isArray(w));
+    case "array": {
+      assert("both are arrays", Array.isArray(v) && Array.isArray(w));
 
       let vLength = v.length;
       let wLength = w.length;
@@ -96,17 +96,17 @@ export default function compare(v: any, w: any): -1 | 0 | 1 {
 
       return 0;
     }
-    case 'date':
-      assert('both are dates', v instanceof Date && w instanceof Date);
+    case "date":
+      assert("both are dates", v instanceof Date && w instanceof Date);
 
       return spaceship(v.getTime(), w.getTime());
-    case 'regexp':
-      assert('both are regexps', v instanceof RegExp && w instanceof RegExp);
+    case "regexp":
+      assert("both are regexps", v instanceof RegExp && w instanceof RegExp);
 
       return spaceship(v.toString(), w.toString());
     default:
       if (OBJECT_TYPES.has(type1)) {
-        assert('both are same object types', type1 === type2);
+        assert("both are same object types", type1 === type2);
 
         let wKeyAmount = Object.getOwnPropertyNames(w).length;
         let vKeyAmount = Object.getOwnPropertyNames(v).length;

@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from "fs/promises";
 import { module, test } from "qunitx";
 import util from "util";
 import child_process from "child_process";
@@ -9,7 +9,7 @@ const PKG_PATH = `${CWD}/packages/@memserver/cli`;
 const CLI_JS = `${PKG_PATH}/src/cli.js`;
 
 module("@memserver/cli | $ memserver init", function (hooks) {
-  hooks.beforeEach(async function() {
+  hooks.beforeEach(async function () {
     await fs.rm(`${CWD}/memserver`, { force: true, recursive: true });
   });
 
@@ -29,28 +29,19 @@ module("@memserver/cli | $ memserver init", function (hooks) {
 
     assert.equal(stdout, expectedOutput);
 
-    const [
-      indexBuffer,
-      routesBuffer,
-      initializerBuffer,
-      fixturesFolderExistence,
-      modelsFolderExists
-    ] = await Promise.all([
-      fs.readFile(`${CWD}/memserver/index.ts`),
-      fs.readFile(`${CWD}/memserver/routes.ts`),
-      fs.readFile(`${CWD}/memserver/initializer.ts`),
-      pathExists(`${CWD}/memserver/fixtures`),
-      pathExists(`${CWD}/memserver/models`)
-    ]);
+    const [indexBuffer, routesBuffer, initializerBuffer, fixturesFolderExistence, modelsFolderExists] =
+      await Promise.all([
+        fs.readFile(`${CWD}/memserver/index.ts`),
+        fs.readFile(`${CWD}/memserver/routes.ts`),
+        fs.readFile(`${CWD}/memserver/initializer.ts`),
+        pathExists(`${CWD}/memserver/fixtures`),
+        pathExists(`${CWD}/memserver/models`),
+      ]);
 
-    const [
-      targetIndexFileBuffer,
-      targetRoutesFileBuffer,
-      targetInitializerBuffer
-    ] = await Promise.all([
+    const [targetIndexFileBuffer, targetRoutesFileBuffer, targetInitializerBuffer] = await Promise.all([
       fs.readFile(`${PKG_PATH}/memserver-boilerplate/index.ts`),
       fs.readFile(`${PKG_PATH}/memserver-boilerplate/routes.ts`),
-      fs.readFile(`${PKG_PATH}/memserver-boilerplate/initializer.ts`)
+      fs.readFile(`${PKG_PATH}/memserver-boilerplate/initializer.ts`),
     ]);
 
     assert.equal(indexBuffer.toString(), targetIndexFileBuffer.toString());
@@ -76,28 +67,19 @@ module("@memserver/cli | $ memserver init", function (hooks) {
 
     assert.equal(stdout, expectedOutput);
 
-    const [
-      indexBuffer,
-      routesBuffer,
-      initializerBuffer,
-      fixturesFolderExistence,
-      modelsFolderExists
-    ] = await Promise.all([
-      fs.readFile(`${CWD}/memserver/index.ts`),
-      fs.readFile(`${CWD}/memserver/routes.ts`),
-      fs.readFile(`${CWD}/memserver/initializer.ts`),
-      pathExists(`${CWD}/memserver/fixtures`),
-      pathExists(`${CWD}/memserver/models`)
-    ]);
+    const [indexBuffer, routesBuffer, initializerBuffer, fixturesFolderExistence, modelsFolderExists] =
+      await Promise.all([
+        fs.readFile(`${CWD}/memserver/index.ts`),
+        fs.readFile(`${CWD}/memserver/routes.ts`),
+        fs.readFile(`${CWD}/memserver/initializer.ts`),
+        pathExists(`${CWD}/memserver/fixtures`),
+        pathExists(`${CWD}/memserver/models`),
+      ]);
 
-    const [
-      targetIndexFileBuffer,
-      targetRoutesFileBuffer,
-      targetInitializerBuffer
-    ] = await Promise.all([
+    const [targetIndexFileBuffer, targetRoutesFileBuffer, targetInitializerBuffer] = await Promise.all([
       fs.readFile(`${PKG_PATH}/memserver-boilerplate/index.ts`),
       fs.readFile(`${PKG_PATH}/memserver-boilerplate/routes.ts`),
-      fs.readFile(`${PKG_PATH}/memserver-boilerplate/initializer.ts`)
+      fs.readFile(`${PKG_PATH}/memserver-boilerplate/initializer.ts`),
     ]);
 
     assert.equal(indexBuffer.toString(), targetIndexFileBuffer.toString());

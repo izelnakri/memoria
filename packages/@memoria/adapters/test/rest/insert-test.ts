@@ -8,7 +8,7 @@ import Model, {
   PrimaryGeneratedColumn,
   InsertError,
   RuntimeError,
-  RelationshipDB
+  RelationshipDB,
 } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
@@ -22,18 +22,19 @@ const { PHOTOS, PHOTO_COMMENTS } = FIXTURES;
 module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
   setupMemoria(hooks);
 
-  module('Primary key tests', function () {
+  module("Primary key tests", function () {
     test("$Model.insert() will insert an empty model and auto-generate primaryKeys", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
       this.Server = Server;
 
       let initialPhotos = await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
 
-      assert.deepEqual(initialPhotos, PHOTOS.map((photo) => RESTPhoto.build(photo)));
+      assert.deepEqual(
+        initialPhotos,
+        PHOTOS.map((photo) => RESTPhoto.build(photo))
+      );
       assert.ok(
-        initialPhotos.every(
-          (photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted
-        )
+        initialPhotos.every((photo) => !photo.isNew && !photo.isDirty && photo.isPersisted && !photo.isDeleted)
       );
 
       let initialPhotoComments = await Promise.all(
@@ -61,21 +62,24 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       await RESTPhoto.insert();
 
       assert.equal(await RESTPhoto.count(), 5);
-      assert.deepEqual(await RESTPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 4,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-        },
-        {
-          id: 5,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-        },
-      ].map((photo) => RESTPhoto.build(photo)));
+      assert.deepEqual(
+        await RESTPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 4,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+          },
+          {
+            id: 5,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+          },
+        ].map((photo) => RESTPhoto.build(photo))
+      );
 
       const initialCommentUUIDs = (await RESTPhotoComment.findAll()).map((photoComment) => photoComment.uuid);
 
@@ -106,29 +110,25 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         await RESTPhoto.insert({ id: 1 });
       } catch (changeset) {
         assert.ok(changeset instanceof InsertError);
-        assert.propContains(changeset.errors[0],
-          {
-            attribute: "id",
-            id: 1,
-            message: "already exists",
-            modelName: "RESTPhoto",
-            name: "ModelError",
-          },
-        );
+        assert.propContains(changeset.errors[0], {
+          attribute: "id",
+          id: 1,
+          message: "already exists",
+          modelName: "RESTPhoto",
+          name: "ModelError",
+        });
       }
       try {
         await RESTPhotoComment.insert({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" });
       } catch (changeset) {
         assert.ok(changeset instanceof InsertError);
-        assert.propContains(changeset.errors[0],
-          {
-            attribute: "uuid",
-            id: "d351963d-e725-4092-a37c-1ca1823b57d3",
-            message: "already exists",
-            modelName: "RESTPhotoComment",
-            name: "ModelError",
-          },
-        );
+        assert.propContains(changeset.errors[0], {
+          attribute: "uuid",
+          id: "d351963d-e725-4092-a37c-1ca1823b57d3",
+          message: "already exists",
+          modelName: "RESTPhotoComment",
+          name: "ModelError",
+        });
       }
     });
 
@@ -152,7 +152,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
     });
   });
 
-  module('Attribute tests', function () {
+  module("Attribute tests", function () {
     test("$Model.insert(attributes) will insert a model with overriden attributes", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
       this.Server = Server;
@@ -173,7 +173,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         href: "/baby.jpg",
         is_public: true,
         group_uuid: null,
-        owner_id: null
+        owner_id: null,
       });
       assert.deepEqual(model.revisionHistory, [
         {
@@ -182,26 +182,29 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
           href: "/baby.jpg",
           is_public: true,
           group_uuid: null,
-          owner_id: null
+          owner_id: null,
         },
       ]);
 
       assert.equal(await RESTPhoto.count(), 5);
-      assert.deepEqual(await RESTPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 99,
-          is_public: false,
-          name: "Photo default name",
-          href: "/izel.html",
-        },
-        {
-          id: 100,
-          is_public: true,
-          name: "Baby photo",
-          href: "/baby.jpg",
-        },
-      ].map((photo) => RESTPhoto.build(photo)));
+      assert.deepEqual(
+        await RESTPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 99,
+            is_public: false,
+            name: "Photo default name",
+            href: "/izel.html",
+          },
+          {
+            id: 100,
+            is_public: true,
+            name: "Baby photo",
+            href: "/baby.jpg",
+          },
+        ].map((photo) => RESTPhoto.build(photo))
+      );
 
       const initialCommentUUIDs = (await RESTPhotoComment.findAll()).map((comment) => comment.uuid);
       const commentOne = await RESTPhotoComment.insert({
@@ -222,7 +225,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
         photo_id: 1,
-        user_id: null
+        user_id: null,
       });
       assert.deepEqual(commentOne.revisionHistory, [
         {
@@ -232,7 +235,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
           is_important: true,
           uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
           photo_id: 1,
-          user_id: null
+          user_id: null,
         },
       ]);
       const commentTwo = await RESTPhotoComment.insert({
@@ -285,57 +288,84 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       await RESTPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
       await RESTPhotoComment.insert({ reply_id: 1 });
 
-      assert.deepEqual(Array.from(RESTPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
-      assert.deepEqual(Array.from(RESTPhotoComment.columnNames), ["uuid", "content", "is_important", "inserted_at", "updated_at", "user_id", "photo_id"]);
-      assert.deepEqual(await RESTPhoto.findAll(), [
-        ...PHOTOS,
-        {
-          id: 4,
-          is_public: true,
-          name: "Photo default name",
-          href: null,
-        },
-        {
-          id: 5,
-          is_public: false,
-          name: "Photo default name",
-          href: null,
-        },
-      ].map((photo) => RESTPhoto.build(photo)));
+      assert.deepEqual(Array.from(RESTPhoto.columnNames), [
+        "id",
+        "name",
+        "href",
+        "is_public",
+        "owner_id",
+        "group_uuid",
+      ]);
+      assert.deepEqual(Array.from(RESTPhotoComment.columnNames), [
+        "uuid",
+        "content",
+        "is_important",
+        "inserted_at",
+        "updated_at",
+        "user_id",
+        "photo_id",
+      ]);
+      assert.deepEqual(
+        await RESTPhoto.findAll(),
+        [
+          ...PHOTOS,
+          {
+            id: 4,
+            is_public: true,
+            name: "Photo default name",
+            href: null,
+          },
+          {
+            id: 5,
+            is_public: false,
+            name: "Photo default name",
+            href: null,
+          },
+        ].map((photo) => RESTPhoto.build(photo))
+      );
     });
   });
 
-  module('Reference tests', function () {
+  module("Reference tests", function () {
     test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
       const { RESTPhoto, Server } = generateModels();
       this.Server = Server;
 
       let photo = RESTPhoto.build({ name: "some name" });
 
-      assert.deepEqual(photo, RESTPhoto.build({
-        href: null,
-        id: null,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.deepEqual(
+        photo,
+        RESTPhoto.build({
+          href: null,
+          id: null,
+          is_public: null,
+          name: "some name",
+        })
+      );
 
       assert.equal(InstanceDB.getReferences(photo).size, 1);
 
       let insertedPhoto = await RESTPhoto.insert(photo);
 
       assert.notEqual(insertedPhoto, photo);
-      assert.deepEqual(insertedPhoto, RESTPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
-      assert.deepEqual(photo, RESTPhoto.build({
-        href: null,
-        id: 1,
-        is_public: null,
-        name: "some name",
-      }));
+      assert.deepEqual(
+        insertedPhoto,
+        RESTPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
+      assert.deepEqual(
+        photo,
+        RESTPhoto.build({
+          href: null,
+          id: 1,
+          is_public: null,
+          name: "some name",
+        })
+      );
       assert.deepEqual(RESTPhoto.peek(insertedPhoto.id), insertedPhoto);
       assert.equal(InstanceDB.getReferences(photo).size, 6);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
@@ -367,8 +397,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       assert.equal(existingGroupReferences.size, 3);
 
       let cachedReference = RESTGroup.Cache.get(insertedGroup.uuid);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
@@ -385,7 +415,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         uuid: group.uuid,
         name: "Hacker Log",
         owner: izel,
-        photo: groupPhoto
+        photo: groupPhoto,
       });
 
       assert.deepEqual(insertedGroup, newBuiltReference);
@@ -393,8 +423,8 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
       assert.equal(insertedGroup.photo, groupPhoto);
 
       assert.equal(InstanceDB.getReferences(group).size, 5);
-      assert.equal(RelationshipDB.has(cachedReference, 'owner'), false);
-      assert.equal(RelationshipDB.has(cachedReference, 'photo'), false);
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
+      assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![somePeekedModel, cachedReference].includes(reference)) {

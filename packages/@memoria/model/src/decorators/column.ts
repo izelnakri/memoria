@@ -3,12 +3,8 @@ import type { ColumnDefinition } from "../types.js";
 import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
 
 // NOTE: options manglings here are done for defaultValue generation
-export function Column(
-  keyOrOptions: ColumnDefinition | ColumnType = { type: "varchar" },
-  options?: ColumnDefinition
-) {
-  let optionsObject =
-    typeof keyOrOptions === "string" ? { type: keyOrOptions as ColumnType } : keyOrOptions;
+export function Column(keyOrOptions: ColumnDefinition | ColumnType = { type: "varchar" }, options?: ColumnDefinition) {
+  let optionsObject = typeof keyOrOptions === "string" ? { type: keyOrOptions as ColumnType } : keyOrOptions;
 
   return proxyColumnToAdapter("Column", {
     nullable: false,
@@ -55,10 +51,7 @@ export function PrimaryColumn(keyOrOptions = {}, options?: ColumnDefinition) {
   });
 }
 
-export function PrimaryGeneratedColumn(
-  strategyOrOptions?: string | ColumnDefinition,
-  options?: ColumnDefinition
-) {
+export function PrimaryGeneratedColumn(strategyOrOptions?: string | ColumnDefinition, options?: ColumnDefinition) {
   let firstParamOptions = {};
   let targetStrategy;
   if (!strategyOrOptions || strategyOrOptions === "increment") {
@@ -102,11 +95,7 @@ function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) 
       });
     }
 
-    return target.constructor.Adapter.Decorators[decoratorName](options)(
-      target.constructor,
-      propertyName,
-      descriptor
-    );
+    return target.constructor.Adapter.Decorators[decoratorName](options)(target.constructor, propertyName, descriptor);
   };
 }
 
