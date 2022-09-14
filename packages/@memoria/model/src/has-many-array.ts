@@ -2,6 +2,7 @@
 // NOTE: do we want to batch also relationships assignments(?) -> probably not for now
 import InstanceDB from "./stores/instance/db.js";
 import RelationshipUtils from "./stores/relationship/utils.js";
+import type { RelationshipMetadata } from "./stores/relationship/schema.js";
 import Model from "./model.js";
 import Enum from "./enum.js";
 import { compare, get, match, SetUtils } from "./utils/index.js";
@@ -18,20 +19,27 @@ export default class HasManyArray extends Array {
     return Array.isArray(args[0]) ? new HasManyArray(args[0]) : new HasManyArray(args);
   }
 
-  private RelationshipClass: typeof Model;
-  private spliceCallWhenSettingNull = true;
+  belongsTo: Model;
+
+  private _RelationshipClass: typeof Model;
+  private _relationshipMetadata: RelationshipMetadata;
+  private _spliceCallWhenSettingNull = true;
+
   // #content; -> this could be a set implementation if needed to remove the JS Proxy
 
   get metadata() {
-    if (!this.RelationshipClass && this[0]) {
-      this.RelationshipClass = this[0].constructor as typeof Model;
+    if (this._relationshipMetadata) {
+      return this._relationshipMetadata;
+    } else if (!this._RelationshipClass && this[0]) {
+      this._RelationshipClass = this[0].constructor as typeof Model;
     }
 
     return {
-      RelationshipClass: this.RelationshipClass,
+      RelationshipClass: this._RelationshipClass,
       relationshipName: null,
       relationshipType: null,
       foreignKeyColumnName: null,
+      SourceClass: undefined,
       reverseRelationshipName: null,
       reverseRelationshipType: null,
       reverseRelationshipForeignKeyColumnName: null,
@@ -46,8 +54,16 @@ export default class HasManyArray extends Array {
     return this[this.length - 1];
   }
 
-  constructor(array?: Array<Model> | Set<Model>) {
+  constructor(array?: Array<Model> | Set<Model>, belongsTo?: Model, metadata?: RelationshipMetadata) {
     super();
+
+    if (belongsTo) {
+      this.belongsTo = belongsTo;
+    }
+
+    if (metadata) {
+      this._relationshipMetadata = metadata;
+    }
 
     if (Array.isArray(array)) {
       filterInstancesToAddFor(this, array).forEach((model) => {
@@ -80,7 +96,7 @@ export default class HasManyArray extends Array {
               if (value) {
                 throw new Error(`HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`);
               } else if (targetIndex !== self.length) {
-                if (self.spliceCallWhenSettingNull) {
+                if (self._spliceCallWhenSettingNull) {
                   self.splice(targetIndex, 1);
                 } else {
                   self[targetIndex] = null;
@@ -92,7 +108,7 @@ export default class HasManyArray extends Array {
 
             let instancesToAdd = [value];
             let instanceToAddReferencesSet = InstanceDB.getReferences(value);
-            if (self.metadata.RelationshipClass && value.constructor !== self.metadata.RelationshipClass) {
+            if (self.metadata.RelationshipClass && value.constructor.name !== self.metadata.RelationshipClass.name) {
               throw new Error(
                 `This HasManyArray accepts ${self.metadata.RelationshipClass.name} instances, you tried to assign ${value.constructor.name} instance!`
               );
@@ -138,7 +154,7 @@ export default class HasManyArray extends Array {
             });
 
             instancesToAdd.forEach((instanceToAdd) => {
-              if (self.spliceCallWhenSettingNull) {
+              if (self._spliceCallWhenSettingNull) {
                 RelationshipUtils.addHasManyRelationshipFor(self, value);
 
                 if (targetIndex !== self.length) {
@@ -254,9 +270,9 @@ export default class HasManyArray extends Array {
     }
 
     let deletedModels: Array<Model> = [];
-    let oldSpliceCallOnNullSetting = this.spliceCallWhenSettingNull;
+    let oldSpliceCallOnNullSetting = this._spliceCallWhenSettingNull;
 
-    this.spliceCallWhenSettingNull = false;
+    this._spliceCallWhenSettingNull = false;
 
     if (targetDeleteCount > 0) {
       for (let i = 0; i < this.length && i < targetDeleteCount; i++) {
@@ -302,7 +318,7 @@ export default class HasManyArray extends Array {
       return indexForAdd;
     }, 0);
 
-    this.spliceCallWhenSettingNull = oldSpliceCallOnNullSetting;
+    this._spliceCallWhenSettingNull = oldSpliceCallOnNullSetting;
 
     return deletedModels;
   }
