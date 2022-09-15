@@ -507,7 +507,7 @@ function filterInstancesToAddFor(array: HasManyArray, instancesToLookup: Model[]
         return throwError(shouldThrow, "HasManyArray cannot have non memoria Model instance inside!", result);
       } else if (!referenceRelationshipClass) {
         referenceRelationshipClass = instanceToLookup.constructor as typeof Model;
-      } else if (referenceRelationshipClass !== instanceToLookup.constructor) {
+      } else if (referenceRelationshipClass.name !== instanceToLookup.constructor.name) {
         return throwError(
           shouldThrow,
           "HasManyArray cannot be instantiated or added with model types different than one another!",

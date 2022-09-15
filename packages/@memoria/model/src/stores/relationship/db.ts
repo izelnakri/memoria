@@ -92,13 +92,7 @@ export default class RelationshipDB {
   // NOTE: in future relationshipChanges could be tracked and passed in here for optional optimization
   static cache(result: Model, _type: "insert" | "update", input?: Model | JSObject) {
     let Class = result.constructor as typeof Model;
-    // let primaryKey = result[Class.primaryKeyName];
-    // let belongsToRelationshipTable = RelationshipSchema.getRelationshipTable(Class, "BelongsTo"); // NOTE: could be costly atm
-    // Object.keys(belongsToRelationshipTable).forEach((relationshipName) => {
-    //   let foreignKeyValue = result[belongsToRelationshipTable[relationshipName].foreignKeyColumnName as string];
 
-    //   // this.findPersistedRecordsCacheFor(Class, relationshipName).set(primaryKey, foreignKeyValue);
-    // });
     Object.keys(RelationshipSchema.getRelationshipTable(Class, "OneToOne")).forEach((relationshipName) => {
       let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, "OneToOne");
 
@@ -214,7 +208,6 @@ export default class RelationshipDB {
         if (relationship.relationshipType === "BelongsTo") {
           modelReference[relationship.foreignKeyColumnName as string] = null;
           relationshipCache.set(modelReference, null); // TODO: do this only for reverse references, break the effect and
-          // this.findPersistedRecordsCacheFor(Class, relationshipName).delete(model[Class.primaryKeyName]);
         } else if (relationship.relationshipType === "OneToOne") {
           relationshipCache.set(modelReference, null);
         } else if (relationship.relationshipType === "HasMany") {
@@ -344,7 +337,6 @@ export default class RelationshipDB {
       if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
         let array = new HasManyArray(reference, model, metadata);
 
-        debugger;
         cache.set(model, array);
 
         return array;
@@ -367,10 +359,11 @@ export default class RelationshipDB {
     let existingRelationship = relationshipCache.get(model);
 
     if (input === undefined) {
-      // if its list relationship, then we need to remove the existing relationship
       relationshipCache.delete(model);
 
-      if (existingRelationship && reverseRelationshipName) {
+      if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
+        existingRelationship.clear();
+      } else if (existingRelationship && reverseRelationshipName) {
         let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
           RelationshipClass,
           reverseRelationshipName,
@@ -391,7 +384,7 @@ export default class RelationshipDB {
 
     let targetRelationship = formatInput(input, model, metadata);
     if (existingRelationship === targetRelationship) {
-      // NOTE: why is this needed?!
+      // NOTE: This sets the reflection to the recent one due to assignment
       if (targetRelationship && reverseRelationshipName && !ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
         let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
           RelationshipClass,
@@ -423,11 +416,13 @@ export default class RelationshipDB {
         relationshipCache
       );
     } else if (metadata.relationshipType === "HasMany") {
-      // TODO: this is wrong
-      debugger;
+      if (existingRelationship) {
+        existingRelationship.clear();
+      }
+
       relationshipCache.set(model, targetRelationship);
 
-      return targetRelationship;
+      return model;
     } else {
       if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
         throw new Error(`Tried to set a non model instance value to ${Class.name}.${relationshipName}!`);
