@@ -1,7 +1,7 @@
 {
   "name": "@memoria/cli",
   "type": "module",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "description": "",
   "author": "Izel Nakri",
   "license": "MIT",
@@ -14,7 +14,7 @@
     "memoria-boilerplate/*"
   ],
   "dependencies": {
-    "@memoria/server": "0.0.29",
+    "@memoria/server": "0.0.30",
     "kleur": "4.1.4",
     "inflected": "^2.1.0",
     "recursive-lookup": "1.0.0",

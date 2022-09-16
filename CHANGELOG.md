@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.28](https://github.com/izelnakri/memoria/compare/0.0.28...0.0.28)
+#### [0.0.29](https://github.com/izelnakri/memoria/compare/0.0.29...0.0.29)
+
+- Initial basic HasMany Mutation Tests [`#54`](https://github.com/izelnakri/memoria/pull/54)
+- Run prettier on all JS code [`#55`](https://github.com/izelnakri/memoria/pull/55)
+- Initial HasMany mutation tests and adjustments [`c997c8d`](https://github.com/izelnakri/memoria/commit/c997c8d89f1b1d2f60e89e85ac7e977582eaaf8a)
+- models initial HasManyArray generation [`c1bbf6d`](https://github.com/izelnakri/memoria/commit/c1bbf6df68ca6bd0f90d6af15d49b8f6198792d3)
+- extend HasManyArray for ownerModel and relation [`93ece6b`](https://github.com/izelnakri/memoria/commit/93ece6b2f057511fdcf2b1dc0b419f94372d1f33)
+- HasMany id mutation tests [`70762c9`](https://github.com/izelnakri/memoria/commit/70762c94cd2cca18adc44d348ee7642d5931af09)
+
+#### [0.0.29](https://github.com/izelnakri/memoria/compare/0.0.28...0.0.29)
+
+> 11 September 2022
 
 - Bump actions/checkout from 2.4.0 to 3.0.2 [`#44`](https://github.com/izelnakri/memoria/pull/44)
 - Bump docker/login-action from 1.12.0 to 2.0.0 [`#46`](https://github.com/izelnakri/memoria/pull/46)
@@ -13,6 +24,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - HasManyArray adjustments for hasMany tracking [`bac42e0`](https://github.com/izelnakri/memoria/commit/bac42e0dcc48c56040f512cfe61625ccb4a3333f)
 - cleanup HasManyArray implementation [`87c1bed`](https://github.com/izelnakri/memoria/commit/87c1bedb36b4ceac9bcd935faeaeb8c36819bead)
 - TODO note add [`225e1a7`](https://github.com/izelnakri/memoria/commit/225e1a7212edbc556ae6461b02ff7e95057b495a)
+- Release 0.0.29 [`6551cce`](https://github.com/izelnakri/memoria/commit/6551cce57441f11ecaa81b6681e496303a4c7873)
 
 #### [0.0.28](https://github.com/izelnakri/memoria/compare/0.0.27...0.0.28)
 
