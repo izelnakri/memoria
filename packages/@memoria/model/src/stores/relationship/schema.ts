@@ -2,7 +2,7 @@ import Model from "../../model.js";
 import Schema from "../schema.js";
 import type { ModelName, ModuleDatabase } from "../../types.js";
 
-export const ARRAY_ASKING_RELATIONSHIPS = ["HasMany", "ManyToMany"];
+export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
 
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
@@ -14,6 +14,7 @@ export interface RelationshipMetadata {
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
+  SourceClass: null | typeof Model;
   reverseRelationshipName: null | string;
   reverseRelationshipType: null | RelationshipType;
   reverseRelationshipForeignKeyColumnName: null | string;
@@ -23,6 +24,7 @@ export interface RelationshipTable {
   [relationshipName: string]: RelationshipMetadata;
 }
 
+// TODO: Remove this data structure
 export interface ReverseRelationshipMetadata {
   TargetClass: typeof Model;
   relationshipName: string;
@@ -62,10 +64,7 @@ const REVERSE_RELATIONSHIP_LOOKUPS = {
 
 export default class RelationshipSchema {
   static _relationshipTable: Map<ModelName, RelationshipTable> = new Map();
-  static getRelationshipTable(
-    Class: typeof Model,
-    relationshipType?: RelationshipType
-  ): RelationshipTable {
+  static getRelationshipTable(Class: typeof Model, relationshipType?: RelationshipType): RelationshipTable {
     if (!this._relationshipTable.has(Class.name)) {
       Schema.Schemas.forEach((modelSchema) => {
         let modelRelations = modelSchema.relations;
@@ -74,10 +73,8 @@ export default class RelationshipSchema {
           modelSchema.name,
           Object.keys(modelRelations).reduce((result, relationName) => {
             let relation = modelSchema.relations[relationName];
-            let RelationshipClass =
-              typeof relation.target === "function" ? relation.target() : relation.target;
-            let relationshipType =
-              MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationName].type];
+            let RelationshipClass = typeof relation.target === "function" ? relation.target() : relation.target;
+            let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationName].type];
 
             return Object.assign(result, {
               [relationName]: {
@@ -92,9 +89,10 @@ export default class RelationshipSchema {
                         RelationshipClass
                       )
                     : null,
+                SourceClass: Class,
                 reverseRelationshipForeignKeyColumnName: null,
                 reverseRelationshipName: null,
-                reverseRelationshipType: null
+                reverseRelationshipType: null,
               },
             });
           }, {})
@@ -132,7 +130,7 @@ export default class RelationshipSchema {
             relationshipType,
             foreignKeyColumnName,
             reverseRelationshipName,
-            reverseRelationshipType
+            reverseRelationshipType,
           } = relationshipTable[relationshipName];
 
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
@@ -142,9 +140,9 @@ export default class RelationshipSchema {
             );
           }
           let TargetClass = Schema.Models.get(modelName) as typeof Class;
-          let reverseRelationshipTable = this._reverseRelationshipTables.get(
-            RelationshipClass.name
-          ) as { ModelName: ReverseRelationshipMetadata[] };
+          let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
+            ModelName: ReverseRelationshipMetadata[];
+          };
 
           if (!reverseRelationshipTable[TargetClass.name]) {
             reverseRelationshipTable[TargetClass.name] = [];
@@ -156,7 +154,7 @@ export default class RelationshipSchema {
             relationshipType,
             foreignKeyColumnName,
             reverseRelationshipName,
-            reverseRelationshipType
+            reverseRelationshipType,
           });
         });
       }
@@ -170,9 +168,8 @@ export default class RelationshipSchema {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
     if (!currentMetadata.reverseRelationshipName) {
-      let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class)[
-        currentMetadata.RelationshipClass.name
-      ];
+      let reverseRelationshipMetadatas =
+        this.getReverseRelationshipsTable(Class)[currentMetadata.RelationshipClass.name];
       let targetReverseRelationship =
         reverseRelationshipMetadatas &&
         reverseRelationshipMetadatas.find((reverseRelationship) => {
@@ -182,8 +179,7 @@ export default class RelationshipSchema {
           ) {
             return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
           } else if (
-            reverseRelationship.relationshipType ===
-            REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
+            reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
           ) {
             return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
           }
@@ -193,9 +189,10 @@ export default class RelationshipSchema {
 
       if (targetReverseRelationship) {
         Object.assign(currentMetadata, {
+          SourceClass: Class,
           reverseRelationshipName: targetReverseRelationship.relationshipName,
           reverseRelationshipForeignKeyColumnName: targetReverseRelationship.foreignKeyColumnName,
-          reverseRelationshipType: targetReverseRelationship.relationshipType
+          reverseRelationshipType: targetReverseRelationship.relationshipType,
         });
 
         targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
@@ -215,14 +212,11 @@ export default class RelationshipSchema {
       this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
 
       Object.keys(belongsToRelationshipsTable).forEach((relationshipName) => {
-        let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipsTable[
-          relationshipName
-        ];
+        let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipsTable[relationshipName];
         this.getBelongsToColumnTable(Class)[foreignKeyColumnName as string] = {
           RelationshipClass,
           relationshipName,
-          reverseRelationshipName: this.getRelationshipMetadataFor(Class, relationshipName)
-            .reverseRelationshipName,
+          reverseRelationshipName: this.getRelationshipMetadataFor(Class, relationshipName).reverseRelationshipName,
         };
         belongsToColumnNames.add(foreignKeyColumnName as string);
       });
@@ -243,14 +237,12 @@ export default class RelationshipSchema {
   static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
     let summary = {};
     for (let modelName of Schema.Models.keys()) {
-      let modelRelationTable = this.getRelationshipTable(
-        Schema.Models.get(modelName) as typeof Model
-      );
+      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
 
       summary[modelName] = Object.keys(modelRelationTable).reduce((result, relationshipName) => {
         let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
 
-        result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.includes(relationshipType)
+        result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)
           ? [RelationshipClass]
           : RelationshipClass;
 
@@ -283,9 +275,7 @@ function getTargetRelationshipForeignKey(
   RelationshipClass: typeof Model
 ) {
   let preferredRelationshipForeignKey =
-    RelationshipClass.primaryKeyType === "uuid"
-      ? `${relationshipName}_uuid`
-      : `${relationshipName}_id`;
+    RelationshipClass.primaryKeyType === "uuid" ? `${relationshipName}_uuid` : `${relationshipName}_id`;
   if (Class.columnNames.has(preferredRelationshipForeignKey)) {
     return preferredRelationshipForeignKey;
   } else if (Class.columnNames.has(`${relationshipName}_uuid`)) {
