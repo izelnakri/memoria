@@ -128,11 +128,6 @@ export default class HasManyArray extends Array {
               ) {
                 instancesToAdd.length = 0;
 
-                if (existingInstance !== value) {
-                  RelationshipUtils.removeHasManyRelationshipFor(self, existingInstance);
-                  RelationshipUtils.addHasManyRelationshipFor(self, value);
-                }
-
                 if (targetIndex === existingInstanceIndex || targetIndex === self.length) {
                   self[existingInstanceIndex] = value;
                 } else if (targetIndex < existingInstanceIndex) {
@@ -150,31 +145,42 @@ export default class HasManyArray extends Array {
 
                   self[targetIndex] = value;
                 }
+
+                if (existingInstance !== value) {
+                  // NOTE: this makes it NOT index preserving, in future maybe optimize
+                  RelationshipUtils.removeHasManyRelationshipFor(self, existingInstance);
+                  RelationshipUtils.addHasManyRelationshipFor(self, value);
+                }
               }
             });
 
             instancesToAdd.forEach((instanceToAdd) => {
-              if (self._spliceCallWhenSettingNull) {
-                RelationshipUtils.addHasManyRelationshipFor(self, value);
-
-                if (targetIndex !== self.length) {
-                  RelationshipUtils.removeHasManyRelationshipFor(self, self[propertyName]);
-                }
-              }
+              let oldModel = targetIndex !== self.length ? self[targetIndex] : null;
 
               target[propertyName] = instanceToAdd;
+
+              if (self._spliceCallWhenSettingNull) {
+                if (oldModel) {
+                  RelationshipUtils.removeHasManyRelationshipFor(self, oldModel);
+                }
+
+                RelationshipUtils.addHasManyRelationshipFor(self, instanceToAdd); // TODO: change this to instanceToAdd(?)
+              }
             });
 
             return true;
           } else if (propertyName === "length") {
+            let modelsToRemove = [];
             if (value < self.length) {
               for (let i = self.length - 1; i >= value; i--) {
                 if (self[i]) {
-                  RelationshipUtils.removeHasManyRelationshipFor(self, self[i]);
+                  modelsToRemove.push(self[i]);
                 }
               }
 
-              target[propertyName] = value;
+              self.length = value;
+
+              modelsToRemove.forEach((model) => RelationshipUtils.removeHasManyRelationshipFor(self, model));
 
               return true;
             } else if (value !== self.length) {
@@ -292,8 +298,9 @@ export default class HasManyArray extends Array {
           }
         }
 
-        deletedModels.forEach((deletedModel) => RelationshipUtils.removeHasManyRelationshipFor(this, deletedModel));
         this.length = this.length - deletedModels.length;
+
+        deletedModels.forEach((deletedModel) => RelationshipUtils.removeHasManyRelationshipFor(this, deletedModel));
       }
     }
 

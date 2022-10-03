@@ -21,6 +21,8 @@ export default class RelationshipUtils {
       (reverseRelationshipName &&
         RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType));
     let previousRelationship = relationshipCache.get(model);
+    // TODO: DO Reflection correctly for BelongsTo <-> HasMany
+
     if (previousRelationship) {
       this.cleanRelationshipsOn(model, previousRelationship, metadata, relationshipCache, reverseRelationshipCache);
     }
@@ -150,9 +152,33 @@ export default class RelationshipUtils {
     }
   }
 
+  // TODO: these 2 are wrong, when insert() happens and it replaces the previous data
+  // BUGGY CASE: targetRelationship is insertedPhoto, relationshipArray.belongsTo is user
   static addHasManyRelationshipFor(relationshipArray, targetRelationship) {
     if (relationshipArray.belongsTo && relationshipArray.metadata.reverseRelationshipName) {
-      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = relationshipArray.belongsTo; // this is not reflexive
+      // TODO: dont do this everytime: Scenario:
+      // 1. insert() is called on a model with a HasMany relationship
+      // Photo.insert makes -> user.photos[0] = insertedPhoto; |> changing it from photo
+      // Then relationshipArray.belongsTo is user not insertedUser
+      // insertedPhoto.owner should be insertedUser
+
+      // TODO: instead it should just change reverserRelationshipForeignKeyColumnName maybe(?)
+      // let targetPrimaryKey = relationshipArray.belongsTo[relationshipArray.metadata.RelationshipClass.primaryKeyName];
+      let { SourceClass, relationshipName } = relationshipArray.metadata;
+      let relationshipCache = RelationshipDB.findRelationshipCacheFor(SourceClass, relationshipName, "HasMany");
+      let references = InstanceDB.getReferences(targetRelationship);
+
+      let targetUser =
+        Array.from(InstanceDB.getReferences(relationshipArray.belongsTo))
+          .reverse()
+          .find((reference) => {
+            let models = relationshipCache.get(reference);
+            if (models) {
+              return models.some((model) => references.has(model)); // NOTE: should this be targetRelationship or above in instances?
+            }
+          }) || relationshipArray.belongsTo;
+      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = targetUser; // this is not reflexive?
+
       // let { RelationshipClass, reverseRelationshipName } = relationshipArray.metadata;
       // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
       //   RelationshipClass,
@@ -175,9 +201,22 @@ export default class RelationshipUtils {
 
   static removeHasManyRelationshipFor(relationshipArray, targetRelationship) {
     if (relationshipArray.belongsTo && relationshipArray.metadata.reverseRelationshipName) {
-      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = null; // TODO: instead, resort to another possible reference(?)
+      let targetRelationshipInstances = InstanceDB.getReferences(targetRelationship);
+      let { relationshipName } = relationshipArray.metadata;
+      let fallback = Array.from(InstanceDB.getReferences(relationshipArray.belongsTo))
+        .reverse()
+        .find((reference) => {
+          let hasManyRecords = reference[relationshipName];
+          if (Array.isArray(hasManyRecords)) {
+            return hasManyRecords.some((record) => targetRelationshipInstances.has(record));
+          }
+        });
+
+      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = fallback || null; // TODO: instead, resort to another possible reference(?)
       // TODO: clean reflexive references(?)
     }
+
+    console.log("is window.insertedUser for removal", targetRelationship === window.insertedUser);
   }
 }
 

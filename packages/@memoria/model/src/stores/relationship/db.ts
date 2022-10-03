@@ -17,6 +17,7 @@ type RelationshipTableKey = string; // Example: "MemoryUser:comments"
 // type QueryObject = { [key: string]: any };
 
 type RelationshipMap<Value> = Map<RelationshipTableKey, Value>;
+type PrimaryKey = string | number;
 
 type JSObject = { [key: string]: any };
 
@@ -420,7 +421,7 @@ export default class RelationshipDB {
         existingRelationship.clear();
       }
 
-      relationshipCache.set(model, targetRelationship);
+      relationshipCache.set(model, new HasManyArray(targetRelationship as Model[], model, metadata));
 
       return model;
     } else {

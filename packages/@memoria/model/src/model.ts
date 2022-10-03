@@ -17,6 +17,7 @@ import {
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
+import HasManyArray from "./has-many-array.js";
 
 type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -26,8 +27,18 @@ interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
   freeze?: boolean;
+  // isLastVerifiedInstance: boolean; // or keep a record of snapshots
 }
 
+// model.changeset -> this will have the metadata, but gets generated lazily
+// model.changes -> this will have the actual changes and diffing from the previous source record
+// model.revision -> this will have the previous source record(?) very error prone
+
+// instanceMetadata
+// So model.revision needs to change, get revision.builtAt, reason, and source, revision(needs to be previous model, test this always)
+// what interface to get models.instanceMetadata(?) -> { } exposes the private properties
+
+// cached model could have a hasMany and hasOne(?) and it gets locked there(?)
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
   cache?: number;
@@ -124,7 +135,7 @@ export default class Model {
     let attributeTrackingEnabledForModel = attributeTrackingEnabled(options);
 
     Array.from(this.columnNames).forEach((columnName) => {
-      if (columnName === primaryKeyName) {
+      if (columnName === this.primaryKeyName) {
         Object.defineProperty(model, columnName, {
           configurable: false,
           enumerable: true,
@@ -220,6 +231,7 @@ export default class Model {
               dirtyTrackAttribute(this, columnName, cache);
             }
 
+            // TODO: clean this part up
             if (belongsToColumnNames.has(columnName)) {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
 
@@ -232,13 +244,7 @@ export default class Model {
               let existingRelationship = relationshipCache.get(this);
               let existingRelationshipPrimaryKey =
                 existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
-
-              if (!relationshipCache.has(this)) {
-                // if (cache === null) {
-                //   return relationshipCache.set(this, null)
-                // }
-                // check if relationship with photo.group_id = 5 exists, clean it and set it here(?)
-              } else if (existingRelationshipPrimaryKey !== cache) {
+              if (relationshipCache.has(this) && existingRelationshipPrimaryKey !== cache) {
                 let metadata = RelationshipSchema.getRelationshipMetadataFor(
                   this.constructor as typeof Model,
                   relationshipName
@@ -688,7 +694,6 @@ export default class Model {
   }
 
   get fetchedRelationships() {
-    // TODO: this wont take the null records(!!!)
     let Class = this.constructor as typeof Model;
     let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
 
