@@ -383,6 +383,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.equal(existingGroupReferences.size, 3);
 
       let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
+
       assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
       assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
@@ -419,14 +420,15 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }
       });
 
-      assert.notEqual(groupPhoto.group, insertedGroup);
+      assert.strictEqual(groupPhoto.group, newBuiltReference);
 
       let peekedGroup = await MemoryGroup.peek(group.uuid);
 
       assert.notEqual(peekedGroup, insertedGroup);
       assert.notEqual(peekedGroup, group);
       assert.equal(InstanceDB.getReferences(group).size, 6);
-      assert.equal(groupPhoto.group, newBuiltReference);
+
+      assert.strictEqual(groupPhoto.group, newBuiltReference);
 
       let fetchedGroup = await MemoryGroup.find(group.uuid);
 
@@ -442,7 +444,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }
       });
 
-      assert.equal(groupPhoto.group, fetchedGroup);
+      assert.strictEqual(groupPhoto.group, fetchedGroup);
     });
 
     test("$Model.insert($model) resets null set hasOne relationships after insert", async function (assert) {
