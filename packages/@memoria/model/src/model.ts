@@ -23,11 +23,15 @@ type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
+const INVALID_BUILD_OBJECT_TYPE = Symbol("null");
+const INSTANCE_OBJECT_TYPE = Symbol("instance");
+const PURE_BUILD_OBJECT_TYPE = Symbol("object");
+
 interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
   freeze?: boolean;
-  // isLastVerifiedInstance: boolean; // or keep a record of snapshots
+  // isLastVerifiedInstance: boolean; // or keep a record of snapshots and revisionHistory is the same(?)
 }
 
 // model.changeset -> this will have the metadata, but gets generated lazily
@@ -112,8 +116,7 @@ export default class Model {
     }
 
     let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
-    let primaryKeyName = this.primaryKeyName;
-    let primaryKey = buildObject[primaryKeyName] || null;
+    let primaryKey = buildObject[this.primaryKeyName] || null;
     let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, primaryKey);
 
     if (buildObject) {
@@ -284,11 +287,55 @@ export default class Model {
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
-      if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
-        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-      } else if (buildObject && buildObject instanceof this && RelationshipDB.has(buildObject, relationshipName)) {
-        // NOTE: this messes up nulled belongsTo relationship with foreignKey value
-        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
+      // TODO: Move all this to a function(?) and clean it up
+
+      let buildObjectType = getBuildObjectType(buildObject, this);
+      if (buildObjectType === INSTANCE_OBJECT_TYPE) {
+        if (RelationshipDB.has(buildObject as Model, relationshipName)) {
+          // NOTE: this messes up nulled belongsTo relationship with foreignKey value(?) - where??
+          RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+        } else {
+          let instanceRelationship = RelationshipDB.findPersistedRecordRelationshipsFor(model, relationshipName);
+          if (instanceRelationship) {
+            let relationshipCache = RelationshipDB.findRelationshipCacheFor(
+              Class,
+              relationshipName,
+              relationshipTable[relationshipName].relationshipType
+            );
+            relationshipCache.set(
+              model,
+              Array.isArray(instanceRelationship)
+                ? new HasManyArray(instanceRelationship, model, relationshipTable[relationshipName])
+                : instanceRelationship
+            );
+            // RelationshipDB.set(model, relationshipName, instanceRelationship);
+          }
+        }
+      } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE) {
+        debugger;
+        if (relationshipName in buildObject) {
+          RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+        } else {
+          let targetRelationship = RelationshipDB.getLastReliableRelationshipFromCache(
+            model,
+            relationshipName,
+            relationshipTable[relationshipName].relationshipType
+          );
+          if (targetRelationship) {
+            let relationshipCache = RelationshipDB.findRelationshipCacheFor(
+              Class,
+              relationshipName,
+              relationshipTable[relationshipName].relationshipType
+            );
+            relationshipCache.set(
+              model,
+              Array.isArray(targetRelationship)
+                ? new HasManyArray(targetRelationship, model, relationshipTable[relationshipName])
+                : targetRelationship
+            );
+            // RelationshipDB.set(model, relationshipName, targetRelationship);
+          }
+        }
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -642,6 +689,7 @@ export default class Model {
   changes: QueryObject = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
   revisionHistory = new RevisionHistory();
 
+  // TODO: is this correct across instances(?)
   get revision() {
     return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);
   }
@@ -689,6 +737,14 @@ export default class Model {
     return Object.keys(this.changes).length > 0;
   }
 
+  // get instanceMetadata() {
+  //   return {
+  //     builtAt: this.#builtAt,
+  //     builtBy: this.#builtBy,
+  //   };
+  // }
+
+  // TODO: this creates it lazy and everytime
   get changeset() {
     return new Changeset(this, this.changes);
   }
@@ -807,6 +863,18 @@ function getTransformedValue(model: Model, keyName: string, buildObject?: QueryO
   return buildObject && keyName in buildObject
     ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
     : model[keyName] || null;
+}
+
+function getBuildObjectType(buildObject: any, Class: typeof Model) {
+  if (!buildObject) {
+    return INVALID_BUILD_OBJECT_TYPE;
+  } else if (buildObject instanceof Class) {
+    return INSTANCE_OBJECT_TYPE;
+  } else if (typeof buildObject === "object") {
+    return PURE_BUILD_OBJECT_TYPE;
+  }
+
+  return INVALID_BUILD_OBJECT_TYPE;
 }
 
 function revisionAndLockModel(model, options?, buildObject?) {

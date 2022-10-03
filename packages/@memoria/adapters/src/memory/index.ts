@@ -121,6 +121,7 @@ export default class MemoryAdapter {
 
       if (record instanceof Model) {
         record.fetchedRelationships.forEach((relationshipName) => {
+          RelationshipDB.setPersistedRecordRelationship(record, relationshipName, record[relationshipName]);
           target[relationshipName] = record[relationshipName];
         });
         Array.from(Model.columnNames).forEach((columnName) => {
@@ -139,7 +140,8 @@ export default class MemoryAdapter {
 
     let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
 
-    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+    cachedRecord.fetchedRelationships.forEach((relationshipName: string) => {
+      RelationshipDB.setPersistedRecordRelationship(cachedRecord, relationshipName, cachedRecord[relationshipName]);
       RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
     });
 
@@ -243,7 +245,8 @@ export default class MemoryAdapter {
 
     let result = this.returnWithCacheEviction(cachedRecord, targetOptions);
 
-    cachedRecord.fetchedRelationships.forEach((relationshipName) => {
+    cachedRecord.fetchedRelationships.forEach((relationshipName: string) => {
+      RelationshipDB.setPersistedRecordRelationship(cachedRecord, relationshipName, cachedRecord[relationshipName]);
       RelationshipDB.findRelationshipCacheFor(Model, relationshipName).delete(cachedRecord);
     });
 

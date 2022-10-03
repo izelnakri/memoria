@@ -28,6 +28,7 @@ export default class RelationshipDB {
   static instanceRecordsOneToOneCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map();
   static instanceRecordsHasManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
   static instanceRecordsManyToManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
+  static persistedRecordRelationshipsCache: RelationshipMap<Map<PrimaryKey, Model | Model[]>> = new Map(); // NOTE: maybe add null later // TODO: This is not cleared, make a clearing strategy
 
   static findRelationshipCacheFor(Class: typeof Model, relationshipName: string, relationshipType?: string) {
     return this[
@@ -40,6 +41,27 @@ export default class RelationshipDB {
   static findRelationshipFor(model: Model, relationshipName: string, relationshipType?: string) {
     return this.findRelationshipCacheFor(model.constructor as typeof Model, relationshipName, relationshipType).get(
       model
+    );
+  }
+
+  static findPersistedRecordRelationshipsCache(Class: typeof Model, relationshipName: string) {
+    return this.persistedRecordRelationshipsCache.get(`${Class.name}:${relationshipName}`);
+  }
+
+  static findPersistedRecordRelationshipsFor(model: Model, relationshipName: string) {
+    let Class = model.constructor as typeof Model;
+
+    return this.persistedRecordRelationshipsCache
+      .get(`${Class.name}:${relationshipName}`)
+      .get(model[Class.primaryKeyName]);
+  }
+
+  static setPersistedRecordRelationship(model: Model, relationshipName: string, relationship: Model | Model[]) {
+    let Class = model.constructor as typeof Model;
+
+    return this.findPersistedRecordRelationshipsCache(Class, relationshipName).set(
+      model[Class.primaryKeyName],
+      relationship
     );
   }
 
@@ -94,10 +116,12 @@ export default class RelationshipDB {
   static cache(result: Model, _type: "insert" | "update", input?: Model | JSObject) {
     let Class = result.constructor as typeof Model;
 
+    // NOTE: this makes nulled hasOne cache removed from data fetch
     Object.keys(RelationshipSchema.getRelationshipTable(Class, "OneToOne")).forEach((relationshipName) => {
       let relationshipCache = this.findRelationshipCacheFor(Class, relationshipName, "OneToOne");
 
       relationshipCache.get(result) === null && relationshipCache.delete(result);
+      // NOTE: is this below needed when the above is done?
       input instanceof Class && relationshipCache.get(input) === null && relationshipCache.delete(input);
     });
 
@@ -287,6 +311,7 @@ export default class RelationshipDB {
     this.instanceRecordsBelongsToCache.clear();
     this.instanceRecordsOneToOneCache.clear();
     this.instanceRecordsHasManyCache.clear();
+    this.persistedRecordRelationshipsCache.clear();
   }
 
   static has(model: Model, relationshipName: string, metadata?: RelationshipMetadata) {
