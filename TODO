@@ -1,3 +1,6 @@
+4x(belongs-to-id, has-many-id) Memory, REST, SQLAdapter
+
+
 RelationshipUtils.replaceExistingModelFromArray() is not possible because replace first needs to remove it then add it in splice()
 Because hasManyArray[someIndex] = aModel; doesnt remove items on its own but replace needs to remove the items in the setter level.
 Anyways, more hasMany tracking is ok for now, logic should still work.
@@ -10,6 +13,16 @@ Design decisions:
 2- let insertedGroup = await MemoryGroup.insert(group); when group has a photo, it doesnt get transferred to insertedGroup.photo because
 3- fetchRelationship always returns new instance when record is found(this means .peek() as well for MemoryAdapter).
 4- get fetchedRelationships() {} check the relationshipCache, when null values are not stored this is wrong?!? No keep going on with this logic
+
+
+FUTURE testing improvement for these types:
+adapters/memory/belongs-to-id-for-has-one-test.ts:
+// 12 tests:
+// 5 categories: New model after build assignments, Fetched model assignments, reflective assignments, full lifecycle(fetched + build), relationship fetch
+
+// 3**3 model buildup: new model(relationship: unknown, known, null), fetched(relationship: unknown, known, null) peeked(relationship: unknown, known, null)
+// Cases: fetch test, basic assignment, assignment |> check |> send, reflective assignments |> check |> send(?), full lifecycle
+
 
 // never use propEqual due to recursion inside instances on sql(probably many-to-many bug)
 
