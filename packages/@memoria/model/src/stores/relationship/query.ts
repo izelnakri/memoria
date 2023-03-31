@@ -1,139 +1,166 @@
 import InstanceDB from "../instance/db.js";
 import RelationshipDB from "./db.js";
 import type Model from "../../model.js";
+import type { PrimaryKey } from "../../model.js";
+import type { RelationshipMetadata } from "./schema.js";
 
 export default class RelationshipQuery {
-  static findPossibleReferenceInMemory(model, relationshipName, metadata) {
-    // NOTE: what if reverse side is also not registered when trying to get the last instance of an instanceGroup
-    // NOTE: this probably retrive null references on OneToOne and BelongsTo, but not sure on *all cases*
-    let Class = model.constructor as typeof Model;
+  // NOTE: lookup is not by latest assignment but by id
+  static findPossibleReferenceInMemory(model: Model, metadata: RelationshipMetadata): Model | null | undefined {
     let {
       RelationshipClass,
       relationshipType,
       foreignKeyColumnName,
-      reverseRelationshipForeignKeyColumnName,
       reverseRelationshipName,
+      reverseRelationshipForeignKeyColumnName,
     } = metadata;
-    let relationshipCache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName);
-    let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName);
-    let modelReferences = InstanceDB.getReferences(model);
-
     if (relationshipType === "BelongsTo") {
-      let sourceTarget = Array.from(modelReferences).find((reference) => {
-        if (reference === model) {
-          return false;
-        }
-
-        return (
-          model[foreignKeyColumnName] &&
-          model[foreignKeyColumnName] === reference[foreignKeyColumnName] &&
-          relationshipCache.get(reference)
-        ); // NOTE: maybe also do optimistic lookup for relationships with null pkey
-      });
-      let referenceRelationship = sourceTarget && relationshipCache.get(sourceTarget);
-      if (referenceRelationship) {
-        // NOTE: making sure that last created and referenced one is obtained here:
-        return Array.from(InstanceDB.getReferences(referenceRelationship))
-          .reverse()
-          .find((relationshipInstance) => {
-            return (
-              !reverseRelationshipCache.has(relationshipInstance) ||
-              modelReferences.has(reverseRelationshipCache.has(relationshipInstance))
-            );
-          });
+      if (model[foreignKeyColumnName as string] === null) {
+        return null;
       }
-
-      return getRelationshipFromAllModelsLookup(model, metadata, reverseRelationshipCache);
-    } else if (relationshipType === "OneToOne") {
-      let sourceTarget = Array.from(modelReferences).find((reference) => {
-        if (reference === model) {
-          return false;
-        }
-        let relationshipReference = relationshipCache.get(reference);
-
-        return relationshipReference && modelReferences.has(relationshipReference);
-      });
-      let referenceRelationship = sourceTarget && relationshipCache.get(sourceTarget);
-      if (referenceRelationship) {
-        return Array.from(InstanceDB.getReferences(referenceRelationship))
-          .reverse()
-          .find((relationshipInstance) => {
-            return relationshipInstance[reverseRelationshipForeignKeyColumnName] === model[Class.primaryKeyName];
-          });
-      }
-
-      return getRelationshipFromAllModelsLookup(model, metadata, reverseRelationshipCache);
-    }
-  }
-}
-
-function getRelationshipFromAllModelsLookup(model, metadata, reverseRelationshipCache) {
-  let Class = model.constructor as typeof Model;
-  let { RelationshipClass, foreignKeyColumnName, relationshipType, reverseRelationshipForeignKeyColumnName } = metadata;
-  if (relationshipType === "BelongsTo") {
-    let modelReferences = InstanceDB.getReferences(model);
-    let targetRelationshipPrimaryKeyValue = model[foreignKeyColumnName];
-    if (targetRelationshipPrimaryKeyValue) {
-      let referenceSet = InstanceDB.getAllKnownReferences(RelationshipClass).get(targetRelationshipPrimaryKeyValue);
 
       return (
-        referenceSet &&
-        Array.from(referenceSet)
-          .reverse()
-          .find((instance) => {
-            return (
-              !reverseRelationshipCache.has(instance) || modelReferences.has(reverseRelationshipCache.get(instance))
-            );
-          })
+        this.findPossibleReferenceInMemoryByReverseRelationshipInstances(
+          model,
+          metadata,
+          model[foreignKeyColumnName as string]
+        ) || this.findPossibleReferenceInMemoryByInstanceReferences(model, metadata, foreignKeyColumnName as string) // TODO: this shouldnt peek
+      );
+    } else if (relationshipType === "OneToOne") {
+      let modelInstances = InstanceDB.getReferences(model);
+      let Class = model.constructor as typeof Model;
+      let primaryKey = model[Class.primaryKeyName];
+
+      let relationshipFoundFromReverseLookup = Array.from(InstanceDB.getAllReferences(RelationshipClass).values())
+        .reverse()
+        .reduce((result, possibleRelationshipSet) => {
+          if (result) {
+            return result;
+          }
+
+          return Array.from(possibleRelationshipSet)
+            .reverse()
+            .find((possibleRelationship) => {
+              let primaryKeyValue = possibleRelationship[RelationshipClass.primaryKeyName];
+              if (primaryKeyValue && possibleRelationship === RelationshipClass.Cache.get(primaryKeyValue)) {
+                return false;
+              }
+
+              let someRelationship = RelationshipDB.findRelationshipFor(
+                possibleRelationship,
+                reverseRelationshipName as string
+              );
+              if (someRelationship) {
+                return modelInstances.has(someRelationship);
+              }
+              let foreignKeyValue = possibleRelationship[reverseRelationshipForeignKeyColumnName as string];
+              return foreignKeyValue && foreignKeyValue === primaryKey;
+            });
+        }, undefined as Model | undefined);
+
+      return (
+        relationshipFoundFromReverseLookup || this.findPossibleReferenceInMemoryByInstanceReferences(model, metadata)
       );
     }
+  }
 
-    let references = InstanceDB.getAllUnknownInstances(RelationshipClass);
-    let relationship;
-    references.find((referenceSet) => {
-      return Array.from(referenceSet)
-        .reverse()
-        .find((instance) => {
-          if (modelReferences.has(reverseRelationshipCache.get(instance))) {
-            relationship = instance;
-            return true;
-          }
-        });
-    });
+  static findPossibleReferenceInMemoryByReverseRelationshipInstances(
+    model: Model,
+    metadata: RelationshipMetadata,
+    relationshipModelsPrimaryKeyValue: PrimaryKey
+  ): Model | null | undefined {
+    let Class = model.constructor as typeof Model;
+    let { RelationshipClass, reverseRelationshipName } = metadata;
+    let possibleRelationshipSet = InstanceDB.getAllKnownReferences(RelationshipClass).get(
+      relationshipModelsPrimaryKeyValue
+    );
+    if (!possibleRelationshipSet) {
+      return;
+    }
+    let modelReferences = InstanceDB.getReferences(model);
+    let possibleRelationshipsByTime = Array.from(possibleRelationshipSet).reverse();
+    let [foundRelationship, fallbackRelationship] = possibleRelationshipsByTime.reduce(
+      (possibleResult, possibleRelationship) => {
+        if (possibleResult[0]) {
+          return possibleResult;
+        }
 
-    return relationship;
-  } else if (relationshipType === "OneToOne") {
-    let referenceSetList = InstanceDB.getAllReferences(RelationshipClass);
-    let relationship;
-    let modelPrimaryKey = model[Class.primaryKeyName];
-    if (modelPrimaryKey) {
-      referenceSetList.find((referenceSet) => {
-        return Array.from(referenceSet)
-          .reverse()
-          .find((instance) => {
-            if (instance[reverseRelationshipForeignKeyColumnName] === modelPrimaryKey) {
-              relationship = instance;
+        let primaryKeyValue = possibleRelationship[Class.primaryKeyName];
+        if (possibleRelationship === RelationshipClass.Cache.get(primaryKeyValue)) {
+          return possibleResult;
+        }
+
+        let possibleReference = reverseRelationshipName
+          ? RelationshipDB.findRelationshipFor(possibleRelationship, reverseRelationshipName)
+          : undefined;
+        if (Array.isArray(possibleReference)) {
+          possibleReference.find((reference) => {
+            if (reference === model) {
+              possibleResult[0] = possibleRelationship;
+
+              return true;
+            } else if (!possibleResult[1] && modelReferences.has(reference)) {
+              possibleResult[1] = possibleRelationship;
+
               return true;
             }
           });
-      });
 
-      return relationship;
-    }
+          return possibleResult;
+        } else if (possibleReference === model) {
+          possibleResult[0] = possibleRelationship;
+        } else if (modelReferences.has(possibleReference)) {
+          possibleResult[1] = possibleRelationship;
+        } else if (possibleReference === undefined && !possibleResult[1]) {
+          possibleResult[1] = possibleRelationship;
+        }
 
-    let modelReferences = InstanceDB.getReferences(model);
+        return possibleResult;
+      },
+      [undefined, undefined] as Array<Model | null | undefined>
+    );
 
-    referenceSetList.find((referenceSet) => {
-      return Array.from(referenceSet)
-        .reverse()
-        .find((instance) => {
-          if (modelReferences.has(reverseRelationshipCache.get(instance))) {
-            relationship = instance;
-            return true;
-          }
-        });
+    return foundRelationship || fallbackRelationship;
+  }
+
+  // NOTE: does this need HasMany handling(?), maybe still needed on the reverse side(?)
+  static findPossibleReferenceInMemoryByInstanceReferences(
+    model: Model,
+    metadata: RelationshipMetadata,
+    foreignKeyColumnName?: string
+  ): Model | null | undefined {
+    let Class = model.constructor as typeof Model;
+    let primaryKeyValue = model[Class.primaryKeyName];
+    let { RelationshipClass, relationshipName, reverseRelationshipName } = metadata;
+    let instancesSet = InstanceDB.getReferences(model);
+    let modelReferences = Array.from(instancesSet).reverse();
+    let foreignKeyValue = foreignKeyColumnName ? model[foreignKeyColumnName] : undefined;
+    let modelWithRightRelationship = modelReferences.find((modelReference) => {
+      if (foreignKeyColumnName && modelReference[foreignKeyColumnName] !== foreignKeyValue) {
+        return false;
+      } else if (primaryKeyValue && modelReference === Class.Cache.get(primaryKeyValue)) {
+        return false;
+      }
+
+      let relationship = RelationshipDB.findRelationshipFor(modelReference, relationshipName);
+      if (relationship) {
+        let primaryKey = relationship[RelationshipClass.primaryKeyName];
+        return !(primaryKey && relationship === RelationshipClass.Cache.get(primaryKey));
+      } else if (foreignKeyColumnName) {
+        return this.findPossibleReferenceInMemoryByReverseRelationshipInstances(
+          modelReference,
+          metadata,
+          foreignKeyValue
+        );
+      }
     });
 
-    return relationship;
+    if (modelWithRightRelationship) {
+      return modelWithRightRelationship;
+    } else if (foreignKeyValue) {
+      let foundRelationship = RelationshipClass.peek(foreignKeyValue);
+
+      return foundRelationship ? foundRelationship : undefined;
+    }
   }
 }
