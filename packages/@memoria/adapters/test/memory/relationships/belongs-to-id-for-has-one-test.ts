@@ -71,9 +71,8 @@ module(
         let insertedPhoto = await MemoryPhoto.insert(photo);
 
         assert.strictEqual(photo.group, group);
-        assert.equal(insertedPhoto.group_id, group.id);
-
-        assert.strictEqual(await insertedPhoto.group, null);
+        assert.equal(insertedPhoto.group_id, null);
+        assert.strictEqual(insertedPhoto.group, group);
 
         let insertedGroup = await MemoryGroup.insert(group);
 
@@ -81,7 +80,7 @@ module(
         assert.strictEqual(insertedPhoto.group, insertedGroup);
 
         assert.strictEqual(insertedPhoto.group, insertedGroup);
-        assert.notStrictEqual(group, insertedGroup);
+        assert.strictEqual(group, insertedGroup);
       });
 
       test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
@@ -107,7 +106,7 @@ module(
         assert.equal(secondPhoto.group_id, group.id);
 
         assert.equal(secondInsertedPhoto.group_id, null);
-        assert.equal(secondInsertedPhoto.group, null);
+        assert.strictEqual(secondInsertedPhoto.group, group);
       });
 
       test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
@@ -230,12 +229,11 @@ module(
         assert.ok(photo.group instanceof RelationshipPromise);
         assert.equal(await photo.group, null);
 
-        let insertedThirdGroup = await MemoryGroup.insert(thirdGroup); // TODO: new instance should not inherit null relationship, when it is insert return or update return, delete return
+        let insertedThirdGroup = await MemoryGroup.insert(thirdGroup);
 
-        assert.equal(photo.group_id, thirdGroup.id);
+        assert.equal(photo.group_id, insertedThirdGroup.id);
         assert.strictEqual(photo.group, insertedThirdGroup);
-
-        assert.strictEqual(photo.group.photo, photo); // TODO: but there is a photo in the db, why is it null??
+        assert.strictEqual(photo.group.photo, photo);
       });
     });
 
@@ -262,7 +260,7 @@ module(
         let insertedGroup = await MemoryGroup.insert(group);
 
         assert.strictEqual(insertedGroup.photo, secondPhoto);
-        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(group.photo, secondPhoto);
 
         assert.strictEqual(firstPhoto.group, insertedGroup);
         assert.equal(firstPhoto.group_id, insertedGroup.id);
@@ -272,7 +270,7 @@ module(
         secondPhoto.group = insertedGroup;
 
         assert.strictEqual(insertedGroup.photo, secondPhoto);
-        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(group.photo, secondPhoto);
         assert.strictEqual(secondPhoto.group, insertedGroup);
         assert.equal(secondPhoto.group_id, insertedGroup.id);
         assert.strictEqual(firstPhoto.group, insertedGroup);
@@ -284,7 +282,7 @@ module(
 
         assert.strictEqual(insertedGroup.photo, secondPhoto);
         assert.strictEqual(updatedGroup.photo, secondPhoto);
-        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(group.photo, secondPhoto);
 
         assert.strictEqual(secondPhoto.group, updatedGroup);
         assert.equal(secondPhoto.group_id, updatedGroup.id);
@@ -304,7 +302,7 @@ module(
         assert.strictEqual(updatedGroup.photo, firstPhoto);
         assert.strictEqual(firstPhoto.group, updatedGroup);
 
-        assert.strictEqual(insertedGroup.photo, firstPhoto); // TODO: this needs to work
+        assert.strictEqual(insertedGroup.photo, firstPhoto);
         assert.strictEqual(group.photo, firstPhoto);
 
         let deletedGroup = await MemoryGroup.delete(updatedGroup);

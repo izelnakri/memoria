@@ -19,7 +19,7 @@ import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils
 import type { ModelReference, RelationshipType } from "./index.js";
 import HasManyArray from "./has-many-array.js";
 
-type PrimaryKey = number | string;
+export type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
@@ -45,7 +45,7 @@ interface ModelInstantiateOptions {
 // cached model could have a hasMany and hasOne(?) and it gets locked there(?)
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
-  cache?: number;
+  cache?: number; // NOTE: rename it to cacheDuration
   copy?: boolean; // NOTE: it copies by default
   // debug?:
   // tracer?:
@@ -97,6 +97,10 @@ export default class Model {
 
   static getRelationshipTable(relationshipType?: RelationshipType) {
     return RelationshipSchema.getRelationshipTable(this, relationshipType);
+  }
+
+  static getMetadataForRelationship(relationshipName: string) {
+    return RelationshipSchema.getRelationshipMetadataFor(this, relationshipType);
   }
 
   // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
@@ -312,10 +316,11 @@ export default class Model {
           }
         }
       } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE) {
-        debugger;
+        // debugger;
         if (relationshipName in buildObject) {
           RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
         } else {
+          // NOTE: This has to be there to cache from the previous model reference?
           let targetRelationship = RelationshipDB.getLastReliableRelationshipFromCache(
             model,
             relationshipName,
@@ -424,22 +429,22 @@ export default class Model {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
       return Array.isArray(result)
-        ? result.map((model) => RelationshipDB.cache(model, "update"))
-        : RelationshipDB.cache(result, "update");
+        ? result.map((model) => RelationshipDB.cache(model, "update", model))
+        : RelationshipDB.cache(result, "update", result);
     }
   }
 
   static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | void> {
     let result = await this.Adapter.findBy(this, queryObject, options);
     if (result) {
-      return RelationshipDB.cache(result, "update", queryObject);
+      return RelationshipDB.cache(result, "update", result);
     }
   }
 
   static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | void> {
     let result = await this.Adapter.findAll(this, queryObject, options);
     if (result) {
-      return result.map((model) => RelationshipDB.cache(model, "update"));
+      return result.map((model) => RelationshipDB.cache(model, "update", model));
     }
   }
 
@@ -706,6 +711,9 @@ export default class Model {
   get isNew() {
     return this.#_isNew;
   }
+  set isNew(value) {
+    this.#_isNew = !!value;
+  }
 
   get isBuilt() {
     return Object.isSealed(this);
@@ -726,6 +734,7 @@ export default class Model {
   }
   set isDeleted(value) {
     this.#_isDeleted = !!value;
+    this.#_isNew = !value;
   }
 
   #_inTransit = false;

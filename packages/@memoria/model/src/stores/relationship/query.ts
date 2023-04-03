@@ -30,7 +30,6 @@ export default class RelationshipQuery {
       let modelInstances = InstanceDB.getReferences(model);
       let Class = model.constructor as typeof Model;
       let primaryKey = model[Class.primaryKeyName];
-
       let relationshipFoundFromReverseLookup = Array.from(InstanceDB.getAllReferences(RelationshipClass).values())
         .reverse()
         .reduce((result, possibleRelationshipSet) => {
@@ -123,7 +122,6 @@ export default class RelationshipQuery {
     return foundRelationship || fallbackRelationship;
   }
 
-  // NOTE: does this need HasMany handling(?), maybe still needed on the reverse side(?)
   static findPossibleReferenceInMemoryByInstanceReferences(
     model: Model,
     metadata: RelationshipMetadata,

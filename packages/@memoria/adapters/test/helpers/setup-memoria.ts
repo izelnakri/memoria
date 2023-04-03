@@ -4,6 +4,12 @@ import Model, { Schema, DB } from "@memoria/model";
 import type { HasManyArray } from "@memoria/model";
 
 export default function (hooks) {
+  window.expose = function (obj) {
+    Object.keys(obj).forEach((key) => {
+      window[key] = obj[key];
+    });
+  };
+
   hooks.before(function () {
     QUnit.assert.matchJson = function (value, expected, message) {
       let actual = JSON.parse(JSON.stringify(value, null, 2));
