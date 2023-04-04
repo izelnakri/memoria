@@ -1,5 +1,3 @@
-// NOTE: Decision, never store relationshipReferences for .insert() and .update() [especially]
-// NOTE: maybe move part of the insert, update, cache reference logic to model.js instead of MemoryAdapter:
 import Decorators from "./decorators/index.js";
 import MemoriaModel, {
   Schema,
@@ -443,6 +441,7 @@ function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   }, prepareTargetObjectFromInstance(model, Model));
 }
 
+// NOTE: instead model should add to existingModel, and maybe vice-versa?
 function addToRevisionHistory(model: MemoriaModel, options: ModelBuildOptions) {
   if (Object.keys(model.changes).length > 0) {
     clearObject(model.changes);

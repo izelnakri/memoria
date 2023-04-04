@@ -134,6 +134,9 @@ export default class Model {
           model.changes[key] = buildObject.changes[key];
         });
       }
+      if (buildObject instanceof this && buildObject.isPersisted) {
+        InstanceDB.makeModelPersisted(model);
+      }
     }
 
     let Class = this;
@@ -299,47 +302,48 @@ export default class Model {
           // NOTE: this messes up nulled belongsTo relationship with foreignKey value(?) - where??
           RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
         } else {
-          let instanceRelationship = RelationshipDB.findPersistedRecordRelationshipsFor(model, relationshipName);
-          if (instanceRelationship) {
-            let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-              Class,
-              relationshipName,
-              relationshipTable[relationshipName].relationshipType
-            );
-            relationshipCache.set(
-              model,
-              Array.isArray(instanceRelationship)
-                ? new HasManyArray(instanceRelationship, model, relationshipTable[relationshipName])
-                : instanceRelationship
-            );
-            // RelationshipDB.set(model, relationshipName, instanceRelationship);
-          }
+          // TODO: these caches can be old references as models do get updates, thats why its bad
+          // let instanceRelationship = RelationshipDB.findPersistedRecordRelationshipsFor(model, relationshipName);
+          // if (instanceRelationship) {
+          //   let relationshipCache = RelationshipDB.findRelationshipCacheFor(
+          //     Class,
+          //     relationshipName,
+          //     relationshipTable[relationshipName].relationshipType
+          //   );
+          //   relationshipCache.set(
+          //     model,
+          //     Array.isArray(instanceRelationship)
+          //       ? new HasManyArray(instanceRelationship, model, relationshipTable[relationshipName])
+          //       : instanceRelationship
+          //   );
+          //   // RelationshipDB.set(model, relationshipName, instanceRelationship);
+          // }
         }
       } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE) {
         // debugger;
         if (relationshipName in buildObject) {
           RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
         } else {
-          // NOTE: This has to be there to cache from the previous model reference?
-          let targetRelationship = RelationshipDB.getLastReliableRelationshipFromCache(
-            model,
-            relationshipName,
-            relationshipTable[relationshipName].relationshipType
-          );
-          if (targetRelationship) {
-            let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-              Class,
-              relationshipName,
-              relationshipTable[relationshipName].relationshipType
-            );
-            relationshipCache.set(
-              model,
-              Array.isArray(targetRelationship)
-                ? new HasManyArray(targetRelationship, model, relationshipTable[relationshipName])
-                : targetRelationship
-            );
-            // RelationshipDB.set(model, relationshipName, targetRelationship);
-          }
+          // TODO: these caches can be old references as models do get updates, thats why its bad
+          // let targetRelationship = RelationshipDB.getLastReliableRelationshipFromCache(
+          //   model,
+          //   relationshipName,
+          //   relationshipTable[relationshipName].relationshipType
+          // );
+          // if (targetRelationship) {
+          //   let relationshipCache = RelationshipDB.findRelationshipCacheFor(
+          //     Class,
+          //     relationshipName,
+          //     relationshipTable[relationshipName].relationshipType
+          //   );
+          //   relationshipCache.set(
+          //     model,
+          //     Array.isArray(targetRelationship)
+          //       ? new HasManyArray(targetRelationship, model, relationshipTable[relationshipName])
+          //       : targetRelationship
+          //   );
+          //   // RelationshipDB.set(model, relationshipName, targetRelationship);
+          // }
         }
       }
 
@@ -744,6 +748,12 @@ export default class Model {
 
   get isDirty() {
     return Object.keys(this.changes).length > 0;
+  }
+
+  get isLastPersisted() {
+    let Class = this.constructor as typeof Model;
+
+    return InstanceDB.getPersistedModels(Class).get(this[Class.primaryKeyName]) === this;
   }
 
   // get instanceMetadata() {

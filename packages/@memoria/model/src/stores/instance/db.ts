@@ -9,6 +9,7 @@ export default class InstanceDB {
   // NOTE: It is needed for updating instance hasMany Records and deleting references of not persisted records which hold persisted deleted record
   static knownInstances: Map<ModelName, Map<PrimaryKey, Set<Model>>> = new Map();
   static unknownInstances: Map<ModelName, Array<Set<Model>>> = new Map();
+  static persistedModels: Map<ModelName, Map<PrimaryKey, Model>> = new Map();
 
   static getAllKnownReferences(Class: typeof Model) {
     if (!this.knownInstances.has(Class.name)) {
@@ -28,6 +29,23 @@ export default class InstanceDB {
 
   static getAllReferences(Class: typeof Model): Array<Set<Model>> {
     return Array.from(this.getAllKnownReferences(Class).values()).concat(this.getAllUnknownInstances(Class));
+  }
+
+  static getPersistedModels(Class: typeof Model) {
+    let persistedModelsMap = this.persistedModels.get(Class.name) || new Map();
+
+    if (!this.persistedModels.has(Class.name)) {
+      this.persistedModels.set(Class.name, persistedModelsMap);
+    }
+
+    return persistedModelsMap;
+  }
+
+  static makeModelPersisted(model: Model) {
+    let Class = model.constructor as typeof Model;
+    let persistedModelsMap = this.getPersistedModels(Class);
+
+    persistedModelsMap.set(model[Class.primaryKeyName as string], model);
   }
 
   static getReferences(model: Model): Set<Model> {
