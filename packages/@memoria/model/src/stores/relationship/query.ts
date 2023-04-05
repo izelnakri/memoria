@@ -46,7 +46,7 @@ export default class RelationshipQuery {
         .reverse()
         .reduce(
           (result, possibleRelationshipSet) => {
-            if (result[0]) {
+            if (result[0] || !InstanceDB.isPersisted(possibleRelationshipSet)) {
               return result;
             }
 
@@ -104,7 +104,7 @@ export default class RelationshipQuery {
     let possibleRelationshipSet = InstanceDB.getAllKnownReferences(RelationshipClass).get(
       relationshipModelsPrimaryKeyValue
     );
-    if (!possibleRelationshipSet) {
+    if (!possibleRelationshipSet || !InstanceDB.isPersisted(possibleRelationshipSet)) {
       return [undefined, undefined];
     }
     let Class = model.constructor as typeof Model;
@@ -164,6 +164,10 @@ export default class RelationshipQuery {
     metadata: RelationshipMetadata,
     foreignKeyColumnName?: string
   ): [Model | undefined, Model | undefined] {
+    if (!model.isPersisted) {
+      return [undefined, undefined];
+    }
+
     let Class = model.constructor as typeof Model;
     let primaryKeyValue = model[Class.primaryKeyName];
     let { RelationshipClass, relationshipName } = metadata;
@@ -177,7 +181,6 @@ export default class RelationshipQuery {
           return result;
         }
 
-        // TODO: this branch(?)
         if (foreignKeyColumnName && modelReference[foreignKeyColumnName] !== foreignKeyValue) {
           return result;
         } else if (primaryKeyValue && modelReference === Class.Cache.get(primaryKeyValue)) {

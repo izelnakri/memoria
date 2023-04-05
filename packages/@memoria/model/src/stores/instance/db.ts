@@ -1,9 +1,9 @@
 import Model from "../../model.js";
-import ArrayIterator from "../../utils/array-iterator.js";
 import type { PrimaryKey } from "../../types.js";
 
 type ModelName = string;
 type JSObject = { [key: string]: any };
+type ModelReferences = Set<Model>;
 
 export default class InstanceDB {
   // NOTE: It is needed for updating instance hasMany Records and deleting references of not persisted records which hold persisted deleted record
@@ -32,13 +32,15 @@ export default class InstanceDB {
   }
 
   static getPersistedModels(Class: typeof Model) {
-    let persistedModelsMap = this.persistedModels.get(Class.name) || new Map();
-
     if (!this.persistedModels.has(Class.name)) {
-      this.persistedModels.set(Class.name, persistedModelsMap);
+      this.persistedModels.set(Class.name, new Map());
     }
 
-    return persistedModelsMap;
+    return this.persistedModels.get(Class.name);
+  }
+
+  static isPersisted(modelReferences: ModelReferences) {
+    return modelReferences.values().next().value.isPersisted;
   }
 
   static makeModelPersisted(model: Model) {
@@ -86,23 +88,5 @@ export default class InstanceDB {
     this.getAllUnknownInstances(Class).push(foundInstanceSet);
 
     return foundInstanceSet;
-  }
-
-  // TODO: this shouldn't be problematic because its used only in smart relationship assignment to copied values, CRUD creates more instances currently
-  static getLastPersistedInstance(existingInstances: Set<Model>, primaryKey: PrimaryKey) {
-    if (!existingInstances) {
-      return null;
-    } else if (!primaryKey) {
-      return ArrayIterator.last(existingInstances.values());
-    }
-
-    // NOTE: maybe do this findLast for perf improvement(?)
-    let existingInstancedByLastAdded = Array.from(existingInstances.values()).reverse();
-
-    return (
-      existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) ||
-      existingInstancedByLastAdded[0] ||
-      null
-    );
   }
 }

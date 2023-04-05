@@ -61,7 +61,6 @@ export function OneToOne<T>(
     });
 
     RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-    RelationshipDB.persistedRecordRelationshipsCache.set(`${Class.name}:${propertyName}`, new Map());
 
     return Class.Adapter.Decorators.OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
@@ -126,12 +125,9 @@ export function ManyToOne<T>(
     });
 
     if (targetType === "many-to-one") {
-      // RelationshipDB.persistedRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new Map());
       RelationshipDB.instanceRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-      RelationshipDB.persistedRecordRelationshipsCache.set(`${Class.name}:${propertyName}`, new Map());
     } else if (targetType === "one-to-one") {
       RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-      RelationshipDB.persistedRecordRelationshipsCache.set(`${Class.name}:${propertyName}`, new Map());
     }
 
     return Class.Adapter.Decorators.ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
@@ -186,7 +182,6 @@ export function OneToMany<T>(
     });
 
     RelationshipDB.instanceRecordsHasManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-    RelationshipDB.persistedRecordRelationshipsCache.set(`${Class.name}:${propertyName}`, new Map());
 
     return Class.Adapter.Decorators.OneToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
@@ -249,7 +244,6 @@ export function ManyToMany<T>(
     });
 
     RelationshipDB.instanceRecordsManyToManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
-    RelationshipDB.persistedRecordRelationshipsCache.set(`${Class.name}:${propertyName}`, new Map());
 
     return Class.Adapter.Decorators.ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,

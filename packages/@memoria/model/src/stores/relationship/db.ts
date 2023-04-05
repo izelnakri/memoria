@@ -246,6 +246,7 @@ export default class RelationshipDB {
       clearObject(modelReference.changes);
     });
 
+    InstanceDB.getPersistedModels(Model).delete(model[Class.primaryKeyName]);
     InstanceDB.getReferences(model).clear();
 
     return model;

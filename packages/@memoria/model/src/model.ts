@@ -729,7 +729,9 @@ export default class Model {
   }
 
   get isPersisted() {
-    return !this.isDirty && !this.isNew;
+    let Class = this.constructor as typeof Model;
+
+    return !!InstanceDB.getPersistedModels(Class).get(this[Class.primaryKeyName]);
   }
 
   #_isDeleted = false;
