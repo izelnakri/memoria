@@ -77,7 +77,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.deepEqual(InstanceDB.getAllKnownReferences(Post).get(builtPost.id), new Set([builtPost, anotherPost]));
     });
 
-    test("$Model.build() with id in an object appends to existing knownInstances cache", async function (assert) {
+    test("$Model.build() with id in an instance object appends to existing knownInstances cache", async function (assert) {
       const { Post } = prepare();
 
       let builtPost = Post.build({ name: "Some post" });
@@ -88,27 +88,22 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
 
       let savedPost = await Post.insert(builtPost);
 
-      assert.equal(InstanceDB.getReferences(builtPost).size, 3);
+      assert.equal(InstanceDB.getReferences(builtPost).size, 2);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.equal(InstanceDB.getAllKnownReferences(Post).size, 1);
-      assert.equal(InstanceDB.getAllKnownReferences(Post).get(savedPost.id).size, 3);
-      assert.deepEqual(Array.from(InstanceDB.getReferences(builtPost)), [
-        builtPost,
-        Post.Cache.get(savedPost.id),
-        savedPost,
-      ]);
+      assert.equal(InstanceDB.getAllKnownReferences(Post).get(savedPost.id).size, 2);
+      assert.deepEqual(Array.from(InstanceDB.getReferences(builtPost)), [builtPost, Post.Cache.get(savedPost.id)]);
 
       let postCopy = Post.build({ id: savedPost.id, name: "Something else" });
 
       assert.deepEqual(Array.from(InstanceDB.getReferences(builtPost)), [
-        builtPost,
-        Post.Cache.get(savedPost.id),
         savedPost,
+        Post.Cache.get(savedPost.id),
         postCopy,
       ]);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.equal(InstanceDB.getAllKnownReferences(Post).size, 1);
-      assert.equal(InstanceDB.getAllKnownReferences(Post).get(savedPost.id).size, 4);
+      assert.equal(InstanceDB.getAllKnownReferences(Post).get(savedPost.id).size, 3);
     });
 
     test("$Model.build() with an instance(that is persisted) appends to existing knownInstances cache", async function (assert) {
@@ -120,6 +115,12 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 1);
       assert.equal(InstanceDB.getAllKnownReferences(Post).size, 0);
 
+      let copiedBuiltPost = Post.build(builtPost);
+
+      assert.equal(InstanceDB.getReferences(builtPost).size, 2);
+      assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 1);
+      assert.equal(InstanceDB.getAllKnownReferences(Post).size, 0);
+
       let savedPost = await Post.insert(builtPost);
 
       assert.equal(InstanceDB.getReferences(builtPost).size, 3);
@@ -127,17 +128,17 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllKnownReferences(Post).size, 1);
       assert.equal(InstanceDB.getAllKnownReferences(Post).get(savedPost.id).size, 3);
       assert.deepEqual(Array.from(InstanceDB.getReferences(builtPost)), [
-        builtPost,
-        Post.Cache.get(savedPost.id),
         savedPost,
+        copiedBuiltPost,
+        Post.Cache.get(savedPost.id),
       ]);
 
       let postCopy = Post.build(savedPost);
 
       assert.deepEqual(Array.from(InstanceDB.getReferences(builtPost)), [
-        builtPost,
-        Post.Cache.get(savedPost.id),
         savedPost,
+        copiedBuiltPost,
+        Post.Cache.get(savedPost.id),
         postCopy,
       ]);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
@@ -184,7 +185,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         });
     });
 
-    test("changing a persisted models id to null or another id without clearing the cache throws!", async function (assert) {
+    test("changing a persisted models primaryKey to null or another id without clearing the cache throws!", async function (assert) {
       const { Post } = prepare();
 
       let builtPost = Post.build({ name: "Some post" });
@@ -192,12 +193,13 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
 
       assert.ok(insertedPost.id);
 
-      assert.equal(InstanceDB.getReferences(insertedPost).size, 3);
+      assert.equal(InstanceDB.getReferences(insertedPost).size, 2);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.strictEqual(
         InstanceDB.getAllKnownReferences(Post).get(insertedPost.id),
         InstanceDB.getReferences(insertedPost)
       );
+      assert.deepEqual([insertedPost.id, builtPost.id], [1, 1]);
 
       try {
         insertedPost.id = null;
@@ -212,7 +214,17 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         assert.ok(error instanceof Error);
       }
 
-      assert.equal(InstanceDB.getReferences(insertedPost).size, 4);
+      try {
+        insertedPost.id = 99;
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.equal(
+          error.message,
+          "Post:1 exists in persisted cache, you can't mutate this records primaryKey id without unloading it from cache"
+        );
+      }
+
+      assert.equal(InstanceDB.getReferences(insertedPost).size, 3);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.strictEqual(
         InstanceDB.getAllKnownReferences(Post).get(insertedPost.id),
@@ -234,30 +246,31 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.deepEqual(InstanceDB.getAllKnownReferences(Post).get(1), new Set([builtPost]));
 
-      let anotherPost = Post.build(builtPost);
+      let copiedPost = Post.build(builtPost);
 
       assert.equal(InstanceDB.getReferences(builtPost).size, 2);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
-      assert.deepEqual(InstanceDB.getAllKnownReferences(Post).get(1), new Set([builtPost, anotherPost]));
+      assert.deepEqual(InstanceDB.getAllKnownReferences(Post).get(1), new Set([builtPost, copiedPost]));
+      assert.deepEqual(InstanceDB.getReferences(builtPost), new Set([builtPost, copiedPost]));
 
-      anotherPost.id = null;
+      copiedPost.id = null;
 
       assert.equal(InstanceDB.getReferences(builtPost).size, 2);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 1);
       assert.equal(InstanceDB.getAllKnownReferences(Post).get(1), undefined);
-      assert.deepEqual(InstanceDB.getReferences(builtPost), new Set([builtPost, anotherPost]));
+      assert.deepEqual(InstanceDB.getReferences(builtPost), new Set([builtPost, copiedPost]));
 
       InstanceDB.getReferences(builtPost).forEach((post) => {
         assert.equal(post.id, null);
       });
 
-      let lastPost = Post.build(anotherPost);
+      let lastPost = Post.build(copiedPost);
 
       assert.equal(InstanceDB.getReferences(builtPost).size, 3);
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 1);
       assert.equal(InstanceDB.getAllKnownReferences(Post).get(1), undefined);
-      assert.deepEqual(InstanceDB.getAllUnknownInstances(Post), [new Set([builtPost, anotherPost, lastPost])]);
-      assert.deepEqual(InstanceDB.getReferences(builtPost), new Set([builtPost, anotherPost, lastPost]));
+      assert.deepEqual(InstanceDB.getAllUnknownInstances(Post), [new Set([builtPost, copiedPost, lastPost])]);
+      assert.deepEqual(InstanceDB.getReferences(builtPost), new Set([builtPost, copiedPost, lastPost]));
 
       InstanceDB.getReferences(builtPost).forEach((post) => {
         assert.equal(post.id, null);
@@ -303,7 +316,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       });
     });
 
-    module("mutation to existing primaryKey cache scenarios", async function (assert) {
+    module("mutation to persisted existing primaryKey cache scenarios", async function (assert) {
       test("$Model.build() with ids changing id throws if existing cache already exists on that primaryKey", async function (assert) {
         const { Post } = prepare();
 

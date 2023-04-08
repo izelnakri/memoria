@@ -158,7 +158,7 @@ export default class Model {
               return;
             } else if (Class.Cache.get(primaryKey)) {
               throw new Error(
-                `${Class.name}:${primaryKey} exists in persisted cache, you can't make this records ${columnName}: null without unloading it from cache`
+                `${Class.name}:${primaryKey} exists in persisted cache, you can't mutate this records primaryKey ${columnName} without unloading it from cache`
               );
             } else if (targetValue === null) {
               let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);

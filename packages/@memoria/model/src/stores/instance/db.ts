@@ -67,7 +67,17 @@ export default class InstanceDB {
       let references = this.getAllKnownReferences(Class);
       let foundInstanceSet = references.get(primaryKey);
       if (!foundInstanceSet) {
-        foundInstanceSet = new Set();
+        let unknownReferences = this.getAllUnknownInstances(Class);
+        if (buildObject instanceof Model) {
+          let foundInstanceSetIndex = unknownReferences.findIndex((modelSet) => modelSet.has(model));
+          foundInstanceSet = foundInstanceSetIndex === -1 ? new Set() : unknownReferences[foundInstanceSetIndex];
+          if (foundInstanceSetIndex) {
+            unknownReferences.splice(foundInstanceSetIndex, 1);
+          }
+        } else {
+          foundInstanceSet = new Set();
+        }
+
         references.set(primaryKey, foundInstanceSet);
       }
 
