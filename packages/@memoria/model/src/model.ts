@@ -244,22 +244,13 @@ export default class Model {
             // TODO: clean this part up
             if (belongsToColumnNames.has(columnName)) {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
-
-              // cache(foreign_key) cant be a number or null, but can mutate when passed in to these functions:
-              let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-                this.constructor as typeof Model,
-                relationshipName,
-                "BelongsTo"
-              );
+              let relationshipCache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName, "BelongsTo");
               let existingRelationship = relationshipCache.get(this);
               let existingRelationshipPrimaryKey =
                 existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
               if (relationshipCache.has(this) && existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(
-                  this.constructor as typeof Model,
-                  relationshipName
-                );
-                let reflectionCache =
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+                let reverseRelationshipCache =
                   RelationshipDB.findRelationshipCacheFor(
                     metadata.RelationshipClass,
                     metadata.reverseRelationshipName as string,
@@ -276,13 +267,46 @@ export default class Model {
                     existingRelationship,
                     metadata,
                     relationshipCache,
-                    reflectionCache,
+                    reverseRelationshipCache,
                     false
                   );
-                }
 
-                relationshipCache.delete(this);
-                // cache ? relationshipCache.delete(this) : relationshipCache.set(this, null);
+                  relationshipCache.delete(this);
+                }
+              } else if (!relationshipCache.has(this)) {
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+                let reverseRelationshipCache =
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "OneToOne"
+                  ) ||
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "HasMany"
+                  );
+                let reverseRelationshipInstances: Model[] = reverseRelationshipCache
+                  ? InstanceDB.getAllReferences(RelationshipClass).reduce((result: Model[], instanceSet) => {
+                      instanceSet.forEach((possibleRelationship) => {
+                        let reverseRelationshipResult = reverseRelationshipCache.get(possibleRelationship);
+                        if (reverseRelationshipResult === this) {
+                          result.push(possibleRelationship);
+                        } else if (
+                          Array.isArray(reverseRelationshipResult) &&
+                          reverseRelationshipResult.includes(this)
+                        ) {
+                          // result.push(possibleRelationship); // TODO: what to do about this when building hasMany(?)
+                        }
+                      });
+                      return result;
+                    }, [])
+                  : [];
+                if (metadata.reverseRelationshipName) {
+                  reverseRelationshipInstances.forEach((reverseRelationshipInstance) => {
+                    reverseRelationshipCache.delete(reverseRelationshipInstance);
+                  });
+                }
               }
             }
           },
