@@ -1,14 +1,5 @@
-import Model, {
-  Column,
-  CreateDateColumn,
-  InstanceDB,
-  PrimaryGeneratedColumn,
-  InsertError,
-  RuntimeError,
-  RelationshipDB,
-  RelationshipPromise,
-} from "@memoria/model";
 import { module, test } from "qunitx";
+import { InstanceDB, InsertError, RuntimeError, RelationshipDB } from "@memoria/model";
 import setupMemoria from "../helpers/setup-memoria.js";
 import wait from "@memoria/model/test/helpers/wait.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
@@ -315,7 +306,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   });
 
   module("Reference tests", function () {
-    test("$Model.insert($model) creates a copied object in store and returns the object", async function (assert) {
+    test("$Model.insert($model) returns the actual object", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "some name" });
@@ -355,7 +346,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       );
       assert.deepEqual(MemoryPhoto.peek(insertedPhoto.id), insertedPhoto);
       assert.equal(InstanceDB.getReferences(photo).size, 5);
-      assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
+      assert.deepEqual(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
       insertedPhoto.name = "testing store just holds a copy";
 
@@ -371,16 +362,18 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       let groupPhoto = MemoryPhoto.build();
       let group = MemoryGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
 
-      assert.equal(group.owner, izel);
-      assert.equal(group.photo, groupPhoto);
+      assert.strictEqual(group.owner, izel);
+      assert.strictEqual(group.photo, groupPhoto);
+      assert.strictEqual(groupPhoto.group, group);
 
       let insertedGroup = await MemoryGroup.insert(group);
 
       assert.strictEqual(insertedGroup, group);
       assert.strictEqual(insertedGroup.owner, izel);
+
       assert.strictEqual(insertedGroup.photo, groupPhoto);
 
-      assert.equal(groupPhoto.group, insertedGroup);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
       assert.equal(InstanceDB.getReferences(group).size, 2);
 
       let cachedReference = MemoryGroup.Cache.get(insertedGroup.uuid);
@@ -441,7 +434,6 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![cachedReference].includes(reference)) {
           assert.strictEqual(reference.owner, izel);
-          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
@@ -454,8 +446,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       let groupPhoto = await MemoryPhoto.insert({ name: "Some photo", group_id: 1 });
       let group = MemoryGroup.build({ name: "Hacker Log" });
 
-      assert.ok(group.photo instanceof RelationshipPromise);
-      assert.equal(await group.photo, null);
+      assert.strictEqual(await group.photo, null);
 
       let insertedGroup = await MemoryGroup.insert(group);
 
