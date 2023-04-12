@@ -9,11 +9,9 @@ const NON_FOREIGN_KEY_RELATIONSHIPS = ["OneToOne", "HasMany"];
 
 // NOTE: maybe rename to RelationshipMutation
 export default class RelationshipUtils {
-  // NOTE: two cases when building(transfer/copy without removal), setting on demand
-  //
-  // RESUME:
-  // get reverseRelationshipCache, existingRelationship (if it exists, clean(REMOVE IT))
-  // set new relationship on the cache, set foreign key on the model, set reverse relationship on the target model
+  // NOTE: There are two cases when building(transfer/copy without removal), setting on demand
+  // Summary: gets reverseRelationshipCache, existingRelationship (if it exists, clean(REMOVE IT))
+  // Sets new relationship on the cache, sets foreign key on the model, sets reverse relationship on the target model
   static cleanAndSetBelongsToRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
     let { RelationshipClass, reverseRelationshipName } = metadata; // reverseRelationshipType
     let oneToOneReflexiveCache =
@@ -222,8 +220,6 @@ export default class RelationshipUtils {
       targetRelationship[relationshipArray.metadata.reverseRelationshipName] = fallback || null; // TODO: instead, resort to another possible reference(?)
       // TODO: clean reflexive references(?)
     }
-
-    console.log("is window.insertedUser for removal", targetRelationship === window.insertedUser);
   }
 }
 
