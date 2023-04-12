@@ -1,11 +1,10 @@
-import { module, test, skip } from "qunitx";
+import { module, test } from "qunitx";
 import { RelationshipPromise } from "@memoria/model";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
 
 // 12 tests:
 // 5 categories: New model after build assignments, Fetched model assignments, reflective assignments, full lifecycle(fetched + build), relationship fetch
-
 // new model(with and without relationship), fetched(with and without relationship), peeked(with and without relationship)
 module(
   "@memoria/adapters | MemoryAdapter | Relationships | @belongsTo API for ID(integer) pointing to HasOne",
@@ -13,7 +12,7 @@ module(
     setupMemoria(hooks);
 
     module("Relationship fetch tests", function () {
-      test("a model can fetch its not loaded relationship", async function (assert) {
+      test("Model can fetch its not loaded relationship", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let firstGroup = await MemoryGroup.insert({ name: "Some group" });
@@ -24,7 +23,7 @@ module(
         assert.equal(photo.group_id, secondGroup.id);
       });
 
-      test("a models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
+      test("Models relationship promise reference turns to null when relationship foreign key sets to null", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let firstGroup = await MemoryGroup.insert({ name: "Some group" });
@@ -38,7 +37,7 @@ module(
         assert.equal(photo.group, null);
       });
 
-      test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+      test("Models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let firstGroup = await MemoryGroup.insert({ name: "Some group" });
@@ -86,7 +85,7 @@ module(
       test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
-        let group = MemoryGroup.build({ name: "Some group" });
+        let group = await MemoryGroup.insert({ name: "Some group" });
         let photo = MemoryPhoto.build({ name: "Dinner photo" });
         let secondPhoto = MemoryPhoto.build({ name: "Second photo" });
 
@@ -105,11 +104,11 @@ module(
         assert.strictEqual(secondPhoto.group, group);
         assert.equal(secondPhoto.group_id, group.id);
 
-        assert.equal(secondInsertedPhoto.group_id, null);
         assert.strictEqual(secondInsertedPhoto.group, group);
+        assert.equal(secondInsertedPhoto.group_id, group.id);
       });
 
-      test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
+      test("Fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let group = await MemoryGroup.insert({ name: "Some group" });
@@ -135,11 +134,12 @@ module(
         let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
 
         assert.strictEqual(fetchedPhoto.group, newGroup);
-        assert.strictEqual(updatedPhoto.group, newGroup);
+        assert.equal(fetchedPhoto.group_id, null);
         assert.equal(updatedPhoto.group_id, null);
+        assert.strictEqual(updatedPhoto.group, newGroup);
       });
 
-      test("fetched model can remove the relationship before update", async function (assert) {
+      test("Fetched model can remove the relationship before update", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let group = await MemoryGroup.insert({ name: "Some group" });
@@ -164,7 +164,7 @@ module(
         assert.equal(updatedPhoto.group_id, null);
       });
 
-      test("fetched model can remove the relationship before delete", async function (assert) {
+      test("Fetched model can remove the relationship before delete", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let group = await MemoryGroup.insert({ name: "Some group" });
@@ -192,12 +192,13 @@ module(
     });
 
     module("Reflective relationship mutations then commit tests", function () {
-      test("when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
+      test("When related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let group = await MemoryGroup.insert({ name: "Some group" });
         let secondGroup = MemoryGroup.build({ name: "Another group" });
         let thirdGroup = MemoryGroup.build({ id: 3, name: "Third group" });
+
         let photo = await MemoryPhoto.insert({ name: "Dinner photo", group_id: group.id });
 
         assert.equal(photo.group_id, group.id);
@@ -238,7 +239,7 @@ module(
     });
 
     module("Relationship mutations and commit tests on models full lifecycle", function () {
-      test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      test("Model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
         let { MemoryGroup, MemoryPhoto } = generateModels();
 
         let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
@@ -248,7 +249,7 @@ module(
         assert.strictEqual(group.photo, secondPhoto);
         assert.equal(secondPhoto.group_id, null);
 
-        firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+        firstPhoto.group = group; // NOTE: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
 
         assert.equal(firstPhoto.group_id, null);
         assert.equal(firstPhoto.group, group);
@@ -280,6 +281,8 @@ module(
 
         let updatedGroup = await MemoryGroup.update(insertedGroup);
 
+        assert.strictEqual(firstPhoto.group, updatedGroup);
+        assert.equal(firstPhoto.group_id, updatedGroup.id);
         assert.strictEqual(insertedGroup.photo, secondPhoto);
         assert.strictEqual(updatedGroup.photo, secondPhoto);
         assert.strictEqual(group.photo, secondPhoto);
@@ -297,7 +300,6 @@ module(
         assert.equal(firstPhoto.group_id, updatedGroup.id);
         assert.equal(secondPhoto.group_id, null);
         assert.equal(secondPhoto.group, null);
-        assert.equal(secondPhoto.group_id, null);
 
         assert.strictEqual(updatedGroup.photo, firstPhoto);
         assert.strictEqual(firstPhoto.group, updatedGroup);
@@ -316,7 +318,7 @@ module(
         assert.equal(firstPhoto.group_id, null);
       });
 
-      test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      test("Reflexive side test: Model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         let firstGroup = await MemoryGroup.insert({ name: "Some group" });
@@ -359,7 +361,7 @@ module(
         assert.equal(deletedPhoto.group_id, null);
       });
 
-      test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      test("Model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
         let { MemoryPhoto, MemoryGroup } = generateModels();
 
         MemoryGroup.cache([
