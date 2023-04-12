@@ -41,7 +41,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.notOk(Object.isFrozen(model));
 
     assert.equal(model.isNew, false);
-    assert.equal(model.isPersisted, true);
+    assert.equal(model.isPersisted, false);
     assert.equal(model.isDeleted, false);
     assert.equal(model.isDirty, false);
     assert.equal(model.inTransit, false);
@@ -52,7 +52,7 @@ module("@memoria/model | new $Model() tests", function (hooks) {
     assert.notOk(Object.isSealed(anotherModel));
     assert.notOk(Object.isFrozen(anotherModel));
     assert.equal(anotherModel.isNew, false);
-    assert.equal(anotherModel.isPersisted, true);
+    assert.equal(anotherModel.isPersisted, false);
     assert.equal(anotherModel.isDeleted, true);
     assert.equal(anotherModel.isDirty, false);
     assert.equal(anotherModel.inTransit, false);
