@@ -7,7 +7,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
   setupMemoria(hooks);
 
   module("Relationship fetch tests", function () {
-    test("a model can fetch its not loaded relationship", async function (assert) {
+    test("Model can fetch its not loaded relationship", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let group = await MemoryGroup.insert({ name: "Dinner group" });
@@ -18,7 +18,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.strictEqual(group.photo, secondPhoto);
     });
 
-    test("a models relationship lookup gets activated when relationship foreign key sets to null", async function (assert) {
+    test("Models relationship lookup gets activated when relationship foreign key sets to null", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let group = await MemoryGroup.insert({ name: "Dinner group" });
@@ -32,10 +32,11 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
 
       assert.notOk(RelationshipDB.has(group, "photo"));
       assert.notStrictEqual(group.photo, secondPhoto);
-      assert.deepEqual((await group.photo).toJSON(), { ...secondPhoto.toJSON(), group_id: group.id }); // NOTE: id reference is still in the cache so a built relationship gets returned from cache
+
+      assert.deepEqual(group.photo.toJSON(), { ...secondPhoto.toJSON(), group_id: group.id }); // NOTE: id reference is still in the cache so a built relationship gets returned from cache
     });
 
-    test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+    test("Models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let group = await MemoryGroup.insert({ name: "Dinner group" });
@@ -55,7 +56,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
   // TODO: add additional group to each test case to increase quality(?)
   // TODO: also add embed + serializer tests to the test cases correctly
   module("Basic relationship assignment then commit tests", function () {
-    test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
+    test("New model can be built from scratch and it sends the right data to the server during post", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "Some photo" });
@@ -76,7 +77,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.strictEqual(insertedGroup.photo, insertedPhoto);
     });
 
-    test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
+    test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = MemoryPhoto.build({ name: "Cover photo" });
@@ -105,7 +106,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.equal(photo.group_id, secondInsertedGroup.id);
     });
 
-    test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
+    test("Fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = await MemoryPhoto.insert({ name: "Cover photo" });
@@ -116,6 +117,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
 
       assert.strictEqual(group.photo, photo);
       assert.equal(photo.group_id, group.id);
+      assert.strictEqual(photo.group, group);
       assert.deepEqual(photo.changes, { group_id: 1 });
 
       let fetchedGroup = await MemoryGroup.find(group.id);
@@ -135,7 +137,6 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.equal(newPhoto.group_id, fetchedGroup.id);
 
       assert.strictEqual(group.photo, photo);
-
       assert.strictEqual(photo.group, group); // NOTE: this should be fetchedGroup(?), probably not due to controversial target lookups on relationship cleanups
       assert.equal(photo.group_id, group.id);
 
@@ -147,7 +148,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.strictEqual(photo.group, updatedGroup);
     });
 
-    test("fetched model can remove the relationship before update", async function (assert) {
+    test("Fetched model can remove the relationship before update", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = await MemoryPhoto.insert({ name: "Cover photo" });
@@ -182,7 +183,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.strictEqual(group.photo, photo);
     });
 
-    test("fetched model can remove the relationship before delete", async function (assert) {
+    test("Fetched model can remove the relationship before delete", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let photo = await MemoryPhoto.insert({ name: "Cover photo" });
@@ -246,7 +247,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
   });
 
   module("Relationship mutations and commit tests on models full lifecycle", function () {
-    test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+    test("Model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
@@ -318,7 +319,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.equal(secondPhoto.group_id, null);
     });
 
-    test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+    test("Model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
       let { MemoryGroup, MemoryPhoto } = generateModels();
 
       MemoryPhoto.cache([
