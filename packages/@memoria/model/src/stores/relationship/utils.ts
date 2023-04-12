@@ -81,7 +81,7 @@ export default class RelationshipUtils {
 
     let SourceClass = source.constructor as typeof Model;
     let sourceReferences = findDirectRelationshipsFor(source, existingRelationship, reverseRelationshipCache);
-    let otherSourceReferences =
+    let otherSameSourceReferences =
       sourceReferences.length > 0
         ? Array.from(InstanceDB.getReferences(source)).filter((sourceReference) => {
             if (sourceReference === source) {
@@ -96,12 +96,13 @@ export default class RelationshipUtils {
               return (
                 existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName] &&
                 relationshipCache.get(sourceReference) !== null
-              );
+              ); // NOTE: This gets the fresh last instance most of the time
             } // NOTE: add ManyToMany, HasMany in future
           })
         : [];
-    let otherSourceReference =
-      otherSourceReferences.length > 0 ? otherSourceReferences[otherSourceReferences.length - 1] : null; // TODO: instead get persistedReference here
+    // NOTE: This assigment is great for BelongsTo becasue otherSourceReference are all targeting this source
+    let freshOtherSourceReference =
+      otherSameSourceReferences.length > 0 ? otherSameSourceReferences[otherSameSourceReferences.length - 1] : null;
 
     if (relationshipType === "BelongsTo") {
       sourceReferences.forEach((sourceInstance) => {
@@ -114,8 +115,8 @@ export default class RelationshipUtils {
 
       if (reverseRelationshipName) {
         relationshipInstances.forEach((existingTargetRelationshipReference) => {
-          if (otherSourceReference) {
-            reverseRelationshipCache.set(existingTargetRelationshipReference, otherSourceReference); // with HasMany different
+          if (freshOtherSourceReference) {
+            reverseRelationshipCache.set(existingTargetRelationshipReference, freshOtherSourceReference); // with HasMany different
           } else {
             reverseRelationshipCache.delete(existingTargetRelationshipReference);
           }
@@ -123,15 +124,15 @@ export default class RelationshipUtils {
       }
     } else if (relationshipType === "OneToOne") {
       relationshipInstances.forEach((existingTargetRelationshipReference) => {
-        if (otherSourceReference) {
-          reverseRelationshipCache.set(existingTargetRelationshipReference, otherSourceReference);
+        if (freshOtherSourceReference) {
+          reverseRelationshipCache.set(existingTargetRelationshipReference, freshOtherSourceReference);
         } else {
           reverseRelationshipCache.delete(existingTargetRelationshipReference);
         }
 
-        if (mutateForeignKey && reverseRelationshipForeignKeyColumnName && otherSourceReference) {
+        if (mutateForeignKey && reverseRelationshipForeignKeyColumnName && freshOtherSourceReference) {
           existingTargetRelationshipReference[reverseRelationshipForeignKeyColumnName] =
-            otherSourceReference[SourceClass.primaryKeyName];
+            freshOtherSourceReference[SourceClass.primaryKeyName];
         }
       });
 
