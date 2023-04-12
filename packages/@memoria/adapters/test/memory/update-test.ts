@@ -385,7 +385,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
   });
 
   module("Cache timeout tests", function () {
-    test("$Model.update(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
+    test("$Model.update(data, { cacheDuration: 0 }) can immediately evict the cache", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       await MemoryPhoto.insert(PHOTOS[0]);
@@ -399,7 +399,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         }),
       ]);
 
-      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false }, { cache: 0 });
+      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false }, { cacheDuration: 0 });
 
       assert.matchJson(photo, {
         href: "ski-trip.jpeg",
@@ -433,7 +433,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       ]);
     });
 
-    test("$Model.update(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+    test("$Model.update(json. { cacheDuration: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
@@ -443,8 +443,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         PHOTOS.map((photo) => MemoryPhoto.build(photo))
       );
 
-      let photoOne = await MemoryPhoto.update({ id: PHOTOS[1].id, name: "first" }, { cache: 10 });
-      let photoTwo = await MemoryPhoto.update({ id: PHOTOS[2].id, name: "second" }, { cache: 70 });
+      let photoOne = await MemoryPhoto.update({ id: PHOTOS[1].id, name: "first" }, { cacheDuration: 10 });
+      let photoTwo = await MemoryPhoto.update({ id: PHOTOS[2].id, name: "second" }, { cacheDuration: 70 });
 
       assert.propEqual(photoOne, MemoryPhoto.build({ ...PHOTOS[1], name: "first" }));
       assert.propEqual(photoTwo, MemoryPhoto.build({ ...PHOTOS[2], name: "second" }));
@@ -483,7 +483,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       ]);
     });
 
-    test("$Model.update(json. { cache: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
+    test("$Model.update(json. { cacheDuration: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
@@ -493,8 +493,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         PHOTOS.map((photo) => MemoryPhoto.build(photo))
       );
 
-      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "aa" }, { cache: 10 });
-      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "bb" }, { cache: 70 });
+      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "aa" }, { cacheDuration: 10 });
+      await MemoryPhoto.update({ id: PHOTOS[1].id, name: "bb" }, { cacheDuration: 70 });
       await wait(25);
 
       assert.propEqual(await MemoryPhoto.findAll(), [
@@ -507,7 +507,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
 
       assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[0]), MemoryPhoto.build(PHOTOS[2])]);
 
-      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "bb" }, { cache: 150 });
+      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "bb" }, { cacheDuration: 150 });
       await wait(25);
 
       assert.propEqual(await MemoryPhoto.findAll(), [
@@ -515,7 +515,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         MemoryPhoto.build(PHOTOS[2]),
       ]);
 
-      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "aa" }, { cache: 25 });
+      await MemoryPhoto.update({ id: PHOTOS[0].id, name: "aa" }, { cacheDuration: 25 });
       await wait(25);
 
       assert.propEqual(await MemoryPhoto.findAll(), [MemoryPhoto.build(PHOTOS[2])]);

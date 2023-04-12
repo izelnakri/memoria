@@ -45,7 +45,8 @@ interface ModelInstantiateOptions {
 // cached model could have a hasMany and hasOne(?) and it gets locked there(?)
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
-  cache?: number; // NOTE: rename it to cacheDuration
+  cacheDuration?: number; // NOTE: rename it to cacheDuration
+  cacheLookup?: boolean;
   copy?: boolean; // NOTE: it copies by default
   // debug?:
   // tracer?:

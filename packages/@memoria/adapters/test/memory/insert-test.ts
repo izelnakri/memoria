@@ -456,7 +456,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
   });
 
   module("Cache timeout tests", function () {
-    test("$Model.insert(data, { cache: 0 }) can immediately evict the cache", async function (assert) {
+    test("$Model.insert(data, { cacheDuration: 0 }) can immediately evict the cache", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       await MemoryPhoto.insert(PHOTOS[0]);
@@ -470,7 +470,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }),
       ]);
 
-      let photo = await MemoryPhoto.insert(PHOTOS[1], { cache: 0 });
+      let photo = await MemoryPhoto.insert(PHOTOS[1], { cacheDuration: 0 });
 
       assert.propEqual(photo, MemoryPhoto.build(PHOTOS[1]));
       assert.propEqual(await MemoryPhoto.findAll(), [
@@ -496,7 +496,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       ]);
     });
 
-    test("$Model.insert(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+    test("$Model.insert(json. { cacheDuration: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
       const { MemoryPhoto } = generateModels();
 
       await MemoryPhoto.insert(PHOTOS[0]);
@@ -510,8 +510,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }),
       ]);
 
-      let photoOne = await MemoryPhoto.insert(PHOTOS[1], { cache: 10 });
-      let photoTwo = await MemoryPhoto.insert(PHOTOS[2], { cache: 70 });
+      let photoOne = await MemoryPhoto.insert(PHOTOS[1], { cacheDuration: 10 });
+      let photoTwo = await MemoryPhoto.insert(PHOTOS[2], { cacheDuration: 70 });
 
       assert.propEqual(photoOne, MemoryPhoto.build(PHOTOS[1]));
       assert.propEqual(photoTwo, MemoryPhoto.build(PHOTOS[2]));

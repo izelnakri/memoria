@@ -325,7 +325,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     ]);
   });
 
-  test("$Model.cache(json, { cache: 0 }) can immediately evict the cache", async function (assert) {
+  test("$Model.cache(json, { cacheDuration: 0 }) can immediately evict the cache", async function (assert) {
     const { Photo } = prepare();
 
     await Photo.insert(PHOTO_FIXTURES[0]);
@@ -338,7 +338,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
       },
     ]);
 
-    let photo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 0 });
+    let photo = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 0 });
 
     assert.propEqual(photo, PHOTO_FIXTURES[1]);
     assert.propEqual(await Photo.findAll(), [
@@ -362,7 +362,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     ]);
   });
 
-  test("$Model.cache(json. { cache: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
+  test("$Model.cache(json. { cacheDuration: $cacheTimeout }) can cache with different cache timeouts", async function (assert) {
     const { Photo } = prepare();
 
     await Photo.insert(PHOTO_FIXTURES[0]);
@@ -375,8 +375,8 @@ module("@memoria/model | $Model.cache()", function (hooks) {
       },
     ]);
 
-    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 10 });
-    let photoTwo = await Photo.cache(PHOTO_FIXTURES[2], { cache: 70 });
+    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 10 });
+    let photoTwo = await Photo.cache(PHOTO_FIXTURES[2], { cacheDuration: 70 });
 
     assert.propEqual(photoOne, PHOTO_FIXTURES[1]);
     assert.propEqual(photoTwo, PHOTO_FIXTURES[2]);
@@ -417,11 +417,11 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     ]);
   });
 
-  test("$Model.cache(json. { cache: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
+  test("$Model.cache(json. { cacheDuration: $cacheTimeout }) can override previous $cacheTimeout", async function (assert) {
     const { Photo } = prepare();
 
-    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 25 });
-    let anotherPhotoOne = await Photo.cache(PHOTO_FIXTURES[1], { cache: 150 });
+    let photoOne = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 25 });
+    let anotherPhotoOne = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 150 });
 
     await wait(25);
 
@@ -431,13 +431,13 @@ module("@memoria/model | $Model.cache()", function (hooks) {
 
     assert.propEqual(await Photo.findAll(), []);
 
-    let photoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 150 });
+    let photoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 150 });
 
     await wait(25);
 
     assert.propEqual(await Photo.findAll(), [photoTwo]);
 
-    let anotherPhotoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cache: 25 });
+    let anotherPhotoTwo = await Photo.cache(PHOTO_FIXTURES[1], { cacheDuration: 25 });
 
     await wait(25);
 

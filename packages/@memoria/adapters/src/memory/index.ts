@@ -122,8 +122,8 @@ export default class MemoryAdapter {
           ? record
           : this.returnWithCacheEviction(addToRevisionHistory(cachedRecord, inputOptions), inputOptions);
 
-      if (options && "cache" in options && Number.isInteger(options.cache)) {
-        DB.setTimeout(cachedRecord, options.cache || 0);
+      if (options && "cacheDuration" in options && Number.isInteger(options.cacheDuration)) {
+        DB.setTimeout(cachedRecord, options.cacheDuration || 0);
       }
 
       return RelationshipDB.cache(outputRecord, "update", record, cachedRecord);
@@ -139,8 +139,8 @@ export default class MemoryAdapter {
 
     Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    if (options && "cache" in options && Number.isInteger(options.cache)) {
-      DB.setTimeout(cachedRecord, options.cache || 0);
+    if (options && "cacheDuration" in options && Number.isInteger(options.cacheDuration)) {
+      DB.setTimeout(cachedRecord, options.cacheDuration || 0);
     }
 
     let outputRecord = targetIsModel ? record : Model.build(cachedRecord, { ...options, isNew: false });
@@ -251,8 +251,8 @@ export default class MemoryAdapter {
 
     Model.Cache.set(cachedRecord[Model.primaryKeyName], cachedRecord);
 
-    if (options && "cache" in options && Number.isInteger(options.cache)) {
-      DB.setTimeout(cachedRecord, options.cache || 0);
+    if (options && "cacheDuration" in options && Number.isInteger(options.cacheDuration)) {
+      DB.setTimeout(cachedRecord, options.cacheDuration || 0);
     }
 
     return RelationshipDB.cache(outputRecord, "insert", targetRecord, cachedRecord);
@@ -370,8 +370,8 @@ export default class MemoryAdapter {
   }
 
   protected static returnWithCacheEviction(model: MemoriaModel, options: ModelBuildOptions | undefined) {
-    if (options && "cache" in options && Number.isInteger(options.cache)) {
-      DB.setTimeout(model, options.cache || 0);
+    if (options && "cache" in options && Number.isInteger(options.cacheDuration)) {
+      DB.setTimeout(model, options.cacheDuration || 0);
     }
 
     return (model.constructor as typeof MemoriaModel).build(model, { ...options, isNew: false });
