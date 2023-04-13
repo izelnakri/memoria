@@ -435,12 +435,12 @@ export default class SQLAdapter extends MemoryAdapter {
         if (relationshipType === "BelongsTo") {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
           if (!model[foreignKeyColumnName]) {
-            return resolve(null);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
           }
 
           let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
           if (!relationshipModel) {
-            return resolve(null);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
             // NOTE: now doesnt throw to match REST behavior
             // throw new NotFoundError(
             //   {},
@@ -448,7 +448,7 @@ export default class SQLAdapter extends MemoryAdapter {
             // );
           }
 
-          return resolve(relationshipModel);
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
@@ -456,7 +456,7 @@ export default class SQLAdapter extends MemoryAdapter {
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
             });
             if (!relationshipModel) {
-              return resolve(null);
+              return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
               // NOTE: now doesnt throw to match REST behavior
               // throw new NotFoundError(
               //   {},
@@ -464,7 +464,7 @@ export default class SQLAdapter extends MemoryAdapter {
               // );
             }
 
-            return resolve(relationshipModel);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
           }
 
           return reject("OneToOne edge case!");
@@ -474,8 +474,9 @@ export default class SQLAdapter extends MemoryAdapter {
             let relationshipModels = await RelationshipClass.findAll({
               [foreignKeyColumnName]: model[Model.primaryKeyName],
             });
+            // TODO: This could be buggy, check ie
 
-            return resolve(relationshipModels);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModels));
           }
 
           return reject();

@@ -1,5 +1,11 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, { RuntimeError, RelationshipPromise, RelationshipSchema } from "@memoria/model";
+import MemoriaModel, {
+  RuntimeError,
+  RelationshipPromise,
+  RelationshipDB,
+  RelationshipSchema,
+  RelationshipQuery,
+} from "@memoria/model";
 import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
@@ -245,18 +251,24 @@ export default class RESTAdapter extends MemoryAdapter {
         if (relationshipType === "BelongsTo") {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
           if (!model[foreignKeyColumnName]) {
-            return resolve(null);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
           }
 
-          return resolve(await RelationshipClass.find(model[foreignKeyColumnName]));
+          return resolve(
+            RelationshipDB.cacheRelationship(model, metadata, await RelationshipClass.find(model[foreignKeyColumnName]))
+          );
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
             return resolve(
-              (await RelationshipClass.findBy({
-                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-              })) || null
+              RelationshipDB.cacheRelationship(
+                model,
+                metadata,
+                (await RelationshipClass.findBy({
+                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+                })) || null
+              )
             );
           }
 
@@ -265,9 +277,13 @@ export default class RESTAdapter extends MemoryAdapter {
           if (reverseRelationshipName) {
             let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
             return resolve(
-              await RelationshipClass.findAll({
-                [foreignKeyColumnName]: model[Model.primaryKeyName],
-              })
+              RelationshipDB.cacheRelationship(
+                model,
+                metadata,
+                await RelationshipClass.findAll({
+                  [foreignKeyColumnName]: model[Model.primaryKeyName],
+                })
+              )
             );
           }
 

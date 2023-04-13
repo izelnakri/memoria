@@ -1,4 +1,4 @@
-import { RelationshipDB } from "@memoria/model";
+import { RelationshipDB, RelationshipPromise } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
@@ -50,6 +50,50 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
 
       assert.equal(firstPhoto.group_id, group.id);
       assert.strictEqual(group.photo, firstPhoto);
+    });
+
+    test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+      assert.expect(14);
+
+      let { MemoryGroup, MemoryPhoto } = generateModels();
+      let group = await MemoryGroup.insert({ name: "Dinner group" });
+      let photoLookupPromise = group.photo;
+      try {
+        let result = await photoLookupPromise;
+
+        assert.equal(result, null);
+      } catch (error) {
+        assert.ok(false);
+        // TODO: it doesnt throw currently
+        // assert.ok(error instanceof NotFoundError);
+        // assert.equal(error.message, `sql_group table record with id:44 not found`);
+      }
+
+      let insertedPhoto = await MemoryPhoto.insert({ name: "Some photo", group_id: group.id });
+
+      assert.propContains(insertedPhoto, { id: 1, name: "Some photo", group_id: group.id });
+      assert.strictEqual(group.photo, insertedPhoto);
+      assert.equal(insertedPhoto.group_id, group.id);
+      assert.deepEqual(group.errors, []);
+
+      let foundPhoto = await group.photo;
+
+      assert.strictEqual(insertedPhoto, foundPhoto);
+
+      let photoLookupReloadPromise = photoLookupPromise.reload();
+
+      assert.ok(photoLookupReloadPromise instanceof RelationshipPromise);
+
+      let photo = await photoLookupReloadPromise;
+      assert.deepEqual(photo, MemoryPhoto.peek(photo.id));
+      assert.notStrictEqual(photo, insertedPhoto);
+      assert.equal(group.photo.name, "Some photo");
+      assert.equal(photo.group_id, photo.id);
+
+      let finalPhoto = await photo.reload();
+      assert.notStrictEqual(finalPhoto, insertedPhoto);
+      assert.notStrictEqual(finalPhoto, photo);
+      assert.deepEqual(finalPhoto, MemoryPhoto.peek(photo.id));
     });
   });
 

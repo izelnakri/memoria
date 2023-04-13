@@ -54,6 +54,53 @@ module(
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_id, secondGroup.id);
       });
+
+      test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+        assert.expect(14);
+
+        let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+        this.Server = Server;
+
+        let photo = RESTPhoto.build({ name: "Dinner photo", group_id: 44 });
+        let groupLookupPromise = photo.group;
+        try {
+          let result = await groupLookupPromise;
+
+          assert.equal(result, null);
+        } catch (error) {
+          assert.ok(false);
+          // TODO: it doesnt throw currently
+          // assert.ok(error instanceof NotFoundError);
+          // assert.equal(error.message, `sql_group table record with id:44 not found`);
+        }
+
+        let insertedGroup = await RESTGroup.insert({ id: 44, name: "Some group" });
+
+        assert.propContains(insertedGroup, { id: 44, name: "Some group" });
+        assert.strictEqual(photo.group, insertedGroup);
+        assert.equal(photo.group_id, 44);
+        assert.deepEqual(photo.errors, []);
+
+        let foundGroup = await photo.group;
+
+        assert.strictEqual(insertedGroup, foundGroup);
+
+        let groupLookupReloadPromise = groupLookupPromise.reload();
+
+        assert.ok(groupLookupPromise instanceof RelationshipPromise);
+
+        let group = await groupLookupReloadPromise;
+
+        assert.deepEqual(group, RESTGroup.peek(44));
+        assert.notStrictEqual(group, insertedGroup);
+        assert.equal(photo.group.name, "Some group");
+        assert.equal(photo.group_id, 44);
+
+        let finalGroup = await group.reload();
+        assert.notStrictEqual(finalGroup, insertedGroup);
+        assert.notStrictEqual(finalGroup, group);
+        assert.deepEqual(finalGroup, RESTGroup.peek(44));
+      });
     });
 
     // module("Basic embed and serializer tests for relationship assignments and commits", function () {

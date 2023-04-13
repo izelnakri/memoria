@@ -6,7 +6,6 @@ import Model from "../../model.js";
 import RelationshipSchema, { ARRAY_ASKING_RELATIONSHIPS } from "./schema.js";
 import RelationshipUtils from "./utils.js";
 import RelationshipQuery from "./query.js";
-import { RelationshipPromise } from "../../promises/index.js";
 import InstanceDB from "../instance/db.js";
 import { clearObject } from "../../utils/index.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
@@ -98,6 +97,31 @@ export default class RelationshipDB {
     InstanceDB.makeModelPersisted(outputRecord);
 
     return outputRecord;
+  }
+
+  static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
+    let Class = model.constructor as typeof Model;
+    let cache = RelationshipDB.findRelationshipCacheFor(Class, metadata.relationshipName, metadata.relationshipType);
+    if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
+      let array = new HasManyArray(relationship as Model[], model, metadata);
+
+      cache.set(model, array);
+
+      return array;
+    } else if (relationship) {
+      cache.set(model, relationship);
+    }
+
+    return relationship;
+    // NOTE: ChatGPT suggestion
+    // relationshipCache.set(model, relationship);
+
+    // if (relationshipMetadata.relationshipType === "hasMany") {
+    //   let hasManyArray = model[relationshipName] as HasManyArray;
+    //   if (hasManyArray) {
+    //     hasManyArray.setRelationship(relationship as Model[]);
+    //   }
+    // }
   }
 
   // NOTE: this can be optimized for batching
@@ -323,43 +347,13 @@ export default class RelationshipDB {
       return cache.get(model);
     } else if (!asyncLookup) {
       return null;
+    } else if (metadata.relationshipType === "BelongsTo" && !model[metadata.foreignKeyColumnName as string]) {
+      return RelationshipDB.cacheRelationship(model, metadata, null);
     }
 
-    let reference = buildReferenceFromPersistedCacheOrMemoryOrFetch(model, relationshipName, metadata); // NOTE: optimize this
-    if (reference instanceof Promise) {
-      return new RelationshipPromise(async (resolve, reject) => {
-        let reference = buildReferenceFromPersistedCacheOrMemoryOrFetch(model, relationshipName, metadata); // NOTE: necessary for .reload() otherwise references finalized promise
-        try {
-          let relationship = await reference;
-          if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
-            let array = new HasManyArray(relationship, model, metadata);
+    let result = RelationshipQuery.findPossibleReferenceInMemory(model, metadata);
 
-            cache.set(model, array);
-
-            return resolve(array);
-          } else if (relationship) {
-            cache.set(model, relationship);
-          }
-
-          resolve(relationship);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    } else if (reference) {
-      // NOTE: persisted cache should not be able to build for list relationships, remove this line below:
-      if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
-        let array = new HasManyArray(reference, model, metadata);
-
-        cache.set(model, array);
-
-        return array;
-      }
-
-      cache.set(model, reference);
-    }
-
-    return reference;
+    return result ? RelationshipDB.cacheRelationship(model, metadata, result) : Class.Adapter.fetchRelationship(model, relationshipName, metadata);
   }
 
   // TODO: make this work for hasMany and its array replacement
@@ -475,33 +469,4 @@ function formatInput(input, model, metadata) {
   }
 
   return input instanceof Model ? input : null;
-}
-
-function buildReferenceFromPersistedCacheOrMemoryOrFetch(
-  model: Model,
-  relationshipName: string,
-  metadata?: RelationshipMetadata
-) {
-  let Class = model.constructor as typeof Model;
-  let relationshipMetadata = metadata || RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-  let { relationshipType, foreignKeyColumnName } = relationshipMetadata;
-
-  if (relationshipType === "BelongsTo") {
-    let foreignKeyValue = model[foreignKeyColumnName as string];
-    if (!foreignKeyValue) {
-      return null;
-    }
-
-    return (
-      RelationshipQuery.findPossibleReferenceInMemory(model, relationshipMetadata) ||
-      Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata)
-    );
-  } else if (relationshipType === "OneToOne") {
-    return (
-      RelationshipQuery.findPossibleReferenceInMemory(model, relationshipMetadata) ||
-      Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata)
-    );
-  }
-
-  return Class.Adapter.fetchRelationship(model, relationshipName, relationshipMetadata);
 }

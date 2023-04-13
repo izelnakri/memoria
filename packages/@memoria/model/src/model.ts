@@ -46,7 +46,6 @@ interface ModelInstantiateOptions {
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
   cacheDuration?: number; // NOTE: rename it to cacheDuration
-  cacheLookup?: boolean;
   copy?: boolean; // NOTE: it copies by default
   // debug?:
   // tracer?:
@@ -451,10 +450,7 @@ export default class Model {
   }
 
   // TODO this might need improved revision control
-  static async find(
-    primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
-  ): Promise<Model | Model[] | void> {
+  static async find(primaryKey: PrimaryKey | PrimaryKey[], options?: ModelBuildOptions): Promise<Model | Model[] | void> {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
       return Array.isArray(result)

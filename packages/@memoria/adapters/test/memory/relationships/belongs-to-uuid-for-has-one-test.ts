@@ -3,6 +3,8 @@ import { RelationshipPromise } from "@memoria/model";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/uuid/index.js";
 
+const FIRST_TARGET_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f21";
+
 module(
   "@memoria/adapters | MemoryAdapter | Relationships | @belongsTo API for UUID(string) pointing to HasOne",
   function (hooks) {
@@ -48,6 +50,52 @@ module(
 
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_uuid, secondGroup.uuid);
+      });
+
+      test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+        assert.expect(14);
+
+        let { MemoryPhoto, MemoryGroup } = generateModels();
+
+        let photo = MemoryPhoto.build({ name: "Dinner photo", group_uuid: FIRST_TARGET_UUID });
+        let groupLookupPromise = photo.group;
+        try {
+          let result = await groupLookupPromise;
+
+          assert.equal(result, null);
+        } catch (error) {
+          assert.ok(false);
+          // TODO: it doesnt throw currently
+          // assert.ok(error instanceof NotFoundError);
+          // assert.equal(error.message, `sql_group table record with id:44 not found`);
+        }
+
+        let insertedGroup = await MemoryGroup.insert({ uuid: FIRST_TARGET_UUID, name: "Some group" });
+
+        assert.propContains(insertedGroup, { uuid: FIRST_TARGET_UUID, name: "Some group" });
+        assert.strictEqual(photo.group, insertedGroup);
+        assert.equal(photo.group_uuid, FIRST_TARGET_UUID);
+        assert.deepEqual(photo.errors, []);
+
+        let foundGroup = await photo.group;
+
+        assert.strictEqual(insertedGroup, foundGroup);
+
+        let groupLookupReloadPromise = groupLookupPromise.reload();
+
+        assert.ok(groupLookupPromise instanceof RelationshipPromise);
+
+        let group = await groupLookupReloadPromise;
+
+        assert.deepEqual(group, MemoryGroup.peek(FIRST_TARGET_UUID));
+        assert.notStrictEqual(group, insertedGroup);
+        assert.equal(photo.group.name, "Some group");
+        assert.equal(photo.group_uuid, FIRST_TARGET_UUID);
+
+        let finalGroup = await group.reload();
+        assert.notStrictEqual(finalGroup, insertedGroup);
+        assert.notStrictEqual(finalGroup, group);
+        assert.deepEqual(finalGroup, MemoryGroup.peek(FIRST_TARGET_UUID));
       });
     });
 

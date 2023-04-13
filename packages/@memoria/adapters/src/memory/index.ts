@@ -382,25 +382,30 @@ export default class MemoryAdapter {
     let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
-    // NOTE: these always create new instances, we want this to happen
     return new RelationshipPromise(async (resolve, reject) => {
       if (relationshipType === "BelongsTo") {
         let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
         if (!model[foreignKeyColumnName]) {
-          return resolve(null);
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
         }
 
-        return resolve(RelationshipClass.peek(model[foreignKeyColumnName]));
+        return resolve(
+          RelationshipDB.cacheRelationship(model, metadata, RelationshipClass.peek(model[foreignKeyColumnName]))
+        );
       } else if (relationshipType === "OneToOne") {
         if (reverseRelationshipName) {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
 
           return resolve(
-            model[Model.primaryKeyName]
-              ? RelationshipClass.peekBy({
-                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-                })
-              : null
+            RelationshipDB.cacheRelationship(
+              model,
+              metadata,
+              model[Model.primaryKeyName]
+                ? RelationshipClass.peekBy({
+                    [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+                  })
+                : null
+            )
           );
         }
 
@@ -409,13 +414,19 @@ export default class MemoryAdapter {
         if (reverseRelationshipName) {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
 
-          return resolve(RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] }));
+          return resolve(
+            RelationshipDB.cacheRelationship(
+              model,
+              metadata,
+              RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
+            )
+          );
         }
 
         return reject();
       }
 
-      return null; // TODO: ManyToMany not implemented because of this, implement this
+      return resolve(null); // TODO: ManyToMany not implemented because of this, implement this
     });
   }
 }
