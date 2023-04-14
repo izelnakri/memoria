@@ -55,7 +55,7 @@ module(
         assert.equal(photo.group_id, secondGroup.id);
       });
 
-      test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+      test("Models empty relationship reference can turn to promise, due to relationship not existing, than can be retried to fetch correctly", async function (assert) {
         assert.expect(14);
 
         let { Server, RESTPhoto, RESTGroup } = setupRESTModels();

@@ -18,7 +18,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       return { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto };
     }
 
-    test("set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
+    test("Set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -74,7 +74,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       assert.equal(targetPhoto.group, null);
     });
 
-    test("set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
+    test("Set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -136,7 +136,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       );
     });
 
-    test("set model with instance fkey (that exists) to null works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to null works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, MemoryPhoto, RESTGroup, MemoryGroup, Server } = context;
 
@@ -238,7 +238,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       );
     });
 
-    test("set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -324,7 +324,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       );
     });
 
-    test("set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -401,7 +401,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       assert.equal(targetPhoto.group_id, 999999);
     });
 
-    test("set model with instance fkey (that doesnt exist) to null works", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to null works", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -434,7 +434,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       assert.equal(targetPhoto.group, null);
     });
 
-    test("set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 
@@ -529,7 +529,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       );
     });
 
-    test("set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
       let context = setupRESTModels();
       let { RESTPhoto, RESTGroup, Server } = context;
 

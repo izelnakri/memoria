@@ -1,7 +1,7 @@
 import { UnauthorizedError, NotFoundError, RelationshipPromise } from "@memoria/model";
 import { HTTP } from "@memoria/adapters";
 import ServerResponse from "@memoria/response";
-import { module, test, skip } from "qunitx";
+import { module, test } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import setupRESTModels from "../../helpers/models-with-relations/rest/uuid/index.js";
 
@@ -57,7 +57,7 @@ module(
         assert.equal(photo.group_uuid, secondGroup.uuid);
       });
 
-      test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+      test("Models empty relationship reference can turn to promise, when relationship not existing, then can be retried to fetch correctly", async function (assert) {
         assert.expect(14);
 
         let { Server, RESTPhoto, RESTGroup } = setupRESTModels();

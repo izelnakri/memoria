@@ -57,7 +57,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for UUID(u
       assert.strictEqual(group.photo, firstPhoto);
     });
 
-    test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+    test("Models empty relationship reference can turn to promise, when relationship not existing, then can be retried to fetch correctly", async function (assert) {
       assert.expect(14);
 
       let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
