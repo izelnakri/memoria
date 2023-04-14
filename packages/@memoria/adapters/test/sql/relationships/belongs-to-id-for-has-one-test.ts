@@ -1,4 +1,3 @@
-// NOTE: strictEqual cannot be used for some reason.. check this bug on node.js?
 import { RelationshipPromise } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
@@ -8,7 +7,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
   setupMemoria(hooks);
 
   module("Relationship fetch tests", function () {
-    test("a model can fetch its not loaded relationship", async function (assert) {
+    test("Model can fetch its not loaded relationship", async function (assert) {
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
@@ -19,7 +18,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.equal(photo.group_id, secondGroup.id);
     });
 
-    test("a models relationship promise reference turns to null when relationship gets destroyed either way", async function (assert) {
+    test("Models relationship promise reference turns to null when relationship gets destroyed either way", async function (assert) {
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
@@ -33,7 +32,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.equal(photo.group, null);
     });
 
-    test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+    test("Models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
@@ -49,8 +48,8 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.equal(photo.group_id, secondGroup.id);
     });
 
-    test("a models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
-      // assert.expect(9);
+    test("Models empty relationship reference can turn to promise, when relationship not existing, then can be retried to fetch correctly", async function (assert) {
+      assert.expect(10);
 
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
@@ -81,363 +80,401 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
 
       let result = await reloadPromise;
 
-      assert.deepEqual(result, SQLGroup.peek(44));
-      assert.ok(result !== insertedGroup); // TODO: this is very important, it should ACTUALLY make a request
+      assert.matchJson(result, SQLGroup.peek(44).toJSON());
+      assert.notStrictEqual(result, insertedGroup); // TODO: this is very important, it should ACTUALLY make a request
       assert.equal(photo.group.name, "Some group");
       assert.equal(photo.group_id, 44);
     });
   });
 
-  // test("deleting a related model should delete the models relationship references", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
-
-  //   let group = await SQLGroup.insert({ id: 22, name: "Some group" });
-  //   let photo = SQLPhoto.build({ name: "Dinner photo", group: group });
-
-  //   assert.equal(photo.group, group);
-  //   assert.equal(photo.group_id, group.id);
-
-  //   await SQLGroup.delete(group);
-
-  //   assert.deepEqual(photo.group, null);
-  //   assert.equal(photo.group_id, null);
+  // module("Basic embed and serializer tests for relationship assignments and commits", function () {
   // });
 
-  // TODO: also add embed tests to the test cases correctly
-  // test("new model can be built from scratch and it sends the right data to the server during post", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+  module("Basic relationship assignment then commit tests", function () {
+    test("New model can be built from scratch and it sends the right data to the server during post", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let group = SQLGroup.build({ name: "Some group" });
-  //   let photo = SQLPhoto.build({ name: "Dinner photo", group });
+      let group = SQLGroup.build({ name: "Some group" });
+      let photo = SQLPhoto.build({ name: "Dinner photo", group });
 
-  //   assert.ok(photo.group === group);
-  //   assert.equal(photo.group_id, group.id);
+      assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_id, group.id);
 
-  //   let insertedPhoto = await SQLPhoto.insert(photo);
+      let insertedPhoto = await SQLPhoto.insert(photo);
 
-  //   assert.ok(photo.group === group);
-  //   assert.ok(insertedPhoto.group === group);
-  //   assert.equal(insertedPhoto.group_id, group.id);
+      assert.strictEqual(photo.group, group);
+      assert.equal(insertedPhoto.group_id, null);
+      assert.strictEqual(insertedPhoto.group, group);
 
-  //   let insertedGroup = await SQLGroup.insert(group);
+      let insertedGroup = await SQLGroup.insert(group);
 
-  //   assert.ok(photo.group === insertedGroup);
-  //   assert.ok(insertedPhoto.group === insertedGroup);
-  // });
+      assert.strictEqual(photo.group, insertedGroup);
+      assert.strictEqual(insertedPhoto.group, insertedGroup);
 
-  // test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      assert.strictEqual(insertedPhoto.group, insertedGroup);
+      assert.strictEqual(group, insertedGroup);
+    });
 
-  //   let group = SQLGroup.build({ name: "Some group" });
-  //   let photo = SQLPhoto.build({ name: "Dinner photo" });
-  //   let secondPhoto = SQLPhoto.build({ name: "Second photo" });
+    test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   assert.equal(photo.group, null);
-  //   assert.equal(secondPhoto.group, null);
+      let group = SQLGroup.build({ name: "Some group" });
+      let photo = SQLPhoto.build({ name: "Dinner photo" });
+      let secondPhoto = SQLPhoto.build({ name: "Second photo" });
 
-  //   let insertedPhoto = await SQLPhoto.insert(photo);
+      assert.equal(photo.group, null);
+      assert.equal(secondPhoto.group, null);
 
-  //   assert.equal(photo.group, null);
-  //   assert.equal(insertedPhoto.group, null);
+      let insertedPhoto = await SQLPhoto.insert(photo);
 
-  //   secondPhoto.group = group;
+      assert.equal(photo.group, null);
+      assert.equal(insertedPhoto.group, null);
 
-  //   let secondInsertedPhoto = await SQLPhoto.insert(secondPhoto);
+      secondPhoto.group = group;
 
-  //   assert.ok(secondInsertedPhoto.group === group);
-  //   assert.equal(secondInsertedPhoto.group_id, group.id);
-  //   assert.ok(secondPhoto.group === group);
-  //   assert.equal(secondPhoto.group_id, group.id);
-  // });
+      let secondInsertedPhoto = await SQLPhoto.insert(secondPhoto);
 
-  // test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      assert.strictEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, group.id);
 
-  //   let group = await SQLGroup.insert({ name: "Some group" });
-  //   let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
+      assert.strictEqual(secondInsertedPhoto.group, group);
+      assert.equal(secondInsertedPhoto.group_id, group.id);
+    });
 
-  //   assert.deepEqual(photo.group, group);
-  //   assert.equal(photo.group_id, group.id);
+    test("Fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let fetchedPhoto = await SQLPhoto.find(photo.id);
+      let group = await SQLGroup.insert({ name: "Some group" });
+      let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
 
-  //   assert.deepEqual(fetchedPhoto.group, group);
-  //   assert.equal(fetchedPhoto.group_id, group.id);
+      assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_id, group.id);
 
-  //   let newGroup = SQLGroup.build({ name: "Another group" });
+      let fetchedPhoto = await SQLPhoto.find(photo.id);
 
-  //   fetchedPhoto.group = newGroup;
+      assert.strictEqual(fetchedPhoto.group, group);
+      assert.equal(fetchedPhoto.group_id, group.id);
 
-  //   assert.ok(fetchedPhoto.group === newGroup);
-  //   assert.equal(fetchedPhoto.group_id, null);
+      let newGroup = SQLGroup.build({ name: "Another group" });
 
-  //   let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
+      fetchedPhoto.group = newGroup;
 
-  //   assert.ok(fetchedPhoto.group === newGroup);
-  //   assert.ok(updatedPhoto.group === newGroup);
-  //   assert.equal(updatedPhoto.group_id, null);
-  // });
+      assert.strictEqual(fetchedPhoto.group, newGroup);
+      assert.equal(fetchedPhoto.group_id, null);
+      assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_id, group.id);
 
-  // test("fetched model can remove the relationship before update", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
 
-  //   let group = await SQLGroup.insert({ name: "Some group" });
-  //   let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
+      assert.strictEqual(fetchedPhoto.group, newGroup);
+      assert.equal(fetchedPhoto.group_id, null);
+      assert.equal(updatedPhoto.group_id, null);
+      assert.strictEqual(updatedPhoto.group, newGroup);
+    });
 
-  //   assert.deepEqual(photo.group, group);
+    test("Fetched model can remove the relationship before update", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let fetchedPhoto = await SQLPhoto.find(photo.id);
+      let group = await SQLGroup.insert({ name: "Some group" });
+      let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
 
-  //   assert.deepEqual(fetchedPhoto.group, group);
-  //   assert.equal(fetchedPhoto.group_id, group.id);
+      assert.strictEqual(photo.group, group);
 
-  //   fetchedPhoto.group = null;
+      let fetchedPhoto = await SQLPhoto.find(photo.id);
 
-  //   assert.equal(fetchedPhoto.group, null);
-  //   assert.equal(fetchedPhoto.group_id, null);
+      assert.strictEqual(fetchedPhoto.group, group);
+      assert.equal(fetchedPhoto.group_id, group.id);
 
-  //   let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
+      fetchedPhoto.group = null;
 
-  //   assert.equal(fetchedPhoto.group, null);
-  //   assert.equal(updatedPhoto.group, null);
-  //   assert.equal(updatedPhoto.group_id, null);
-  // });
+      assert.equal(fetchedPhoto.group, null);
+      assert.equal(fetchedPhoto.group_id, null);
 
-  // test("fetched model can remove the relationship before delete", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      let updatedPhoto = await SQLPhoto.update(fetchedPhoto);
 
-  //   let group = await SQLGroup.insert({ name: "Some group" });
-  //   let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
+      assert.equal(fetchedPhoto.group, null);
+      assert.equal(updatedPhoto.group, null);
+      assert.equal(updatedPhoto.group_id, null);
+    });
 
-  //   assert.deepEqual(photo.group, group);
+    test("Fetched model can remove the relationship before delete", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let fetchedPhoto = await SQLPhoto.find(photo.id);
+      let group = await SQLGroup.insert({ name: "Some group" });
+      let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
 
-  //   assert.deepEqual(fetchedPhoto.group, group);
-  //   assert.equal(fetchedPhoto.group_id, group.id);
+      assert.strictEqual(photo.group, group);
 
-  //   fetchedPhoto.group = null;
+      let fetchedPhoto = await SQLPhoto.find(photo.id);
 
-  //   assert.equal(fetchedPhoto.group, null);
-  //   assert.equal(fetchedPhoto.group_id, null);
+      assert.strictEqual(fetchedPhoto.group, group);
+      assert.equal(fetchedPhoto.group_id, group.id);
 
-  //   let deletedPhoto = await SQLPhoto.delete(fetchedPhoto); // NOTE: it is true because sql server returns group_id: 1
+      fetchedPhoto.group = null;
 
-  //   assert.equal(fetchedPhoto.group, null);
-  //   assert.equal(deletedPhoto.group, null);
-  //   assert.equal(deletedPhoto.group_id, null);
-  // });
+      assert.equal(fetchedPhoto.group, null);
+      assert.equal(fetchedPhoto.group_id, null);
 
-  // test("when related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      let deletedPhoto = await SQLPhoto.delete(fetchedPhoto);
 
-  //   let group = await SQLGroup.insert({ name: "Some group" });
-  //   let secondGroup = SQLGroup.build({ name: "Another group" });
-  //   let thirdGroup = SQLGroup.build({ id: 3, name: "Third group" });
-  //   let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
+      assert.propEqual(fetchedPhoto, deletedPhoto);
+      assert.equal(fetchedPhoto.group, null);
+      assert.equal(deletedPhoto.group, null);
+      assert.equal(deletedPhoto.group_id, null);
+    });
 
-  //   assert.equal(photo.group_id, group.id);
-  //   assert.deepEqual(photo.group, group);
+    test("Deleting a related model should delete the models relationship references", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   group.photo = null;
+      let group = await SQLGroup.insert({ id: 22, name: "Some group" });
+      let photo = SQLPhoto.build({ name: "Dinner photo", group: group });
 
-  //   assert.equal(photo.group_id, group.id);
-  //   assert.deepEqual(photo.group.toJSON(), group.toJSON());
+      assert.equal(photo.group, group);
+      assert.equal(photo.group_id, group.id);
 
-  //   secondGroup.photo = photo;
+      await SQLGroup.delete(group);
 
-  //   assert.equal(photo.group_id, null);
-  //   assert.strictEqual(photo.group, secondGroup);
+      assert.deepEqual(photo.group, null);
+      assert.equal(photo.group_id, null);
+    });
+  });
 
-  //   secondGroup.photo = null;
+  module("Reflective relationship mutations then commit tests", function () {
+    test("When related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   assert.equal(photo.group_id, null);
-  //   assert.equal(photo.group, null);
+      let group = await SQLGroup.insert({ name: "Some group" });
+      let secondGroup = SQLGroup.build({ name: "Another group" });
+      let thirdGroup = SQLGroup.build({ id: 3, name: "Third group" });
 
-  //   thirdGroup.photo = photo;
+      let photo = await SQLPhoto.insert({ name: "Dinner photo", group_id: group.id });
 
-  //   assert.equal(photo.group_id, thirdGroup.id);
-  //   assert.deepEqual(photo.group, thirdGroup);
+      assert.equal(photo.group_id, group.id);
+      assert.strictEqual(photo.group, group);
 
-  //   thirdGroup.photo = null;
+      group.photo = null;
 
-  //   assert.equal(photo.group_id, thirdGroup.id);
-  //   assert.ok(photo.group instanceof RelationshipPromise);
-  //   assert.equal(await photo.group, null);
+      assert.equal(photo.group_id, group.id);
+      assert.strictEqual(photo.group, group);
 
-  //   let insertedThirdGroup = await SQLGroup.insert(thirdGroup);
+      secondGroup.photo = photo;
 
-  //   assert.deepEqual(photo.group, thirdGroup);
-  //   assert.deepEqual(photo.group, insertedThirdGroup);
-  //   assert.strictEqual(photo.group.photo, photo);
-  // });
+      assert.equal(photo.group_id, null);
+      assert.strictEqual(photo.group, secondGroup);
 
-  // test("a model can create, update, delete with correct changing relationships without SELECT in one flow", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      secondGroup.photo = null;
 
-  //   let firstGroup = await SQLGroup.insert({ name: "Some group" });
-  //   let secondGroup = await SQLGroup.insert({ name: "Another group" });
-  //   let photo = SQLPhoto.build({ name: "Dinner photo", group: secondGroup });
+      assert.equal(photo.group_id, null);
+      assert.equal(photo.group, null);
 
-  //   assert.ok(photo.group === secondGroup);
-  //   assert.equal(photo.group_id, secondGroup.id);
+      thirdGroup.photo = photo;
 
-  //   photo.group = firstGroup;
+      assert.equal(photo.group_id, thirdGroup.id);
+      assert.deepEqual(photo.group, thirdGroup);
 
-  //   assert.ok(photo.group === firstGroup);
-  //   assert.equal(photo.group_id, firstGroup.id);
+      thirdGroup.photo = null;
 
-  //   let insertedPhoto = await SQLPhoto.insert(photo);
+      assert.equal(photo.group_id, thirdGroup.id);
+      assert.ok(photo.group instanceof RelationshipPromise);
+      assert.equal(await photo.group, null);
 
-  //   assert.ok(insertedPhoto.group === firstGroup);
-  //   assert.ok(photo.group === firstGroup);
+      let insertedThirdGroup = await SQLGroup.insert(thirdGroup);
 
-  //   insertedPhoto.group = secondGroup;
+      assert.equal(photo.group_id, insertedThirdGroup.id);
+      assert.strictEqual(photo.group, insertedThirdGroup);
+      assert.strictEqual(photo.group.photo, photo);
+    });
+  });
 
-  //   assert.ok(insertedPhoto.group === secondGroup);
-  //   assert.equal(insertedPhoto.group_id, secondGroup.id);
+  module("Relationship mutations and commit tests on models full lifecycle", function () {
+    test("Model can create, update, delete with correct changing relationships without SELECT in one flow", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let updatedPhoto = await SQLPhoto.update(insertedPhoto);
+      let firstPhoto = await SQLPhoto.insert({ name: "First photo" });
+      let secondPhoto = await SQLPhoto.insert({ name: "Second photo" });
+      let group = SQLGroup.build({ name: "Dinner group", photo: secondPhoto });
 
-  //   assert.ok(updatedPhoto.group === secondGroup);
-  //   assert.equal(updatedPhoto.group_id, secondGroup.id);
-  //   assert.ok(insertedPhoto.group === secondGroup);
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_id, null);
 
-  //   updatedPhoto.group = null;
+      firstPhoto.group = group; // NOTE: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
 
-  //   assert.equal(updatedPhoto.group, null);
-  //   assert.equal(updatedPhoto.group_id, null);
+      assert.equal(firstPhoto.group_id, null);
+      assert.equal(firstPhoto.group, group);
 
-  //   let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
+      assert.strictEqual(secondPhoto.group, group);
+      assert.equal(secondPhoto.group_id, null);
+      assert.strictEqual(group.photo, firstPhoto);
 
-  //   assert.equal(updatedPhoto.group, null);
-  //   assert.equal(deletedPhoto.group_id, null);
-  //   assert.equal(deletedPhoto.group, null);
-  // });
+      let insertedGroup = await SQLGroup.insert(group);
 
-  // test("reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-  //   let { SQLGroup, SQLPhoto } = setupSQLModels();
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(group.photo, secondPhoto);
 
-  //   let firstPhoto = await SQLPhoto.insert({ name: "First photo" });
-  //   let secondPhoto = await SQLPhoto.insert({ name: "Second photo" });
-  //   let group = SQLGroup.build({ name: "Dinner group", photo: secondPhoto });
+      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-  //   assert.ok(group.photo === secondPhoto);
-  //   assert.equal(secondPhoto.group_id, group.id);
+      secondPhoto.group = insertedGroup;
 
-  //   firstPhoto.group = group; // TODO: this should trigger a logical warning(!!) setting group to firstPhoto but secondPhoto already has group as well(?) clean that first(?)
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, insertedGroup);
+      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.equal(firstPhoto.group_id, insertedGroup.id);
 
-  //   assert.ok(firstPhoto.group === group);
-  //   assert.equal(firstPhoto.group_id, group.id);
-  //   assert.ok(secondPhoto.group === group);
-  //   assert.equal(secondPhoto.group_id, group.id);
-  //   assert.ok(group.photo === firstPhoto);
+      assert.strictEqual(firstPhoto.group, insertedGroup);
 
-  //   let insertedGroup = await SQLGroup.insert(group);
+      let updatedGroup = await SQLGroup.update(insertedGroup);
 
-  //   assert.ok(insertedGroup.photo === firstPhoto);
-  //   assert.ok(group.photo === firstPhoto);
+      assert.strictEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+      assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(updatedGroup.photo, secondPhoto);
+      assert.strictEqual(group.photo, secondPhoto);
 
-  //   assert.ok(firstPhoto.group === insertedGroup);
-  //   assert.equal(firstPhoto.group_id, insertedGroup.id);
-  //   assert.ok(secondPhoto.group === insertedGroup);
-  //   assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(secondPhoto.group, updatedGroup);
+      assert.equal(secondPhoto.group_id, updatedGroup.id);
 
-  //   secondPhoto.group = insertedGroup;
+      updatedGroup.photo = secondPhoto;
 
-  //   assert.ok(secondPhoto.group === insertedGroup);
-  //   assert.equal(secondPhoto.group_id, insertedGroup.id);
-  //   assert.ok(insertedGroup.photo === secondPhoto);
-  //   assert.ok(group.photo === firstPhoto);
-  //   assert.ok(firstPhoto.group === insertedGroup);
-  //   assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, updatedGroup);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
 
-  //   let updatedGroup = await SQLGroup.update(insertedGroup);
+      secondPhoto.group = null; // NOTE: Where does this come from?
 
-  //   assert.ok(insertedGroup.photo === secondPhoto);
-  //   assert.ok(updatedGroup.photo === secondPhoto);
-  //   assert.ok(group.photo === firstPhoto);
+      assert.equal(firstPhoto.group_id, updatedGroup.id);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(secondPhoto.group, null);
 
-  //   assert.ok(secondPhoto.group === updatedGroup);
-  //   assert.equal(secondPhoto.group_id, updatedGroup.id);
-  //   assert.ok(firstPhoto.group === updatedGroup);
-  //   assert.equal(firstPhoto.group_id, updatedGroup.id);
+      assert.strictEqual(updatedGroup.photo, firstPhoto);
+      assert.strictEqual(firstPhoto.group, updatedGroup);
 
-  //   secondPhoto.group = null;
+      assert.strictEqual(insertedGroup.photo, firstPhoto);
+      assert.strictEqual(group.photo, firstPhoto);
 
-  //   assert.equal(secondPhoto.group, null);
-  //   assert.equal(secondPhoto.group_id, null);
-  //   assert.ok(updatedGroup.photo === firstPhoto);
+      let deletedGroup = await SQLGroup.delete(updatedGroup);
 
-  //   assert.ok(insertedGroup.photo === firstPhoto);
-  //   assert.ok(group.photo === firstPhoto);
+      assert.equal(updatedGroup.photo, null); // NOTE: this is not null, but removed stuff
 
-  //   assert.equal(secondPhoto.group, null);
-  //   assert.equal(secondPhoto.group_id, null);
+      assert.equal(deletedGroup.photo, null);
+      assert.equal(secondPhoto.group, null);
+      assert.equal(secondPhoto.group_id, null);
+      assert.equal(firstPhoto.group, null);
+      assert.equal(firstPhoto.group_id, null);
+    });
 
-  //   assert.ok(firstPhoto.group === updatedGroup);
-  //   assert.equal(firstPhoto.group_id, group.id);
+    test("Reflexive side test: a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   let deletedGroup = await SQLGroup.delete(updatedGroup);
+      let firstGroup = await SQLGroup.insert({ name: "Some group" });
+      let secondGroup = await SQLGroup.insert({ name: "Some group" });
+      let photo = SQLPhoto.build({ name: "Dinner photo", group: secondGroup });
 
-  //   assert.notEqual(updatedGroup.photo, secondPhoto);
-  //   assert.notEqual(deletedGroup.photo, secondPhoto);
-  //   assert.equal(secondPhoto.group, null);
-  //   assert.equal(secondPhoto.group_id, null);
-  //   assert.equal(firstPhoto.group, null);
-  //   assert.equal(firstPhoto.group_id, null);
-  // });
+      assert.strictEqual(photo.group, secondGroup);
+      assert.equal(photo.group_id, secondGroup.id);
 
-  // test("a model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
-  //   let { SQLPhoto, SQLGroup } = setupSQLModels();
+      photo.group = firstGroup;
 
-  //   await SQLGroup.insertAll([
-  //     {
-  //       id: 1,
-  //       name: "Some group",
-  //     },
-  //     {
-  //       id: 2,
-  //       name: "Another group",
-  //     },
-  //   ]);
+      assert.strictEqual(photo.group, firstGroup);
+      assert.equal(photo.group_id, firstGroup.id);
 
-  //   let firstGroup = await SQLGroup.find(1);
-  //   let secondGroup = await SQLGroup.find(2);
-  //   let photo = SQLPhoto.build({ name: "Dinner photo", group: secondGroup });
+      let insertedPhoto = await SQLPhoto.insert(photo);
 
-  //   assert.ok(photo.group === secondGroup);
-  //   assert.equal(photo.group_id, secondGroup.id);
+      assert.equal(insertedPhoto.group_id, 1);
+      assert.strictEqual(insertedPhoto.group, firstGroup);
+      assert.strictEqual(photo.group, insertedPhoto.group);
 
-  //   photo.group = firstGroup;
+      insertedPhoto.group = secondGroup;
 
-  //   assert.ok(photo.group === firstGroup);
-  //   assert.equal(photo.group_id, firstGroup.id);
+      assert.strictEqual(insertedPhoto.group, secondGroup);
+      assert.equal(insertedPhoto.group_id, secondGroup.id);
 
-  //   let insertedPhoto = await SQLPhoto.insert(photo);
+      let updatedPhoto = await SQLPhoto.update(insertedPhoto);
 
-  //   assert.ok(insertedPhoto.group === firstGroup);
-  //   assert.ok(photo.group === firstGroup);
+      assert.strictEqual(updatedPhoto.group, secondGroup);
+      assert.strictEqual(insertedPhoto.group, secondGroup);
 
-  //   insertedPhoto.group = secondGroup;
+      updatedPhoto.group = null;
 
-  //   assert.ok(insertedPhoto.group === secondGroup);
-  //   assert.equal(insertedPhoto.group_id, secondGroup.id);
+      assert.equal(updatedPhoto.group, null);
+      assert.equal(updatedPhoto.group_id, null);
 
-  //   let updatedPhoto = await SQLPhoto.update(insertedPhoto);
+      let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
 
-  //   assert.ok(updatedPhoto.group === secondGroup);
-  //   assert.ok(insertedPhoto.group === secondGroup);
+      assert.equal(updatedPhoto.group, null);
+      assert.equal(deletedPhoto.group, null);
+      assert.equal(deletedPhoto.group_id, null);
+    });
 
-  //   updatedPhoto.group = null;
+    test("Model can create, update, delete with correct changing relationships with GET/cache in one flow", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-  //   assert.equal(updatedPhoto.group, null);
-  //   assert.equal(updatedPhoto.group_id, null);
+      await SQLGroup.insertAll([
+        {
+          id: 1,
+          name: "Some group",
+        },
+        {
+          id: 2,
+          name: "Another group",
+        },
+      ]);
 
-  //   let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
+      let firstGroup = await SQLGroup.find(1);
+      let secondGroup = await SQLGroup.find(2);
+      let photo = SQLPhoto.build({ name: "Dinner photo", group: secondGroup });
 
-  //   assert.equal(updatedPhoto.group, null);
-  //   assert.equal(deletedPhoto.group_id, null);
-  //   assert.equal(deletedPhoto.group, null);
-  // });
+      assert.strictEqual(photo.group, secondGroup);
+      assert.equal(photo.group_id, secondGroup.id);
+
+      photo.group = firstGroup;
+
+      assert.strictEqual(photo.group, firstGroup);
+      assert.equal(photo.group_id, firstGroup.id);
+
+      let insertedPhoto = await SQLPhoto.insert(photo);
+
+      assert.strictEqual(insertedPhoto.group, firstGroup);
+      assert.strictEqual(photo.group, insertedPhoto.group);
+
+      insertedPhoto.group = secondGroup;
+
+      assert.strictEqual(insertedPhoto.group, secondGroup);
+      assert.equal(insertedPhoto.group_id, secondGroup.id);
+
+      let updatedPhoto = await SQLPhoto.update(insertedPhoto);
+
+      assert.strictEqual(updatedPhoto.group, secondGroup);
+      assert.strictEqual(insertedPhoto.group, secondGroup);
+
+      updatedPhoto.group = null;
+
+      assert.equal(updatedPhoto.group, null);
+      assert.equal(updatedPhoto.group_id, null);
+
+      let deletedPhoto = await SQLPhoto.delete(updatedPhoto);
+
+      assert.equal(updatedPhoto.group, null);
+      assert.equal(deletedPhoto.group, null);
+      assert.equal(deletedPhoto.group_id, null);
+    });
+
+    test("Deleting a related model should delete the models relationship references", async function (assert) {
+      let { SQLPhoto, SQLGroup } = setupSQLModels();
+
+      let group = await SQLGroup.insert({ id: 22, name: "Some group" });
+      let photo = SQLPhoto.build({ name: "Dinner photo", group });
+
+      assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_id, group.id);
+
+      await SQLGroup.delete(group);
+
+      assert.equal(photo.group, null);
+      assert.equal(photo.group_id, null);
+    });
+  });
 });

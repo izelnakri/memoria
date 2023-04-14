@@ -129,10 +129,10 @@ export default class SQLAdapter extends MemoryAdapter {
           order: { [Model.primaryKeyName]: "ASC" },
         });
         // TODO: this might be problematic with null models!!
-        return foundModels.map((model) => this.cache(Model, model, options));
+        return foundModels.map((model) => this.cache(Model, model.toJSON(), options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return foundModel && this.cache(Model, foundModel, options);
+        return foundModel && this.cache(Model, foundModel.toJSON(), options);
       }
     } catch (error) {
       if (!error.code) {
@@ -155,7 +155,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
-    return foundModel ? this.cache(Model, foundModel, options) : null;
+    return foundModel ? this.cache(Model, foundModel.toJSON(), options) : null;
   }
 
   static async findAll(
