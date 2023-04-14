@@ -260,16 +260,13 @@ export default class RESTAdapter extends MemoryAdapter {
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-
-            return resolve(
-              RelationshipDB.cacheRelationship(
-                model,
-                metadata,
-                (await RelationshipClass.findBy({
+            let relationship = model[Model.primaryKeyName]
+              ? await RelationshipClass.findBy({
                   [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-                })) || null
-              )
-            );
+                })
+              : null;
+
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship || null));
           }
 
           return reject();

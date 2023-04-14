@@ -395,18 +395,13 @@ export default class MemoryAdapter {
       } else if (relationshipType === "OneToOne") {
         if (reverseRelationshipName) {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+          let relationship = model[Model.primaryKeyName]
+            ? await RelationshipClass.peekBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+            : null;
 
-          return resolve(
-            RelationshipDB.cacheRelationship(
-              model,
-              metadata,
-              model[Model.primaryKeyName]
-                ? RelationshipClass.peekBy({
-                    [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-                  })
-                : null
-            )
-          );
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship || null));
         }
 
         return reject();

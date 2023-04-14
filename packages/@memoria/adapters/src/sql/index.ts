@@ -176,7 +176,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.cache(Model, model, options));
+    return result.map((model) => this.cache(Model, model.toJSON(), options));
   }
 
   static async insert(
@@ -452,9 +452,11 @@ export default class SQLAdapter extends MemoryAdapter {
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-            let relationshipModel = await RelationshipClass.findBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            });
+            let relationshipModel = model[Model.primaryKeyName]
+              ? await RelationshipClass.findBy({
+                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+                })
+              : null;
             if (!relationshipModel) {
               return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
               // NOTE: now doesnt throw to match REST behavior
@@ -474,7 +476,7 @@ export default class SQLAdapter extends MemoryAdapter {
             let relationshipModels = await RelationshipClass.findAll({
               [foreignKeyColumnName]: model[Model.primaryKeyName],
             });
-            // TODO: This could be buggy, check ie
+            // TODO: This could be buggy, check it
 
             return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModels));
           }
