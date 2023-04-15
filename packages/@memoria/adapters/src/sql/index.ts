@@ -129,10 +129,10 @@ export default class SQLAdapter extends MemoryAdapter {
           order: { [Model.primaryKeyName]: "ASC" },
         });
         // TODO: this might be problematic with null models!!
-        return foundModels.map((model) => this.cache(Model, model.toJSON(), options));
+        return foundModels.map((model) => this.cache(Model, toJSON(model), options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return foundModel && this.cache(Model, foundModel.toJSON(), options);
+        return foundModel && this.cache(Model, toJSON(foundModel), options);
       }
     } catch (error) {
       if (!error.code) {
@@ -155,7 +155,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
-    return foundModel ? this.cache(Model, foundModel.toJSON(), options) : null;
+    return foundModel ? this.cache(Model, toJSON(foundModel), options) : null;
   }
 
   static async findAll(
@@ -176,7 +176,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.cache(Model, model.toJSON(), options));
+    return result.map((model) => this.cache(Model, toJSON(model), options));
   }
 
   static async insert(
@@ -490,6 +490,19 @@ export default class SQLAdapter extends MemoryAdapter {
       return reject("ManyToMany fetchRelationship not implemented yet");
     });
   }
+}
+
+function toJSON(model: MemoriaModel) {
+  let Class = model.constructor as typeof MemoriaModel;
+  return Array.from(Class.columnNames).reduce((result: QueryObject, columnName: string) => {
+    if (model[columnName] === undefined) {
+      result[columnName] = null;
+    } else {
+      result[columnName] = model[columnName];
+    }
+
+    return result;
+  }, {});
 }
 
 function cleanRelationships(Model, instance) {

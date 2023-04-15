@@ -1,15 +1,6 @@
-import Model, {
-  DB,
-  PrimaryGeneratedColumn,
-  Column,
-  DeleteError,
-  RuntimeError,
-  InstanceDB,
-  RelationshipDB,
-} from "@memoria/model";
+import { DB, DeleteError, RuntimeError, InstanceDB, RelationshipDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
-import SQLAdapter from "../helpers/sql-adapter.js";
 import generateModels from "../helpers/models-with-relations/sql/mix/index.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 
@@ -170,7 +161,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
   });
 
   module("Reference tests", function () {
-    test("$Model.delete($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+    test("$Model.delete($model) return the actual object", async function (assert) {
       const { SQLPhoto } = generateModels();
       await DB.resetRecords();
 
@@ -180,7 +171,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
 
       let insertedPhoto = await SQLPhoto.insert(photo);
 
-      assert.notEqual(insertedPhoto, photo);
+      assert.strictEqual(insertedPhoto, photo);
       assert.propEqual(
         insertedPhoto,
         SQLPhoto.build({
@@ -190,7 +181,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           name: "some name",
         })
       );
-      assert.equal(InstanceDB.getReferences(photo).size, 4);
+      assert.equal(InstanceDB.getReferences(photo).size, 3);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
       let deletedPhoto = await SQLPhoto.delete(insertedPhoto); // NOTE: this should make all same instances isPersisted = false in the future(?)
@@ -218,18 +209,18 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
 
       assert.ok(izel.id);
       assert.deepEqual(izel, insertedUser);
-      assert.equal(group.owner, insertedUser);
+      assert.strictEqual(group.owner, insertedUser);
       assert.equal(group.owner_id, izel.id);
-      assert.equal(group.photo, groupPhoto);
+      assert.strictEqual(group.photo, groupPhoto);
 
       let insertedGroup = await SQLGroup.insert(group);
 
-      assert.notEqual(insertedGroup, group);
-      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.strictEqual(insertedGroup, group);
+      assert.strictEqual(insertedGroup.photo, groupPhoto);
       assert.equal(insertedGroup.owner_id, insertedUser.id);
-      assert.equal(groupPhoto.group, insertedGroup);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
       assert.equal(groupPhoto.group_id, insertedGroup.id);
-      assert.equal(InstanceDB.getReferences(group).size, 3);
+      assert.equal(InstanceDB.getReferences(group).size, 2);
 
       let cachedReference = SQLGroup.Cache.get(insertedGroup.uuid);
       assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
@@ -237,15 +228,15 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
-          assert.equal(reference.owner, insertedUser);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, insertedUser);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
       let deletedGroup = await SQLGroup.delete(group);
 
-      assert.notEqual(deletedGroup, group);
-      assert.notEqual(deletedGroup, insertedGroup);
+      assert.notStrictEqual(deletedGroup, group);
+      assert.notStrictEqual(deletedGroup, insertedGroup);
       assert.equal(InstanceDB.getReferences(group).size, 0);
       assert.equal(InstanceDB.getReferences(deletedGroup).size, 0);
 

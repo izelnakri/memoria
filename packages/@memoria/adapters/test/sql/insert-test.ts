@@ -1,13 +1,4 @@
-import Model, {
-  DB,
-  Column,
-  CreateDateColumn,
-  InstanceDB,
-  PrimaryGeneratedColumn,
-  InsertError,
-  RuntimeError,
-  RelationshipDB,
-} from "@memoria/model";
+import { DB, InstanceDB, InsertError, RuntimeError, RelationshipDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -304,7 +295,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
   });
 
   module("Reference tests", function () {
-    test("$Model.insert($model) creates a copied object in store and returns another copied object instead of the actual object", async function (assert) {
+    test("$Model.insert($model) returns the actual object", async function (assert) {
       const { SQLPhoto } = generateModels();
       await DB.resetRecords();
 
@@ -323,7 +314,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
 
       let insertedPhoto = await SQLPhoto.insert(photo);
 
-      assert.notEqual(insertedPhoto, photo);
+      assert.strictEqual(insertedPhoto, photo);
       assert.propEqual(
         insertedPhoto,
         SQLPhoto.build({
@@ -343,13 +334,13 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
         })
       );
       assert.propEqual(SQLPhoto.peek(insertedPhoto.id), insertedPhoto);
-      assert.equal(InstanceDB.getReferences(photo).size, 6);
+      assert.equal(InstanceDB.getReferences(photo).size, 5);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
 
       insertedPhoto.name = "testing store just holds a copy";
 
       assert.equal(insertedPhoto.name, "testing store just holds a copy");
-      assert.notEqual(photo.name, insertedPhoto.name);
+      assert.equal(photo.name, insertedPhoto.name);
       assert.notPropEqual(SQLPhoto.peek(photo.id), insertedPhoto);
     });
 
@@ -361,16 +352,16 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       let groupPhoto = SQLPhoto.build();
       let group = SQLGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
 
-      assert.equal(group.owner, izel);
-      assert.equal(group.photo, groupPhoto);
+      assert.strictEqual(group.owner, izel);
+      assert.strictEqual(group.photo, groupPhoto);
+      assert.strictEqual(groupPhoto.group, group);
 
       let insertedGroup = await SQLGroup.insert(group);
       let existingGroupReferences = InstanceDB.getReferences(group);
 
-      assert.notEqual(insertedGroup, group);
-      assert.equal(insertedGroup.photo, groupPhoto);
-      assert.equal(groupPhoto.group, insertedGroup);
-      assert.equal(existingGroupReferences.size, 3);
+      assert.strictEqual(insertedGroup.photo, groupPhoto);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
+      assert.equal(existingGroupReferences.size, 2);
 
       let cachedReference = SQLGroup.Cache.get(insertedGroup.uuid);
       assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
@@ -378,14 +369,13 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
         }
       });
 
       let somePeekedModel = await SQLGroup.peek(group.uuid);
 
-      assert.equal(groupPhoto.group, insertedGroup);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
 
       let newBuiltReference = SQLGroup.build({
         uuid: group.uuid,
@@ -395,44 +385,44 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       });
 
       assert.deepEqual(insertedGroup, newBuiltReference);
-      assert.equal(insertedGroup.owner, izel);
-      assert.equal(insertedGroup.photo, groupPhoto);
+      assert.strictEqual(insertedGroup.owner, izel);
+      assert.strictEqual(insertedGroup.photo, groupPhoto);
 
-      assert.equal(InstanceDB.getReferences(group).size, 5);
+      assert.equal(InstanceDB.getReferences(group).size, 4);
       assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
       assert.equal(RelationshipDB.has(cachedReference, "photo"), false);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![somePeekedModel, cachedReference].includes(reference)) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
-      assert.notEqual(groupPhoto.group, insertedGroup);
+      assert.notStrictEqual(groupPhoto.group, insertedGroup);
 
       let peekedGroup = await SQLGroup.peek(group.uuid);
 
-      assert.notEqual(peekedGroup, insertedGroup);
-      assert.notEqual(peekedGroup, group);
-      assert.equal(InstanceDB.getReferences(group).size, 6);
-      assert.equal(groupPhoto.group, newBuiltReference);
+      assert.notStrictEqual(peekedGroup, insertedGroup);
+      assert.notStrictEqual(peekedGroup, group);
+      assert.equal(InstanceDB.getReferences(group).size, 5);
+      assert.strictEqual(groupPhoto.group, newBuiltReference);
 
       let fetchedGroup = await SQLGroup.find(group.uuid);
 
-      assert.notEqual(fetchedGroup, insertedGroup);
-      assert.notEqual(fetchedGroup, group);
-      assert.notEqual(fetchedGroup, peekedGroup);
-      assert.equal(InstanceDB.getReferences(group).size, 7);
+      assert.notStrictEqual(fetchedGroup, insertedGroup);
+      assert.notStrictEqual(fetchedGroup, group);
+      assert.notStrictEqual(fetchedGroup, peekedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 6);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![somePeekedModel, peekedGroup, cachedReference, fetchedGroup].includes(reference)) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
-      assert.equal(groupPhoto.group, fetchedGroup);
+      assert.strictEqual(groupPhoto.group, fetchedGroup);
     });
 
     test("$Model.insert($model) resets null set hasOne relationships after insert", async function (assert) {
@@ -442,7 +432,6 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       let group = SQLGroup.build({ name: "Hacker Log" });
 
       assert.equal(await group.photo, null);
-      assert.equal(group.photo, null);
 
       let insertedGroup = await SQLGroup.insert(group);
 

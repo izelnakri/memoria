@@ -450,7 +450,10 @@ export default class Model {
   }
 
   // TODO this might need improved revision control
-  static async find(primaryKey: PrimaryKey | PrimaryKey[], options?: ModelBuildOptions): Promise<Model | Model[] | void> {
+  static async find(
+    primaryKey: PrimaryKey | PrimaryKey[],
+    options?: ModelBuildOptions
+  ): Promise<Model | Model[] | void> {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
       return Array.isArray(result)
