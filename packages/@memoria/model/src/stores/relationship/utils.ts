@@ -1,9 +1,8 @@
 import Model from "../../model.js";
 import RelationshipDB from "./db.js";
+import RelationshipQuery from "./query.js";
 import InstanceDB from "../instance/db.js";
-import type { RelationshipType } from "./schema.js";
-
-export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
+import type { RelationshipType, RelationshipCache, RelationshipMetadata } from "./schema.js";
 
 const NON_FOREIGN_KEY_RELATIONSHIPS = ["OneToOne", "HasMany"];
 
@@ -12,8 +11,13 @@ export default class RelationshipUtils {
   // NOTE: There are two cases when building(transfer/copy without removal), setting on demand
   // Summary: gets reverseRelationshipCache, existingRelationship (if it exists, clean(REMOVE IT))
   // Sets new relationship on the cache, sets foreign key on the model, sets reverse relationship on the target model
-  static cleanAndSetBelongsToRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
-    let { RelationshipClass, reverseRelationshipName } = metadata; // reverseRelationshipType
+  static cleanAndSetBelongsToRelationshipFor(
+    model: Model,
+    targetRelationship: Model | null,
+    metadata: RelationshipMetadata,
+    relationshipCache: RelationshipCache
+  ) {
+    let { foreignKeyColumnName, RelationshipClass, reverseRelationshipName } = metadata;
     let oneToOneReflexiveCache =
       reverseRelationshipName &&
       RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, "OneToOne");
@@ -23,16 +27,20 @@ export default class RelationshipUtils {
       (reverseRelationshipName &&
         RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType));
     let existingRelationship = relationshipCache.get(model);
-
-    // TODO: DO Reflection correctly for BelongsTo <-> HasMany
     if (existingRelationship) {
-      this.cleanRelationshipsOn(model, existingRelationship, metadata, relationshipCache, reverseRelationshipCache);
+      this.cleanRelationshipsOn(
+        model,
+        existingRelationship as Model,
+        metadata,
+        relationshipCache,
+        reverseRelationshipCache
+      );
     }
 
     relationshipCache.set(model, targetRelationship);
 
-    model[metadata.foreignKeyColumnName as string] = targetRelationship
-      ? targetRelationship[metadata.RelationshipClass.primaryKeyName]
+    model[foreignKeyColumnName as string] = targetRelationship
+      ? targetRelationship[RelationshipClass.primaryKeyName]
       : null;
 
     if (reverseRelationshipType === "OneToOne") {
@@ -42,15 +50,29 @@ export default class RelationshipUtils {
     }
   }
 
-  static cleanAndSetOneToOneRelationshipFor(model, targetRelationship, metadata, relationshipCache) {
-    let { RelationshipClass, reverseRelationshipName } = metadata;
-    let reverseRelationshipType: RelationshipType = "BelongsTo";
+  static cleanAndSetOneToOneRelationshipFor(
+    model: Model,
+    targetRelationship: Model | null,
+    metadata: RelationshipMetadata,
+    relationshipCache: RelationshipCache
+  ) {
+    let { RelationshipClass, reverseRelationshipName, reverseRelationshipType } = metadata;
     let reverseRelationshipCache =
       reverseRelationshipName &&
-      RelationshipDB.findRelationshipCacheFor(RelationshipClass, reverseRelationshipName, reverseRelationshipType);
+      RelationshipDB.findRelationshipCacheFor(
+        RelationshipClass,
+        reverseRelationshipName,
+        reverseRelationshipType as string
+      );
     let existingRelationship = relationshipCache.get(model);
     if (existingRelationship) {
-      this.cleanRelationshipsOn(model, existingRelationship, metadata, relationshipCache, reverseRelationshipCache); // TODO: this doesnt clean insertedGroup on OneToOne, model is updatedGroup, previousRelationship is secondPhoto
+      this.cleanRelationshipsOn(
+        model,
+        existingRelationship as Model,
+        metadata,
+        relationshipCache,
+        reverseRelationshipCache
+      ); // NOTE: this cleans all the previous reverse relationships
     }
 
     relationshipCache.set(model, targetRelationship);
@@ -61,81 +83,45 @@ export default class RelationshipUtils {
   static cleanRelationshipsOn(
     source: Model,
     existingRelationship: Model,
-    { foreignKeyColumnName, reverseRelationshipName, reverseRelationshipForeignKeyColumnName, relationshipType },
-    relationshipCache,
-    reverseRelationshipCache,
-    mutateForeignKey = true
+    { reverseRelationshipForeignKeyColumnName, relationshipType },
+    relationshipCache: RelationshipCache,
+    reverseRelationshipCache: RelationshipCache
   ) {
-    let relationshipInstances =
-      relationshipType === "OneToOne"
-        ? findBelongsToRelationshipsFor(
-            existingRelationship,
-            source,
-            relationshipCache,
-            reverseRelationshipCache,
-            relationshipType
-          ) // NOTE: this needs to be improved for all
-        : findOneToOneRelationshipFor(existingRelationship, source, reverseRelationshipCache, relationshipType);
-
+    let reverseRelationships = RelationshipQuery.findReverseRelationships(
+      source,
+      existingRelationship,
+      reverseRelationshipCache
+    );
     let SourceClass = source.constructor as typeof Model;
-    let sourceReferences = findDirectRelationshipsFor(source, existingRelationship, reverseRelationshipCache);
-    let otherSameSourceReferences =
-      sourceReferences.length > 0
-        ? Array.from(InstanceDB.getReferences(source)).filter((sourceReference) => {
-            if (sourceReference === source) {
-              return false;
-            } else if (SourceClass.Cache.get(sourceReference[SourceClass.primaryKeyName]) === sourceReference) {
-              return false;
-            }
-
-            if (relationshipType === "BelongsTo") {
-              return relationshipCache.get(sourceReference) === existingRelationship;
-            } else if (NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
-              return (
-                existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName] &&
-                relationshipCache.get(sourceReference) !== null
-              ); // NOTE: This gets the fresh last instance most of the time
-            } // NOTE: add ManyToMany, HasMany in future
-          })
-        : [];
-    // NOTE: This assigment is great for BelongsTo becasue otherSourceReference are all targeting this source
-    let freshOtherSourceReference =
-      otherSameSourceReferences.length > 0 ? otherSameSourceReferences[otherSameSourceReferences.length - 1] : null;
-
-    if (relationshipType === "BelongsTo") {
-      sourceReferences.forEach((sourceInstance) => {
-        relationshipCache.delete(sourceInstance);
-
-        if (mutateForeignKey && foreignKeyColumnName) {
-          sourceInstance[foreignKeyColumnName] = null;
-        }
-      });
-
-      if (reverseRelationshipName) {
-        relationshipInstances.forEach((existingTargetRelationshipReference) => {
-          if (freshOtherSourceReference) {
-            reverseRelationshipCache.set(existingTargetRelationshipReference, freshOtherSourceReference); // with HasMany different
-          } else {
-            reverseRelationshipCache.delete(existingTargetRelationshipReference);
+    let sourceIsAlsoReverse = sourceIsInExinstingRelationship(source, existingRelationship, reverseRelationshipCache);
+    let freshRemainingSourceReference =
+      sourceIsAlsoReverse &&
+      Array.from(InstanceDB.getReferences(source))
+        .reverse()
+        .find((sourceReference) => {
+          if (sourceReference === source) {
+            return false;
+          } else if (SourceClass.Cache.get(sourceReference[SourceClass.primaryKeyName]) === sourceReference) {
+            return false;
           }
+
+          if (relationshipType === "BelongsTo") {
+            return relationshipCache.get(sourceReference) === existingRelationship;
+          } else if (NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
+            return (
+              existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName] &&
+              relationshipCache.get(sourceReference) !== null
+            ); // NOTE: This gets the fresh last instance most of the time
+          } // TODO: add ManyToMany, HasMany in future
         });
-      }
-    } else if (relationshipType === "OneToOne") {
-      relationshipInstances.forEach((existingTargetRelationshipReference) => {
-        if (freshOtherSourceReference) {
-          reverseRelationshipCache.set(existingTargetRelationshipReference, freshOtherSourceReference);
-        } else {
-          reverseRelationshipCache.delete(existingTargetRelationshipReference);
-        }
 
-        if (mutateForeignKey && reverseRelationshipForeignKeyColumnName && freshOtherSourceReference) {
-          existingTargetRelationshipReference[reverseRelationshipForeignKeyColumnName] =
-            freshOtherSourceReference[SourceClass.primaryKeyName];
-        }
-      });
+    if (relationshipType === "BelongsTo" || relationshipType === "OneToOne") {
+      relationshipCache.delete(source);
 
-      sourceReferences.forEach((sourceInstances) => {
-        relationshipCache.delete(sourceInstances);
+      reverseRelationships.forEach((existingTargetRelationshipReference) => {
+        return freshRemainingSourceReference
+          ? reverseRelationshipCache.set(existingTargetRelationshipReference, freshRemainingSourceReference)
+          : reverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
       });
     }
   }
@@ -223,70 +209,15 @@ export default class RelationshipUtils {
   }
 }
 
-// NOTE: this needs to improve, doesnt give the right results all the time(?!), Querying needs to get better
-function findDirectRelationshipsFor(targetModel: Model, existingRelationship: Model, reverseRelationshipCache) {
+function sourceIsInExinstingRelationship(
+  source: Model,
+  existingRelationship: Model,
+  reverseRelationshipCache: RelationshipCache
+) {
   if (!reverseRelationshipCache) {
-    return [];
+    return false;
   }
 
   let cachedRelationship = reverseRelationshipCache && reverseRelationshipCache.get(existingRelationship);
-  if (cachedRelationship === targetModel) {
-    return Array.isArray(targetModel) ? targetModel : [targetModel];
-  } else if (Array.isArray(cachedRelationship)) {
-    return cachedRelationship.filter((relationship) => {
-      return Array.isArray(targetModel) ? targetModel.includes(relationship) : targetModel === relationship;
-    });
-  }
-
-  return [];
-}
-
-function findBelongsToRelationshipsFor(
-  existingRelationship: Model,
-  source: Model,
-  relationshipCache,
-  reverseRelationshipCache,
-  relationshipType
-) {
-  if (!reverseRelationshipCache) {
-    return [];
-  } else if (relationshipType === "OneToOne") {
-    let result = new Set() as Set<Model>;
-    InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).forEach((instanceSet) => {
-      instanceSet.forEach((instance) => {
-        if (reverseRelationshipCache.get(instance) === source) {
-          result.add(instance);
-        }
-      });
-    });
-
-    if (existingRelationship && relationshipCache.get(source) === existingRelationship) {
-      // NOTE: is this really needed?!?
-      result.add(existingRelationship);
-    }
-
-    return Array.from(result);
-  }
-
-  return [];
-}
-
-function findOneToOneRelationshipFor(targetModel: Model, source: Model, reverseRelationshipCache, relationshipType) {
-  if (!reverseRelationshipCache) {
-    return [];
-  } else if (relationshipType === "BelongsTo") {
-    let result = new Set() as Set<Model>;
-    let targetModels = InstanceDB.getAllReferences(targetModel.constructor as typeof Model); // TODO: this is costly reduce it
-    targetModels.forEach((instanceSet) => {
-      instanceSet.forEach((instance) => {
-        if (reverseRelationshipCache.get(instance) === source) {
-          result.add(instance);
-        }
-      });
-    });
-
-    return Array.from(result);
-  }
-
-  return [];
+  return Array.isArray(cachedRelationship) ? cachedRelationship.includes(source) : cachedRelationship === source;
 }

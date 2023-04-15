@@ -2,7 +2,7 @@ import InstanceDB from "../instance/db.js";
 import RelationshipDB from "./db.js";
 import type Model from "../../model.js";
 import type { PrimaryKey } from "../../model.js";
-import type { RelationshipMetadata } from "./schema.js";
+import type { RelationshipMetadata, RelationshipCache } from "./schema.js";
 
 export default class RelationshipQuery {
   // NOTE: In future it should score them by lastPersisted = timestamp and get the most fresh reference(?)
@@ -176,7 +176,6 @@ export default class RelationshipQuery {
     );
   }
 
-  // TODO: build this: what about the latestPersistedInstance of the relationship side(?)
   static findPossibleReferenceInMemoryByInstanceReferences(
     model: Model,
     metadata: RelationshipMetadata,
@@ -240,5 +239,25 @@ export default class RelationshipQuery {
     }
 
     return [undefined, undefined];
+  }
+
+  static findReverseRelationships(
+    source: Model,
+    existingRelationship: Model,
+    reverseRelationshipCache: RelationshipCache
+  ) {
+    if (reverseRelationshipCache) {
+      return Array.from(InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).reduce((result, instanceSet) => {
+        instanceSet.forEach((instance) => {
+          if (reverseRelationshipCache.get(instance) === source) {
+            result.add(instance);
+          }
+        });
+
+        return result;
+      }, new Set() as Set<Model>));
+    }
+
+    return [];
   }
 }

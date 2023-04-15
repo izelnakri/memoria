@@ -101,7 +101,6 @@ export default class MemoryAdapter {
     return [];
   }
 
-  // NOTE: Remove RelationshipDB.setPersistentRelationshipCache() references(?) needed for now for build getLastReliableRelationshipFromCache
   static cache(Model: typeof MemoriaModel, record: ModelRefOrInstance, options?: ModelBuildOptions): MemoriaModel {
     let inputOptions = { ...options, isNew: false };
     let existingModelInCache = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel | void;
@@ -169,7 +168,6 @@ export default class MemoryAdapter {
   }
 
   static peekBy(Model: typeof MemoriaModel, queryObject: object, options?: ModelBuildOptions): MemoriaModel | void {
-    // let keys = queryObject instanceof Model ? Array.from(Model.columnNames) : Object.keys(queryObject);
     let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) => match(model, queryObject)) || null;
 
     return model && this.returnWithCacheEviction(model, options);
@@ -426,7 +424,6 @@ export default class MemoryAdapter {
   }
 }
 
-// NOTE: maybe move to DB(?)
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
   return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {

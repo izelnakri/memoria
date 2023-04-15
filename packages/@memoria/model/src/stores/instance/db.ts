@@ -45,13 +45,11 @@ export default class InstanceDB {
 
   static makeModelPersisted(model: Model) {
     let Class = model.constructor as typeof Model;
-    let persistedModelsMap = this.getPersistedModels(Class);
 
-    persistedModelsMap.set(model[Class.primaryKeyName as string], model);
+    this.getPersistedModels(Class).set(model[Class.primaryKeyName as string], model);
   }
 
   static getReferences(model: Model): Set<Model> {
-    // NOTE: this includes the model itself
     let Class = model.constructor as typeof Model;
 
     return model[Class.primaryKeyName]
@@ -87,7 +85,6 @@ export default class InstanceDB {
       let foundInstanceSet = references.find((modelSet) => modelSet.has(buildObject as Model));
       if (!foundInstanceSet) {
         foundInstanceSet = new Set([model]);
-        foundInstanceSet.add(model);
         references.push(foundInstanceSet);
       }
 

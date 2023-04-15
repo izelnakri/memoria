@@ -1,28 +1,25 @@
+-> Embedded relationships should be done seperatedly
+model update
+-> adapter update
+-> adapter memory cache
+-> RelationshipDB.cache
+-> updateRelationshipsGloballyFromARelationship
+-> complex lookup to set this.findRelationshipCacheFor(SourceClass, relationshipName, relationshipType).set(reference, targetModel);
+
 4x(belongs-to-id, has-many-id) Memory, REST, SQLAdapter
 
+// model.changeset -> this will have the metadata, but gets generated lazily
+// model.changes -> this will have the actual changes and diffing from the previous source record
+// model.revision -> this will have the previous source record(?) very error prone
+
+// instanceMetadata
+// So model.revision needs to change, get revision.builtAt, reason, and source, revision(needs to be previous model, test this always)
+
+// Make params use match() internally: Email.findBy({ user: userInstance });
 
 RelationshipUtils.replaceExistingModelFromArray() is not possible because replace first needs to remove it then add it in splice()
 Because hasManyArray[someIndex] = aModel; doesnt remove items on its own but replace needs to remove the items in the setter level.
 Anyways, more hasMany tracking is ok for now, logic should still work.
-
-Design decisions:
-1- Should we always return a RelationshipPromise when instance.relationship gets accessed(?) - Current we dont for DX. This might also conflict with BelongTo setting logic. in-memory cache lookup only happens after remote call
- - making it automatic has to be done on built() but might go against the idea of making everything lazy. Remote lookup needs a promise and non peek cache lookup has to happen AFTER remote lookup.
- - this makes relationship .reload() not possible
-
-2- let insertedGroup = await MemoryGroup.insert(group); when group has a photo, it doesnt get transferred to insertedGroup.photo because
-3- fetchRelationship always returns new instance when record is found(this means .peek() as well for MemoryAdapter).
-4- get fetchedRelationships() {} check the relationshipCache, when null values are not stored this is wrong?!? No keep going on with this logic
-
-
-FUTURE testing improvement for these types:
-adapters/memory/belongs-to-id-for-has-one-test.ts:
-// 12 tests:
-// 5 categories: New model after build assignments, Fetched model assignments, reflective assignments, full lifecycle(fetched + build), relationship fetch
-
-// 3**3 model buildup: new model(relationship: unknown, known, null), fetched(relationship: unknown, known, null) peeked(relationship: unknown, known, null)
-// Cases: fetch test, basic assignment, assignment |> check |> send, reflective assignments |> check |> send(?), full lifecycle
-
 
 // never use propEqual due to recursion inside instances on sql(probably many-to-many bug)
 
@@ -36,156 +33,29 @@ adapters/memory/belongs-to-id-for-has-one-test.ts:
   - builtAt
   - [extraData]
 
-email will not be reflexive to user until insert(?) if user also fetched email in this scenario:
-
 deleteInArray / change / addInArray (should be proxied correctly when reference diff different)
 
-changing instance/array (can be proxied for primaryKeyChange)
-
-# let ServerPhoto = Object.assign(Object.create({}), Photo);
-# Object.setPrototypeOf(ServerPhoto, Photo);
-
-# Check reflexive relationships, readonly nested data, updating from both sides(_id, relationship and inverse relationship, creating new record relationship updates)
-
-# add ember-concurrency like primitives with a new Promise-like interface for .retry(), .abort() [particularly interesting for async relationships]
-# maybe apply this to all async functions, after config->store refactor
-
-# Post /photos(should not have owner embedded by default on REST) but after post should still keep the reference
-
-# DirtyState(isLoaded, hasAllRelationshipsLoaded, persistedAt, loadedAt)
 # add benchmark setup
 # Removing a relationship form an array
-# store.findAll() returns a PromiseArray that fulfills to a RecordArray and store.peekAll directly returns a RecordArray.
-# RecordArray implements MutableArray: https://api.emberjs.com/ember/release/classes/MutableArray
 # <C-n> <C-p> to jump hunks, zo, zc
-# build() -> most basic building block(essentialy new() with tracking and provided values) and seals or locks. Always creates a revision
-
-=======================================
-Interesting ember-data modules to check:
-
-DS.Store = Store;
-DS.PromiseArray = PromiseArray;
-DS.PromiseObject = PromiseObject;
-
-DS.PromiseManyArray = PromiseManyArray;
-DS.RootState = RootState;
-DS.InternalModel = InternalModel;
-DS.Snapshot = Snapshot;
-
-if (HAS_DEBUG_PACKAGE) {
-  DS.DebugAdapter = require('@ember-data/debug').default;
-}
-
-DS.RecordArray = RecordArray;
-DS.AdapterPopulatedRecordArray = AdapterPopulatedRecordArray;
-DS.ManyArray = ManyArray;
-
-DS.RecordArrayManager = RecordArrayManager;
-
-DS.belongsTo = belongsTo;
-DS.hasMany = hasMany;
-
-DS.Relationship = Relationship;
-
-DS._setupContainer = setupContainer;
-DS.normalizeModelName = normalizeModelName;
-=====================================
-
-
-# maybe instead of doing Object.assign(model, {}); create a method that resets changes = {} and does the assign and maybe also creates lastRevisions
-
-# intention:
-# Sometimes CRUD operations dont create a new revision on returned data(?)(MemoryAdapter.update())
-# CRUD operations should mutate the instance if provided as value
-
-# Tracking tests:
-# NOTE: do the same to a saved model(?) - do it in the insert test
-# NOTE: do the same to a fetched and updated model - do it in the update test
-
-# Relationships( + handle internal cleanRelationships())
 # reasons for artifacts: doc gen, code cov report, .apk builds
-
-try {
-  let photo = PhotoComment.insert({ name: 'something' });
-} catch (errors) {
-  // let errors = [{ attribute: '', message: 'Doesn't look like a valid email.' }]
-  // maybe add has interface later
-  // PhotoComment.errorsFor(primaryKey);
-  // - this should give the errors array
-  // - it should be registered for errorTracker
-  // - from the error one should be able to get the instance
-  // - check also hbs templates
-}
-
-c8 -r html npm run test:node then upload to github pages(?)
 
 .. maybe add errors.has(attr) and errors.remove(attr), errors.errorsFor(attr) AND
 errors.add(attr, ['', '', '']);
 
-
-to create dynamic className:
-let Memoria = {};
-Memoria['Foo'] = class { name = 'Izel' };
-var me = new Memoria['Foo']() // Memoria.Foo{name: "Izel"}
-console.log(me);
-
-
-
-
-
-
-
-
-
-
-- TODO: I might want to make instances have .sortBy(), .mapBy() on array results
-along with firstItem, lastItem/ extensions
-
-
-- SQL Adapter tests
 - Serializer interface
 - push interface
-- Consistent Error types and tests
-- relationships
-- Caching
-- Maybe cache timeouts/intervals
-- Check for instances(in all tests) and cache amounts in SQLAdapter
-
 - MemoryAdapter should be able to handle string id/bigint columns for increment
 - ORM should allow publickey and signatures as ids
-
-make in build src adjust package.json main to dist or src based on clean or build script
-- investigate relationship setting (!!)
-- investigate error handling (!!)
-- investigate changeset / repository / normal configuration
-- investigate class-validator to ajv/JSON Schema exports (!!)
-- investigate Adapter & Serializer interface
-
-
-
-
-getters and instance method dont show on Object.keys etc Reflect.ownKeys
-
-
-
-- investigate decorator validations
-- maybe a more in-depth serializer
-
-JS needs pipeline operator(|>) and cheap Rust bindings(JS<->Rust) and runtimes need to have ava API as default testing API(test.serial, test etc)
 
 - investigate silent Errors within memoria.Server handler context
 - make passthrough PASS
 - add initializer.js
-- memoria command shows options + loader + memoria browserify [dist] creates memoria.dist.js
-- non-json request/responses? - just kidding... or do I?!?
 - rollup -i ./lib/response.js -o response.js -f cjs
 - memoria glue [jsonEndpoint]
 
-// relationships declaration
-
 import { cast, validateLength, validateRequired, foreignKeyConstraint } from 'memoria/changeset'; // instead use class-validator
 import { from } from 'memoria/query';
-
 
 // MODEL API:
 import Model from 'memoria/model';
@@ -193,41 +63,6 @@ import Model from 'memoria/model';
 class User extends Model {
   Adapter: MemoryAdapter, // or SQLAdapter, JSONAPIAdapter, JSONAdapter, GraphQLAdapter
   Serializer: ModelSerializer // or JSONSerializer, JSONAPISerializer, GraphQLSerializer
-
-  primaryKey = 'id' // or uuid or function(?)
-
-  insert(options) {
-
-  }
-  update(options) {
-
-  }
-  delete(options) {
-
-  }
-  serializer(userOrUsers) {
-
-  }
-  serialize(user) {
-
-  }
-  resetDatabase(targetInitialState: object[]) {
-
-  }
-
-  // Model Query Interface:
-  find(idOrIds) {
-
-  }
-  findBy(options) {
-
-  }
-  findAll(options) {
-
-  }
-  count(options) { // in memory, or in the resource through adapter with options?
-
-  }
 
   // Extra examples: customAPIActions:
   confirm = APIAction({
@@ -239,26 +74,6 @@ class User extends Model {
 
     }
   })
-
-
-  // private API: attributes, DB, defaultAttributes(string or lazy(with functions)) in future maybe as prop or decorator etc
-  // maybe default App or DB validations expressed as decorators
 }
-Sketch:
-User.insert({});
 
-User { emails: hasManyProxy{}, firstName: 'Izel', lastName: 'Nakri' }
-
-user.emails.then((emails) => {});
-
-User.Adapter [sql, jsonapi, json, memory] , includes Repo reference, Repo setting at the beginning, synchronization strategies(later stage)
-User.Serializer
-
-User.findBy({}); => request
-
-import { from, where, join, leftJoin, innerJoin } from 'memoria/query';
-
-from()
-
-Repo.one(query);
-Repo.all(
+SyncStrategies(after CommitHistory)

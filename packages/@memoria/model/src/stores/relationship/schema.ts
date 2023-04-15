@@ -7,8 +7,7 @@ export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
-// NOTE: add cachePointers here too
-// Maybe also reverseRelationshipClass
+// TODO: add RelationshipCache and ReverseRelationshipCache here
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
   relationshipName: string;
@@ -127,14 +126,7 @@ export default class RelationshipSchema {
       for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
         Object.keys(relationshipTable).forEach((relationshipName) => {
           let SourceClass = Schema.Models.get(modelName) as typeof Class;
-          let {
-            RelationshipClass,
-            // relationshipType,
-            // foreignKeyColumnName,
-            // reverseRelationshipName,
-            // reverseRelationshipType,
-            // reverseRelationshipForeignKeyColumnName,
-          } = relationshipTable[relationshipName];
+          let { RelationshipClass } = relationshipTable[relationshipName];
 
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
             this._reverseRelationshipTables.set(
@@ -146,7 +138,6 @@ export default class RelationshipSchema {
           let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
             ModelName: ReverseRelationshipMetadata[];
           };
-
           if (!reverseRelationshipTable[SourceClass.name]) {
             reverseRelationshipTable[SourceClass.name] = [];
           }

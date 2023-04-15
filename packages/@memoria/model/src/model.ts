@@ -1,4 +1,3 @@
-// NOTE: put a warning about extending $Model.insert() with not persisted model instances for $Model.insert(), $Model.cache(), update, delete, insertAll, updateAll, deleteAll. Extensions should care about relationships
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import Changeset from "./changeset.js";
@@ -17,7 +16,7 @@ import {
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
-import HasManyArray from "./has-many-array.js";
+// import HasManyArray from "./has-many-array.js";
 
 export type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
@@ -31,18 +30,8 @@ interface ModelInstantiateOptions {
   isNew?: boolean;
   isDeleted?: boolean;
   freeze?: boolean;
-  // isLastVerifiedInstance: boolean; // or keep a record of snapshots and revisionHistory is the same(?)
 }
 
-// model.changeset -> this will have the metadata, but gets generated lazily
-// model.changes -> this will have the actual changes and diffing from the previous source record
-// model.revision -> this will have the previous source record(?) very error prone
-
-// instanceMetadata
-// So model.revision needs to change, get revision.builtAt, reason, and source, revision(needs to be previous model, test this always)
-// what interface to get models.instanceMetadata(?) -> { } exposes the private properties
-
-// cached model could have a hasMany and hasOne(?) and it gets locked there(?)
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
   cacheDuration?: number; // NOTE: rename it to cacheDuration
@@ -60,11 +49,8 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
-// Make params use match() internally: Email.findBy({ user: userInstance });
-
 // Document .cache() replaces existing cached record! doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
-// TODO: it can also be that InstanceDB null primaryKey instances need to be moved over on isNew when building or setting.
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -100,16 +86,11 @@ export default class Model {
   }
 
   static getMetadataForRelationship(relationshipName: string) {
-    return RelationshipSchema.getRelationshipMetadataFor(this, relationshipType);
+    return RelationshipSchema.getRelationshipMetadataFor(this, relationshipName);
   }
 
   // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
   // NOTE: could do attribute tracking
-  // NOTE: test also passing new Model() instances
-  // TODO: also invalidate the unpersistedReferenceGroup for RelationshipDB.cache() and delete
-  // TODO: in future build tests and assertion throw for changing existing primaryKey to smt else and handle null to smt-else(throw if target primarykey exists)
-
-  // revisionHistory should it be from buildObject or existingInstances, or should there be metadata to check
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
@@ -119,7 +100,7 @@ export default class Model {
       }
     }
 
-    let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
+    let model = new this(options);
     let primaryKey = buildObject[this.primaryKeyName] || null;
     let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, primaryKey);
 
@@ -267,11 +248,8 @@ export default class Model {
                     existingRelationship,
                     metadata,
                     relationshipCache,
-                    reverseRelationshipCache,
-                    false
+                    reverseRelationshipCache
                   );
-
-                  relationshipCache.delete(this);
                 }
               } else if (!relationshipCache.has(this)) {
                 let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
@@ -318,57 +296,11 @@ export default class Model {
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
-      // TODO: Move all this to a function(?) and clean it up
-
       let buildObjectType = getBuildObjectType(buildObject, this);
-      if (buildObjectType === INSTANCE_OBJECT_TYPE) {
-        if (RelationshipDB.has(buildObject as Model, relationshipName)) {
-          // NOTE: this messes up nulled belongsTo relationship with foreignKey value(?) - where??
-          RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-        } else {
-          // TODO: these caches can be old references as models do get updates, thats why its bad
-          // let instanceRelationship = RelationshipDB.findPersistedRecordRelationshipsFor(model, relationshipName);
-          // if (instanceRelationship) {
-          //   let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-          //     Class,
-          //     relationshipName,
-          //     relationshipTable[relationshipName].relationshipType
-          //   );
-          //   relationshipCache.set(
-          //     model,
-          //     Array.isArray(instanceRelationship)
-          //       ? new HasManyArray(instanceRelationship, model, relationshipTable[relationshipName])
-          //       : instanceRelationship
-          //   );
-          //   // RelationshipDB.set(model, relationshipName, instanceRelationship);
-          // }
-        }
-      } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE) {
-        // debugger;
-        if (relationshipName in buildObject) {
-          RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-        } else {
-          // TODO: these caches can be old references as models do get updates, thats why its bad
-          // let targetRelationship = RelationshipDB.getLastReliableRelationshipFromCache(
-          //   model,
-          //   relationshipName,
-          //   relationshipTable[relationshipName].relationshipType
-          // );
-          // if (targetRelationship) {
-          //   let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-          //     Class,
-          //     relationshipName,
-          //     relationshipTable[relationshipName].relationshipType
-          //   );
-          //   relationshipCache.set(
-          //     model,
-          //     Array.isArray(targetRelationship)
-          //       ? new HasManyArray(targetRelationship, model, relationshipTable[relationshipName])
-          //       : targetRelationship
-          //   );
-          //   // RelationshipDB.set(model, relationshipName, targetRelationship);
-          // }
-        }
+      if (buildObjectType === INSTANCE_OBJECT_TYPE && RelationshipDB.has(buildObject as Model, relationshipName)) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+      } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE && relationshipName in buildObject) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -416,8 +348,6 @@ export default class Model {
 
     primaryKeyTypeSafetyCheck(model, this);
 
-    // NOTE: this creates revision only for update and if model is not an instance, maybe it shouldnt create on every update when no change is there
-
     return this.Adapter.cache(this, model, options);
   }
 
@@ -449,7 +379,6 @@ export default class Model {
     return this.Adapter.peekAll(this, queryObject, options);
   }
 
-  // TODO this might need improved revision control
   static async find(
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
@@ -497,7 +426,6 @@ export default class Model {
     return model;
   }
 
-  // cacheTimeout clearing absolutely needed for update(then find should also be able to change it)
   static async update(record: ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
@@ -690,13 +618,13 @@ export default class Model {
     return this.Serializer.serialize(this, object as Model);
   }
 
-  private static setRecordInTransit(record) {
+  private static setRecordInTransit(record: any) {
     if (record instanceof this) {
       record.#_inTransit = true;
     }
   }
 
-  private static unsetRecordInTransit(record) {
+  private static unsetRecordInTransit(record: any) {
     if (record instanceof this) {
       record.#_inTransit = false;
     }
@@ -789,19 +717,14 @@ export default class Model {
   //   };
   // }
 
-  // TODO: this creates it lazy and everytime
   get changeset() {
     return new Changeset(this, this.changes);
   }
 
   get fetchedRelationships() {
-    let Class = this.constructor as typeof Model;
-    let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
-
-    // TODO: should I need to include persistedCache(?)
-    return Object.keys(relationshipTable).filter((relationshipName) => {
-      return RelationshipDB.has(this, relationshipName);
-    });
+    return Object.keys(RelationshipSchema.getRelationshipTable(this.constructor as typeof Model)).filter(
+      (relationshipName) => RelationshipDB.has(this, relationshipName)
+    );
   }
 
   changedAttributes() {
