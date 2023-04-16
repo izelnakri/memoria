@@ -11,7 +11,6 @@ import MemoriaModel, {
   RelationshipPromise,
   RelationshipSchema,
   RelationshipDB,
-  NotFoundError,
 } from "@memoria/model";
 import { prepareTargetObjectFromInstance } from "../utils.js";
 import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
@@ -119,7 +118,7 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | MemoriaModel | void> {
+  ): Promise<MemoriaModel[] | MemoriaModel | null> {
     let Manager = await this.getEntityManager();
 
     try {
@@ -162,7 +161,7 @@ export default class SQLAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: QueryObject = {},
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | void> {
+  ): Promise<MemoriaModel[] | null> {
     let Manager = await this.getEntityManager();
     let query = await Manager.createQueryBuilder(Model, Model.tableName).orderBy(
       `${Model.tableName}.${Model.primaryKeyName}`,
@@ -492,9 +491,10 @@ export default class SQLAdapter extends MemoryAdapter {
   }
 }
 
-function toJSON(model: MemoriaModel) {
+function toJSON(model: MemoriaModel): ModelRefOrInstance {
   let Class = model.constructor as typeof MemoriaModel;
-  return Array.from(Class.columnNames).reduce((result: QueryObject, columnName: string) => {
+
+  return Array.from(Class.columnNames).reduce((result: ModelRefOrInstance, columnName: string) => {
     if (model[columnName] === undefined) {
       result[columnName] = null;
     } else {
@@ -502,7 +502,7 @@ function toJSON(model: MemoriaModel) {
     }
 
     return result;
-  }, {});
+  }, {} as ModelRefOrInstance);
 }
 
 function cleanRelationships(Model, instance) {

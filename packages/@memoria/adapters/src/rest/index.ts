@@ -4,7 +4,6 @@ import MemoriaModel, {
   RelationshipPromise,
   RelationshipDB,
   RelationshipSchema,
-  RelationshipQuery,
 } from "@memoria/model";
 import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
 import HTTP from "../http.js";
@@ -28,7 +27,7 @@ export default class RESTAdapter extends MemoryAdapter {
   static logging: boolean = false;
   static timeout: number = 0;
 
-  private static _http: void | typeof HTTP;
+  private static _http: typeof HTTP;
 
   static get http() {
     this._http = this._http || HTTP;
@@ -95,7 +94,7 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | MemoriaModel | void> {
+  ): Promise<MemoriaModel[] | MemoriaModel | null> {
     if (Array.isArray(primaryKey)) {
       return (await this.http.get(
         `${this.host}/${this.pathForType(Model)}${buildQueryPath({ ids: primaryKey })}`,
@@ -124,14 +123,14 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     query: QueryObject,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel | void> {
-    return (
-      await this.http.get(
-        `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
-        this.headers,
-        Object.assign({ Model }, options)
-      )
-    )[0] as MemoriaModel | void;
+  ): Promise<MemoriaModel | null> {
+    let result = await this.http.get(
+      `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
+      this.headers,
+      Object.assign({ Model }, options)
+    );
+
+    return result && (result as MemoriaModel[]).length ? (result as MemoriaModel[])[0] : null;
   }
 
   // GET /people, or GET /people?keyName=value
@@ -139,8 +138,8 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     query: QueryObject,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | void> {
-    return (await this.query(Model, query, options)) as MemoriaModel[] | void;
+  ): Promise<MemoriaModel[] | null> {
+    return (await this.query(Model, query, options)) as MemoriaModel[] | null;
   }
 
   // GET /people, or GET /people?keyName=value
@@ -148,12 +147,12 @@ export default class RESTAdapter extends MemoryAdapter {
     Model: typeof MemoriaModel,
     query: QueryObject,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | MemoriaModel | void> {
+  ): Promise<MemoriaModel[] | MemoriaModel | null> {
     return (await this.http.get(
       `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
       this.headers,
       Object.assign({ Model }, options)
-    )) as MemoriaModel[] | MemoriaModel | void;
+    )) as MemoriaModel[] | MemoriaModel | null;
   }
 
   static async insert(

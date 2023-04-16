@@ -1,10 +1,10 @@
 import LazyPromise from "../lazy.js";
 
 export default class RelationshipPromise extends LazyPromise {
-  constructor(executor) {
-    let promise = super(...arguments);
+  constructor(executor: (resolve: (value?: any) => void, reject: (reason?: any) => void) => void) {
+    let promise = super(executor);
 
-    return Object.seal(promise);
+    Object.seal(promise);
   }
 }
 

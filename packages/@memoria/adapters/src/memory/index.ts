@@ -151,7 +151,7 @@ export default class MemoryAdapter {
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
-  ): MemoriaModel[] | MemoriaModel | void {
+  ): MemoriaModel[] | MemoriaModel | null {
     if (Array.isArray(primaryKey)) {
       return (primaryKey as PrimaryKey[]).reduce((result, targetKey) => {
         let foundModel = Model.Cache.get(targetKey);
@@ -167,7 +167,7 @@ export default class MemoryAdapter {
     throw new RuntimeError(`${Model.name}.peek() called without a valid primaryKey`);
   }
 
-  static peekBy(Model: typeof MemoriaModel, queryObject: object, options?: ModelBuildOptions): MemoriaModel | void {
+  static peekBy(Model: typeof MemoriaModel, queryObject: object, options?: ModelBuildOptions): MemoriaModel | null {
     let model = Array.from(Model.Cache.values()).find((model: MemoriaModel) => match(model, queryObject)) || null;
 
     return model && this.returnWithCacheEviction(model, options);
@@ -201,7 +201,7 @@ export default class MemoryAdapter {
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | MemoriaModel | void> {
+  ): Promise<MemoriaModel[] | MemoriaModel | null> {
     return this.peek(Model, primaryKey, options);
   }
 
@@ -209,7 +209,7 @@ export default class MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: object,
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel | void> {
+  ): Promise<MemoriaModel | null> {
     return this.peekBy(Model, queryObject, options);
   }
 
@@ -217,7 +217,7 @@ export default class MemoryAdapter {
     Model: typeof MemoriaModel,
     queryObject: object = {},
     options?: ModelBuildOptions
-  ): Promise<MemoriaModel[] | void> {
+  ): Promise<MemoriaModel[] | null> {
     return this.peekAll(Model, queryObject, options);
   }
 
@@ -367,8 +367,8 @@ export default class MemoryAdapter {
     return await Promise.all(models.map((model) => this.unload(Model, model, options)));
   }
 
-  protected static returnWithCacheEviction(model: MemoriaModel, options: ModelBuildOptions | undefined) {
-    if (options && "cache" in options && Number.isInteger(options.cacheDuration)) {
+  protected static returnWithCacheEviction(model: MemoriaModel, options: ModelBuildOptions = {}) {
+    if ("cache" in options && Number.isInteger(options.cacheDuration)) {
       DB.setTimeout(model, options.cacheDuration || 0);
     }
 
@@ -388,7 +388,7 @@ export default class MemoryAdapter {
         }
 
         return resolve(
-          RelationshipDB.cacheRelationship(model, metadata, RelationshipClass.peek(model[foreignKeyColumnName]))
+          RelationshipDB.cacheRelationship(model, metadata, RelationshipClass.peek(model[foreignKeyColumnName] as PrimaryKey))
         );
       } else if (relationshipType === "OneToOne") {
         if (reverseRelationshipName) {

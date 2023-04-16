@@ -391,14 +391,14 @@ export default class RelationshipDB {
 
       return RelationshipUtils.cleanAndSetBelongsToRelationshipFor(
         model,
-        targetRelationship,
+        targetRelationship as Model | null,
         metadata,
         relationshipCache
       );
     } else if (metadata.relationshipType === "OneToOne") {
       return RelationshipUtils.cleanAndSetOneToOneRelationshipFor(
         model,
-        targetRelationship,
+        targetRelationship as Model | null,
         metadata,
         relationshipCache
       );

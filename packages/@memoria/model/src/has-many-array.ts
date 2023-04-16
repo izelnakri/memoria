@@ -170,7 +170,7 @@ export default class HasManyArray extends Array {
 
             return true;
           } else if (propertyName === "length") {
-            let modelsToRemove = [];
+            let modelsToRemove: Model[] = [];
             if (value < self.length) {
               for (let i = self.length - 1; i >= value; i--) {
                 if (self[i]) {

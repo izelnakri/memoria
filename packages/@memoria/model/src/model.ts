@@ -363,7 +363,7 @@ export default class Model {
     return await this.Adapter.resetRecords(this, targetState, options);
   }
 
-  static peek(primaryKey: PrimaryKey | PrimaryKey[], options?: ModelBuildOptions): Model | Model[] | void {
+  static peek(primaryKey: PrimaryKey | PrimaryKey[], options?: ModelBuildOptions): Model | Model[] | null {
     if (!primaryKey) {
       throw new RuntimeError(`${this.name}.find(id) or ${this.name}.peek(id) cannot be called without a valid id`);
     }
@@ -371,7 +371,7 @@ export default class Model {
     return this.Adapter.peek(this, primaryKey, options);
   }
 
-  static peekBy(queryObject: QueryObject, options?: ModelBuildOptions): Model | void {
+  static peekBy(queryObject: QueryObject, options?: ModelBuildOptions): Model | null {
     return this.Adapter.peekBy(this, queryObject, options);
   }
 
@@ -382,27 +382,27 @@ export default class Model {
   static async find(
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
-  ): Promise<Model | Model[] | void> {
+  ): Promise<Model | Model[] | null> {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
       return Array.isArray(result)
         ? result.map((model) => RelationshipDB.cache(model, "update", model))
         : RelationshipDB.cache(result, "update", result);
     }
+
+    return result;
   }
 
-  static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | void> {
+  static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | null> {
     let result = await this.Adapter.findBy(this, queryObject, options);
-    if (result) {
-      return RelationshipDB.cache(result, "update", result);
-    }
+
+    return result ? RelationshipDB.cache(result, "update", result) : null;
   }
 
-  static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | void> {
+  static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | null> {
     let result = await this.Adapter.findAll(this, queryObject, options);
-    if (result) {
-      return result.map((model) => RelationshipDB.cache(model, "update", model));
-    }
+
+    return result ? result.map((model) => RelationshipDB.cache(model, "update", model)) : null;
   }
 
   static async insert(record?: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
