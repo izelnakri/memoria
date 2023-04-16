@@ -2,7 +2,43 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.29](https://github.com/izelnakri/memoria/compare/0.0.29...0.0.29)
+#### [0.0.30](https://github.com/izelnakri/memoria/compare/0.0.30...0.0.30)
+
+- Big relationship query refactor [`#70`](https://github.com/izelnakri/memoria/pull/70)
+- SQLAdapter relationship tests now mature [`50a2edb`](https://github.com/izelnakri/memoria/commit/50a2edb029b86300c2afc3b20a8ebdc99801a6a6)
+- @BelongsTo memory & rest tests refactored [`1bee564`](https://github.com/izelnakri/memoria/commit/1bee56444d54cd954923b2d0daca73afc3cf7680)
+- @HasOne memory and rest tests refactored [`b5ec691`](https://github.com/izelnakri/memoria/commit/b5ec6917478e543a433e80884b63ceaebdafda94)
+- @HasOne memory tests refactored [`cc22e7a`](https://github.com/izelnakri/memoria/commit/cc22e7a3bd69c4ed4ed06a0acf4219a022adb31d)
+- Simplify & improve relationship fetching [`0e468b9`](https://github.com/izelnakri/memoria/commit/0e468b9679e1194cfc74816ba49d10f138aadb18)
+- Cleanup for Relationship Query Refactor branch [`a4ed5d0`](https://github.com/izelnakri/memoria/commit/a4ed5d0d4c8b8f453031b63f1f45f8df11dad87f)
+- first belongsTo tests refactored, apply to others [`dcac4ff`](https://github.com/izelnakri/memoria/commit/dcac4ff6bd68edeaddea4e428d7f4c5c0096c635)
+- Correct relationship tracking & mutation on CRUD [`657bd80`](https://github.com/izelnakri/memoria/commit/657bd80ab2949b6493021b85611265116ecf729c)
+- Foreign key id memory & rest tests refactored [`4f7cc10`](https://github.com/izelnakri/memoria/commit/4f7cc10ff9fb88937aa7909412fd5aae4fb160ac)
+- Advanced & better fresh relationship lookups [`db290bf`](https://github.com/izelnakri/memoria/commit/db290bf69d3ef1c9284ee91822be1b86fa1c01cd)
+- CRUD tests refactored for memory & rest adapters [`189b540`](https://github.com/izelnakri/memoria/commit/189b54018499ac7debc0d3620ba6dce3bfb66ea6)
+- First very smart relationship lookup query logic [`b7ab463`](https://github.com/izelnakri/memoria/commit/b7ab4639f04f1ee601dc1a22aeff9bbf414af415)
+- Fix all SQLAdapter tests [`b1c7faf`](https://github.com/izelnakri/memoria/commit/b1c7faf49f901b46b904101b7abdff4673d00144)
+- Final relation implementation for BelongsTo/HasOne [`271a370`](https://github.com/izelnakri/memoria/commit/271a370334a2568bd6cf5d27314e080c91700920)
+- use persistedRelationship cache for Model.build() [`4fcc43a`](https://github.com/izelnakri/memoria/commit/4fcc43a1c03d0173293f471dcf650260a183f226)
+- persistedRelationship cache for Model.build()'s [`cd32e28`](https://github.com/izelnakri/memoria/commit/cd32e28434864a59b1b05829524b8cd1d14d9eeb)
+- Correct HasMany mutations across instances [`9e7701f`](https://github.com/izelnakri/memoria/commit/9e7701fa25a1001a6ef031a0afc2107465e14dfb)
+- Smarter HasOne in-memory lookup & utils refactor [`976e929`](https://github.com/izelnakri/memoria/commit/976e929c0b7b5ba61205f93190fdf297318bb01f)
+- Fix all types before release [`3012aea`](https://github.com/izelnakri/memoria/commit/3012aea3bfcb3fa71706f989227e823b992f8985)
+- Format test descriptions for relationship tests [`0c5dbd2`](https://github.com/izelnakri/memoria/commit/0c5dbd2953c1d49c426a6e1d4cf490f6650ec2b9)
+- FIX: Model.build mutate unknownInstanceCache right [`6f60366`](https://github.com/izelnakri/memoria/commit/6f60366396ed28bcc9ac37cfaa35c2131c7e96db)
+- assert.hasMany & assert.strictHasMany helpers [`1d1fc0a`](https://github.com/izelnakri/memoria/commit/1d1fc0ad451c999d21d5d2578fad275d99d5c50a)
+- options.cache changed to options.cacheDuration [`2e235a7`](https://github.com/izelnakri/memoria/commit/2e235a779231d171c35220d9019c3db8226dcbec)
+- RelationshipQuery checks relationship.isPersisted [`73661cf`](https://github.com/izelnakri/memoria/commit/73661cf59c290dac6591030531445f882b68255c)
+- dont fetchRelationship OneToOne when model is null [`2bb7684`](https://github.com/izelnakri/memoria/commit/2bb76842e3b7dcbbd8c1725b8a8c2d37b8156a60)
+- slightly improve prepareTargetObjectFromInstance [`9626e93`](https://github.com/izelnakri/memoria/commit/9626e935b89933e6a958282ba82a56f058f90a2a)
+- Fix CI test script [`e1f1084`](https://github.com/izelnakri/memoria/commit/e1f108449e5db2f8c87037d988d56b3e289b9bae)
+- Improved TODO for relationship tests improvements [`17a152c`](https://github.com/izelnakri/memoria/commit/17a152c67a3228edc2a480dd018f2bbdd4a9ff64)
+- @memoria/model tests fixed for new .isPersisted [`380b9fd`](https://github.com/izelnakri/memoria/commit/380b9fd041e83512507ca7d56b763e969da013bf)
+- make insert-test memory checks bit more strict [`123ad4d`](https://github.com/izelnakri/memoria/commit/123ad4ddd6799c33e38b3dbbf1f95087cf661e0b)
+
+#### [0.0.30](https://github.com/izelnakri/memoria/compare/0.0.29...0.0.30)
+
+> 16 September 2022
 
 - Initial basic HasMany Mutation Tests [`#54`](https://github.com/izelnakri/memoria/pull/54)
 - Run prettier on all JS code [`#55`](https://github.com/izelnakri/memoria/pull/55)
@@ -10,6 +46,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - models initial HasManyArray generation [`c1bbf6d`](https://github.com/izelnakri/memoria/commit/c1bbf6df68ca6bd0f90d6af15d49b8f6198792d3)
 - extend HasManyArray for ownerModel and relation [`93ece6b`](https://github.com/izelnakri/memoria/commit/93ece6b2f057511fdcf2b1dc0b419f94372d1f33)
 - HasMany id mutation tests [`70762c9`](https://github.com/izelnakri/memoria/commit/70762c94cd2cca18adc44d348ee7642d5931af09)
+- Release 0.0.30 [`d4acc80`](https://github.com/izelnakri/memoria/commit/d4acc80167b64dd206c7a37be0bf59932a784d93)
 
 #### [0.0.29](https://github.com/izelnakri/memoria/compare/0.0.28...0.0.29)
 
