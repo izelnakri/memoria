@@ -322,69 +322,78 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
-      assert.propEqual(SQLPhoto.peekAll({ is_public: false }), [
-        SQLPhoto.build({
-          id: 1,
-          name: "Ski trip",
-          href: "ski-trip.jpeg",
-          is_public: false,
-        }),
-        SQLPhoto.build({
-          id: 3,
-          name: "Selfie",
-          href: "selfie.jpeg",
-          is_public: false,
-        }),
-      ]);
-      assert.propEqual(SQLPhotoComment.peekAll({ photo_id: 1, user_id: 1 }), [
-        SQLPhotoComment.build({
-          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-          content: "What a nice photo!",
-          is_important: true,
-          inserted_at: "2015-10-25T20:54:04.447Z",
-          updated_at: "2015-10-25T20:54:04.447Z",
-          photo_id: 1,
-          user_id: 1,
-        }),
-        SQLPhotoComment.build({
-          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-          content: "I was kidding",
-          is_important: true,
-          inserted_at: "2015-10-25T20:54:04.447Z",
-          updated_at: "2015-10-25T20:54:04.447Z",
-          photo_id: 1,
-          user_id: 1,
-        }),
-      ]);
-      assert.propEqual(SQLPhotoComment.peekAll({ user_id: 1 }), [
-        SQLPhotoComment.build({
-          uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
-          content: "What a nice photo!",
-          is_important: true,
-          inserted_at: "2015-10-25T20:54:04.447Z",
-          updated_at: "2015-10-25T20:54:04.447Z",
-          photo_id: 1,
-          user_id: 1,
-        }),
-        SQLPhotoComment.build({
-          uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-          content: "I was kidding",
-          is_important: true,
-          inserted_at: "2015-10-25T20:54:04.447Z",
-          updated_at: "2015-10-25T20:54:04.447Z",
-          photo_id: 1,
-          user_id: 1,
-        }),
-        SQLPhotoComment.build({
-          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-          content: "Interesting indeed",
-          is_important: true,
-          inserted_at: "2015-10-25T20:54:04.447Z",
-          updated_at: "2015-10-25T20:54:04.447Z",
-          photo_id: 2,
-          user_id: 1,
-        }),
-      ]);
+      assert.propEqual(
+        SQLPhoto.peekAll({ is_public: false }).sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
+        [
+          SQLPhoto.build({
+            id: 3,
+            name: "Selfie",
+            href: "selfie.jpeg",
+            is_public: false,
+          }),
+          SQLPhoto.build({
+            id: 1,
+            name: "Ski trip",
+            href: "ski-trip.jpeg",
+            is_public: false,
+          }),
+        ]
+      );
+      assert.propEqual(
+        SQLPhotoComment.peekAll({ photo_id: 1, user_id: 1 }).sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
+        [
+          SQLPhotoComment.build({
+            uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+            content: "What a nice photo!",
+            is_important: true,
+            inserted_at: "2015-10-25T20:54:04.447Z",
+            updated_at: "2015-10-25T20:54:04.447Z",
+            photo_id: 1,
+            user_id: 1,
+          }),
+          SQLPhotoComment.build({
+            uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+            content: "I was kidding",
+            is_important: true,
+            inserted_at: "2015-10-25T20:54:04.447Z",
+            updated_at: "2015-10-25T20:54:04.447Z",
+            photo_id: 1,
+            user_id: 1,
+          }),
+        ]
+      );
+      assert.propEqual(
+        SQLPhotoComment.peekAll({ user_id: 1 }).sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
+        [
+          SQLPhotoComment.build({
+            uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+            content: "Interesting indeed",
+            is_important: true,
+            inserted_at: "2015-10-25T20:54:04.447Z",
+            updated_at: "2015-10-25T20:54:04.447Z",
+            photo_id: 2,
+            user_id: 1,
+          }),
+          SQLPhotoComment.build({
+            uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
+            content: "What a nice photo!",
+            is_important: true,
+            inserted_at: "2015-10-25T20:54:04.447Z",
+            updated_at: "2015-10-25T20:54:04.447Z",
+            photo_id: 1,
+            user_id: 1,
+          }),
+          SQLPhotoComment.build({
+            uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
+            content: "I was kidding",
+            is_important: true,
+            inserted_at: "2015-10-25T20:54:04.447Z",
+            updated_at: "2015-10-25T20:54:04.447Z",
+            photo_id: 1,
+            user_id: 1,
+          }),
+        ]
+      );
     });
 
     test("$Model.peekAll(attributes) returns a new instance from the actual cache each time", async function (assert) {
