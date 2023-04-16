@@ -1,4 +1,3 @@
-// NOTE: put a warning about extending $Model.insert() with not persisted model instances for $Model.insert(), $Model.cache(), update, delete, insertAll, updateAll, deleteAll. Extensions should care about relationships
 import { MemoryAdapter } from "@memoria/adapters";
 import { underscore } from "inflected";
 import Changeset from "./changeset.js";
@@ -17,10 +16,15 @@ import {
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
+// import HasManyArray from "./has-many-array.js";
 
-type PrimaryKey = number | string;
+export type PrimaryKey = number | string;
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
+
+const INVALID_BUILD_OBJECT_TYPE = Symbol("null");
+const INSTANCE_OBJECT_TYPE = Symbol("instance");
+const PURE_BUILD_OBJECT_TYPE = Symbol("object");
 
 interface ModelInstantiateOptions {
   isNew?: boolean;
@@ -30,7 +34,7 @@ interface ModelInstantiateOptions {
 
 export interface ModelBuildOptions extends ModelInstantiateOptions {
   revision?: boolean;
-  cache?: number;
+  cacheDuration?: number; // NOTE: rename it to cacheDuration
   copy?: boolean; // NOTE: it copies by default
   // debug?:
   // tracer?:
@@ -45,11 +49,8 @@ const LOCK_PROPERTY = {
   writable: false,
 };
 
-// Make params use match() internally: Email.findBy({ user: userInstance });
-
 // Document .cache() replaces existing cached record! doesnt have defaultValues
 // revision strategy, create one revision for: build -> insert, update(if it updates with changes)
-// TODO: it can also be that InstanceDB null primaryKey instances need to be moved over on isNew when building or setting.
 export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
@@ -84,13 +85,12 @@ export default class Model {
     return RelationshipSchema.getRelationshipTable(this, relationshipType);
   }
 
+  static getMetadataForRelationship(relationshipName: string) {
+    return RelationshipSchema.getRelationshipMetadataFor(this, relationshipName);
+  }
+
   // NOTE: transforms strings to datestrings if it is a date column, turns undefined default values to null, doesnt assign default values to an instance
   // NOTE: could do attribute tracking
-  // NOTE: test also passing new Model() instances
-  // TODO: also invalidate the unpersistedReferenceGroup for RelationshipDB.cache() and delete
-  // TODO: in future build tests and assertion throw for changing existing primaryKey to smt else and handle null to smt-else(throw if target primarykey exists)
-
-  // revisionHistory should it be from buildObject or existingInstances, or should there be metadata to check
   static build(buildObject: QueryObject | Model = {}, options?: ModelBuildOptions) {
     if (buildObject instanceof this) {
       if (!buildObject.isBuilt) {
@@ -100,9 +100,8 @@ export default class Model {
       }
     }
 
-    let model = new this(options); // NOTE: this could be changed to only on { copy: true } and make it mutate on other cases
-    let primaryKeyName = this.primaryKeyName;
-    let primaryKey = buildObject[primaryKeyName] || null;
+    let model = new this(options);
+    let primaryKey = buildObject[this.primaryKeyName] || null;
     let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, primaryKey);
 
     if (buildObject) {
@@ -116,6 +115,9 @@ export default class Model {
           model.changes[key] = buildObject.changes[key];
         });
       }
+      if (buildObject instanceof this && buildObject.isPersisted) {
+        InstanceDB.makeModelPersisted(model);
+      }
     }
 
     let Class = this;
@@ -124,7 +126,7 @@ export default class Model {
     let attributeTrackingEnabledForModel = attributeTrackingEnabled(options);
 
     Array.from(this.columnNames).forEach((columnName) => {
-      if (columnName === primaryKeyName) {
+      if (columnName === this.primaryKeyName) {
         Object.defineProperty(model, columnName, {
           configurable: false,
           enumerable: true,
@@ -137,7 +139,7 @@ export default class Model {
               return;
             } else if (Class.Cache.get(primaryKey)) {
               throw new Error(
-                `${Class.name}:${primaryKey} exists in persisted cache, you can't make this records ${columnName}: null without unloading it from cache`
+                `${Class.name}:${primaryKey} exists in persisted cache, you can't mutate this records primaryKey ${columnName} without unloading it from cache`
               );
             } else if (targetValue === null) {
               let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);
@@ -220,30 +222,16 @@ export default class Model {
               dirtyTrackAttribute(this, columnName, cache);
             }
 
+            // TODO: clean this part up
             if (belongsToColumnNames.has(columnName)) {
               let { RelationshipClass, relationshipName } = belongsToTable[columnName];
-
-              // cache(foreign_key) cant be a number or null, but can mutate when passed in to these functions:
-              let relationshipCache = RelationshipDB.findRelationshipCacheFor(
-                this.constructor as typeof Model,
-                relationshipName,
-                "BelongsTo"
-              );
+              let relationshipCache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName, "BelongsTo");
               let existingRelationship = relationshipCache.get(this);
               let existingRelationshipPrimaryKey =
                 existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
-
-              if (!relationshipCache.has(this)) {
-                // if (cache === null) {
-                //   return relationshipCache.set(this, null)
-                // }
-                // check if relationship with photo.group_id = 5 exists, clean it and set it here(?)
-              } else if (existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(
-                  this.constructor as typeof Model,
-                  relationshipName
-                );
-                let reflectionCache =
+              if (relationshipCache.has(this) && existingRelationshipPrimaryKey !== cache) {
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+                let reverseRelationshipCache =
                   RelationshipDB.findRelationshipCacheFor(
                     metadata.RelationshipClass,
                     metadata.reverseRelationshipName as string,
@@ -260,13 +248,43 @@ export default class Model {
                     existingRelationship,
                     metadata,
                     relationshipCache,
-                    reflectionCache,
-                    false
+                    reverseRelationshipCache
                   );
                 }
-
-                relationshipCache.delete(this);
-                // cache ? relationshipCache.delete(this) : relationshipCache.set(this, null);
+              } else if (!relationshipCache.has(this)) {
+                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
+                let reverseRelationshipCache =
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "OneToOne"
+                  ) ||
+                  RelationshipDB.findRelationshipCacheFor(
+                    metadata.RelationshipClass,
+                    metadata.reverseRelationshipName as string,
+                    "HasMany"
+                  );
+                let reverseRelationshipInstances: Model[] = reverseRelationshipCache
+                  ? InstanceDB.getAllReferences(RelationshipClass).reduce((result: Model[], instanceSet) => {
+                      instanceSet.forEach((possibleRelationship) => {
+                        let reverseRelationshipResult = reverseRelationshipCache.get(possibleRelationship);
+                        if (reverseRelationshipResult === this) {
+                          result.push(possibleRelationship);
+                        } else if (
+                          Array.isArray(reverseRelationshipResult) &&
+                          reverseRelationshipResult.includes(this)
+                        ) {
+                          // result.push(possibleRelationship); // TODO: what to do about this when building hasMany(?)
+                        }
+                      });
+                      return result;
+                    }, [])
+                  : [];
+                if (metadata.reverseRelationshipName) {
+                  reverseRelationshipInstances.forEach((reverseRelationshipInstance) => {
+                    reverseRelationshipCache.delete(reverseRelationshipInstance);
+                  });
+                }
               }
             }
           },
@@ -278,11 +296,11 @@ export default class Model {
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
-      if (buildObject && !(buildObject instanceof this) && relationshipName in buildObject) {
+      let buildObjectType = getBuildObjectType(buildObject, this);
+      if (buildObjectType === INSTANCE_OBJECT_TYPE && RelationshipDB.has(buildObject as Model, relationshipName)) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
-      } else if (buildObject && buildObject instanceof this && RelationshipDB.has(buildObject, relationshipName)) {
-        // NOTE: this messes up nulled belongsTo relationship with foreignKey value
-        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: this had copySource: true 4th arg as optimization(?)
+      } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE && relationshipName in buildObject) {
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -330,8 +348,6 @@ export default class Model {
 
     primaryKeyTypeSafetyCheck(model, this);
 
-    // NOTE: this creates revision only for update and if model is not an instance, maybe it shouldnt create on every update when no change is there
-
     return this.Adapter.cache(this, model, options);
   }
 
@@ -363,7 +379,6 @@ export default class Model {
     return this.Adapter.peekAll(this, queryObject, options);
   }
 
-  // TODO this might need improved revision control
   static async find(
     primaryKey: PrimaryKey | PrimaryKey[],
     options?: ModelBuildOptions
@@ -371,22 +386,22 @@ export default class Model {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
       return Array.isArray(result)
-        ? result.map((model) => RelationshipDB.cache(model, "update"))
-        : RelationshipDB.cache(result, "update");
+        ? result.map((model) => RelationshipDB.cache(model, "update", model))
+        : RelationshipDB.cache(result, "update", result);
     }
   }
 
   static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | void> {
     let result = await this.Adapter.findBy(this, queryObject, options);
     if (result) {
-      return RelationshipDB.cache(result, "update", queryObject);
+      return RelationshipDB.cache(result, "update", result);
     }
   }
 
   static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | void> {
     let result = await this.Adapter.findAll(this, queryObject, options);
     if (result) {
-      return result.map((model) => RelationshipDB.cache(model, "update"));
+      return result.map((model) => RelationshipDB.cache(model, "update", model));
     }
   }
 
@@ -411,7 +426,6 @@ export default class Model {
     return model;
   }
 
-  // cacheTimeout clearing absolutely needed for update(then find should also be able to change it)
   static async update(record: ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
@@ -604,13 +618,13 @@ export default class Model {
     return this.Serializer.serialize(this, object as Model);
   }
 
-  private static setRecordInTransit(record) {
+  private static setRecordInTransit(record: any) {
     if (record instanceof this) {
       record.#_inTransit = true;
     }
   }
 
-  private static unsetRecordInTransit(record) {
+  private static unsetRecordInTransit(record: any) {
     if (record instanceof this) {
       record.#_inTransit = false;
     }
@@ -636,6 +650,7 @@ export default class Model {
   changes: QueryObject = Object.create(null); // NOTE: instead I could also create it between revision / instance diff
   revisionHistory = new RevisionHistory();
 
+  // TODO: is this correct across instances(?)
   get revision() {
     return this.revisionHistory[this.revisionHistory.length - 1] || Object.create(null);
   }
@@ -652,6 +667,9 @@ export default class Model {
   get isNew() {
     return this.#_isNew;
   }
+  set isNew(value) {
+    this.#_isNew = !!value;
+  }
 
   get isBuilt() {
     return Object.isSealed(this);
@@ -663,7 +681,9 @@ export default class Model {
   }
 
   get isPersisted() {
-    return !this.isDirty && !this.isNew;
+    let Class = this.constructor as typeof Model;
+
+    return !!InstanceDB.getPersistedModels(Class).get(this[Class.primaryKeyName]);
   }
 
   #_isDeleted = false;
@@ -672,6 +692,7 @@ export default class Model {
   }
   set isDeleted(value) {
     this.#_isDeleted = !!value;
+    this.#_isNew = !value;
   }
 
   #_inTransit = false;
@@ -683,19 +704,27 @@ export default class Model {
     return Object.keys(this.changes).length > 0;
   }
 
+  get isLastPersisted() {
+    let Class = this.constructor as typeof Model;
+
+    return InstanceDB.getPersistedModels(Class).get(this[Class.primaryKeyName]) === this;
+  }
+
+  // get instanceMetadata() {
+  //   return {
+  //     builtAt: this.#builtAt,
+  //     builtBy: this.#builtBy,
+  //   };
+  // }
+
   get changeset() {
     return new Changeset(this, this.changes);
   }
 
   get fetchedRelationships() {
-    // TODO: this wont take the null records(!!!)
-    let Class = this.constructor as typeof Model;
-    let relationshipTable = RelationshipSchema.getRelationshipTable(Class);
-
-    // TODO: should I need to include persistedCache(?)
-    return Object.keys(relationshipTable).filter((relationshipName) => {
-      return RelationshipDB.has(this, relationshipName);
-    });
+    return Object.keys(RelationshipSchema.getRelationshipTable(this.constructor as typeof Model)).filter(
+      (relationshipName) => RelationshipDB.has(this, relationshipName)
+    );
   }
 
   changedAttributes() {
@@ -802,6 +831,18 @@ function getTransformedValue(model: Model, keyName: string, buildObject?: QueryO
   return buildObject && keyName in buildObject
     ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
     : model[keyName] || null;
+}
+
+function getBuildObjectType(buildObject: any, Class: typeof Model) {
+  if (!buildObject) {
+    return INVALID_BUILD_OBJECT_TYPE;
+  } else if (buildObject instanceof Class) {
+    return INSTANCE_OBJECT_TYPE;
+  } else if (typeof buildObject === "object") {
+    return PURE_BUILD_OBJECT_TYPE;
+  }
+
+  return INVALID_BUILD_OBJECT_TYPE;
 }
 
 function revisionAndLockModel(model, options?, buildObject?) {

@@ -1,5 +1,5 @@
-import Model, { PrimaryGeneratedColumn, Column, RuntimeError, Serializer, RelationshipDB } from "@memoria/model";
-import { module, test, skip } from "qunitx";
+import { RelationshipDB, RelationshipPromise } from "@memoria/model";
+import { module, test } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import setupRESTModels from "../../helpers/models-with-relations/rest/uuid/index.js";
 
@@ -9,392 +9,452 @@ const SECOND_TARGET_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f22";
 module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for UUID(uuid)", function (hooks) {
   setupMemoria(hooks);
 
-  // TODO: also add embed + serializer tests to the test cases correctly
-  test("new model can be built from scratch and it sends the right data oo the server during post", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+  module("Relationship fetch tests", function () {
+    test("Model can fetch its not loaded relationship", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    let photo = RESTPhoto.build({ name: "Some photo" });
-    let group = RESTGroup.build({ name: "Hacker Log", photo });
+      let group = await RESTGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
+      let secondPhoto = await RESTPhoto.insert({ name: "Second photo", group_uuid: group.uuid });
 
-    assert.strictEqual(group.photo, photo);
-    assert.equal(photo.group_uuid, null);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
+      assert.strictEqual(group.photo, secondPhoto);
+    });
 
-    let insertedGroup = await RESTGroup.insert(group);
+    test("Models relationship lookup gets activated when relationship foreign key sets to null", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    assert.strictEqual(group.photo, photo);
-    assert.strictEqual(insertedGroup.photo, photo);
-    assert.equal(photo.group_uuid, insertedGroup.uuid);
+      let group = await RESTGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
+      let secondPhoto = await RESTPhoto.insert({ name: "Second photo", group_uuid: group.uuid });
 
-    let insertedPhoto = await RESTPhoto.insert(photo);
+      assert.strictEqual(group.photo, secondPhoto);
+      assert.equal(secondPhoto.group_uuid, group.uuid);
 
-    assert.strictEqual(group.photo, insertedPhoto);
-    assert.strictEqual(insertedGroup.photo, insertedPhoto);
+      secondPhoto.group_uuid = null;
+
+      assert.notOk(RelationshipDB.has(group, "photo"));
+      assert.notStrictEqual(group.photo, secondPhoto);
+      assert.deepEqual(group.photo.toJSON(), { ...secondPhoto.toJSON(), group_uuid: group.uuid }); // NOTE: id reference is still in the cache so a built relationship gets returned from cache
+    });
+
+    test("Models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
+
+      let group = await RESTGroup.insert({ name: "Dinner group" });
+      let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
+      let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
+
+      assert.equal(await group.photo, null);
+      assert.equal(firstPhoto.group_uuid, null);
+
+      firstPhoto.group_uuid = group.uuid;
+
+      assert.equal(firstPhoto.group_uuid, group.uuid);
+      assert.strictEqual(group.photo, firstPhoto);
+    });
+
+    test("Models empty relationship reference can turn to promise, when relationship not existing, then can be retried to fetch correctly", async function (assert) {
+      assert.expect(14);
+
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
+
+      let group = await RESTGroup.insert({ name: "Dinner group" });
+      let photoLookupPromise = group.photo;
+      try {
+        let result = await photoLookupPromise;
+
+        assert.equal(result, null);
+      } catch (error) {
+        assert.ok(false);
+        // TODO: it doesnt throw currently
+        // assert.ok(error instanceof NotFoundError);
+        // assert.equal(error.message, `sql_group table record with id:44 not found`);
+      }
+
+      let insertedPhoto = await RESTPhoto.insert({ name: "Some photo", group_uuid: group.uuid });
+
+      assert.propContains(insertedPhoto, { uuid: insertedPhoto.uuid, name: "Some photo", group_uuid: group.uuid });
+      assert.strictEqual(group.photo, insertedPhoto);
+      assert.equal(insertedPhoto.group_uuid, group.uuid);
+      assert.deepEqual(group.errors, []);
+
+      let foundPhoto = await group.photo;
+
+      assert.strictEqual(insertedPhoto, foundPhoto);
+
+      let photoLookupReloadPromise = photoLookupPromise.reload();
+
+      assert.ok(photoLookupReloadPromise instanceof RelationshipPromise);
+
+      let photo = await photoLookupReloadPromise;
+      assert.deepEqual(photo, RESTPhoto.peek(photo.uuid));
+      assert.notStrictEqual(photo, insertedPhoto);
+      assert.equal(group.photo.name, "Some photo");
+      assert.equal(photo.group_uuid, group.uuid);
+
+      let finalPhoto = await photo.reload();
+      assert.notStrictEqual(finalPhoto, insertedPhoto);
+      assert.notStrictEqual(finalPhoto, photo);
+      assert.deepEqual(finalPhoto, RESTPhoto.peek(photo.uuid));
+    });
   });
 
-  test("new model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+  module("Basic relationship assignment then commit tests", function () {
+    test("New model can be built from scratch and it sends the right data oo the server during post", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    let photo = RESTPhoto.build({ name: "Cover photo" });
-    let group = RESTGroup.build({ name: "Dinner group" });
-    let secondGroup = RESTGroup.build({ name: "Padel group" });
+      let photo = RESTPhoto.build({ name: "Some photo" });
+      let group = RESTGroup.build({ name: "Hacker Log", photo });
 
-    assert.equal(await group.photo, null);
-    assert.equal(await secondGroup.photo, null);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_uuid, null);
 
-    let insertedGroup = await RESTGroup.insert(group);
+      let insertedGroup = await RESTGroup.insert(group);
 
-    assert.equal(await group.photo, null);
-    assert.equal(await insertedGroup.photo, null);
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(insertedGroup.photo, photo);
+      assert.equal(photo.group_uuid, insertedGroup.uuid);
 
-    secondGroup.photo = photo;
+      let insertedPhoto = await RESTPhoto.insert(photo);
 
-    assert.strictEqual(secondGroup.photo, photo);
-    assert.strictEqual(photo.group, secondGroup);
-    assert.equal(photo.group_uuid, secondGroup.uuid);
+      assert.strictEqual(group.photo, insertedPhoto);
+      assert.strictEqual(insertedGroup.photo, insertedPhoto);
+    });
 
-    let secondInsertedGroup = await RESTGroup.insert(secondGroup);
+    test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    assert.strictEqual(secondGroup.photo, photo);
-    assert.strictEqual(secondInsertedGroup.photo, photo);
-    assert.strictEqual(photo.group, secondInsertedGroup);
-    assert.equal(photo.group_uuid, secondInsertedGroup.uuid);
-  });
+      let photo = RESTPhoto.build({ name: "Cover photo" });
+      let group = RESTGroup.build({ name: "Dinner group" });
+      let secondGroup = RESTGroup.build({ name: "Padel group" });
 
-  test("fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+      assert.equal(await group.photo, null);
+      assert.equal(await secondGroup.photo, null);
 
-    let photo = await RESTPhoto.insert({ name: "Cover photo" });
+      let insertedGroup = await RESTGroup.insert(group);
 
-    assert.equal(photo.group_uuid, null);
+      assert.equal(await group.photo, null);
+      assert.equal(await insertedGroup.photo, null);
 
-    let group = await RESTGroup.insert({ name: "Dinner group", photo });
+      secondGroup.photo = photo;
 
-    assert.strictEqual(group.photo, photo);
-    assert.equal(photo.group_uuid, group.uuid);
-    assert.deepEqual(photo.changes, { group_uuid: group.uuid });
+      assert.strictEqual(secondGroup.photo, photo);
+      assert.strictEqual(photo.group, secondGroup);
+      assert.equal(photo.group_uuid, secondGroup.uuid);
 
-    let fetchedGroup = await RESTGroup.find(group.uuid);
+      let secondInsertedGroup = await RESTGroup.insert(secondGroup);
 
-    assert.strictEqual(fetchedGroup.photo, photo);
-    assert.strictEqual(group.photo, photo);
-    assert.strictEqual(photo.group, fetchedGroup);
-    assert.equal(photo.group_uuid, fetchedGroup.uuid);
+      assert.strictEqual(secondGroup.photo, photo);
+      assert.strictEqual(secondInsertedGroup.photo, photo);
+      assert.strictEqual(photo.group, secondInsertedGroup);
+      assert.equal(photo.group_uuid, secondInsertedGroup.uuid);
+    });
 
-    let newPhoto = RESTPhoto.build({ name: "Another cover photo" });
+    test("Fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    assert.strictEqual(photo.group, fetchedGroup);
+      let photo = await RESTPhoto.insert({ name: "Cover photo" });
 
-    fetchedGroup.photo = newPhoto;
+      assert.equal(photo.group_uuid, null);
 
-    assert.strictEqual(fetchedGroup.photo, newPhoto);
-    assert.equal(newPhoto.group_uuid, fetchedGroup.uuid);
+      let group = await RESTGroup.insert({ name: "Dinner group", photo });
 
-    assert.strictEqual(group.photo, photo);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.deepEqual(photo.changes, { group_uuid: group.uuid });
 
-    assert.strictEqual(photo.group, group); // NOTE: this should be fetchedGroup(?), probably not due to controversial target lookups on relationship cleanups
-    assert.equal(photo.group_uuid, group.uuid);
+      let fetchedGroup = await RESTGroup.find(group.uuid);
 
-    let updatedGroup = await RESTGroup.update(fetchedGroup); // NOTE: this makes firstPhoto.group to updatedgroup.uuid, probably good/intentional
+      assert.strictEqual(fetchedGroup.photo, photo);
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(photo.group, fetchedGroup);
+      assert.equal(photo.group_uuid, fetchedGroup.uuid);
 
-    assert.strictEqual(updatedGroup.photo, newPhoto);
-    assert.strictEqual(fetchedGroup.photo, newPhoto);
-    assert.strictEqual(newPhoto.group, updatedGroup);
-    assert.strictEqual(photo.group, updatedGroup);
-  });
+      let newPhoto = RESTPhoto.build({ name: "Another cover photo" });
 
-  test("fetched model can remove the relationship before update", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+      assert.strictEqual(photo.group, fetchedGroup);
 
-    let photo = await RESTPhoto.insert({ name: "Cover photo" });
+      fetchedGroup.photo = newPhoto;
 
-    assert.equal(photo.group_uuid, null);
+      assert.strictEqual(fetchedGroup.photo, newPhoto);
+      assert.equal(newPhoto.group_uuid, fetchedGroup.uuid);
 
-    let group = await RESTGroup.insert({ name: "Dinner group", photo });
+      assert.strictEqual(group.photo, photo);
 
-    assert.strictEqual(group.photo, photo);
-    assert.strictEqual(photo.group, group);
-    assert.equal(photo.group_uuid, group.uuid);
-    assert.deepEqual(photo.changes, { group_uuid: group.uuid });
+      assert.strictEqual(photo.group, group); // NOTE: this should be fetchedGroup(?), probably not due to controversial target lookups on relationship cleanups
+      assert.equal(photo.group_uuid, group.uuid);
 
-    let fetchedGroup = await RESTGroup.find(group.uuid);
+      let updatedGroup = await RESTGroup.update(fetchedGroup); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
 
-    assert.strictEqual(group.photo, photo);
-    assert.strictEqual(fetchedGroup.photo, photo);
-    assert.strictEqual(photo.group, fetchedGroup);
-    assert.equal(photo.group_uuid, fetchedGroup.uuid);
+      assert.strictEqual(updatedGroup.photo, newPhoto);
+      assert.strictEqual(fetchedGroup.photo, newPhoto);
+      assert.strictEqual(newPhoto.group, updatedGroup);
+      assert.strictEqual(photo.group, updatedGroup);
+    });
 
-    fetchedGroup.photo = null;
+    test("Fetched model can remove the relationship before update", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    assert.strictEqual(fetchedGroup.photo, null);
-    assert.strictEqual(group.photo, photo);
-    assert.equal(photo.group_uuid, group.uuid);
-    assert.strictEqual(photo.group, group);
+      let photo = await RESTPhoto.insert({ name: "Cover photo" });
 
-    let updatedGroup = await RESTGroup.update(fetchedGroup);
+      assert.equal(photo.group_uuid, null);
 
-    assert.strictEqual(photo.group, updatedGroup);
-    assert.equal(photo.group_uuid, updatedGroup.uuid);
-    assert.strictEqual(group.photo, photo);
-  });
+      let group = await RESTGroup.insert({ name: "Dinner group", photo });
 
-  test("fetched model can remove the relationship before delete", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.deepEqual(photo.changes, { group_uuid: group.uuid });
 
-    let photo = await RESTPhoto.insert({ name: "Cover photo" });
+      let fetchedGroup = await RESTGroup.find(group.uuid);
 
-    assert.equal(photo.group_uuid, null);
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(fetchedGroup.photo, photo);
+      assert.strictEqual(photo.group, fetchedGroup);
+      assert.equal(photo.group_uuid, fetchedGroup.uuid);
 
-    let group = await RESTGroup.insert({ name: "Dinner group", photo });
+      fetchedGroup.photo = null;
 
-    assert.strictEqual(group.photo, photo);
-    assert.equal(photo.group_uuid, group.uuid);
-    assert.deepEqual(photo.changes, { group_uuid: group.uuid });
+      assert.strictEqual(fetchedGroup.photo, null);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.strictEqual(photo.group, group);
 
-    let fetchedGroup = await RESTGroup.find(group.uuid);
+      let updatedGroup = await RESTGroup.update(fetchedGroup);
 
-    assert.strictEqual(fetchedGroup.photo, photo);
-    assert.strictEqual(group.photo, photo);
-    assert.strictEqual(photo.group, fetchedGroup);
-    assert.equal(photo.group_uuid, group.uuid);
+      assert.strictEqual(photo.group, updatedGroup);
+      assert.equal(photo.group_uuid, updatedGroup.uuid);
+      assert.strictEqual(group.photo, photo);
+    });
 
-    fetchedGroup.photo = null;
+    test("Fetched model can remove the relationship before delete", async function (assert) {
+      let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+      this.Server = Server;
 
-    assert.equal(fetchedGroup.photo, null);
-    assert.strictEqual(group.photo, photo);
+      let photo = await RESTPhoto.insert({ name: "Cover photo" });
 
-    // it should be done only if its null
-    assert.strictEqual(photo.group, group);
+      assert.equal(photo.group_uuid, null);
 
-    assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
+      let group = await RESTGroup.insert({ name: "Dinner group", photo });
 
-    assert.equal(photo.group_uuid, group.uuid);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_uuid, group.uuid);
+      assert.deepEqual(photo.changes, { group_uuid: group.uuid });
 
-    group.photo = null;
+      let fetchedGroup = await RESTGroup.find(group.uuid);
 
-    assert.equal(group.photo, null);
-    assert.equal(fetchedGroup.photo, null);
-    assert.equal(photo.group_uuid, group.uuid);
-    assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
+      assert.strictEqual(fetchedGroup.photo, photo);
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(photo.group, fetchedGroup);
+      assert.equal(photo.group_uuid, group.uuid);
 
-    group.photo = photo;
+      fetchedGroup.photo = null;
 
-    assert.equal(fetchedGroup.photo, null);
-    assert.strictEqual(photo.group, group);
-    assert.strictEqual(group.photo, photo);
-    assert.equal(photo.group_uuid, group.uuid);
+      assert.equal(fetchedGroup.photo, null);
+      assert.strictEqual(group.photo, photo);
+      assert.strictEqual(photo.group, group);
+      assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
 
-    let deletedGroup = await RESTGroup.delete(fetchedGroup);
+      assert.equal(photo.group_uuid, group.uuid);
 
-    assert.equal(fetchedGroup.photo, null);
-    assert.equal(deletedGroup.photo, null);
-    assert.equal(photo.group, null);
-    assert.equal(photo.group_uuid, null);
-    assert.equal(group.photo, null);
-  });
+      group.photo = null;
 
-  test("a model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+      assert.equal(group.photo, null);
+      assert.equal(fetchedGroup.photo, null);
+      assert.equal(photo.group_uuid, group.uuid);
+      let cachedGroup = RESTGroup.Cache.get(group.uuid);
 
-    let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
-    let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
-    let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
+      [group, fetchedGroup, cachedGroup].forEach((targetGroup) => {
+        assert.notStrictEqual(targetGroup.photo, photo);
+      });
 
-    assert.strictEqual(group.photo, secondPhoto);
-    assert.strictEqual(secondPhoto.group, group);
-    assert.equal(secondPhoto.group_uuid, group.uuid);
+      assert.deepEqual(photo.group.toJSON(), fetchedGroup.toJSON());
+      assert.notStrictEqual(photo.group, fetchedGroup);
+      assert.notStrictEqual(photo.group, group);
+      assert.notStrictEqual(photo.group, cachedGroup);
+      assert.equal(group.photo, null);
+      assert.equal(fetchedGroup.photo, null);
 
-    group.photo = firstPhoto;
+      group.photo = photo;
 
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, group);
-    assert.equal(firstPhoto.group_uuid, group.uuid);
+      assert.equal(fetchedGroup.photo, null);
+      assert.strictEqual(photo.group, group);
+      assert.strictEqual(group.photo, photo);
+      assert.equal(photo.group_uuid, group.uuid);
 
-    assert.equal(secondPhoto.group, null);
-    assert.equal(secondPhoto.group_uuid, null);
+      let deletedGroup = await RESTGroup.delete(fetchedGroup);
 
-    let insertedGroup = await RESTGroup.insert(group);
+      assert.equal(fetchedGroup.photo, null);
+      assert.equal(deletedGroup.photo, null);
+      assert.equal(photo.group_uuid, null);
+      assert.equal(group.photo, null);
+    });
 
-    assert.strictEqual(insertedGroup.photo, firstPhoto);
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, insertedGroup);
-    assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+    module("Relationship mutations and commit tests on models full lifecycle", function () {
+      test("Model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+        let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
+        this.Server = Server;
 
-    insertedGroup.photo = secondPhoto;
+        let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
+        let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
+        let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
 
-    assert.strictEqual(insertedGroup.photo, secondPhoto);
-    assert.strictEqual(secondPhoto.group, insertedGroup);
-    assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+        assert.strictEqual(group.photo, secondPhoto);
+        assert.strictEqual(secondPhoto.group, group);
+        assert.equal(secondPhoto.group_uuid, group.uuid);
 
-    assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
-    assert.equal(firstPhoto.group_uuid, group.uuid);
-    assert.strictEqual(group.photo, firstPhoto);
+        group.photo = firstPhoto;
 
-    let updatedGroup = await RESTGroup.update(insertedGroup); // NOTE: this makes firstPhoto.group to updatedgroup.uuid, probably good/intentional
+        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(firstPhoto.group, group);
+        assert.equal(firstPhoto.group_uuid, group.uuid);
 
-    assert.strictEqual(group.photo, firstPhoto);
+        assert.equal(secondPhoto.group, null);
+        assert.equal(secondPhoto.group_uuid, null);
 
-    assert.strictEqual(insertedGroup.photo, secondPhoto);
-    assert.strictEqual(updatedGroup.photo, secondPhoto);
-    assert.strictEqual(secondPhoto.group, updatedGroup);
-    assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
-    assert.strictEqual(firstPhoto.group, updatedGroup);
-    assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+        let insertedGroup = await RESTGroup.insert(group);
 
-    updatedGroup.photo = null;
+        assert.strictEqual(insertedGroup.photo, firstPhoto);
+        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(firstPhoto.group, insertedGroup);
+        assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
 
-    assert.equal(updatedGroup.photo, null);
-    assert.strictEqual(insertedGroup.photo, secondPhoto);
-    assert.strictEqual(secondPhoto.group, insertedGroup);
-    assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+        insertedGroup.photo = secondPhoto;
 
-    assert.strictEqual(firstPhoto.group, insertedGroup);
-    assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+        assert.strictEqual(insertedGroup.photo, secondPhoto);
+        assert.strictEqual(secondPhoto.group, insertedGroup);
+        assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
 
-    let deletedGroup = await RESTGroup.delete(updatedGroup);
+        assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
+        assert.equal(firstPhoto.group_uuid, group.uuid);
 
-    assert.equal(deletedGroup.photo, null);
-    assert.equal(updatedGroup.photo, null);
-    assert.equal(insertedGroup.photo, null);
-    assert.equal(firstPhoto.group, null);
-    assert.equal(firstPhoto.group_uuid, null);
-    assert.equal(secondPhoto.group, null);
-    assert.equal(secondPhoto.group_uuid, null);
-  });
+        assert.strictEqual(group.photo, secondPhoto); // it is secondPhoto... WTF?!
 
-  test("a model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-    let { Server, RESTPhoto, MemoryPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+        let updatedGroup = await RESTGroup.update(insertedGroup.toJSON()); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
 
-    MemoryPhoto.cache([
-      {
-        uuid: FIRST_TARGET_UUID,
-        name: "First photo",
-      },
-      {
-        uuid: SECOND_TARGET_UUID,
-        name: "Second photo",
-      },
-    ]);
+        assert.strictEqual(group.photo, secondPhoto); // it is secondPhoto... WTF?!
 
-    let firstPhoto = await RESTPhoto.find(FIRST_TARGET_UUID);
-    let secondPhoto = await RESTPhoto.find(SECOND_TARGET_UUID);
-    let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
+        assert.strictEqual(insertedGroup.photo, secondPhoto);
+        assert.strictEqual(updatedGroup.photo, secondPhoto);
+        assert.strictEqual(secondPhoto.group, updatedGroup);
+        assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
+        assert.strictEqual(firstPhoto.group, updatedGroup);
+        assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
 
-    assert.strictEqual(group.photo, secondPhoto);
-    assert.equal(firstPhoto.group, null);
-    assert.equal(firstPhoto.group_uuid, null);
-    assert.strictEqual(secondPhoto.group, group);
-    assert.equal(secondPhoto.group_uuid, group.uuid);
+        updatedGroup.photo = null;
 
-    group.photo = firstPhoto;
+        assert.equal(updatedGroup.photo, null);
 
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, group);
-    assert.equal(firstPhoto.group_uuid, group.uuid);
-    assert.equal(secondPhoto.group, null);
-    assert.equal(secondPhoto.group_uuid, null);
+        assert.strictEqual(insertedGroup.photo, secondPhoto);
 
-    let insertedGroup = await RESTGroup.insert(group);
+        assert.strictEqual(secondPhoto.group, insertedGroup);
+        assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
 
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(insertedGroup.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, insertedGroup);
-    assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
-    assert.equal(secondPhoto.group, null);
-    assert.equal(secondPhoto.group_uuid, null);
+        assert.strictEqual(firstPhoto.group, insertedGroup);
+        assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
 
-    insertedGroup.photo = secondPhoto;
+        let deletedGroup = await RESTGroup.delete(updatedGroup);
 
-    assert.strictEqual(insertedGroup.photo, secondPhoto);
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, group);
-    assert.equal(firstPhoto.group_uuid, group.uuid);
-    assert.strictEqual(secondPhoto.group, insertedGroup);
-    assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+        assert.equal(deletedGroup.photo, null);
+        assert.equal(updatedGroup.photo, null);
+        assert.equal(insertedGroup.photo, null);
+        assert.equal(firstPhoto.group, null);
+        assert.equal(firstPhoto.group_uuid, null);
+        assert.equal(secondPhoto.group, null);
+        assert.equal(secondPhoto.group_uuid, null);
+      });
 
-    let updatedGroup = await RESTGroup.update(insertedGroup);
+      test("Model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
+        let { Server, RESTPhoto, MemoryPhoto, RESTGroup } = setupRESTModels();
+        this.Server = Server;
 
-    assert.strictEqual(updatedGroup.photo, secondPhoto);
-    assert.strictEqual(secondPhoto.group, updatedGroup);
-    assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
+        MemoryPhoto.cache([
+          {
+            uuid: FIRST_TARGET_UUID,
+            name: "First photo",
+          },
+          {
+            uuid: SECOND_TARGET_UUID,
+            name: "Second photo",
+          },
+        ]);
 
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, updatedGroup);
-    assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
+        let firstPhoto = await RESTPhoto.find(FIRST_TARGET_UUID);
+        let secondPhoto = await RESTPhoto.find(SECOND_TARGET_UUID);
+        let group = RESTGroup.build({ name: "Dinner group", photo: secondPhoto });
 
-    updatedGroup.photo = null;
+        assert.strictEqual(group.photo, secondPhoto);
+        assert.equal(firstPhoto.group, null);
+        assert.equal(firstPhoto.group_uuid, null);
+        assert.strictEqual(secondPhoto.group, group);
+        assert.equal(secondPhoto.group_uuid, group.uuid);
 
-    assert.strictEqual(updatedGroup.photo, null);
-    assert.strictEqual(secondPhoto.group, insertedGroup);
-    assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
+        group.photo = firstPhoto;
 
-    assert.strictEqual(group.photo, firstPhoto);
-    assert.strictEqual(firstPhoto.group, insertedGroup);
-    assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(firstPhoto.group, group);
+        assert.equal(firstPhoto.group_uuid, group.uuid);
+        assert.equal(secondPhoto.group, null);
+        assert.equal(secondPhoto.group_uuid, null);
 
-    let deletedGroup = await RESTGroup.delete(updatedGroup);
+        let insertedGroup = await RESTGroup.insert(group);
 
-    assert.equal(group.photo, null);
-    assert.equal(insertedGroup.photo, null);
-    assert.equal(updatedGroup.photo, null);
-    assert.equal(deletedGroup.photo, null);
-    assert.equal(firstPhoto.group, null);
-    assert.equal(firstPhoto.group_uuid, null);
-    assert.equal(secondPhoto.group, null);
-    assert.equal(secondPhoto.group_uuid, null);
-  });
+        assert.strictEqual(group.photo, firstPhoto);
+        assert.strictEqual(insertedGroup.photo, firstPhoto);
+        assert.strictEqual(firstPhoto.group, insertedGroup);
+        assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
+        assert.equal(secondPhoto.group, null);
+        assert.equal(secondPhoto.group_uuid, null);
 
-  test("a model can fetch its not loaded relationship", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+        insertedGroup.photo = secondPhoto;
 
-    let group = await RESTGroup.insert({ name: "Dinner group" });
-    let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
-    let secondPhoto = await RESTPhoto.insert({ name: "Second photo", group_uuid: group.uuid });
+        assert.strictEqual(insertedGroup.photo, secondPhoto);
+        assert.strictEqual(group.photo, secondPhoto);
+        assert.strictEqual(firstPhoto.group, group);
+        assert.equal(firstPhoto.group_uuid, group.uuid);
+        assert.strictEqual(secondPhoto.group, insertedGroup);
+        assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
 
-    assert.equal(secondPhoto.group_uuid, group.uuid);
-    assert.deepEqual(group.photo, secondPhoto);
-    assert.notStrictEqual(group.photo, secondPhoto);
-  });
+        let updatedGroup = await RESTGroup.update(insertedGroup.toJSON());
 
-  test("a models relationship lookup gets activated when relationship foreign key sets to null", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+        assert.strictEqual(updatedGroup.photo, secondPhoto);
+        assert.strictEqual(secondPhoto.group, updatedGroup);
+        assert.equal(secondPhoto.group_uuid, updatedGroup.uuid);
 
-    let group = await RESTGroup.insert({ name: "Dinner group" });
-    let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
-    let secondPhoto = await RESTPhoto.insert({ name: "Second photo", group });
+        assert.strictEqual(group.photo, secondPhoto);
+        assert.strictEqual(firstPhoto.group, updatedGroup);
+        assert.equal(firstPhoto.group_uuid, updatedGroup.uuid);
 
-    assert.strictEqual(group.photo, secondPhoto);
-    assert.equal(secondPhoto.group_uuid, group.uuid);
+        updatedGroup.photo = null;
 
-    secondPhoto.group_uuid = null;
+        assert.strictEqual(updatedGroup.photo, null);
+        assert.strictEqual(secondPhoto.group, insertedGroup);
+        assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
 
-    assert.notOk(RelationshipDB.has(group, "photo"));
-    assert.notStrictEqual(group.photo, secondPhoto);
-    assert.deepEqual(group.photo.toJSON(), { ...secondPhoto.toJSON(), group_uuid: group.uuid }); // NOTE: id reference is still in the cache so a built relationship gets returned from cache
-  });
+        assert.strictEqual(group.photo, secondPhoto);
+        assert.strictEqual(firstPhoto.group, insertedGroup);
+        assert.equal(firstPhoto.group_uuid, insertedGroup.uuid);
 
-  test("a models empty relationship reference turns to promise and can fetch when changed", async function (assert) {
-    let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
-    this.Server = Server;
+        let deletedGroup = await RESTGroup.delete(updatedGroup);
 
-    let group = await RESTGroup.insert({ name: "Dinner group" });
-    let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
-    let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
-
-    assert.equal(await group.photo, null);
-    assert.equal(firstPhoto.group_uuid, null);
-
-    firstPhoto.group_uuid = group.uuid;
-
-    assert.equal(firstPhoto.group_uuid, group.uuid);
-    assert.deepEqual(group.photo, firstPhoto);
+        assert.equal(group.photo, null);
+        assert.equal(insertedGroup.photo, null);
+        assert.equal(updatedGroup.photo, null);
+        assert.equal(deletedGroup.photo, null);
+        assert.equal(firstPhoto.group, null);
+        assert.equal(firstPhoto.group_uuid, null);
+        assert.equal(secondPhoto.group, null);
+        assert.equal(secondPhoto.group_uuid, null);
+      });
+    });
   });
 });

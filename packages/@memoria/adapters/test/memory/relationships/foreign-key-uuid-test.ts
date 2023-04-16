@@ -1,12 +1,5 @@
-import Model, {
-  PrimaryGeneratedColumn,
-  Column,
-  RuntimeError,
-  Serializer,
-  InstanceDB,
-  RelationshipPromise,
-} from "@memoria/model";
-import { module, test, skip } from "qunitx";
+import { InstanceDB, RelationshipPromise } from "@memoria/model";
+import { module, test } from "qunitx";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/uuid/index.js";
 
@@ -18,20 +11,20 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
   module("BelongsTo mutations for OneToOne", function () {
     async function setupTargetModels(context, modelOptions = {}) {
-      let { MemoryPhoto, MemoryGroup } = context;
+      let { MemoryPhoto } = context;
 
       let targetPhoto = MemoryPhoto.build({ name: "Target photo", ...modelOptions });
       let targetPhotoCopy = MemoryPhoto.build(targetPhoto);
       let insertedTargetPhoto = await MemoryPhoto.insert(targetPhoto);
-      let updatedTargetPhoto = await MemoryPhoto.update(insertedTargetPhoto);
+      let updatedTargetPhoto = await MemoryPhoto.update({ uuid: insertedTargetPhoto.uuid });
 
       return { targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto };
     }
 
-    test("set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
+    test("Set model with null fkey for a model with null fkey shouldn't do anything", async function (assert) {
       let context = generateModels();
-      let { MemoryPhoto, MemoryGroup } = context;
-      let { targetPhoto, targetPhotoCopy } = await setupTargetModels(context);
+      let { MemoryGroup } = context;
+      let { targetPhoto } = await setupTargetModels(context);
 
       let group = MemoryGroup.build({ name: "First Group" });
       let insertedGroup = await MemoryGroup.insert(group);
@@ -81,9 +74,9 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       assert.equal(targetPhoto.group, null);
     });
 
-    test("set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
+    test("Set model with null fkey to instance key fkey (that exists) works correctly", async function (assert) {
       let context = generateModels();
-      let { MemoryPhoto, MemoryGroup } = context;
+      let { MemoryGroup } = context;
 
       let group = MemoryGroup.build({ name: "First Group" });
       let insertedGroup = await MemoryGroup.insert(group);
@@ -94,6 +87,8 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       let thirdInsertedGroup = await MemoryGroup.insert({ name: "Third Group" });
       let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
       let thirdUpdatedGroup = await MemoryGroup.update({ uuid: thirdCopiedGroup.uuid, name: "Third Updated Group" });
+
+      assert.notStrictEqual(thirdCopiedGroup, thirdUpdatedGroup);
 
       let { targetPhoto, targetPhotoCopy } = await setupTargetModels(context);
 
@@ -116,12 +111,12 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
           assert.equal(await targetGroup.photo, null);
         })
       );
+      assert.equal(targetPhoto.group, null);
 
       targetPhoto.group_uuid = thirdCopiedGroup.uuid;
 
       assert.equal(targetPhoto.group_uuid, thirdCopiedGroup.uuid);
-      assert.deepEqual(targetPhoto.group.toJSON(), thirdUpdatedGroup.toJSON());
-      assert.notStrictEqual(targetPhoto.group, thirdUpdatedGroup);
+      assert.strictEqual(targetPhoto.group, thirdUpdatedGroup);
       assert.strictEqual(targetPhoto.group.photo, targetPhoto);
       assert.strictEqual(targetPhoto.group.photo.group, targetPhoto.group);
       assert.equal(targetPhotoCopy.group_uuid, null);
@@ -139,11 +134,11 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       );
     });
 
-    test("set model with instance fkey (that exists) to null works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to null works correctly", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
       let group = MemoryGroup.build({ name: "First Group" });
-      let insertedGroup = await MemoryGroup.insert(group);
+      let insertedGroup = await MemoryGroup.insert(group.toJSON());
 
       let secondGroup = MemoryGroup.build({ name: "Second Group" });
       let copiedSecondGroup = MemoryGroup.build(secondGroup);
@@ -155,13 +150,15 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       });
 
       let thirdCopiedGroup = MemoryGroup.build(thirdInsertedGroup);
+
       let thirdUpdatedGroup = await MemoryGroup.update({ uuid: thirdCopiedGroup.uuid, name: "Third Updated Group" });
 
       assert.equal(await group.photo, null);
 
       assert.equal(targetPhoto.group_uuid, thirdInsertedGroup.uuid);
       assert.strictEqual(targetPhoto.group, thirdUpdatedGroup);
-      assert.deepEqual(targetPhoto.group.photo, updatedTargetPhoto);
+
+      assert.strictEqual(targetPhoto.group.photo, updatedTargetPhoto);
 
       assert.equal(targetPhotoCopy.group_uuid, thirdUpdatedGroup.uuid);
       assert.strictEqual(targetPhotoCopy.group, thirdUpdatedGroup);
@@ -173,8 +170,8 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       );
 
       await Promise.all(
-        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
+        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
+          assert.deepEqual(await thirdGroup.photo, updatedTargetPhoto);
         })
       );
 
@@ -191,10 +188,9 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
         })
       );
 
-      let oldUpdatedGroupPhoto = updatedTargetPhoto.toJSON();
       await Promise.all(
-        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(targetGroup.photo, updatedTargetPhoto);
+        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
+          assert.strictEqual(thirdGroup.photo, updatedTargetPhoto);
         })
       );
 
@@ -207,30 +203,38 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       assert.equal(updatedTargetPhoto.group, null);
 
       await Promise.all(
-        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.notStrictEqual(targetGroup.photo, oldUpdatedGroupPhoto);
-          assert.deepEqual(targetGroup.photo.toJSON(), oldUpdatedGroupPhoto);
+        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
+          assert.deepEqual(thirdGroup.photo.toJSON(), targetPhotoCopy.toJSON());
         })
       );
 
       let cachedTargetPhoto = MemoryPhoto.Cache.get(updatedTargetPhoto.uuid);
-      let targetPhotosToNullify = Array.from(InstanceDB.getReferences(updatedTargetPhoto)).filter((targetPhoto) => {
-        return targetPhoto !== cachedTargetPhoto;
+      Array.from(InstanceDB.getReferences(updatedTargetPhoto)).forEach((targetPhoto) => {
+        if (targetPhoto !== cachedTargetPhoto) {
+          targetPhoto.group_uuid = null;
+        }
       });
 
-      targetPhotosToNullify.forEach((targetPhoto) => {
-        targetPhoto.group_uuid = null;
-      });
-
+      assert.equal(InstanceDB.getReferences(updatedTargetPhoto).size, 4);
       await Promise.all(
-        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.notStrictEqual(targetGroup.photo, cachedTargetPhoto);
-          assert.deepEqual(targetGroup.photo.toJSON(), oldUpdatedGroupPhoto);
+        [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
+          assert.notStrictEqual(thirdGroup.photo, cachedTargetPhoto);
+
+          let photo = await thirdGroup.photo;
+
+          assert.ok(InstanceDB.getReferences(updatedTargetPhoto).size > 4);
+          assert.deepEqual(photo.toJSON(), cachedTargetPhoto.toJSON()); // group_id should not be null
+
+          [cachedTargetPhoto, targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto].forEach(
+            (targetPhoto) => {
+              assert.notStrictEqual(photo, targetPhoto);
+            }
+          );
         })
       );
     });
 
-    test("set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to another instance key (that exists) works correctly", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
 
@@ -264,16 +268,15 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
+          assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
         })
       );
 
       targetPhoto.group_uuid = insertedGroup.uuid;
 
       assert.equal(targetPhoto.group_uuid, insertedGroup.uuid);
-      assert.notEqual(await targetPhoto.group, insertedGroup);
-      assert.notEqual(await targetPhoto.group, group);
-      assert.deepEqual((await targetPhoto.group).toJSON(), insertedGroup.toJSON());
+      assert.strictEqual(targetPhoto.group, insertedGroup);
+
       assert.strictEqual(targetPhoto.group.photo, targetPhoto);
       assert.strictEqual(targetPhoto.group.photo.group, targetPhoto.group);
 
@@ -296,7 +299,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
+          assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
         })
       );
 
@@ -304,7 +307,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, targetPhoto);
+          assert.strictEqual(targetGroup.photo, lastPhoto);
         })
       );
 
@@ -315,7 +318,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       );
     });
 
-    test("set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that exists) to another instance key (that doesnt exist) works correctly", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
       let group = MemoryGroup.build({ name: "First Group" });
@@ -352,7 +355,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
         })
       );
 
-      targetPhoto.group_uuid = "374c7f4a-85d6-429a-bf2a-0719525f5f21";
+      targetPhoto.group_uuid = RANDOM_GROUP_UUID;
 
       assert.equal(targetPhoto.group_uuid, RANDOM_GROUP_UUID);
       assert.ok(targetPhoto.group instanceof RelationshipPromise);
@@ -370,7 +373,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
+          assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
         })
       );
 
@@ -380,16 +383,16 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       let mockGroup = MemoryGroup.build({ uuid: RANDOM_GROUP_UUID, name: "Mock Group" });
 
-      assert.strictEqual(targetPhoto.group, mockGroup);
+      assert.equal(await targetPhoto.group, null);
       assert.equal(targetPhoto.group_uuid, RANDOM_GROUP_UUID);
 
       let insertedMockGroup = await MemoryGroup.insert(mockGroup);
 
-      assert.deepEqual(targetPhoto.group.toJSON(), insertedMockGroup.toJSON());
+      assert.strictEqual(targetPhoto.group, insertedMockGroup);
       assert.equal(targetPhoto.group_uuid, RANDOM_GROUP_UUID);
     });
 
-    test("set model with instance fkey (that doesnt exist) to null works", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to null works", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
       let group = MemoryGroup.build({ name: "First Group" });
@@ -419,7 +422,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       assert.equal(targetPhoto.group, null);
     });
 
-    test("set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to another instance key (that exist) works correctly", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
       let group = MemoryGroup.build({ name: "First Group" });
@@ -459,10 +462,8 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       targetPhoto.group_uuid = insertedGroup.uuid;
 
       assert.equal(targetPhoto.group_uuid, insertedGroup.uuid);
-      assert.deepEqual((await targetPhoto.group).toJSON(), insertedGroup.toJSON());
-      assert.deepEqual(insertedGroup.photo, targetPhoto);
-      assert.notEqual(await targetPhoto.group, insertedGroup);
-      assert.notEqual(await targetPhoto.group, group);
+      assert.strictEqual(targetPhoto.group, insertedGroup);
+      assert.strictEqual(insertedGroup.photo, targetPhoto);
       assert.equal(targetPhotoCopy.group_uuid, RANDOM_GROUP_UUID);
       assert.equal(await targetPhotoCopy.group, null);
       assert.equal(updatedTargetPhoto.group_uuid, RANDOM_GROUP_UUID);
@@ -485,7 +486,6 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       assert.notStrictEqual(lastInsertedGroupInstance, cachedInsertedPhoto);
       assert.strictEqual(lastInsertedGroupInstance.photo, targetPhoto);
-      assert.deepEqual(lastInsertedGroupInstance.photo.toJSON(), targetPhoto.toJSON());
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
@@ -497,7 +497,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
 
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
-          assert.strictEqual(await targetGroup.photo, lastPhoto);
+          assert.strictEqual(targetGroup.photo, lastPhoto);
         })
       );
 
@@ -514,7 +514,7 @@ module("@memoria/adapters | MemoryAdapter | Relationships | Foreign key mutation
       );
     });
 
-    test("set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
+    test("Set model with instance fkey (that doesnt exist) to another instance key (that doesnt exist) works correctly", async function (assert) {
       let context = generateModels();
       let { MemoryPhoto, MemoryGroup } = context;
       let group = MemoryGroup.build({ name: "First Group" });

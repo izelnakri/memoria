@@ -7,8 +7,7 @@ export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
-// NOTE: add cachePointers here too
-// Maybe also reverseRelationshipClass
+// TODO: add RelationshipCache and ReverseRelationshipCache here
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
   relationshipName: string;
@@ -26,12 +25,13 @@ export interface RelationshipTable {
 
 // TODO: Remove this data structure
 export interface ReverseRelationshipMetadata {
-  TargetClass: typeof Model;
+  SourceClass: typeof Model;
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
   reverseRelationshipName: null | string;
   reverseRelationshipType: null | RelationshipType;
+  reverseRelationshipForeignKeyColumnName: null | string;
 }
 
 export interface ReverseRelationshipsTable {
@@ -125,13 +125,8 @@ export default class RelationshipSchema {
 
       for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
         Object.keys(relationshipTable).forEach((relationshipName) => {
-          let {
-            RelationshipClass,
-            relationshipType,
-            foreignKeyColumnName,
-            reverseRelationshipName,
-            reverseRelationshipType,
-          } = relationshipTable[relationshipName];
+          let SourceClass = Schema.Models.get(modelName) as typeof Class;
+          let { RelationshipClass } = relationshipTable[relationshipName];
 
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
             this._reverseRelationshipTables.set(
@@ -139,22 +134,18 @@ export default class RelationshipSchema {
               {} as { ModelName: ReverseRelationshipMetadata[] }
             );
           }
-          let TargetClass = Schema.Models.get(modelName) as typeof Class;
+
           let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
             ModelName: ReverseRelationshipMetadata[];
           };
-
-          if (!reverseRelationshipTable[TargetClass.name]) {
-            reverseRelationshipTable[TargetClass.name] = [];
+          if (!reverseRelationshipTable[SourceClass.name]) {
+            reverseRelationshipTable[SourceClass.name] = [];
           }
 
-          reverseRelationshipTable[TargetClass.name].push({
-            TargetClass: Schema.Models.get(modelName) as typeof Class,
-            relationshipName,
-            relationshipType,
-            foreignKeyColumnName,
-            reverseRelationshipName,
-            reverseRelationshipType,
+          // NOTE: why this is needed(?)
+          reverseRelationshipTable[SourceClass.name].push({
+            ...relationshipTable[relationshipName],
+            SourceClass: SourceClass,
           });
         });
       }
@@ -163,7 +154,7 @@ export default class RelationshipSchema {
     return this._reverseRelationshipTables.get(Class.name) as ReverseRelationshipsTable;
   }
 
-  // Example: getRelationshipMetadataFor(User, 'photos') => { TargetClass: Photo, relationshipName: 'user' }
+  // Example: getRelationshipMetadataFor(User, 'photos') => { SourceClass: Photo, relationshipName: 'user' }
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
@@ -177,11 +168,11 @@ export default class RelationshipSchema {
             currentMetadata.relationshipType === "BelongsTo" &&
             ["OneToOne", "HasMany"].includes(reverseRelationship.relationshipType)
           ) {
-            return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
+            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
           } else if (
             reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
           ) {
-            return reverseRelationship.TargetClass.name === currentMetadata.RelationshipClass.name;
+            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
           }
 
           return false;

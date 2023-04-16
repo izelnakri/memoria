@@ -129,10 +129,10 @@ export default class SQLAdapter extends MemoryAdapter {
           order: { [Model.primaryKeyName]: "ASC" },
         });
         // TODO: this might be problematic with null models!!
-        return foundModels.map((model) => this.cache(Model, model, options));
+        return foundModels.map((model) => this.cache(Model, toJSON(model), options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
         let foundModel = await Manager.findOne(Model, primaryKey);
-        return foundModel && this.cache(Model, foundModel, options);
+        return foundModel && this.cache(Model, toJSON(foundModel), options);
       }
     } catch (error) {
       if (!error.code) {
@@ -155,7 +155,7 @@ export default class SQLAdapter extends MemoryAdapter {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
 
-    return foundModel ? this.cache(Model, foundModel, options) : null;
+    return foundModel ? this.cache(Model, toJSON(foundModel), options) : null;
   }
 
   static async findAll(
@@ -176,7 +176,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
     let result = await query.getMany();
 
-    return result.map((model) => this.cache(Model, model, options));
+    return result.map((model) => this.cache(Model, toJSON(model), options));
   }
 
   static async insert(
@@ -435,12 +435,12 @@ export default class SQLAdapter extends MemoryAdapter {
         if (relationshipType === "BelongsTo") {
           let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
           if (!model[foreignKeyColumnName]) {
-            return resolve(null);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
           }
 
           let relationshipModel = await RelationshipClass.find(model[foreignKeyColumnName]);
           if (!relationshipModel) {
-            return resolve(null);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
             // NOTE: now doesnt throw to match REST behavior
             // throw new NotFoundError(
             //   {},
@@ -448,15 +448,17 @@ export default class SQLAdapter extends MemoryAdapter {
             // );
           }
 
-          return resolve(relationshipModel);
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
         } else if (relationshipType === "OneToOne") {
           if (reverseRelationshipName) {
             let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-            let relationshipModel = await RelationshipClass.findBy({
-              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-            });
+            let relationshipModel = model[Model.primaryKeyName]
+              ? await RelationshipClass.findBy({
+                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+                })
+              : null;
             if (!relationshipModel) {
-              return resolve(null);
+              return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
               // NOTE: now doesnt throw to match REST behavior
               // throw new NotFoundError(
               //   {},
@@ -464,7 +466,7 @@ export default class SQLAdapter extends MemoryAdapter {
               // );
             }
 
-            return resolve(relationshipModel);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
           }
 
           return reject("OneToOne edge case!");
@@ -474,8 +476,9 @@ export default class SQLAdapter extends MemoryAdapter {
             let relationshipModels = await RelationshipClass.findAll({
               [foreignKeyColumnName]: model[Model.primaryKeyName],
             });
+            // TODO: This could be buggy, check it
 
-            return resolve(relationshipModels);
+            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModels));
           }
 
           return reject();
@@ -487,6 +490,19 @@ export default class SQLAdapter extends MemoryAdapter {
       return reject("ManyToMany fetchRelationship not implemented yet");
     });
   }
+}
+
+function toJSON(model: MemoriaModel) {
+  let Class = model.constructor as typeof MemoriaModel;
+  return Array.from(Class.columnNames).reduce((result: QueryObject, columnName: string) => {
+    if (model[columnName] === undefined) {
+      result[columnName] = null;
+    } else {
+      result[columnName] = model[columnName];
+    }
+
+    return result;
+  }, {});
 }
 
 function cleanRelationships(Model, instance) {

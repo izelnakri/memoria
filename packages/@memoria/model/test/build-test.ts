@@ -44,7 +44,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.propEqual(model, { id: null, isPublic: false, name: "Imported photo" });
       assert.ok(Object.isSealed(model));
       assert.equal(model.isNew, false);
-      assert.equal(model.isPersisted, true);
+      assert.equal(model.isPersisted, false);
       assert.equal(model.isDeleted, false);
       assert.equal(model.isDirty, false);
       assert.equal(model.inTransit, false);
@@ -57,7 +57,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
 
       assert.propEqual(anotherModel, { id: null, isPublic: false, name: "something else" });
       assert.equal(anotherModel.isNew, false);
-      assert.equal(anotherModel.isPersisted, true);
+      assert.equal(anotherModel.isPersisted, false);
       assert.equal(anotherModel.isDeleted, true);
       assert.equal(anotherModel.isDirty, false);
       assert.equal(anotherModel.inTransit, false);

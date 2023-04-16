@@ -1,14 +1,15 @@
 import Model from "../../model.js";
-import ArrayIterator from "../../utils/array-iterator.js";
 import type { PrimaryKey } from "../../types.js";
 
 type ModelName = string;
 type JSObject = { [key: string]: any };
+type ModelReferences = Set<Model>;
 
 export default class InstanceDB {
   // NOTE: It is needed for updating instance hasMany Records and deleting references of not persisted records which hold persisted deleted record
   static knownInstances: Map<ModelName, Map<PrimaryKey, Set<Model>>> = new Map();
   static unknownInstances: Map<ModelName, Array<Set<Model>>> = new Map();
+  static persistedModels: Map<ModelName, Map<PrimaryKey, Model>> = new Map();
 
   static getAllKnownReferences(Class: typeof Model) {
     if (!this.knownInstances.has(Class.name)) {
@@ -30,8 +31,25 @@ export default class InstanceDB {
     return Array.from(this.getAllKnownReferences(Class).values()).concat(this.getAllUnknownInstances(Class));
   }
 
+  static getPersistedModels(Class: typeof Model) : Map<PrimaryKey, Model> {
+    if (!this.persistedModels.has(Class.name)) {
+      this.persistedModels.set(Class.name, new Map());
+    }
+
+    return this.persistedModels.get(Class.name) as Map<PrimaryKey, Model>;
+  }
+
+  static isPersisted(modelReferences: ModelReferences) {
+    return modelReferences.values().next().value.isPersisted;
+  }
+
+  static makeModelPersisted(model: Model) {
+    let Class = model.constructor as typeof Model;
+
+    this.getPersistedModels(Class).set(model[Class.primaryKeyName as string], model);
+  }
+
   static getReferences(model: Model): Set<Model> {
-    // NOTE: this includes the model itself
     let Class = model.constructor as typeof Model;
 
     return model[Class.primaryKeyName]
@@ -47,7 +65,17 @@ export default class InstanceDB {
       let references = this.getAllKnownReferences(Class);
       let foundInstanceSet = references.get(primaryKey);
       if (!foundInstanceSet) {
-        foundInstanceSet = new Set();
+        let unknownReferences = this.getAllUnknownInstances(Class);
+        if (buildObject instanceof Model) {
+          let foundInstanceSetIndex = unknownReferences.findIndex((modelSet) => modelSet.has(model));
+          foundInstanceSet = foundInstanceSetIndex === -1 ? new Set() : unknownReferences[foundInstanceSetIndex];
+          if (foundInstanceSetIndex) {
+            unknownReferences.splice(foundInstanceSetIndex, 1);
+          }
+        } else {
+          foundInstanceSet = new Set();
+        }
+
         references.set(primaryKey, foundInstanceSet);
       }
 
@@ -57,7 +85,6 @@ export default class InstanceDB {
       let foundInstanceSet = references.find((modelSet) => modelSet.has(buildObject as Model));
       if (!foundInstanceSet) {
         foundInstanceSet = new Set([model]);
-        foundInstanceSet.add(model);
         references.push(foundInstanceSet);
       }
 
@@ -68,23 +95,5 @@ export default class InstanceDB {
     this.getAllUnknownInstances(Class).push(foundInstanceSet);
 
     return foundInstanceSet;
-  }
-
-  // TODO: this shouldn't be problematic because its used only in smart relationship assignment to copied values, CRUD creates more instances currently
-  static getLastPersistedInstance(existingInstances: Set<Model>, primaryKey: PrimaryKey) {
-    if (!existingInstances) {
-      return null;
-    } else if (!primaryKey) {
-      return ArrayIterator.last(existingInstances.values());
-    }
-
-    // NOTE: maybe do this findLast for perf improvement(?)
-    let existingInstancedByLastAdded = Array.from(existingInstances.values()).reverse();
-
-    return (
-      existingInstancedByLastAdded.find((instance: Model) => instance.isPersisted) ||
-      existingInstancedByLastAdded[0] ||
-      null
-    );
   }
 }

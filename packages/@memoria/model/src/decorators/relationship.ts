@@ -125,7 +125,6 @@ export function ManyToOne<T>(
     });
 
     if (targetType === "many-to-one") {
-      // RelationshipDB.persistedRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new Map());
       RelationshipDB.instanceRecordsBelongsToCache.set(`${Class.name}:${propertyName}`, new WeakMap());
     } else if (targetType === "one-to-one") {
       RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());

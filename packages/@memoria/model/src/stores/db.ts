@@ -32,13 +32,12 @@ export default class DB {
     }
 
     if (timer === 0) {
-      Class.Adapter.unload(Class, cachedModel);
-      return;
+      return Class.Cache.get(primaryKey) && Class.Adapter.unload(Class, cachedModel);
     }
 
     TimeoutDB.set(
       primaryKey,
-      setTimeout(() => Class.Adapter.unload(Class, cachedModel), timer)
+      setTimeout(() => Class.Cache.get(primaryKey) && Class.Adapter.unload(Class, cachedModel), timer)
     );
 
     return TimeoutDB.get(primaryKey);

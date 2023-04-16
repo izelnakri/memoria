@@ -1,17 +1,5 @@
-import Memoria from "@memoria/server";
-import { RESTAdapter, MemoryAdapter } from "@memoria/adapters";
-import Model, {
-  Changeset,
-  DB,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  UpdateError,
-  InstanceDB,
-  RelationshipDB,
-} from "@memoria/model";
 import { module, test } from "qunitx";
+import { UpdateError, InstanceDB, RelationshipDB } from "@memoria/model";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/rest/mix/index.js";
@@ -226,7 +214,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
       let updatedPhoto = await RESTPhoto.update({ id: 2, name: "Another", href: "/another.jpg" });
 
-      assert.notEqual(insertedPhoto, updatedPhoto);
+      assert.notStrictEqual(insertedPhoto, updatedPhoto);
       assert.equal(InstanceDB.getReferences(updatedPhoto).size, 4);
       assert.propEqual(
         updatedPhoto,
@@ -240,7 +228,7 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
       assert.deepEqual(RESTPhoto.peek(updatedPhoto.id), updatedPhoto);
       assert.equal(InstanceDB.getReferences(updatedPhoto).size, 6);
-      assert.equal(InstanceDB.getReferences(insertedPhoto), InstanceDB.getReferences(updatedPhoto));
+      assert.deepEqual(InstanceDB.getReferences(insertedPhoto), InstanceDB.getReferences(updatedPhoto));
 
       updatedPhoto.name = "testing store just holds a copy";
 
@@ -256,16 +244,16 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       let groupPhoto = RESTPhoto.build();
       let group = RESTGroup.build({ name: "Hacker Log", owner: izel, photo: groupPhoto }); // TODO: add here also hasMany in the future and reflections
 
-      assert.equal(group.owner, izel);
-      assert.equal(group.photo, groupPhoto);
+      assert.strictEqual(group.owner, izel);
+      assert.strictEqual(group.photo, groupPhoto);
 
       let insertedGroup = await RESTGroup.insert(group);
 
-      assert.notEqual(insertedGroup, group);
-      assert.equal(insertedGroup.photo, groupPhoto);
-      assert.equal(insertedGroup.owner, izel);
-      assert.equal(groupPhoto.group, insertedGroup);
-      assert.equal(InstanceDB.getReferences(group).size, 3);
+      assert.strictEqual(insertedGroup, group);
+      assert.strictEqual(insertedGroup.photo, groupPhoto);
+      assert.strictEqual(insertedGroup.owner, izel);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 2);
 
       let cachedReference = RESTGroup.Cache.get(insertedGroup.uuid);
       assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
@@ -273,17 +261,17 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
-      assert.equal(groupPhoto.group, insertedGroup);
+      assert.strictEqual(groupPhoto.group, insertedGroup);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![cachedReference].includes(reference)) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
+          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
 
@@ -293,12 +281,12 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
 
       let updatedGroup = await RESTGroup.update(insertedGroup);
 
-      assert.notEqual(updatedGroup, group);
-      assert.notEqual(updatedGroup, insertedGroup);
-      assert.equal(updatedGroup.owner, izel);
-      assert.equal(updatedGroup.photo, groupPhoto);
-      assert.equal(groupPhoto.group, updatedGroup);
-      assert.equal(InstanceDB.getReferences(group).size, 4);
+      assert.strictEqual(updatedGroup, group);
+      assert.strictEqual(updatedGroup, insertedGroup);
+      assert.strictEqual(updatedGroup.owner, izel);
+      assert.strictEqual(updatedGroup.photo, groupPhoto);
+      assert.strictEqual(groupPhoto.group, updatedGroup);
+      assert.equal(InstanceDB.getReferences(group).size, 2);
 
       let lastCachedReference = RESTGroup.Cache.get(updatedGroup.uuid);
       assert.equal(RelationshipDB.has(lastCachedReference, "owner"), false);
@@ -314,32 +302,31 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
         })
       );
 
-      assert.equal(InstanceDB.getReferences(group).size, 5);
+      assert.equal(InstanceDB.getReferences(group).size, 3);
 
       let peekedGroup = await RESTGroup.peek(group.uuid);
 
-      assert.notEqual(peekedGroup, insertedGroup);
-      assert.notEqual(peekedGroup, group);
-      assert.notEqual(peekedGroup, updatedGroup);
+      assert.notStrictEqual(peekedGroup, insertedGroup);
+      assert.notStrictEqual(peekedGroup, group);
+      assert.notStrictEqual(peekedGroup, updatedGroup);
       assert.equal(peekedGroup.name, "Changed Hacker Log");
-      assert.equal(InstanceDB.getReferences(group).size, 6);
+      assert.equal(InstanceDB.getReferences(group).size, 4);
 
       let fetchedGroup = await RESTGroup.find(group.uuid);
 
-      assert.notEqual(fetchedGroup, insertedGroup);
-      assert.notEqual(fetchedGroup, group);
-      assert.notEqual(fetchedGroup, peekedGroup);
+      assert.notStrictEqual(fetchedGroup, insertedGroup);
+      assert.notStrictEqual(fetchedGroup, group);
+      assert.notStrictEqual(fetchedGroup, peekedGroup);
       assert.equal(fetchedGroup.name, "Changed Hacker Log");
-      assert.equal(InstanceDB.getReferences(group).size, 7);
+      assert.equal(InstanceDB.getReferences(group).size, 5);
 
       InstanceDB.getReferences(group).forEach((reference) => {
         if (![peekedGroup, cachedReference, fetchedGroup].includes(reference)) {
-          assert.equal(reference.owner, izel);
-          assert.equal(reference.photo, groupPhoto);
+          assert.strictEqual(reference.owner, izel);
         }
       });
 
-      assert.equal(groupPhoto.group, fetchedGroup);
+      assert.strictEqual(groupPhoto.group, fetchedGroup);
     });
 
     test("$Model.update($model) resets null set hasOne relationships after insert", async function (assert) {
@@ -349,7 +336,6 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       let group = RESTGroup.build({ name: "Hacker Log" });
 
       assert.equal(await group.photo, null);
-      assert.equal(group.photo, null);
 
       let insertedGroup = await RESTGroup.insert(group);
       let groupPhoto = await RESTPhoto.insert({ name: "Some photo", group_id: 1 });
