@@ -25,6 +25,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         updated_at: String,
         is_important: true,
         content: "Interesting indeed",
+        group_uuid: null,
         photo_id: 2,
         user_id: 1,
       });
@@ -119,6 +120,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         updated_at: String,
         is_important: true,
         content: "Cool",
+        group_uuid: null,
         photo_id: 2,
         user_id: 1,
       });
@@ -159,6 +161,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         updated_at: String,
         is_important: true,
         content: "Interesting indeed",
+        group_uuid: null,
         photo_id: 2,
         user_id: 1,
       });

@@ -25,8 +25,8 @@ export default function generateModels() {
     @Column("int", { nullable: true })
     owner_id: number;
 
-    @ManyToMany(() => SQLUser)
-    users;
+    // @ManyToMany(() => SQLUser)
+    // users;
 
     @BelongsTo(() => SQLUser)
     owner;
@@ -57,10 +57,16 @@ export default function generateModels() {
     updated_at: Date;
 
     @Column("int", { nullable: true })
+    group_id: number;
+
+    @Column("int", { nullable: true })
     user_id: number;
 
     @Column("int", { nullable: true })
     photo_id: number;
+
+    @BelongsTo(() => SQLGroup)
+    group;
 
     @BelongsTo(() => SQLUser)
     user;
@@ -118,8 +124,11 @@ export default function generateModels() {
     @HasMany(() => SQLPhotoComment)
     photoComments;
 
-    @ManyToMany(() => SQLGroup)
-    groups;
+    @HasMany(() => SQLGroup)
+    ownedGroups;
+
+    // @ManyToMany(() => SQLGroup)
+    // groups;
   }
 
   return {

@@ -1,7 +1,7 @@
 // TODO: Do we want some of these properties/structure in $Model.findAll, insertAll(?) returns(?), maybe a ModelArray<Model>
 // NOTE: do we want to batch also relationships assignments(?) -> probably not for now
 import InstanceDB from "./stores/instance/db.js";
-import RelationshipUtils from "./stores/relationship/utils.js";
+import RelationshipMutation from "./stores/relationship/mutation.js";
 import type { RelationshipMetadata } from "./stores/relationship/schema.js";
 import Model from "./model.js";
 import Enum from "./enum.js";
@@ -67,12 +67,12 @@ export default class HasManyArray extends Array {
 
     if (Array.isArray(array)) {
       filterInstancesToAddFor(this, array).forEach((model) => {
-        RelationshipUtils.addHasManyRelationshipFor(this, model);
+        RelationshipMutation.addHasManyRelationshipFor(this, model);
         this.push(model);
       });
     } else if (array && array instanceof Set) {
       filterInstancesToAddFor(this, Array.from(array)).forEach((model) => {
-        RelationshipUtils.addHasManyRelationshipFor(this, model);
+        RelationshipMutation.addHasManyRelationshipFor(this, model);
         this.push(model);
       });
     } else if (array) {
@@ -148,8 +148,8 @@ export default class HasManyArray extends Array {
 
                 if (existingInstance !== value) {
                   // NOTE: this makes it NOT index preserving, in future maybe optimize
-                  RelationshipUtils.removeHasManyRelationshipFor(self, existingInstance);
-                  RelationshipUtils.addHasManyRelationshipFor(self, value);
+                  RelationshipMutation.removeHasManyRelationshipFor(self, existingInstance);
+                  RelationshipMutation.addHasManyRelationshipFor(self, value);
                 }
               }
             });
@@ -161,10 +161,10 @@ export default class HasManyArray extends Array {
 
               if (self._spliceCallWhenSettingNull) {
                 if (oldModel) {
-                  RelationshipUtils.removeHasManyRelationshipFor(self, oldModel);
+                  RelationshipMutation.removeHasManyRelationshipFor(self, oldModel);
                 }
 
-                RelationshipUtils.addHasManyRelationshipFor(self, instanceToAdd); // TODO: change this to instanceToAdd(?)
+                RelationshipMutation.addHasManyRelationshipFor(self, instanceToAdd); // TODO: change this to instanceToAdd(?)
               }
             });
 
@@ -180,7 +180,7 @@ export default class HasManyArray extends Array {
 
               self.length = value;
 
-              modelsToRemove.forEach((model) => RelationshipUtils.removeHasManyRelationshipFor(self, model));
+              modelsToRemove.forEach((model) => RelationshipMutation.removeHasManyRelationshipFor(self, model));
 
               return true;
             } else if (value !== self.length) {
@@ -300,7 +300,7 @@ export default class HasManyArray extends Array {
 
         this.length = this.length - deletedModels.length;
 
-        deletedModels.forEach((deletedModel) => RelationshipUtils.removeHasManyRelationshipFor(this, deletedModel));
+        deletedModels.forEach((deletedModel) => RelationshipMutation.removeHasManyRelationshipFor(this, deletedModel));
       }
     }
 
@@ -319,7 +319,7 @@ export default class HasManyArray extends Array {
           indexForAdd = indexForAdd + 1;
         }
 
-        RelationshipUtils.addHasManyRelationshipFor(this, item);
+        RelationshipMutation.addHasManyRelationshipFor(this, item);
       }
 
       return indexForAdd;

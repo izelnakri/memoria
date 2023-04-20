@@ -22,8 +22,11 @@ export default function generateUser() {
     @HasMany(PhotoComment)
     photoComments;
 
-    @ManyToMany(Group)
-    groups;
+    @HasMany(Group)
+    ownedGroups;
+
+    // @ManyToMany(Group)
+    // groups;
   }
 
   return User;

@@ -199,6 +199,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
         updated_at: new Date("2015-10-25T20:54:04.447Z"),
         content: null,
         is_important: true,
+        group_uuid: null,
         photo_id: 1,
         user_id: null,
         uuid: "63538a3b-911b-430f-bcf4-4f60d41fca27",
@@ -209,6 +210,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
           updated_at: new Date("2015-10-25T20:54:04.447Z"),
           content: null,
           is_important: true,
+          group_uuid: null,
           photo_id: 1,
           user_id: null,
           uuid: "63538a3b-911b-430f-bcf4-4f60d41fca27",
@@ -270,6 +272,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
         "is_important",
         "inserted_at",
         "updated_at",
+        "group_uuid",
         "user_id",
         "photo_id",
       ]);

@@ -92,6 +92,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
         is_public: true,
         group_uuid: null,
         owner_id: null,
+        group_uuid: null,
       });
       assert.deepEqual(deletedPhoto.revisionHistory, [
         {

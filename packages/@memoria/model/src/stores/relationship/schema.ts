@@ -1,5 +1,6 @@
 import Model from "../../model.js";
 import Schema from "../schema.js";
+import RelationshipDB from "./db.js";
 import type { ModelName, ModuleDatabase } from "../../types.js";
 
 export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
@@ -7,15 +8,17 @@ export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
-// TODO: add RelationshipCache and ReverseRelationshipCache here
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
+  RelationshipCache: RelationshipCache;
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
-  SourceClass: null | typeof Model;
-  reverseRelationshipName: null | string;
-  reverseRelationshipType: null | RelationshipType;
+  SourceClass: typeof Model;
+  // TODO: Create a runtime error when HasMany, HasOne or BelongsTo gets defined without a Reflective metadata on the target class
+  ReverseRelationshipCache: RelationshipCache;
+  reverseRelationshipName: string;
+  reverseRelationshipType: RelationshipType;
   reverseRelationshipForeignKeyColumnName: null | string;
 }
 
@@ -23,31 +26,16 @@ export interface RelationshipTable {
   [relationshipName: string]: RelationshipMetadata;
 }
 
-// TODO: Remove this data structure
-export interface ReverseRelationshipMetadata {
-  SourceClass: typeof Model;
-  relationshipName: string;
-  relationshipType: RelationshipType;
-  foreignKeyColumnName: null | string;
-  reverseRelationshipName: null | string;
-  reverseRelationshipType: null | RelationshipType;
-  reverseRelationshipForeignKeyColumnName: null | string;
+export interface ReverseRelationshipsTable {
+  ModelName: RelationshipMetadata[];
 }
 
-export interface ReverseRelationshipsTable {
-  ModelName: ReverseRelationshipMetadata[];
+interface BelongsToColumnTable {
+  [belongsToColumnForeignKeyName: string]: RelationshipMetadata;
 }
 
 export interface RelationshipSummary {
   [relationshipName: string]: typeof Model | Array<typeof Model>;
-}
-
-interface BelongsToColumnTable {
-  [belongsToColumnForeignKeyName: string]: {
-    RelationshipClass: typeof Model;
-    relationshipName: string;
-    reverseRelationshipName: null | string;
-  };
 }
 
 const MEMORIA_RELATIONSHIP_CONVERSIONS = {
@@ -64,47 +52,87 @@ const REVERSE_RELATIONSHIP_LOOKUPS = {
 
 export default class RelationshipSchema {
   static _relationshipTable: Map<ModelName, RelationshipTable> = new Map();
-  static getRelationshipTable(Class: typeof Model, relationshipType?: RelationshipType): RelationshipTable {
+  static getRelationshipTable(Class: typeof Model, relationshipTypeFilter?: RelationshipType): RelationshipTable {
     if (!this._relationshipTable.has(Class.name)) {
+      const ReverseRelationshipTables = this._reverseRelationshipTables;
+
       Schema.Schemas.forEach((modelSchema) => {
+        let SourceClass = modelSchema.target as typeof Class;
         let modelRelations = modelSchema.relations;
+
+        if (!ReverseRelationshipTables.has(SourceClass.name)) {
+          ReverseRelationshipTables.set(SourceClass.name, {} as ReverseRelationshipsTable);
+        }
 
         this._relationshipTable.set(
           modelSchema.name,
-          Object.keys(modelRelations).reduce((result, relationName) => {
-            let relation = modelSchema.relations[relationName];
+          Object.keys(modelRelations).reduce((result, relationshipName) => {
+            let relation = modelSchema.relations[relationshipName];
             let RelationshipClass = typeof relation.target === "function" ? relation.target() : relation.target;
-            let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationName].type];
+            // let reflectiveRelationshipTable = this.getRelationshipTable(RelationshipClass);
+            let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationshipName].type];
 
-            return Object.assign(result, {
-              [relationName]: {
-                RelationshipClass,
-                relationshipName: relationName,
-                relationshipType,
-                foreignKeyColumnName:
-                  relationshipType === "BelongsTo"
-                    ? getTargetRelationshipForeignKey(
-                        modelSchema.target, // NOTE: maybe this is modelSchema.target()
-                        relationName,
-                        RelationshipClass
-                      )
-                    : null,
-                SourceClass: Class,
-                reverseRelationshipForeignKeyColumnName: null,
-                reverseRelationshipName: null,
-                reverseRelationshipType: null,
+            if (!ReverseRelationshipTables.has(RelationshipClass.name)) {
+              ReverseRelationshipTables.set(RelationshipClass.name, {} as ReverseRelationshipsTable);
+            }
+
+            let reverseRelationshipTable = ReverseRelationshipTables.get(
+              RelationshipClass.name
+            ) as ReverseRelationshipsTable;
+            if (!reverseRelationshipTable[SourceClass.name]) {
+              reverseRelationshipTable[SourceClass.name] = [];
+            }
+
+            let metadata = {
+              RelationshipClass,
+              get RelationshipCache() {
+                return RelationshipDB.findRelationshipCacheFor(
+                  this.SourceClass,
+                  this.relationshipName,
+                  this.relationshipType
+                );
               },
-            });
+              relationshipName: relationshipName,
+              relationshipType,
+              foreignKeyColumnName:
+                relationshipType === "BelongsTo"
+                  ? getTargetRelationshipForeignKey(SourceClass, relationshipName, RelationshipClass)
+                  : null,
+              SourceClass,
+              get ReverseRelationshipCache() {
+                if (!this.reverseRelationshipName || !this.reverseRelationshipType) {
+                  let targetReverseRelationship =
+                    this.relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
+                  throw new Error(
+                    `ReverseRelationship lookup not available for ${this.SourceClass.name} ${this.relationshipName}. You need to define a ` +
+                      `${targetReverseRelationship} that targets ${this.SourceClass.name} on ${this.RelationshipClass.name} class!`
+                  );
+                }
+
+                return RelationshipDB.findRelationshipCacheFor(
+                  this.RelationshipClass,
+                  this.reverseRelationshipName,
+                  this.reverseRelationshipType
+                );
+              },
+              reverseRelationshipForeignKeyColumnName: null,
+              reverseRelationshipName: null,
+              reverseRelationshipType: null,
+            };
+
+            reverseRelationshipTable[SourceClass.name].push(metadata);
+
+            return Object.assign(result, { [relationshipName]: metadata });
           }, {})
         );
       });
     }
 
-    if (relationshipType) {
+    if (relationshipTypeFilter) {
       let relationshipTable = this._relationshipTable.get(Class.name) as RelationshipTable;
 
       return Object.keys(relationshipTable).reduce((result, relationshipName) => {
-        if (relationshipType === relationshipTable[relationshipName].relationshipType) {
+        if (relationshipTypeFilter === relationshipTable[relationshipName].relationshipType) {
           result[relationshipName] = relationshipTable[relationshipName];
         }
 
@@ -115,107 +143,58 @@ export default class RelationshipSchema {
     return this._relationshipTable.get(Class.name) as RelationshipTable;
   }
 
+  // NOTE: Faster lookup/cache needed for updating existing reverse relationships on CRUD, why cant this be the object?
   static _reverseRelationshipTables: ModuleDatabase<ReverseRelationshipsTable> = new Map();
   static getReverseRelationshipsTable(Class: typeof Model): ReverseRelationshipsTable {
-    if (!this._reverseRelationshipTables.has(Class.name)) {
-      this._reverseRelationshipTables.set(
-        Class.name,
-        {} as { ModelName: ReverseRelationshipMetadata[] } // NOTE: should this include all the relationships here(?)
-      );
-
-      for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
-        Object.keys(relationshipTable).forEach((relationshipName) => {
-          let SourceClass = Schema.Models.get(modelName) as typeof Class;
-          let { RelationshipClass } = relationshipTable[relationshipName];
-
-          if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
-            this._reverseRelationshipTables.set(
-              RelationshipClass.name,
-              {} as { ModelName: ReverseRelationshipMetadata[] }
-            );
-          }
-
-          let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
-            ModelName: ReverseRelationshipMetadata[];
-          };
-          if (!reverseRelationshipTable[SourceClass.name]) {
-            reverseRelationshipTable[SourceClass.name] = [];
-          }
-
-          // NOTE: why this is needed(?)
-          reverseRelationshipTable[SourceClass.name].push({
-            ...relationshipTable[relationshipName],
-            SourceClass: SourceClass,
-          });
-        });
-      }
-    }
-
     return this._reverseRelationshipTables.get(Class.name) as ReverseRelationshipsTable;
   }
 
   // Example: getRelationshipMetadataFor(User, 'photos') => { SourceClass: Photo, relationshipName: 'user' }
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
-    let currentMetadata = relationshipTable[relationshipName];
-    if (!currentMetadata.reverseRelationshipName) {
-      let reverseRelationshipMetadatas =
-        this.getReverseRelationshipsTable(Class)[currentMetadata.RelationshipClass.name];
-      let targetReverseRelationship =
+    let relationshipMetadata = relationshipTable[relationshipName];
+    if (!relationshipMetadata.reverseRelationshipName) {
+      let { foreignKeyColumnName, relationshipName, relationshipType, RelationshipClass } = relationshipMetadata;
+      let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class)[RelationshipClass.name];
+      let reverseRelationship =
         reverseRelationshipMetadatas &&
         reverseRelationshipMetadatas.find((reverseRelationship) => {
           if (
-            currentMetadata.relationshipType === "BelongsTo" &&
+            relationshipType === "BelongsTo" &&
             ["OneToOne", "HasMany"].includes(reverseRelationship.relationshipType)
           ) {
-            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
-          } else if (
-            reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
-          ) {
-            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
+            return reverseRelationship.SourceClass.name === RelationshipClass.name;
+          } else if (reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[relationshipType]) {
+            return reverseRelationship.SourceClass.name === RelationshipClass.name;
           }
 
           return false;
         });
-
-      if (targetReverseRelationship) {
-        Object.assign(currentMetadata, {
-          SourceClass: Class,
-          reverseRelationshipName: targetReverseRelationship.relationshipName,
-          reverseRelationshipForeignKeyColumnName: targetReverseRelationship.foreignKeyColumnName,
-          reverseRelationshipType: targetReverseRelationship.relationshipType,
-        });
-
-        targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
-        targetReverseRelationship.reverseRelationshipType = currentMetadata.relationshipType;
+      if (!reverseRelationship) {
+        // NOTE: in future generate missing relationships/fkey column yourself.
+        let targetReverseRelationship = relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
+        throw new Error(
+          `ReverseRelationship lookup not available for ${Class.name} ${relationshipName}. You need to define a ` +
+            `${targetReverseRelationship} that targets ${Class.name} on ${RelationshipClass.name} class!`
+        );
       }
-    }
 
-    return currentMetadata;
-  }
-
-  static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
-  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
-    if (!this._belongsToColumnNames.has(Class.name)) {
-      let belongsToRelationshipsTable = this.getRelationshipTable(Class, "BelongsTo");
-      let belongsToColumnNames = new Set() as Set<string>;
-
-      this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
-
-      Object.keys(belongsToRelationshipsTable).forEach((relationshipName) => {
-        let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipsTable[relationshipName];
-        this.getBelongsToColumnTable(Class)[foreignKeyColumnName as string] = {
-          RelationshipClass,
-          relationshipName,
-          reverseRelationshipName: this.getRelationshipMetadataFor(Class, relationshipName).reverseRelationshipName,
-        };
-        belongsToColumnNames.add(foreignKeyColumnName as string);
+      Object.assign(relationshipMetadata, {
+        reverseRelationshipName: reverseRelationship.relationshipName,
+        reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
+        reverseRelationshipType: reverseRelationship.relationshipType,
+      });
+      Object.assign(reverseRelationship, {
+        reverseRelationshipName: relationshipName,
+        reverseRelationshipType: relationshipType,
+        reverseRelationshipForeignKeyColumnName: foreignKeyColumnName,
       });
     }
 
-    return this._belongsToColumnNames.get(Class.name) as Set<string>;
+    return relationshipMetadata;
   }
 
+  // NOTE: Faster lookup/cache for BelongsTo relationshipMetadata Query
   static _belongsToColumnTable: ModuleDatabase<BelongsToColumnTable> = new Map();
   static getBelongsToColumnTable(Class: typeof Model): BelongsToColumnTable {
     if (!this._belongsToColumnTable.has(Class.name)) {
@@ -225,23 +204,43 @@ export default class RelationshipSchema {
     return this._belongsToColumnTable.get(Class.name) as BelongsToColumnTable;
   }
 
-  static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
-    let summary = {};
-    for (let modelName of Schema.Models.keys()) {
-      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
+  static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
+  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
+    if (!this._belongsToColumnNames.has(Class.name)) {
+      let belongsToColumnNames = new Set() as Set<string>;
 
-      summary[modelName] = Object.keys(modelRelationTable).reduce((result, relationshipName) => {
-        let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
+      this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
 
-        result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)
-          ? [RelationshipClass]
-          : RelationshipClass;
+      let belongsToRelationshipsTable = this.getRelationshipTable(Class, "BelongsTo");
+      Object.keys(belongsToRelationshipsTable).forEach((relationshipName) => {
+        let relationshipMetadata = belongsToRelationshipsTable[relationshipName];
+        let foreignKeyColumnName = relationshipMetadata.foreignKeyColumnName as string;
 
-        return result;
-      }, {});
+        this.getBelongsToColumnTable(Class)[foreignKeyColumnName] = relationshipMetadata;
+        belongsToColumnNames.add(foreignKeyColumnName);
+      });
     }
 
-    return summary as ModuleDatabase<RelationshipSummary>;
+    return this._belongsToColumnNames.get(Class.name) as Set<string>;
+  }
+
+  static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
+    return Array.from(Schema.Models.keys()).reduce((result, modelName) => {
+      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
+
+      return {
+        ...result,
+        [modelName]: Object.keys(modelRelationTable).reduce((modelRelationships, relationshipName) => {
+          let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
+
+          modelRelationships[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)
+            ? [RelationshipClass]
+            : RelationshipClass;
+
+          return modelRelationships;
+        }, {}),
+      };
+    }, {}) as ModuleDatabase<RelationshipSummary>;
   }
 
   static resetSchema(Class?: typeof Model) {
@@ -251,10 +250,12 @@ export default class RelationshipSchema {
     if (Class) {
       this._belongsToColumnNames.delete(Model.name);
       this._belongsToColumnTable.delete(Model.name);
-    } else {
-      this._belongsToColumnNames.clear();
-      this._belongsToColumnTable.clear();
+
+      return this;
     }
+
+    this._belongsToColumnNames.clear();
+    this._belongsToColumnTable.clear();
 
     return this;
   }

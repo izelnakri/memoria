@@ -212,6 +212,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         updated_at: new Date("2015-10-25T20:54:04.447Z"),
         is_important: true,
         uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
+        group_uuid: null,
         photo_id: 1,
         user_id: null,
       });
@@ -222,6 +223,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
           updated_at: new Date("2015-10-25T20:54:04.447Z"),
           is_important: true,
           uuid: "6e1aed96-9ef7-4685-981d-db004c568zzz",
+          group_uuid: null,
           photo_id: 1,
           user_id: null,
         },
@@ -290,6 +292,7 @@ module("@memoria/adapters | RESTAdapter | $Model.insert()", function (hooks) {
         "is_important",
         "inserted_at",
         "updated_at",
+        "group_uuid",
         "user_id",
         "photo_id",
       ]);

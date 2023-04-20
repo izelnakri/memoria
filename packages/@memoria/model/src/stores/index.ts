@@ -3,7 +3,7 @@ import DB from "./db.js";
 import RelationshipSchema from "./relationship/schema.js";
 import RelationshipDB from "./relationship/db.js";
 import RelationshipQuery from "./relationship/query.js";
-import RelationshipUtils from "./relationship/utils.js";
+import RelationshipMutation from "./relationship/mutation.js";
 import InstanceDB from "./instance/db.js";
 
 export type {
@@ -13,4 +13,4 @@ export type {
   RelationshipMetadata,
 } from "./relationship/schema.js";
 
-export { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipQuery, RelationshipUtils, InstanceDB };
+export { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipQuery, RelationshipMutation, InstanceDB };

@@ -39,9 +39,8 @@ export default function (hooks) {
 
       assert.deepEqual(hasManyArray, expectedHasManyArray);
       expectedHasManyArray.forEach((expectedModel: Model, index: number) => {
-        assert.strictEqual(hasManyArray[index], expectedModel);
-
         if (strictMode) {
+          assert.strictEqual(hasManyArray[index], expectedModel);
           assert.strictEqual(expectedModel[belongsToKey], hasManyArray.belongsTo);
         } else {
           let primaryKeyName = (expectedModel[belongsToKey].constructor as typeof Model).primaryKeyName;

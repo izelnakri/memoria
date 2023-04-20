@@ -34,8 +34,8 @@ export default function generateGroup() {
     @Column()
     owner_uuid: number;
 
-    @ManyToMany(User)
-    users;
+    // @ManyToMany(User)
+    // users;
 
     @BelongsTo(User)
     owner;

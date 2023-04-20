@@ -10,7 +10,7 @@ export {
   RelationshipDB,
   RelationshipQuery,
   RelationshipSchema,
-  RelationshipUtils,
+  RelationshipMutation,
 } from "./stores/index.js";
 export type {
   RelationshipType,
