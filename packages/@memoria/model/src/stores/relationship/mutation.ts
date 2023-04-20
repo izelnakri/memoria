@@ -4,8 +4,17 @@ import type Model from "../../model.js";
 import type { PrimaryKey } from "../../model.js";
 import type { RelationshipMetadata, RelationshipCache } from "./schema.js";
 
-export default class RelationshipQuery {
+export default class RelationshipMutation {
   // NOTE: In future it should score them by lastPersisted = timestamp and get the most fresh reference(?)
+  // TODO: BelongsTo lookup should add or edit instance on the hasMany array(if needed)(do it across all possible arrays(?) here there is iteration though?
+  //
+  // builtPhoto.owner lookup assigns append to secondUser.photos anotherSecondUser.photos
+  //
+
+  // static refreshHasManyRelationships(model: Model, metadata: RelationshipMetadata) {
+
+  // }
+
   static findPossibleReferenceInMemory(model: Model, metadata: RelationshipMetadata): Model | null | undefined {
     let {
       RelationshipClass,
@@ -247,15 +256,17 @@ export default class RelationshipQuery {
     reverseRelationshipCache: RelationshipCache
   ) {
     if (reverseRelationshipCache) {
-      return Array.from(InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).reduce((result, instanceSet) => {
-        instanceSet.forEach((instance) => {
-          if (reverseRelationshipCache.get(instance) === source) {
-            result.add(instance);
-          }
-        });
+      return Array.from(
+        InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).reduce((result, instanceSet) => {
+          instanceSet.forEach((instance) => {
+            if (reverseRelationshipCache.get(instance) === source) {
+              result.add(instance);
+            }
+          });
 
-        return result;
-      }, new Set() as Set<Model>));
+          return result;
+        }, new Set() as Set<Model>)
+      );
     }
 
     return [];

@@ -1,7 +1,7 @@
 import Model from "../../model.js";
 import RelationshipSchema, { ARRAY_ASKING_RELATIONSHIPS } from "./schema.js";
 import RelationshipUtils from "./utils.js";
-import RelationshipQuery from "./query.js";
+import RelationshipMutation from "./mutation.js";
 import InstanceDB from "../instance/db.js";
 import { clearObject } from "../../utils/index.js";
 import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
@@ -87,10 +87,15 @@ export default class RelationshipDB {
     return outputRecord;
   }
 
+  // NOTE: null doesnt get cached on fetch
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
     let Class = model.constructor as typeof Model;
-    let cache = RelationshipDB.findRelationshipCacheFor(Class, metadata.relationshipName, metadata.relationshipType);
-    if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
+    let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
+      metadata;
+    let cache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName, relationshipType);
+    let previousRelationship = cache.get(model);
+    if (ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)) {
+      // TODO: doesnt clear existing relationship
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
       cache.set(model, array);
@@ -98,6 +103,19 @@ export default class RelationshipDB {
       return array;
     } else if (relationship) {
       cache.set(model, relationship);
+    }
+
+    if (reverseRelationshipName && relationshipType === "BelongsTo") {
+      // TODO:
+      let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
+        RelationshipClass,
+        reverseRelationshipName,
+        reverseRelationshipType as string
+      );
+      let reverseRelationship = reverseRelationshipCache;
+      // previousRelationship or newAssigned reflection(?!?)
+
+      // let reverseRelationshipCache =
     }
 
     return relationship;
@@ -312,9 +330,13 @@ export default class RelationshipDB {
       return RelationshipDB.cacheRelationship(model, metadata, null);
     }
 
-    let result = RelationshipQuery.findPossibleReferenceInMemory(model, metadata);
+    let result = ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)
+      ? null
+      : RelationshipMutation.findPossibleReferenceInMemory(model, metadata);
 
-    return result ? RelationshipDB.cacheRelationship(model, metadata, result) : Class.Adapter.fetchRelationship(model, relationshipName, metadata);
+    return result
+      ? RelationshipDB.cacheRelationship(model, metadata, result)
+      : Class.Adapter.fetchRelationship(model, relationshipName, metadata);
   }
 
   // TODO: make this work for hasMany and its array replacement

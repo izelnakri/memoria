@@ -378,7 +378,7 @@ export default class MemoryAdapter {
   static fetchRelationship(model: MemoriaModel, relationshipName: string, relationshipMetadata?: RelationshipMetadata) {
     let Model = model.constructor as typeof MemoriaModel;
     let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
-    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+    let { relationshipType, RelationshipClass, reverseRelationshipName, SourceClass } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
       if (relationshipType === "BelongsTo") {
@@ -388,35 +388,41 @@ export default class MemoryAdapter {
         }
 
         return resolve(
-          RelationshipDB.cacheRelationship(model, metadata, RelationshipClass.peek(model[foreignKeyColumnName] as PrimaryKey))
+          RelationshipDB.cacheRelationship(
+            model,
+            metadata,
+            RelationshipClass.peek(model[foreignKeyColumnName] as PrimaryKey)
+          )
         );
       } else if (relationshipType === "OneToOne") {
-        if (reverseRelationshipName) {
-          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-          let relationship = model[Model.primaryKeyName]
-            ? await RelationshipClass.peekBy({
-                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-              })
-            : null;
-
-          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship || null));
-        }
-
-        return reject();
-      } else if (relationshipType === "HasMany") {
-        if (reverseRelationshipName) {
-          let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-
-          return resolve(
-            RelationshipDB.cacheRelationship(
-              model,
-              metadata,
-              RelationshipClass.peekAll({ [foreignKeyColumnName]: model[Model.primaryKeyName] })
-            )
+        let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+        if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
+          throw new Error(
+            `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
           );
         }
 
-        return reject();
+        let relationship = model[Model.primaryKeyName]
+          ? await RelationshipClass.peekBy({
+              [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+            })
+          : null;
+
+        return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
+      } else if (relationshipType === "HasMany") {
+        let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+        if (!reverseRelationshipForeignKeyColumnName) {
+          throw new Error(
+            `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+          );
+        }
+
+        let relationship = model[Model.primaryKeyName]
+          ? RelationshipClass.peekAll({ [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName] })
+          : [];
+        // NOTE: peekAll generate new instances each time, this is a feature, not a bug(?). That way when we mutate foreignKey of existing record, hasMany array stays in tact
+
+        return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
       }
 
       return resolve(null); // TODO: ManyToMany not implemented because of this, implement this

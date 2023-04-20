@@ -8,7 +8,7 @@ export {
   DB,
   InstanceDB,
   RelationshipDB,
-  RelationshipQuery,
+  RelationshipMutation,
   RelationshipSchema,
   RelationshipUtils,
 } from "./stores/index.js";

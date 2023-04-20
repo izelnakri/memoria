@@ -1,6 +1,6 @@
 import Model from "../../model.js";
 import RelationshipDB from "./db.js";
-import RelationshipQuery from "./query.js";
+import RelationshipMutation from "./mutation.js";
 import InstanceDB from "../instance/db.js";
 import type { RelationshipType, RelationshipCache, RelationshipMetadata } from "./schema.js";
 
@@ -87,7 +87,7 @@ export default class RelationshipUtils {
     relationshipCache: RelationshipCache,
     reverseRelationshipCache: RelationshipCache
   ) {
-    let reverseRelationships = RelationshipQuery.findReverseRelationships(
+    let reverseRelationships = RelationshipMutation.findReverseRelationships(
       source,
       existingRelationship,
       reverseRelationshipCache

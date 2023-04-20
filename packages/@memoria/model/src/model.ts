@@ -10,7 +10,7 @@ import {
   RelationshipSchema,
   RelationshipDB,
   RelationshipUtils,
-  RelationshipQuery,
+  RelationshipMutation,
   InstanceDB,
 } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
@@ -55,7 +55,7 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
-  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipQuery, InstanceDB };
+  static DEBUG = { Schema, DB, RelationshipSchema, RelationshipDB, RelationshipMutation, InstanceDB };
 
   static get Cache() {
     return DB.getDB(this);
