@@ -8,6 +8,7 @@ import Model, {
 } from "@memoria/model";
 import User from "./user.js";
 import Photo from "./photo.js";
+import Group from "./group.js";
 
 export default function generatePhotoComment() {
   class MemoryPhotoComment extends Model {
@@ -29,16 +30,22 @@ export default function generatePhotoComment() {
     updated_at: Date;
 
     @Column("int")
-    user_id: number;
+    group_id: number;
 
     @Column("int")
     photo_id: number;
 
-    @BelongsTo(User)
-    user;
+    @Column("int")
+    user_id: number;
+
+    @BelongsTo(Group)
+    group;
 
     @BelongsTo(Photo)
     photo;
+
+    @BelongsTo(User)
+    user;
   }
 
   return MemoryPhotoComment;

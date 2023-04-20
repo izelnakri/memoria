@@ -25,6 +25,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         updated_at: String,
         is_important: true,
         content: "Interesting indeed",
+        group_uuid: null,
         photo_id: 2,
         user_id: 1,
       });
@@ -120,6 +121,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         updated_at: String,
         is_important: true,
         content: "Coolie",
+        group_uuid: null,
         user_id: 1,
         photo_id: 2,
       });
@@ -140,6 +142,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         is_important: true,
         updated_at: comment.updated_at,
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        group_uuid: null,
         user_id: 1,
         photo_id: 2,
       });
@@ -150,6 +153,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           is_important: true,
           updated_at: comment.inserted_at,
           uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          group_uuid: null,
           user_id: 1,
           photo_id: 2,
         },
@@ -159,6 +163,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           is_important: true,
           updated_at: comment.updated_at,
           uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          group_uuid: null,
           user_id: 1,
           photo_id: 2,
         },
@@ -199,6 +204,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         is_important: true,
         updated_at: String,
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+        group_uuid: null,
         photo_id: 2,
         user_id: 1,
       });

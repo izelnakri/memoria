@@ -56,11 +56,17 @@ export default function generateModels() {
     @UpdateDateColumn()
     updated_at: Date;
 
+    @Column("varchar", { nullable: true })
+    group_uuid: string;
+
     @Column("int", { nullable: true })
     user_id: number;
 
     @Column("int", { nullable: true })
     photo_id: number;
+
+    @BelongsTo(() => SQLGroup)
+    group;
 
     @BelongsTo(() => SQLUser)
     user;

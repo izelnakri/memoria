@@ -18,6 +18,7 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       PhotoComment: {
         photo: Photo,
         user: User,
+        group: Group,
       },
       User: {
         photos: [Photo],
@@ -49,8 +50,9 @@ module("@memoria/model | $Model.relationships", function (hooks) {
     assert.propEqual(RelationshipSchema.getRelationshipTable(User, "BelongsTo"), {});
     assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Photo, "BelongsTo")), ["owner", "group"]);
     assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(PhotoComment, "BelongsTo")), [
-      "user",
+      "group",
       "photo",
+      "user",
     ]);
     assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Group, "BelongsTo")), ["owner"]);
   });
@@ -61,7 +63,7 @@ module("@memoria/model | $Model.relationships", function (hooks) {
     assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(User, "HasMany")), [
       "photos",
       "photoComments",
-      "ownedGroups"
+      "ownedGroups",
     ]);
     assert.propEqual(Object.keys(RelationshipSchema.getRelationshipTable(Photo, "HasMany")), ["comments"]);
     assert.propEqual(RelationshipSchema.getRelationshipTable(PhotoComment, "HasMany"), {});

@@ -9,6 +9,7 @@ import Model, {
 import { RESTAdapter } from "@memoria/adapters";
 import User from "./user.js";
 import Photo from "./photo.js";
+import Group from "./group.js";
 
 export default function generatePhotoComment() {
   class RESTPhotoComment extends Model {
@@ -39,10 +40,16 @@ export default function generatePhotoComment() {
     updated_at: Date;
 
     @Column()
+    group_uuid: string;
+
+    @Column()
     user_uuid: string;
 
     @Column()
     photo_uuid: string;
+
+    @BelongsTo(Group)
+    group;
 
     @BelongsTo(User)
     user;

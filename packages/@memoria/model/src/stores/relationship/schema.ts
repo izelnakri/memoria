@@ -8,7 +8,6 @@ export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
 export type RelationshipType = "BelongsTo" | "OneToOne" | "HasMany" | "ManyToMany";
 export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 
-// TODO: add RelationshipCache and ReverseRelationshipCache here
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
   RelationshipCache: RelationshipCache;
@@ -16,9 +15,10 @@ export interface RelationshipMetadata {
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
   SourceClass: typeof Model;
-  ReverseRelationshipCache: null | RelationshipCache;
-  reverseRelationshipName: null | string;
-  reverseRelationshipType: null | RelationshipType;
+  // TODO: Create a runtime error when HasMany, HasOne or BelongsTo gets defined without a Reflective metadata on the target class
+  ReverseRelationshipCache: RelationshipCache;
+  reverseRelationshipName: string;
+  reverseRelationshipType: RelationshipType;
   reverseRelationshipForeignKeyColumnName: null | string;
 }
 
@@ -100,6 +100,14 @@ export default class RelationshipSchema {
                   : null,
               SourceClass,
               get ReverseRelationshipCache() {
+                if (!this.reverseRelationshipName || !this.reverseRelationshipType) {
+                  let targetReverseRelationship =
+                    this.relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
+                  throw new Error(
+                    `ReverseRelationship lookup not available for ${this.SourceClass.name} ${this.relationshipName}. You need to define a ` +
+                      `${targetReverseRelationship} that targets ${this.SourceClass.name} on ${this.RelationshipClass.name} class!`
+                  );
+                }
 
                 return RelationshipDB.findRelationshipCacheFor(
                   this.RelationshipClass,
@@ -144,43 +152,46 @@ export default class RelationshipSchema {
   // Example: getRelationshipMetadataFor(User, 'photos') => { SourceClass: Photo, relationshipName: 'user' }
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
-    let currentMetadata = relationshipTable[relationshipName];
-    // NOTE: This .find() iteration runs on each not found reverseRelationshipName, this should go to init reg ideally
-    if (!currentMetadata.reverseRelationshipName) {
-      let reverseRelationshipMetadatas =
-        this.getReverseRelationshipsTable(Class)[currentMetadata.RelationshipClass.name];
+    let relationshipMetadata = relationshipTable[relationshipName];
+    if (!relationshipMetadata.reverseRelationshipName) {
+      let { foreignKeyColumnName, relationshipName, relationshipType, RelationshipClass } = relationshipMetadata;
+      let reverseRelationshipMetadatas = this.getReverseRelationshipsTable(Class)[RelationshipClass.name];
       let reverseRelationship =
         reverseRelationshipMetadatas &&
         reverseRelationshipMetadatas.find((reverseRelationship) => {
           if (
-            currentMetadata.relationshipType === "BelongsTo" &&
+            relationshipType === "BelongsTo" &&
             ["OneToOne", "HasMany"].includes(reverseRelationship.relationshipType)
           ) {
-            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
-          } else if (
-            reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[currentMetadata.relationshipType]
-          ) {
-            return reverseRelationship.SourceClass.name === currentMetadata.RelationshipClass.name;
+            return reverseRelationship.SourceClass.name === RelationshipClass.name;
+          } else if (reverseRelationship.relationshipType === REVERSE_RELATIONSHIP_LOOKUPS[relationshipType]) {
+            return reverseRelationship.SourceClass.name === RelationshipClass.name;
           }
 
           return false;
         });
-
-      if (reverseRelationship) {
-        Object.assign(currentMetadata, {
-          reverseRelationshipName: reverseRelationship.relationshipName,
-          reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
-          reverseRelationshipType: reverseRelationship.relationshipType,
-        });
-        Object.assign(reverseRelationship, {
-          reverseRelationshipName: currentMetadata.relationshipName,
-          reverseRelationshipType: currentMetadata.relationshipType,
-          reverseRelationshipForeignKeyColumnName: currentMetadata.foreignKeyColumnName,
-        });
+      if (!reverseRelationship) {
+        // NOTE: in future generate missing relationships/fkey column yourself.
+        let targetReverseRelationship = relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
+        throw new Error(
+          `ReverseRelationship lookup not available for ${Class.name} ${relationshipName}. You need to define a ` +
+            `${targetReverseRelationship} that targets ${Class.name} on ${RelationshipClass.name} class!`
+        );
       }
+
+      Object.assign(relationshipMetadata, {
+        reverseRelationshipName: reverseRelationship.relationshipName,
+        reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
+        reverseRelationshipType: reverseRelationship.relationshipType,
+      });
+      Object.assign(reverseRelationship, {
+        reverseRelationshipName: relationshipName,
+        reverseRelationshipType: relationshipType,
+        reverseRelationshipForeignKeyColumnName: foreignKeyColumnName,
+      });
     }
 
-    return currentMetadata;
+    return relationshipMetadata;
   }
 
   // NOTE: Faster lookup/cache for BelongsTo relationshipMetadata Query
