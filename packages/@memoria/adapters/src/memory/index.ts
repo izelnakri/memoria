@@ -380,7 +380,7 @@ export default class MemoryAdapter {
     let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
     let { relationshipType, RelationshipClass, reverseRelationshipName, SourceClass } = metadata;
 
-    return new RelationshipPromise(async (resolve, reject) => {
+    return new RelationshipPromise(async (resolve, _reject) => {
       if (relationshipType === "BelongsTo") {
         let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
         if (!model[foreignKeyColumnName]) {

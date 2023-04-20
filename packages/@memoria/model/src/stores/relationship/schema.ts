@@ -1,5 +1,6 @@
 import Model from "../../model.js";
 import Schema from "../schema.js";
+import RelationshipDB from "./db.js";
 import type { ModelName, ModuleDatabase } from "../../types.js";
 
 export const ARRAY_ASKING_RELATIONSHIPS = new Set(["HasMany", "ManyToMany"]);
@@ -10,10 +11,12 @@ export type RelationshipCache = WeakMap<Model, null | Model | Model[]>;
 // TODO: add RelationshipCache and ReverseRelationshipCache here
 export interface RelationshipMetadata {
   RelationshipClass: typeof Model;
+  RelationshipCache: RelationshipCache;
   relationshipName: string;
   relationshipType: RelationshipType;
   foreignKeyColumnName: null | string;
-  SourceClass: null | typeof Model;
+  SourceClass: typeof Model;
+  ReverseRelationshipCache: null | RelationshipCache;
   reverseRelationshipName: null | string;
   reverseRelationshipType: null | RelationshipType;
   reverseRelationshipForeignKeyColumnName: null | string;
@@ -23,19 +26,8 @@ export interface RelationshipTable {
   [relationshipName: string]: RelationshipMetadata;
 }
 
-// TODO: Remove this data structure
-export interface ReverseRelationshipMetadata {
-  SourceClass: typeof Model;
-  relationshipName: string;
-  relationshipType: RelationshipType;
-  foreignKeyColumnName: null | string;
-  reverseRelationshipName: null | string;
-  reverseRelationshipType: null | RelationshipType;
-  reverseRelationshipForeignKeyColumnName: null | string;
-}
-
 export interface ReverseRelationshipsTable {
-  ModelName: ReverseRelationshipMetadata[];
+  ModelName: RelationshipMetadata[];
 }
 
 export interface RelationshipSummary {
@@ -64,9 +56,10 @@ const REVERSE_RELATIONSHIP_LOOKUPS = {
 
 export default class RelationshipSchema {
   static _relationshipTable: Map<ModelName, RelationshipTable> = new Map();
-  static getRelationshipTable(Class: typeof Model, relationshipType?: RelationshipType): RelationshipTable {
+  static getRelationshipTable(Class: typeof Model, relationshipTypeFilter?: RelationshipType): RelationshipTable {
     if (!this._relationshipTable.has(Class.name)) {
       Schema.Schemas.forEach((modelSchema) => {
+        let SourceClass = modelSchema.target as typeof Class;
         let modelRelations = modelSchema.relations;
 
         this._relationshipTable.set(
@@ -79,17 +72,15 @@ export default class RelationshipSchema {
             return Object.assign(result, {
               [relationName]: {
                 RelationshipClass,
+                RelationshipCache: RelationshipDB.findRelationshipCacheFor(SourceClass, relationName, relationshipType),
                 relationshipName: relationName,
                 relationshipType,
                 foreignKeyColumnName:
                   relationshipType === "BelongsTo"
-                    ? getTargetRelationshipForeignKey(
-                        modelSchema.target, // NOTE: maybe this is modelSchema.target()
-                        relationName,
-                        RelationshipClass
-                      )
+                    ? getTargetRelationshipForeignKey(SourceClass, relationName, RelationshipClass)
                     : null,
-                SourceClass: Class,
+                SourceClass,
+                ReverseRelationshipCache: null,
                 reverseRelationshipForeignKeyColumnName: null,
                 reverseRelationshipName: null,
                 reverseRelationshipType: null,
@@ -100,11 +91,11 @@ export default class RelationshipSchema {
       });
     }
 
-    if (relationshipType) {
+    if (relationshipTypeFilter) {
       let relationshipTable = this._relationshipTable.get(Class.name) as RelationshipTable;
 
       return Object.keys(relationshipTable).reduce((result, relationshipName) => {
-        if (relationshipType === relationshipTable[relationshipName].relationshipType) {
+        if (relationshipTypeFilter === relationshipTable[relationshipName].relationshipType) {
           result[relationshipName] = relationshipTable[relationshipName];
         }
 
@@ -115,38 +106,31 @@ export default class RelationshipSchema {
     return this._relationshipTable.get(Class.name) as RelationshipTable;
   }
 
+  // NOTE: Faster lookup/cache needed for updating existing reverse relationships on CRUD, why cant this be the object?
   static _reverseRelationshipTables: ModuleDatabase<ReverseRelationshipsTable> = new Map();
   static getReverseRelationshipsTable(Class: typeof Model): ReverseRelationshipsTable {
     if (!this._reverseRelationshipTables.has(Class.name)) {
       this._reverseRelationshipTables.set(
         Class.name,
-        {} as { ModelName: ReverseRelationshipMetadata[] } // NOTE: should this include all the relationships here(?)
+        {} as { ModelName: RelationshipMetadata[] } // NOTE: should this include all the relationships here(?)
       );
 
       for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
         Object.keys(relationshipTable).forEach((relationshipName) => {
-          let SourceClass = Schema.Models.get(modelName) as typeof Class;
           let { RelationshipClass } = relationshipTable[relationshipName];
-
           if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
-            this._reverseRelationshipTables.set(
-              RelationshipClass.name,
-              {} as { ModelName: ReverseRelationshipMetadata[] }
-            );
+            this._reverseRelationshipTables.set(RelationshipClass.name, {} as { ModelName: RelationshipMetadata[] });
           }
 
+          let SourceClass = Schema.Models.get(modelName) as typeof Class;
           let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
-            ModelName: ReverseRelationshipMetadata[];
+            ModelName: RelationshipMetadata[];
           };
           if (!reverseRelationshipTable[SourceClass.name]) {
             reverseRelationshipTable[SourceClass.name] = [];
           }
 
-          // NOTE: why this is needed(?)
-          reverseRelationshipTable[SourceClass.name].push({
-            ...relationshipTable[relationshipName],
-            SourceClass: SourceClass,
-          });
+          reverseRelationshipTable[SourceClass.name].push(relationshipTable[relationshipName]);
         });
       }
     }
@@ -161,7 +145,7 @@ export default class RelationshipSchema {
     if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipMetadatas =
         this.getReverseRelationshipsTable(Class)[currentMetadata.RelationshipClass.name];
-      let targetReverseRelationship =
+      let reverseRelationship =
         reverseRelationshipMetadatas &&
         reverseRelationshipMetadatas.find((reverseRelationship) => {
           if (
@@ -178,16 +162,17 @@ export default class RelationshipSchema {
           return false;
         });
 
-      if (targetReverseRelationship) {
+      if (reverseRelationship) {
         Object.assign(currentMetadata, {
-          SourceClass: Class,
-          reverseRelationshipName: targetReverseRelationship.relationshipName,
-          reverseRelationshipForeignKeyColumnName: targetReverseRelationship.foreignKeyColumnName,
-          reverseRelationshipType: targetReverseRelationship.relationshipType,
+          reverseRelationshipName: reverseRelationship.relationshipName,
+          reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
+          reverseRelationshipType: reverseRelationship.relationshipType,
         });
-
-        targetReverseRelationship.reverseRelationshipName = currentMetadata.relationshipName;
-        targetReverseRelationship.reverseRelationshipType = currentMetadata.relationshipType;
+        Object.assign(reverseRelationship, {
+          reverseRelationshipName: currentMetadata.relationshipName,
+          reverseRelationshipType: currentMetadata.relationshipType,
+          reverseRelationshipForeignKeyColumnName: currentMetadata.foreignKeyColumnName,
+        });
       }
     }
 

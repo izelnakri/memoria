@@ -4,7 +4,7 @@ import RelationshipUtils from "./utils.js";
 import RelationshipMutation from "./mutation.js";
 import InstanceDB from "../instance/db.js";
 import { clearObject } from "../../utils/index.js";
-import type { RelationshipMetadata, ReverseRelationshipMetadata } from "./schema.js";
+import type { RelationshipMetadata } from "./schema.js";
 import HasManyArray from "../../has-many-array.js";
 
 type RelationshipTableKey = string; // Example: "MemoryUser:comments"
@@ -90,10 +90,12 @@ export default class RelationshipDB {
   // NOTE: null doesnt get cached on fetch
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
     let Class = model.constructor as typeof Model;
-    let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
-      metadata;
+    let { relationshipName, relationshipType, reverseRelationshipName } = metadata;
+    // let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
+    //   metadata;
+
     let cache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName, relationshipType);
-    let previousRelationship = cache.get(model);
+    // let previousRelationship = cache.get(model);
     if (ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)) {
       // TODO: doesnt clear existing relationship
       let array = new HasManyArray(relationship as Model[], model, metadata);
@@ -107,14 +109,13 @@ export default class RelationshipDB {
 
     if (reverseRelationshipName && relationshipType === "BelongsTo") {
       // TODO:
-      let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
-        RelationshipClass,
-        reverseRelationshipName,
-        reverseRelationshipType as string
-      );
-      let reverseRelationship = reverseRelationshipCache;
+      // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
+      //   RelationshipClass,
+      //   reverseRelationshipName,
+      //   reverseRelationshipType as string
+      // );
+      // let reverseRelationship = reverseRelationshipCache;
       // previousRelationship or newAssigned reflection(?!?)
-
       // let reverseRelationshipCache =
     }
 
@@ -133,7 +134,7 @@ export default class RelationshipDB {
   // NOTE: this can be optimized for batching
   static updateRelationshipsGloballyFromARelationship(
     model: Model,
-    reverseRelationshipMetadatas: ReverseRelationshipMetadata[],
+    reverseRelationshipMetadatas: RelationshipMetadata[],
     modelInstances: Set<Model>
   ) {
     let Class = model.constructor as typeof Model;
@@ -178,7 +179,7 @@ export default class RelationshipDB {
   static referenceIsRelatedTo(
     model: Model,
     reference: AnotherModel,
-    { relationshipName, relationshipType, SourceClass, foreignKeyColumnName }: ReverseRelationshipMetadata
+    { relationshipName, relationshipType, SourceClass, foreignKeyColumnName }: RelationshipMetadata
   ): void | boolean {
     if (
       relationshipType === "BelongsTo" &&
@@ -260,7 +261,7 @@ export default class RelationshipDB {
   // TODO: this currently only removes belongsTo, not an element from HasMany array!
   static deleteRelationshipsGloballyFromARelationship(
     _model: Model,
-    reverseRelationshipMetadatas: ReverseRelationshipMetadata[],
+    reverseRelationshipMetadatas: RelationshipMetadata[],
     modelInstances: Set<Model>
   ) {
     let modelInstancesArray = Array.from(modelInstances);
