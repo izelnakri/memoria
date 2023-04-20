@@ -30,16 +30,12 @@ export interface ReverseRelationshipsTable {
   ModelName: RelationshipMetadata[];
 }
 
-export interface RelationshipSummary {
-  [relationshipName: string]: typeof Model | Array<typeof Model>;
+interface BelongsToColumnTable {
+  [belongsToColumnForeignKeyName: string]: RelationshipMetadata;
 }
 
-interface BelongsToColumnTable {
-  [belongsToColumnForeignKeyName: string]: {
-    RelationshipClass: typeof Model;
-    relationshipName: string;
-    reverseRelationshipName: null | string;
-  };
+export interface RelationshipSummary {
+  [relationshipName: string]: typeof Model | Array<typeof Model>;
 }
 
 const MEMORIA_RELATIONSHIP_CONVERSIONS = {
@@ -142,6 +138,7 @@ export default class RelationshipSchema {
   static getRelationshipMetadataFor(Class: typeof Model, relationshipName: string) {
     let relationshipTable = this.getRelationshipTable(Class);
     let currentMetadata = relationshipTable[relationshipName];
+    // NOTE: This .find() iteration runs on each not found reverseRelationshipName, this should go to init reg ideally
     if (!currentMetadata.reverseRelationshipName) {
       let reverseRelationshipMetadatas =
         this.getReverseRelationshipsTable(Class)[currentMetadata.RelationshipClass.name];
@@ -164,11 +161,13 @@ export default class RelationshipSchema {
 
       if (reverseRelationship) {
         Object.assign(currentMetadata, {
+          ReverseRelationshipCache: reverseRelationship.RelationshipCache,
           reverseRelationshipName: reverseRelationship.relationshipName,
           reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
           reverseRelationshipType: reverseRelationship.relationshipType,
         });
         Object.assign(reverseRelationship, {
+          ReverseRelationshipCache: currentMetadata.RelationshipCache,
           reverseRelationshipName: currentMetadata.relationshipName,
           reverseRelationshipType: currentMetadata.relationshipType,
           reverseRelationshipForeignKeyColumnName: currentMetadata.foreignKeyColumnName,
@@ -179,28 +178,7 @@ export default class RelationshipSchema {
     return currentMetadata;
   }
 
-  static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
-  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
-    if (!this._belongsToColumnNames.has(Class.name)) {
-      let belongsToRelationshipsTable = this.getRelationshipTable(Class, "BelongsTo");
-      let belongsToColumnNames = new Set() as Set<string>;
-
-      this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
-
-      Object.keys(belongsToRelationshipsTable).forEach((relationshipName) => {
-        let { RelationshipClass, foreignKeyColumnName } = belongsToRelationshipsTable[relationshipName];
-        this.getBelongsToColumnTable(Class)[foreignKeyColumnName as string] = {
-          RelationshipClass,
-          relationshipName,
-          reverseRelationshipName: this.getRelationshipMetadataFor(Class, relationshipName).reverseRelationshipName,
-        };
-        belongsToColumnNames.add(foreignKeyColumnName as string);
-      });
-    }
-
-    return this._belongsToColumnNames.get(Class.name) as Set<string>;
-  }
-
+  // NOTE: Faster lookup/cache for BelongsTo relationshipMetadata Query
   static _belongsToColumnTable: ModuleDatabase<BelongsToColumnTable> = new Map();
   static getBelongsToColumnTable(Class: typeof Model): BelongsToColumnTable {
     if (!this._belongsToColumnTable.has(Class.name)) {
@@ -210,23 +188,43 @@ export default class RelationshipSchema {
     return this._belongsToColumnTable.get(Class.name) as BelongsToColumnTable;
   }
 
-  static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
-    let summary = {};
-    for (let modelName of Schema.Models.keys()) {
-      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
+  static _belongsToColumnNames: ModuleDatabase<Set<string>> = new Map();
+  static getBelongsToColumnNames(Class: typeof Model): Set<string> {
+    if (!this._belongsToColumnNames.has(Class.name)) {
+      let belongsToColumnNames = new Set() as Set<string>;
 
-      summary[modelName] = Object.keys(modelRelationTable).reduce((result, relationshipName) => {
-        let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
+      this._belongsToColumnNames.set(Class.name, belongsToColumnNames);
 
-        result[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)
-          ? [RelationshipClass]
-          : RelationshipClass;
+      let belongsToRelationshipsTable = this.getRelationshipTable(Class, "BelongsTo");
+      Object.keys(belongsToRelationshipsTable).forEach((relationshipName) => {
+        let relationshipMetadata = belongsToRelationshipsTable[relationshipName];
+        let foreignKeyColumnName = relationshipMetadata.foreignKeyColumnName as string;
 
-        return result;
-      }, {});
+        this.getBelongsToColumnTable(Class)[foreignKeyColumnName] = relationshipMetadata;
+        belongsToColumnNames.add(foreignKeyColumnName);
+      });
     }
 
-    return summary as ModuleDatabase<RelationshipSummary>;
+    return this._belongsToColumnNames.get(Class.name) as Set<string>;
+  }
+
+  static get relationshipsSummary(): ModuleDatabase<RelationshipSummary> {
+    return Array.from(Schema.Models.keys()).reduce((result, modelName) => {
+      let modelRelationTable = this.getRelationshipTable(Schema.Models.get(modelName) as typeof Model);
+
+      return {
+        ...result,
+        [modelName]: Object.keys(modelRelationTable).reduce((modelRelationships, relationshipName) => {
+          let { RelationshipClass, relationshipType } = modelRelationTable[relationshipName];
+
+          modelRelationships[relationshipName] = ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)
+            ? [RelationshipClass]
+            : RelationshipClass;
+
+          return modelRelationships;
+        }, {}),
+      };
+    }, {}) as ModuleDatabase<RelationshipSummary>;
   }
 
   static resetSchema(Class?: typeof Model) {
@@ -236,10 +234,12 @@ export default class RelationshipSchema {
     if (Class) {
       this._belongsToColumnNames.delete(Model.name);
       this._belongsToColumnTable.delete(Model.name);
-    } else {
-      this._belongsToColumnNames.clear();
-      this._belongsToColumnTable.clear();
+
+      return this;
     }
+
+    this._belongsToColumnNames.clear();
+    this._belongsToColumnTable.clear();
 
     return this;
   }
