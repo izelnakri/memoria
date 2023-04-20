@@ -21,8 +21,8 @@ export default function generateGroup() {
     @Column()
     name: string;
 
-    @ManyToMany(User)
-    users;
+    // @ManyToMany(User)
+    // users;
 
     @BelongsTo(User)
     owner;

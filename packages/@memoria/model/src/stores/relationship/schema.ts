@@ -69,6 +69,7 @@ export default class RelationshipSchema {
           Object.keys(modelRelations).reduce((result, relationshipName) => {
             let relation = modelSchema.relations[relationshipName];
             let RelationshipClass = typeof relation.target === "function" ? relation.target() : relation.target;
+            // let reflectiveRelationshipTable = this.getRelationshipTable(RelationshipClass);
             let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationshipName].type];
 
             if (!ReverseRelationshipTables.has(RelationshipClass.name)) {
@@ -84,11 +85,13 @@ export default class RelationshipSchema {
 
             let metadata = {
               RelationshipClass,
-              RelationshipCache: RelationshipDB.findRelationshipCacheFor(
-                SourceClass,
-                relationshipName,
-                relationshipType
-              ),
+              get RelationshipCache() {
+                return RelationshipDB.findRelationshipCacheFor(
+                  this.SourceClass,
+                  this.relationshipName,
+                  this.relationshipType
+                );
+              },
               relationshipName: relationshipName,
               relationshipType,
               foreignKeyColumnName:
@@ -96,7 +99,14 @@ export default class RelationshipSchema {
                   ? getTargetRelationshipForeignKey(SourceClass, relationshipName, RelationshipClass)
                   : null,
               SourceClass,
-              ReverseRelationshipCache: null,
+              get ReverseRelationshipCache() {
+
+                return RelationshipDB.findRelationshipCacheFor(
+                  this.RelationshipClass,
+                  this.reverseRelationshipName,
+                  this.reverseRelationshipType
+                );
+              },
               reverseRelationshipForeignKeyColumnName: null,
               reverseRelationshipName: null,
               reverseRelationshipType: null,
@@ -158,13 +168,11 @@ export default class RelationshipSchema {
 
       if (reverseRelationship) {
         Object.assign(currentMetadata, {
-          ReverseRelationshipCache: reverseRelationship.RelationshipCache,
           reverseRelationshipName: reverseRelationship.relationshipName,
           reverseRelationshipForeignKeyColumnName: reverseRelationship.foreignKeyColumnName,
           reverseRelationshipType: reverseRelationship.relationshipType,
         });
         Object.assign(reverseRelationship, {
-          ReverseRelationshipCache: currentMetadata.RelationshipCache,
           reverseRelationshipName: currentMetadata.relationshipName,
           reverseRelationshipType: currentMetadata.relationshipType,
           reverseRelationshipForeignKeyColumnName: currentMetadata.foreignKeyColumnName,

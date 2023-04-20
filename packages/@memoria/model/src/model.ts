@@ -15,7 +15,7 @@ import {
 } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
-import type { ModelReference, RelationshipType } from "./index.js";
+import type { ModelReference, RelationshipType, RelationshipMetadata } from "./index.js";
 // import HasManyArray from "./has-many-array.js";
 
 export type PrimaryKey = number | string;
