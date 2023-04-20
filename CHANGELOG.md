@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.30](https://github.com/izelnakri/memoria/compare/0.0.30...0.0.30)
+#### [0.0.31](https://github.com/izelnakri/memoria/compare/0.0.31...0.0.31)
+
+- Major RelationshipCache optimization [`#71`](https://github.com/izelnakri/memoria/pull/71)
+- major RelationshipCache lookup optimizations [`944a51a`](https://github.com/izelnakri/memoria/commit/944a51aa144333ac4a9d6fc16194aca045177842)
+- Memoria now more strict: runtime reflection checks [`c7a8c6f`](https://github.com/izelnakri/memoria/commit/c7a8c6fdbe203f493ad3d24aeadc098125f695ae)
+- Disable @ManyToMany functionality for now [`61774e0`](https://github.com/izelnakri/memoria/commit/61774e00cf666efdae963dd7b814e1aa63020a90)
+- FIX: sql peek test ordering [`142fcb6`](https://github.com/izelnakri/memoria/commit/142fcb6289fede715d11bc78184df3e88dd4a941)
+- RelationshipQuery -&gt; RelationshipMutation [`26788e5`](https://github.com/izelnakri/memoria/commit/26788e589ee7d2dbafc7150906770b27de83e994)
+- Cleanup RelationshipMetadata's [`d9474c5`](https://github.com/izelnakri/memoria/commit/d9474c5130a19dcdf86f10ad2079143bfade14b6)
+- Optimize ReverseRelationshipsTable lookup [`642c097`](https://github.com/izelnakri/memoria/commit/642c09731a1ee004251f940aaafe6a5f274c2e63)
+- Cleanup & optimize RelationshipSchema code [`a36bd08`](https://github.com/izelnakri/memoria/commit/a36bd089afa669e336554b8720d5f5e36501dcd8)
+
+#### [0.0.31](https://github.com/izelnakri/memoria/compare/0.0.30...0.0.31)
+
+> 16 April 2023
 
 - Big relationship query refactor [`#70`](https://github.com/izelnakri/memoria/pull/70)
 - SQLAdapter relationship tests now mature [`50a2edb`](https://github.com/izelnakri/memoria/commit/50a2edb029b86300c2afc3b20a8ebdc99801a6a6)
@@ -28,6 +42,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - FIX: Model.build mutate unknownInstanceCache right [`6f60366`](https://github.com/izelnakri/memoria/commit/6f60366396ed28bcc9ac37cfaa35c2131c7e96db)
 - assert.hasMany & assert.strictHasMany helpers [`1d1fc0a`](https://github.com/izelnakri/memoria/commit/1d1fc0ad451c999d21d5d2578fad275d99d5c50a)
 - options.cache changed to options.cacheDuration [`2e235a7`](https://github.com/izelnakri/memoria/commit/2e235a779231d171c35220d9019c3db8226dcbec)
+- Release 0.0.31 [`e52eb9a`](https://github.com/izelnakri/memoria/commit/e52eb9aeff6119b4077bd4769eba1cd9d4079122)
 - RelationshipQuery checks relationship.isPersisted [`73661cf`](https://github.com/izelnakri/memoria/commit/73661cf59c290dac6591030531445f882b68255c)
 - dont fetchRelationship OneToOne when model is null [`2bb7684`](https://github.com/izelnakri/memoria/commit/2bb76842e3b7dcbbd8c1725b8a8c2d37b8156a60)
 - slightly improve prepareTargetObjectFromInstance [`9626e93`](https://github.com/izelnakri/memoria/commit/9626e935b89933e6a958282ba82a56f058f90a2a)
