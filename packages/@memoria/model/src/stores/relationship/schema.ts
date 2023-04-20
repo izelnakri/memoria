@@ -54,34 +54,57 @@ export default class RelationshipSchema {
   static _relationshipTable: Map<ModelName, RelationshipTable> = new Map();
   static getRelationshipTable(Class: typeof Model, relationshipTypeFilter?: RelationshipType): RelationshipTable {
     if (!this._relationshipTable.has(Class.name)) {
+      const ReverseRelationshipTables = this._reverseRelationshipTables;
+
       Schema.Schemas.forEach((modelSchema) => {
         let SourceClass = modelSchema.target as typeof Class;
         let modelRelations = modelSchema.relations;
 
+        if (!ReverseRelationshipTables.has(SourceClass.name)) {
+          ReverseRelationshipTables.set(SourceClass.name, {} as ReverseRelationshipsTable);
+        }
+
         this._relationshipTable.set(
           modelSchema.name,
-          Object.keys(modelRelations).reduce((result, relationName) => {
-            let relation = modelSchema.relations[relationName];
+          Object.keys(modelRelations).reduce((result, relationshipName) => {
+            let relation = modelSchema.relations[relationshipName];
             let RelationshipClass = typeof relation.target === "function" ? relation.target() : relation.target;
-            let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationName].type];
+            let relationshipType = MEMORIA_RELATIONSHIP_CONVERSIONS[modelRelations[relationshipName].type];
 
-            return Object.assign(result, {
-              [relationName]: {
-                RelationshipClass,
-                RelationshipCache: RelationshipDB.findRelationshipCacheFor(SourceClass, relationName, relationshipType),
-                relationshipName: relationName,
-                relationshipType,
-                foreignKeyColumnName:
-                  relationshipType === "BelongsTo"
-                    ? getTargetRelationshipForeignKey(SourceClass, relationName, RelationshipClass)
-                    : null,
+            if (!ReverseRelationshipTables.has(RelationshipClass.name)) {
+              ReverseRelationshipTables.set(RelationshipClass.name, {} as ReverseRelationshipsTable);
+            }
+
+            let reverseRelationshipTable = ReverseRelationshipTables.get(
+              RelationshipClass.name
+            ) as ReverseRelationshipsTable;
+            if (!reverseRelationshipTable[SourceClass.name]) {
+              reverseRelationshipTable[SourceClass.name] = [];
+            }
+
+            let metadata = {
+              RelationshipClass,
+              RelationshipCache: RelationshipDB.findRelationshipCacheFor(
                 SourceClass,
-                ReverseRelationshipCache: null,
-                reverseRelationshipForeignKeyColumnName: null,
-                reverseRelationshipName: null,
-                reverseRelationshipType: null,
-              },
-            });
+                relationshipName,
+                relationshipType
+              ),
+              relationshipName: relationshipName,
+              relationshipType,
+              foreignKeyColumnName:
+                relationshipType === "BelongsTo"
+                  ? getTargetRelationshipForeignKey(SourceClass, relationshipName, RelationshipClass)
+                  : null,
+              SourceClass,
+              ReverseRelationshipCache: null,
+              reverseRelationshipForeignKeyColumnName: null,
+              reverseRelationshipName: null,
+              reverseRelationshipType: null,
+            };
+
+            reverseRelationshipTable[SourceClass.name].push(metadata);
+
+            return Object.assign(result, { [relationshipName]: metadata });
           }, {})
         );
       });
@@ -105,32 +128,6 @@ export default class RelationshipSchema {
   // NOTE: Faster lookup/cache needed for updating existing reverse relationships on CRUD, why cant this be the object?
   static _reverseRelationshipTables: ModuleDatabase<ReverseRelationshipsTable> = new Map();
   static getReverseRelationshipsTable(Class: typeof Model): ReverseRelationshipsTable {
-    if (!this._reverseRelationshipTables.has(Class.name)) {
-      this._reverseRelationshipTables.set(
-        Class.name,
-        {} as { ModelName: RelationshipMetadata[] } // NOTE: should this include all the relationships here(?)
-      );
-
-      for (let [modelName, relationshipTable] of this._relationshipTable.entries()) {
-        Object.keys(relationshipTable).forEach((relationshipName) => {
-          let { RelationshipClass } = relationshipTable[relationshipName];
-          if (!this._reverseRelationshipTables.has(RelationshipClass.name)) {
-            this._reverseRelationshipTables.set(RelationshipClass.name, {} as { ModelName: RelationshipMetadata[] });
-          }
-
-          let SourceClass = Schema.Models.get(modelName) as typeof Class;
-          let reverseRelationshipTable = this._reverseRelationshipTables.get(RelationshipClass.name) as {
-            ModelName: RelationshipMetadata[];
-          };
-          if (!reverseRelationshipTable[SourceClass.name]) {
-            reverseRelationshipTable[SourceClass.name] = [];
-          }
-
-          reverseRelationshipTable[SourceClass.name].push(relationshipTable[relationshipName]);
-        });
-      }
-    }
-
     return this._reverseRelationshipTables.get(Class.name) as ReverseRelationshipsTable;
   }
 
