@@ -8,9 +8,9 @@ export {
   DB,
   InstanceDB,
   RelationshipDB,
-  RelationshipMutation,
+  RelationshipQuery,
   RelationshipSchema,
-  RelationshipUtils,
+  RelationshipMutation,
 } from "./stores/index.js";
 export type {
   RelationshipType,
