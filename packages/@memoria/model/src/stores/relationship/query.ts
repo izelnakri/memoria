@@ -2,7 +2,7 @@ import InstanceDB from "../instance/db.js";
 import RelationshipDB from "./db.js";
 import type Model from "../../model.js";
 import type { PrimaryKey } from "../../model.js";
-import type { RelationshipMetadata, RelationshipCache } from "./schema.js";
+import type { RelationshipMetadata } from "./schema.js";
 
 export default class RelationshipQuery {
   // NOTE: In future it should score them by lastPersisted = timestamp and get the most fresh reference(?)
@@ -252,23 +252,30 @@ export default class RelationshipQuery {
 
   static findReverseRelationships(
     source: Model,
-    existingRelationship: Model,
-    reverseRelationshipCache: RelationshipCache
+    RelationshipClass: typeof Model,
+    { ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata
   ) {
-    if (reverseRelationshipCache) {
-      return Array.from(
-        InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).reduce((result, instanceSet) => {
-          instanceSet.forEach((instance) => {
-            if (reverseRelationshipCache.get(instance) === source) {
-              result.add(instance);
-            }
-          });
+    if (reverseRelationshipType === "HasMany") {
+      return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {
+        instanceSet.forEach((instance) => {
+          let reverseRelationship = ReverseRelationshipCache.get(instance) as Model[];
+          if (reverseRelationship && reverseRelationship.includes(source)) {
+            result.push(instance);
+          }
+        });
 
-          return result;
-        }, new Set() as Set<Model>)
-      );
+        return result;
+      }, [] as Model[]);
     }
 
-    return [];
+    return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {
+      instanceSet.forEach((instance) => {
+        if (ReverseRelationshipCache.get(instance) === source) {
+          result.push(instance);
+        }
+      });
+
+      return result;
+    }, [] as Model[]);
   }
 }

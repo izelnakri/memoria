@@ -88,9 +88,10 @@ export default class RelationshipDB {
   }
 
   // NOTE: null doesnt get cached on fetch
+  // NOTE: belongsTo reflective mutations can be done here
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
     let Class = model.constructor as typeof Model;
-    let { relationshipName, relationshipType, reverseRelationshipName } = metadata;
+    let { relationshipName, relationshipType } = metadata;
     // let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
     //   metadata;
 
@@ -103,11 +104,15 @@ export default class RelationshipDB {
       cache.set(model, array);
 
       return array;
-    } else if (relationship) {
+    }
+
+    if (relationship) {
       cache.set(model, relationship);
     }
 
-    if (reverseRelationshipName && relationshipType === "BelongsTo") {
+    if (relationshipType === "BelongsTo") {
+      // let { ReverseRelationshipCache } = metadata;
+      // let reverseRelationship = ReverseRelationshipCache.get(relationship);
       // TODO:
       // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
       //   RelationshipClass,
@@ -343,7 +348,7 @@ export default class RelationshipDB {
   static set(model: Model, relationshipName: string, input: null | Model | Model[], _copySource?: Model) {
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-    let { RelationshipCache, reverseRelationshipName, reverseRelationshipType } = metadata;
+    let { RelationshipCache, reverseRelationshipType } = metadata;
     let existingRelationship = RelationshipCache.get(model);
 
     if (input === undefined) {
@@ -351,40 +356,22 @@ export default class RelationshipDB {
 
       if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
         (existingRelationship as HasManyArray).clear();
-      } else if (existingRelationship && reverseRelationshipName) {
-        RelationshipMutation.cleanRelationshipsOn(existingRelationship as Model, model, metadata);
+      } else if (existingRelationship) {
+        RelationshipMutation.cleanRelationshipsOn(model, metadata, existingRelationship as Model);
       }
 
       return model;
     }
 
-    let targetRelationship = formatInput(input, model, metadata);
+    let targetRelationship = generateNewArrayFromInputIfNeeded(input, model, metadata);
     if (existingRelationship === targetRelationship) {
       // NOTE: This sets the reflection to the recent one due to assignment
-      if (
-        targetRelationship &&
-        reverseRelationshipName &&
-        !ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType) &&
-        !ARRAY_ASKING_RELATIONSHIPS.has(reverseRelationshipType as string)
-      ) {
-        RelationshipMutation.setReflectiveSideRelationship(targetRelationship as Model, model, metadata);
+      if (targetRelationship && metadata.relationshipType !== "HasMany" && reverseRelationshipType !== "HasMany") {
+        RelationshipMutation.setReflectiveSideRelationship(model, targetRelationship as Model, metadata);
       }
 
       return model;
     } else if (metadata.relationshipType === "BelongsTo") {
-      if (reverseRelationshipType === "HasMany") {
-        // TODO: move this whole block to RelationshipMutation.cleanAndSetRelationshipFor(?)
-        RelationshipCache.set(model, targetRelationship);
-
-        model[metadata.foreignKeyColumnName as string] = targetRelationship
-          ? targetRelationship[metadata.RelationshipClass.primaryKeyName]
-          : null;
-
-        // TODO: maybe do something here
-
-        return;
-      }
-
       return RelationshipMutation.cleanAndSetBelongsToRelationshipFor(
         model,
         targetRelationship as Model | null,
@@ -416,7 +403,7 @@ export default class RelationshipDB {
   }
 }
 
-function formatInput(input, model, metadata) {
+function generateNewArrayFromInputIfNeeded(input, model, metadata) {
   if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
     // return new HasManyArray(input, model, metadata);
     // TODO: change the owner but in a new instance

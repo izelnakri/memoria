@@ -2,9 +2,10 @@ import Model from "../../model.js";
 import RelationshipDB from "./db.js";
 import RelationshipQuery from "./query.js";
 import InstanceDB from "../instance/db.js";
-import type { RelationshipCache, RelationshipMetadata } from "./schema.js";
+import type { RelationshipMetadata } from "./schema.js";
 
-const NON_FOREIGN_KEY_RELATIONSHIPS = ["OneToOne", "HasMany"];
+// const NON_FOREIGN_KEY_RELATIONSHIPS = ["OneToOne", "HasMany"];
+const SINGLE_VALUE_RELATIONSHIPS = ["BelongsTo", "OneToOne"];
 
 export default class RelationshipMutation {
   // NOTE: There are two cases when building(transfer/copy without removal), setting on demand
@@ -17,9 +18,8 @@ export default class RelationshipMutation {
   ) {
     let { foreignKeyColumnName, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
     let existingRelationship = RelationshipCache.get(model);
-    if (existingRelationship) {
-      this.cleanRelationshipsOn(model, existingRelationship as Model, metadata);
-    }
+
+    existingRelationship && this.cleanRelationshipsOn(model, metadata, existingRelationship as Model);
 
     RelationshipCache.set(model, targetRelationship);
 
@@ -28,7 +28,7 @@ export default class RelationshipMutation {
       : null;
 
     if (reverseRelationshipType === "OneToOne") {
-      this.setReflectiveSideRelationship(targetRelationship, model, metadata);
+      this.setReflectiveSideRelationship(model, targetRelationship, metadata);
     } else if (reverseRelationshipType === "HasMany") {
       // TODO: implement HasMany
     }
@@ -41,29 +41,31 @@ export default class RelationshipMutation {
   ) {
     let { RelationshipCache } = metadata;
     let existingRelationship = RelationshipCache.get(model);
-    if (existingRelationship) {
-      this.cleanRelationshipsOn(model, existingRelationship as Model, metadata); // NOTE: this cleans all the previous reverse relationships
-    }
+
+    existingRelationship && this.cleanRelationshipsOn(model, metadata, existingRelationship as Model); // NOTE: this cleans all the previous reverse relationships
 
     RelationshipCache.set(model, targetRelationship);
 
-    this.setReflectiveSideRelationship(targetRelationship, model, metadata);
+    this.setReflectiveSideRelationship(model, targetRelationship, metadata);
   }
 
   static cleanRelationshipsOn(
     source: Model,
-    existingRelationship: Model,
-    { reverseRelationshipForeignKeyColumnName, relationshipType, RelationshipCache, ReverseRelationshipCache }
+    metadata: RelationshipMetadata,
+    existingRelationship?: Model | null | undefined
   ) {
-    let reverseRelationships = RelationshipQuery.findReverseRelationships(
-      source,
-      existingRelationship,
-      ReverseRelationshipCache
-    );
+    let {
+      reverseRelationshipForeignKeyColumnName,
+      RelationshipClass,
+      relationshipType,
+      RelationshipCache,
+      ReverseRelationshipCache,
+    } = metadata;
+    let reverseRelationships = RelationshipQuery.findReverseRelationships(source, RelationshipClass, metadata); // NOTE: costly query
     let SourceClass = source.constructor as typeof Model;
-    let sourceIsAlsoReverse = sourceIsInExinstingRelationship(source, existingRelationship, ReverseRelationshipCache);
-    let freshRemainingSourceReference =
-      sourceIsAlsoReverse &&
+    let freshRemainingSourceReferenceToExistingRelationship =
+      existingRelationship &&
+      reverseRelationships.length > 0 &&
       Array.from(InstanceDB.getReferences(source))
         .reverse()
         .find((sourceReference) => {
@@ -75,35 +77,39 @@ export default class RelationshipMutation {
 
           if (relationshipType === "BelongsTo") {
             return RelationshipCache.get(sourceReference) === existingRelationship;
-          } else if (NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
+          } else if (relationshipType === "OneToOne") {
             return (
-              existingRelationship[reverseRelationshipForeignKeyColumnName] === source[SourceClass.primaryKeyName] &&
-              RelationshipCache.get(sourceReference) !== null
+              existingRelationship[reverseRelationshipForeignKeyColumnName as string] ===
+                source[SourceClass.primaryKeyName] && RelationshipCache.get(sourceReference) !== null
             ); // NOTE: This gets the fresh last instance most of the time
-          } // TODO: add ManyToMany, HasMany in future
+          } else if (relationshipType === "HasMany") {
+          } // TODO: add ManyToMany, HasMany in future. This might get the fresh last instance most of the time
         });
 
-    if (relationshipType === "BelongsTo" || relationshipType === "OneToOne") {
+    if (SINGLE_VALUE_RELATIONSHIPS.includes(relationshipType)) {
       RelationshipCache.delete(source);
 
       reverseRelationships.forEach((existingTargetRelationshipReference) => {
-        return freshRemainingSourceReference
-          ? ReverseRelationshipCache.set(existingTargetRelationshipReference, freshRemainingSourceReference)
+        return freshRemainingSourceReferenceToExistingRelationship
+          ? ReverseRelationshipCache.set(
+              existingTargetRelationshipReference,
+              freshRemainingSourceReferenceToExistingRelationship
+            )
           : ReverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
       });
     }
   }
 
   static setReflectiveSideRelationship(
-    targetRelationship: null | Model,
     model: Model,
+    targetRelationship: null | Model,
     { relationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }
   ) {
     // TODO: make this work for HasMany Arrays in future
-    if (ReverseRelationshipCache && targetRelationship) {
+    if (targetRelationship) {
       ReverseRelationshipCache.set(targetRelationship, model);
 
-      if (reverseRelationshipForeignKeyColumnName && NON_FOREIGN_KEY_RELATIONSHIPS.includes(relationshipType)) {
+      if (relationshipType === "OneToOne") {
         targetRelationship[reverseRelationshipForeignKeyColumnName] =
           model[(model.constructor as typeof Model).primaryKeyName];
       }
@@ -176,11 +182,11 @@ export default class RelationshipMutation {
   }
 }
 
-function sourceIsInExinstingRelationship(
-  source: Model,
-  existingRelationship: Model,
-  ReverseRelationshipCache: RelationshipCache
-) {
-  let cachedRelationship = ReverseRelationshipCache.get(existingRelationship);
-  return Array.isArray(cachedRelationship) ? cachedRelationship.includes(source) : cachedRelationship === source;
-}
+// function sourceIsInExinstingRelationship(
+//   source: Model,
+//   existingRelationship: Model,
+//   ReverseRelationshipCache: RelationshipCache
+// ) {
+//   let cachedRelationship = ReverseRelationshipCache.get(existingRelationship);
+//   return Array.isArray(cachedRelationship) ? cachedRelationship.includes(source) : cachedRelationship === source;
+// }

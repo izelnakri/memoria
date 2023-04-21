@@ -230,43 +230,19 @@ export default class Model {
               dirtyTrackAttribute(this, columnName, cache);
             }
 
-            // TODO: clean this part up
             if (belongsToColumnNames.has(columnName)) {
               let relationshipMetadata = belongsToTable[columnName];
-              let { RelationshipClass, relationshipName, RelationshipCache } = relationshipMetadata;
-              let existingRelationship = RelationshipCache.get(this);
+              let { RelationshipCache } = relationshipMetadata;
+
+              if (!RelationshipCache.has(this)) {
+                return RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata); // works for reverse relationships(OneToOne and HasMany)
+              }
+
+              let existingRelationship = RelationshipCache.get(this) as Model | null;
               let existingRelationshipPrimaryKey =
-                existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
-              if (RelationshipCache.has(this) && existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-                if (existingRelationship) {
-                  // TODO: should this be relationshipMetadata?
-                  RelationshipMutation.cleanRelationshipsOn(this, existingRelationship as Model, metadata);
-                }
-              } else if (!RelationshipCache.has(this)) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-                let ReverseRelationshipCache = relationshipMetadata.ReverseRelationshipCache;
-                let reverseRelationshipInstances: Model[] = ReverseRelationshipCache
-                  ? InstanceDB.getAllReferences(RelationshipClass).reduce((result: Model[], instanceSet) => {
-                      instanceSet.forEach((possibleRelationship) => {
-                        let reverseRelationshipResult = ReverseRelationshipCache.get(possibleRelationship);
-                        if (reverseRelationshipResult === this) {
-                          result.push(possibleRelationship);
-                        } else if (
-                          Array.isArray(reverseRelationshipResult) &&
-                          reverseRelationshipResult.includes(this)
-                        ) {
-                          // result.push(possibleRelationship); // TODO: what to do about this when building hasMany(?)
-                        }
-                      });
-                      return result;
-                    }, [])
-                  : [];
-                if (metadata.reverseRelationshipName) {
-                  reverseRelationshipInstances.forEach((reverseRelationshipInstance) => {
-                    ReverseRelationshipCache.delete(reverseRelationshipInstance);
-                  });
-                }
+                existingRelationship && existingRelationship[relationshipMetadata.RelationshipClass.primaryKeyName];
+              if (existingRelationship && existingRelationshipPrimaryKey !== cache) {
+                RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata, existingRelationship as Model);
               }
             }
           },
