@@ -143,7 +143,7 @@ module(
         assert.equal(photo.group, null);
         assert.equal(insertedPhoto.group, null);
 
-        secondPhoto.group = group;
+        secondPhoto.group_id = group.id;
 
         let secondInsertedPhoto = await MemoryPhoto.insert(secondPhoto);
 
@@ -198,7 +198,7 @@ module(
         assert.strictEqual(fetchedPhoto.group, group);
         assert.equal(fetchedPhoto.group_id, group.id);
 
-        fetchedPhoto.group = null;
+        fetchedPhoto.group_id = null;
 
         assert.equal(fetchedPhoto.group, null);
         assert.equal(fetchedPhoto.group_id, null);
@@ -223,7 +223,7 @@ module(
         assert.strictEqual(fetchedPhoto.group, group);
         assert.equal(fetchedPhoto.group_id, group.id);
 
-        fetchedPhoto.group = null;
+        fetchedPhoto.group_id = null;
 
         assert.equal(fetchedPhoto.group, null);
         assert.equal(fetchedPhoto.group_id, null);
@@ -314,7 +314,7 @@ module(
         assert.strictEqual(secondPhoto.group, insertedGroup);
         assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-        secondPhoto.group = insertedGroup;
+        secondPhoto.group_id = insertedGroup.id;
 
         assert.strictEqual(insertedGroup.photo, secondPhoto);
         assert.strictEqual(group.photo, secondPhoto);
@@ -374,7 +374,7 @@ module(
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_id, secondGroup.id);
 
-        photo.group = firstGroup;
+        photo.group_id = firstGroup.id;
 
         assert.strictEqual(photo.group, firstGroup);
         assert.equal(photo.group_id, firstGroup.id);
@@ -385,7 +385,7 @@ module(
         assert.strictEqual(insertedPhoto.group, firstGroup);
         assert.strictEqual(photo.group, insertedPhoto.group);
 
-        insertedPhoto.group = secondGroup;
+        insertedPhoto.group_id = secondGroup.id;
 
         assert.strictEqual(insertedPhoto.group, secondGroup);
         assert.equal(insertedPhoto.group_id, secondGroup.id);
@@ -395,7 +395,7 @@ module(
         assert.strictEqual(updatedPhoto.group, secondGroup);
         assert.strictEqual(insertedPhoto.group, secondGroup);
 
-        updatedPhoto.group = null;
+        updatedPhoto.group_id = null;
 
         assert.equal(updatedPhoto.group, null);
         assert.equal(updatedPhoto.group_id, null);
@@ -428,7 +428,7 @@ module(
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_id, secondGroup.id);
 
-        photo.group = firstGroup;
+        photo.group_id = firstGroup.id;
 
         assert.strictEqual(photo.group, firstGroup);
         assert.equal(photo.group_id, firstGroup.id);
@@ -438,7 +438,7 @@ module(
         assert.strictEqual(insertedPhoto.group, firstGroup);
         assert.strictEqual(photo.group, insertedPhoto.group);
 
-        insertedPhoto.group = secondGroup;
+        insertedPhoto.group_id = secondGroup.id;
 
         assert.strictEqual(insertedPhoto.group, secondGroup);
         assert.equal(insertedPhoto.group_id, secondGroup.id);
@@ -448,7 +448,7 @@ module(
         assert.strictEqual(updatedPhoto.group, secondGroup);
         assert.strictEqual(insertedPhoto.group, secondGroup);
 
-        updatedPhoto.group = null;
+        updatedPhoto.group_id = null;
 
         assert.equal(updatedPhoto.group, null);
         assert.equal(updatedPhoto.group_id, null);

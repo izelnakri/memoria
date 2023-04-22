@@ -135,7 +135,7 @@ module(
         let { Server, RESTPhoto, RESTGroup } = setupRESTModels();
         this.Server = Server;
 
-        let group = RESTGroup.build({ name: "Some group" });
+        let group = await RESTGroup.insert({ name: "Some group" });
         let photo = RESTPhoto.build({ name: "Dinner photo" });
         let secondPhoto = RESTPhoto.build({ name: "Second photo" });
 
@@ -147,7 +147,7 @@ module(
         assert.equal(photo.group, null);
         assert.equal(insertedPhoto.group, null);
 
-        secondPhoto.group = group;
+        secondPhoto.group_uuid = group.uuid;
 
         let secondInsertedPhoto = await RESTPhoto.insert(secondPhoto);
 
@@ -204,7 +204,7 @@ module(
         assert.strictEqual(fetchedPhoto.group, group);
         assert.equal(fetchedPhoto.group_uuid, group.uuid);
 
-        fetchedPhoto.group = null;
+        fetchedPhoto.group_uuid = null;
 
         assert.equal(fetchedPhoto.group, null);
         assert.equal(fetchedPhoto.group_uuid, null);
@@ -231,7 +231,7 @@ module(
         assert.strictEqual(fetchedPhoto.group, group);
         assert.equal(fetchedPhoto.group_uuid, group.uuid);
 
-        fetchedPhoto.group = null;
+        fetchedPhoto.group_uuid = null;
 
         assert.equal(fetchedPhoto.group, null);
         assert.equal(fetchedPhoto.group_uuid, null);
@@ -324,7 +324,7 @@ module(
         assert.strictEqual(secondPhoto.group, insertedGroup);
         assert.equal(secondPhoto.group_uuid, insertedGroup.uuid);
 
-        secondPhoto.group = insertedGroup;
+        secondPhoto.group_uuid = insertedGroup.uuid;
 
         assert.strictEqual(insertedGroup.photo, secondPhoto);
         assert.strictEqual(group.photo, secondPhoto);
@@ -386,7 +386,7 @@ module(
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_uuid, secondGroup.uuid);
 
-        photo.group = firstGroup;
+        photo.group_uuid = firstGroup.uuid;
 
         assert.strictEqual(photo.group, firstGroup);
         assert.equal(photo.group_uuid, firstGroup.uuid);
@@ -397,7 +397,7 @@ module(
         assert.strictEqual(insertedPhoto.group, firstGroup);
         assert.strictEqual(photo.group, insertedPhoto.group);
 
-        insertedPhoto.group = secondGroup;
+        insertedPhoto.group_uuid = secondGroup.uuid;
 
         assert.strictEqual(insertedPhoto.group, secondGroup);
         assert.equal(insertedPhoto.group_uuid, secondGroup.uuid);
@@ -407,7 +407,7 @@ module(
         assert.strictEqual(updatedPhoto.group, secondGroup);
         assert.strictEqual(insertedPhoto.group, secondGroup);
 
-        updatedPhoto.group = null;
+        updatedPhoto.group_uuid = null;
 
         assert.equal(updatedPhoto.group, null);
         assert.equal(updatedPhoto.group_uuid, null);
@@ -441,7 +441,7 @@ module(
         assert.strictEqual(photo.group, secondGroup);
         assert.equal(photo.group_uuid, secondGroup.uuid);
 
-        photo.group = firstGroup;
+        photo.group_uuid = firstGroup.uuid;
 
         assert.strictEqual(photo.group, firstGroup);
         assert.equal(photo.group_uuid, firstGroup.uuid);
@@ -451,7 +451,7 @@ module(
         assert.strictEqual(insertedPhoto.group, firstGroup);
         assert.strictEqual(photo.group, insertedPhoto.group);
 
-        insertedPhoto.group = secondGroup;
+        insertedPhoto.group_uuid = secondGroup.uuid;
 
         assert.strictEqual(insertedPhoto.group, secondGroup);
         assert.equal(insertedPhoto.group_uuid, secondGroup.uuid);
@@ -461,7 +461,7 @@ module(
         assert.strictEqual(updatedPhoto.group, secondGroup);
         assert.strictEqual(insertedPhoto.group, secondGroup);
 
-        updatedPhoto.group = null;
+        updatedPhoto.group_uuid = null;
 
         assert.equal(updatedPhoto.group, null);
         assert.equal(updatedPhoto.group_uuid, null);

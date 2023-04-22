@@ -118,7 +118,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
     test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
-      let group = SQLGroup.build({ name: "Some group" });
+      let group = await SQLGroup.insert({ name: "Some group" });
       let photo = SQLPhoto.build({ name: "Dinner photo" });
       let secondPhoto = SQLPhoto.build({ name: "Second photo" });
 
@@ -130,7 +130,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.equal(photo.group, null);
       assert.equal(insertedPhoto.group, null);
 
-      secondPhoto.group = group;
+      secondPhoto.group_id = group.id;
 
       let secondInsertedPhoto = await SQLPhoto.insert(secondPhoto);
 
@@ -185,7 +185,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(fetchedPhoto.group, group);
       assert.equal(fetchedPhoto.group_id, group.id);
 
-      fetchedPhoto.group = null;
+      fetchedPhoto.group_id = null;
 
       assert.equal(fetchedPhoto.group, null);
       assert.equal(fetchedPhoto.group_id, null);
@@ -210,7 +210,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(fetchedPhoto.group, group);
       assert.equal(fetchedPhoto.group_id, group.id);
 
-      fetchedPhoto.group = null;
+      fetchedPhoto.group_id = null;
 
       assert.equal(fetchedPhoto.group, null);
       assert.equal(fetchedPhoto.group_id, null);
@@ -316,7 +316,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-      secondPhoto.group = insertedGroup;
+      secondPhoto.group_id = insertedGroup.id;
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(group.photo, secondPhoto);
@@ -376,7 +376,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(photo.group, secondGroup);
       assert.equal(photo.group_id, secondGroup.id);
 
-      photo.group = firstGroup;
+      photo.group_id = firstGroup.id;
 
       assert.strictEqual(photo.group, firstGroup);
       assert.equal(photo.group_id, firstGroup.id);
@@ -387,7 +387,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(insertedPhoto.group, firstGroup);
       assert.strictEqual(photo.group, insertedPhoto.group);
 
-      insertedPhoto.group = secondGroup;
+      insertedPhoto.group_id = secondGroup.id;
 
       assert.strictEqual(insertedPhoto.group, secondGroup);
       assert.equal(insertedPhoto.group_id, secondGroup.id);
@@ -397,7 +397,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(updatedPhoto.group, secondGroup);
       assert.strictEqual(insertedPhoto.group, secondGroup);
 
-      updatedPhoto.group = null;
+      updatedPhoto.group_id = null;
 
       assert.equal(updatedPhoto.group, null);
       assert.equal(updatedPhoto.group_id, null);
@@ -430,7 +430,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(photo.group, secondGroup);
       assert.equal(photo.group_id, secondGroup.id);
 
-      photo.group = firstGroup;
+      photo.group_id = firstGroup.id;
 
       assert.strictEqual(photo.group, firstGroup);
       assert.equal(photo.group_id, firstGroup.id);
@@ -440,7 +440,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(insertedPhoto.group, firstGroup);
       assert.strictEqual(photo.group, insertedPhoto.group);
 
-      insertedPhoto.group = secondGroup;
+      insertedPhoto.group_id = secondGroup.id;
 
       assert.strictEqual(insertedPhoto.group, secondGroup);
       assert.equal(insertedPhoto.group_id, secondGroup.id);
@@ -450,7 +450,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
       assert.strictEqual(updatedPhoto.group, secondGroup);
       assert.strictEqual(insertedPhoto.group, secondGroup);
 
-      updatedPhoto.group = null;
+      updatedPhoto.group_id = null;
 
       assert.equal(updatedPhoto.group, null);
       assert.equal(updatedPhoto.group_id, null);
