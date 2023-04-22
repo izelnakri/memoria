@@ -60,6 +60,7 @@ export default class RelationshipMutation {
       relationshipType,
       RelationshipCache,
       ReverseRelationshipCache,
+      reverseRelationshipType,
     } = metadata;
     let reverseRelationships = RelationshipQuery.findReverseRelationships(source, RelationshipClass, metadata); // NOTE: costly query
     let SourceClass = source.constructor as typeof Model;
@@ -90,12 +91,23 @@ export default class RelationshipMutation {
       RelationshipCache.delete(source);
 
       reverseRelationships.forEach((existingTargetRelationshipReference) => {
-        return freshRemainingSourceReferenceToExistingRelationship
-          ? ReverseRelationshipCache.set(
-              existingTargetRelationshipReference,
-              freshRemainingSourceReferenceToExistingRelationship
-            )
-          : ReverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
+        if (SINGLE_VALUE_RELATIONSHIPS.includes(reverseRelationshipType)) {
+          return freshRemainingSourceReferenceToExistingRelationship
+            ? ReverseRelationshipCache.set(
+                existingTargetRelationshipReference,
+                freshRemainingSourceReferenceToExistingRelationship
+              )
+            : ReverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
+        }
+
+        let targetReverseRelationship = ReverseRelationshipCache.get(existingTargetRelationshipReference) as Model[];
+        if (targetReverseRelationship) {
+          debugger;
+          let targetIndex = targetReverseRelationship.findIndex((relationship) => relationship === source);
+          if (targetIndex !== -1) {
+            targetReverseRelationship.splice(targetIndex, 1);
+          }
+        }
       });
     }
   }
@@ -112,6 +124,24 @@ export default class RelationshipMutation {
       if (relationshipType === "OneToOne") {
         targetRelationship[reverseRelationshipForeignKeyColumnName] =
           model[(model.constructor as typeof Model).primaryKeyName];
+      }
+    }
+  }
+
+  // NOTE: this only changes one reference, not all references
+  static adjustHasManyRelationshipFor(model: Model, targetRelationship: Model, metadata: RelationshipMetadata) {
+    let existingRelationship = metadata.RelationshipCache.get(model);
+    let targetRelationshipInstances = InstanceDB.getReferences(targetRelationship);
+
+    if (Array.isArray(existingRelationship)) {
+      let foundIndex = existingRelationship.findIndex((relationship) => targetRelationshipInstances.has(relationship));
+      if (foundIndex === -1) {
+        return existingRelationship.push(targetRelationship);
+      }
+
+      let foundRelationship = existingRelationship[foundIndex];
+      if (foundRelationship !== targetRelationship) {
+        existingRelationship[foundIndex] = targetRelationship;
       }
     }
   }

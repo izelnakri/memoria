@@ -31,7 +31,7 @@ export default class InstanceDB {
     return Array.from(this.getAllKnownReferences(Class).values()).concat(this.getAllUnknownInstances(Class));
   }
 
-  static getPersistedModels(Class: typeof Model) : Map<PrimaryKey, Model> {
+  static getPersistedModels(Class: typeof Model): Map<PrimaryKey, Model> {
     if (!this.persistedModels.has(Class.name)) {
       this.persistedModels.set(Class.name, new Map());
     }

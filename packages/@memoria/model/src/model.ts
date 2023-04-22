@@ -226,22 +226,24 @@ export default class Model {
 
             cache = value === undefined ? null : value;
 
-            if (attributeTrackingEnabledForModel) {
-              dirtyTrackAttribute(this, columnName, cache);
-            }
+            attributeTrackingEnabledForModel && dirtyTrackAttribute(this, columnName, cache);
 
             if (belongsToColumnNames.has(columnName)) {
               let relationshipMetadata = belongsToTable[columnName];
               let { RelationshipCache } = relationshipMetadata;
-
               if (!RelationshipCache.has(this)) {
+                debugger;
                 return RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata); // works for reverse relationships(OneToOne and HasMany)
               }
 
               let existingRelationship = RelationshipCache.get(this) as Model | null;
-              let existingRelationshipPrimaryKey =
-                existingRelationship && existingRelationship[relationshipMetadata.RelationshipClass.primaryKeyName];
-              if (existingRelationship && existingRelationshipPrimaryKey !== cache) {
+              if (existingRelationship === null) {
+                RelationshipCache.delete(this);
+              } else if (
+                existingRelationship &&
+                existingRelationship[relationshipMetadata.RelationshipClass.primaryKeyName] !== cache
+              ) {
+                debugger;
                 RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata, existingRelationship as Model);
               }
             }

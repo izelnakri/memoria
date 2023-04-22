@@ -91,26 +91,33 @@ export default class RelationshipDB {
   // NOTE: belongsTo reflective mutations can be done here
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
     let Class = model.constructor as typeof Model;
-    let { relationshipName, relationshipType } = metadata;
+    let { relationshipType, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
     // let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
     //   metadata;
 
-    let cache = RelationshipDB.findRelationshipCacheFor(Class, relationshipName, relationshipType);
     // let previousRelationship = cache.get(model);
     if (ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)) {
       // TODO: doesnt clear existing relationship
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
-      cache.set(model, array);
+      RelationshipCache.set(model, array);
 
       return array;
     }
 
     if (relationship) {
-      cache.set(model, relationship);
+      RelationshipCache.set(model, relationship);
     }
 
     if (relationshipType === "BelongsTo") {
+      if (reverseRelationshipType === "HasMany") {
+        RelationshipMutation.adjustHasManyRelationshipFor(
+          relationship as Model,
+          model,
+          RelationshipSchema.getRelationshipMetadataFor(RelationshipClass, metadata.reverseRelationshipName)
+        );
+      }
+
       // let { ReverseRelationshipCache } = metadata;
       // let reverseRelationship = ReverseRelationshipCache.get(relationship);
       // TODO:
@@ -390,8 +397,11 @@ export default class RelationshipDB {
 
       RelationshipCache.set(model, new HasManyArray(targetRelationship as Model[], model, metadata));
 
+      // TODO: do reflection(?)
+
       return model;
     } else {
+      // TODO: probably remove this case
       if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
         throw new Error(`Tried to set a non model instance value to ${Class.name}.${relationshipName}!`);
       }
