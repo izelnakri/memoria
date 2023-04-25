@@ -232,7 +232,6 @@ export default class Model {
               let relationshipMetadata = belongsToTable[columnName];
               let { RelationshipCache } = relationshipMetadata;
               if (!RelationshipCache.has(this)) {
-                debugger;
                 return RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata); // works for reverse relationships(OneToOne and HasMany)
               }
 
@@ -243,8 +242,7 @@ export default class Model {
                 existingRelationship &&
                 existingRelationship[relationshipMetadata.RelationshipClass.primaryKeyName] !== cache
               ) {
-                debugger;
-                RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata, existingRelationship as Model);
+                RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata);
               }
             }
           },

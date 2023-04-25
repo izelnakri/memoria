@@ -6,6 +6,7 @@ import type { RelationshipMetadata } from "./schema.js";
 
 // const NON_FOREIGN_KEY_RELATIONSHIPS = ["OneToOne", "HasMany"];
 const SINGLE_VALUE_RELATIONSHIPS = ["BelongsTo", "OneToOne"];
+type AnotherModel = Model;
 
 export default class RelationshipMutation {
   // NOTE: There are two cases when building(transfer/copy without removal), setting on demand
@@ -18,8 +19,9 @@ export default class RelationshipMutation {
   ) {
     let { foreignKeyColumnName, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
     let existingRelationship = RelationshipCache.get(model);
-
-    existingRelationship && this.cleanRelationshipsOn(model, metadata, existingRelationship as Model);
+    if (!existingRelationship || existingRelationship !== targetRelationship) {
+      this.cleanRelationshipsOn(model, metadata, targetRelationship);
+    }
 
     RelationshipCache.set(model, targetRelationship);
 
@@ -40,20 +42,16 @@ export default class RelationshipMutation {
     metadata: RelationshipMetadata
   ) {
     let { RelationshipCache } = metadata;
-    let existingRelationship = RelationshipCache.get(model);
 
-    existingRelationship && this.cleanRelationshipsOn(model, metadata, existingRelationship as Model); // NOTE: this cleans all the previous reverse relationships
+    this.cleanRelationshipsOn(model, metadata); // NOTE: this cleans all the previous reverse relationships(not always yet)
 
     RelationshipCache.set(model, targetRelationship);
 
     this.setReflectiveSideRelationship(model, targetRelationship, metadata);
   }
 
-  static cleanRelationshipsOn(
-    source: Model,
-    metadata: RelationshipMetadata,
-    existingRelationship?: Model | null | undefined
-  ) {
+  static cleanRelationshipsOn(source: Model, metadata: RelationshipMetadata, targetRelationship?: AnotherModel | null) {
+    // TODO: more can be done here to get targetRelationships[relationship] to some value previously, then it has to be cleaned up
     let {
       reverseRelationshipForeignKeyColumnName,
       RelationshipClass,
@@ -62,7 +60,8 @@ export default class RelationshipMutation {
       ReverseRelationshipCache,
       reverseRelationshipType,
     } = metadata;
-    let reverseRelationships = RelationshipQuery.findReverseRelationships(source, RelationshipClass, metadata); // NOTE: costly query
+    let existingRelationship = RelationshipCache.get(source);
+    let reverseRelationships = RelationshipQuery.findReverseRelationships(source, RelationshipClass, metadata);
     let SourceClass = source.constructor as typeof Model;
     let freshRemainingSourceReferenceToExistingRelationship =
       existingRelationship &&
@@ -100,11 +99,12 @@ export default class RelationshipMutation {
             : ReverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
         }
 
+        // TODO: this only does deletes but it should replace if needed
         let targetReverseRelationship = ReverseRelationshipCache.get(existingTargetRelationshipReference) as Model[];
-        if (targetReverseRelationship) {
+        if (targetReverseRelationship && existingTargetRelationshipReference !== targetRelationship) {
           debugger;
           let targetIndex = targetReverseRelationship.findIndex((relationship) => relationship === source);
-          if (targetIndex !== -1) {
+          if (targetIndex !== -1 && targetReverseRelationship[targetIndex] === source) {
             targetReverseRelationship.splice(targetIndex, 1);
           }
         }
@@ -171,7 +171,8 @@ export default class RelationshipMutation {
               return models.some((model) => references.has(model)); // NOTE: should this be targetRelationship or above in instances?
             }
           }) || relationshipArray.belongsTo;
-      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = targetUser; // this is not reflexive?
+
+      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = targetUser; // TODO: this operation/case needs to be optimized
 
       // let { RelationshipClass, reverseRelationshipName } = relationshipArray.metadata;
       // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(

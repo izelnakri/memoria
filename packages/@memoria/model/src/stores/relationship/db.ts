@@ -364,7 +364,7 @@ export default class RelationshipDB {
       if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
         (existingRelationship as HasManyArray).clear();
       } else if (existingRelationship) {
-        RelationshipMutation.cleanRelationshipsOn(model, metadata, existingRelationship as Model);
+        RelationshipMutation.cleanRelationshipsOn(model, metadata);
       }
 
       return model;
