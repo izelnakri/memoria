@@ -252,9 +252,8 @@ export default class RelationshipQuery {
 
   static findReverseRelationships(
     source: Model,
-    RelationshipClass: typeof Model,
-    { ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata
-  ) {
+    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata
+  ): Model[] {
     if (reverseRelationshipType === "HasMany") {
       return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {
         instanceSet.forEach((instance) => {
@@ -262,6 +261,7 @@ export default class RelationshipQuery {
           if (reverseRelationship && reverseRelationship.includes(source)) {
             result.push(instance);
           }
+          // TODO: maybe add the other case? targetRelationshipSources && reverseRelationship && targetRelationshipSources.has(instance)
         });
 
         return result;
@@ -273,6 +273,8 @@ export default class RelationshipQuery {
         if (ReverseRelationshipCache.get(instance) === source) {
           result.push(instance);
         }
+
+        return result;
       });
 
       return result;

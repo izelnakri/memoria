@@ -1,3 +1,5 @@
+Key to global optimization HistoryLog(a basis for CRDT), Datalog
+
 -> Embedded relationships should be done seperatedly
 model update
 -> adapter update

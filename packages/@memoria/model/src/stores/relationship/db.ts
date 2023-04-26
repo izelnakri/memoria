@@ -100,6 +100,9 @@ export default class RelationshipDB {
       // TODO: doesnt clear existing relationship
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
+      // NOTE: This is costly, in future find a way probably a way to optimize it
+      this.appendExistingReverseRelationshipsToArray(array, metadata);
+
       RelationshipCache.set(model, array);
 
       return array;
@@ -141,6 +144,54 @@ export default class RelationshipDB {
     //     hasManyArray.setRelationship(relationship as Model[]);
     //   }
     // }
+  }
+
+  static appendExistingReverseRelationshipsToArray(
+    array: HasManyArray,
+    { RelationshipClass, ReverseRelationshipCache }: RelationshipMetadata
+  ) {
+    if (!array.belongsTo) {
+      return array;
+    }
+
+    for (let referenceSet of InstanceDB.getAllReferences(RelationshipClass)) {
+      let [foundReference, _, alternativeReference] = Array.from(referenceSet)
+        .reverse()
+        .reduce(
+          (result, reference) => {
+            if (result[0]) {
+              return result;
+            } else if (!result[1] && reference.isPersisted) {
+              result[1] = InstanceDB.getPersistedModels(RelationshipClass).get(
+                reference[RelationshipClass.primaryKeyName]
+              ) as Model;
+              if (ReverseRelationshipCache.get(result[1]) === array.belongsTo) {
+                result[0] = result[1];
+              } else if (ReverseRelationshipCache.get(reference) === array.belongsTo) {
+                result[2] = reference;
+              }
+
+              return result;
+            } else if (result[2]) {
+              return result;
+            }
+
+            let relationship = ReverseRelationshipCache.get(reference);
+            if (relationship === array.belongsTo) {
+              result[2] = reference;
+            }
+
+            return result;
+          },
+          [null, null, null] as [Model | null, Model | null, Model | null]
+        );
+      let targetInstance = foundReference || alternativeReference;
+      if (targetInstance) {
+        array.push(targetInstance);
+      }
+    }
+
+    return array;
   }
 
   // NOTE: this can be optimized for batching

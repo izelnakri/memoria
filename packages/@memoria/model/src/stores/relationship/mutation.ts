@@ -18,13 +18,12 @@ export default class RelationshipMutation {
     metadata: RelationshipMetadata
   ) {
     let { foreignKeyColumnName, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
-    let existingRelationship = RelationshipCache.get(model);
-    if (!existingRelationship || existingRelationship !== targetRelationship) {
-      this.cleanRelationshipsOn(model, metadata, targetRelationship);
-    }
+
+    this.cleanRelationshipsOn(model, metadata, targetRelationship);
 
     RelationshipCache.set(model, targetRelationship);
 
+    // NOTE: This will be the only thing different between BelongsTo and OneToOne
     model[foreignKeyColumnName as string] = targetRelationship
       ? targetRelationship[RelationshipClass.primaryKeyName]
       : null;
@@ -43,7 +42,7 @@ export default class RelationshipMutation {
   ) {
     let { RelationshipCache } = metadata;
 
-    this.cleanRelationshipsOn(model, metadata); // NOTE: this cleans all the previous reverse relationships(not always yet)
+    this.cleanRelationshipsOn(model, metadata); // NOTE: this cleans all the previous reverse relationships for model
 
     RelationshipCache.set(model, targetRelationship);
 
@@ -54,18 +53,22 @@ export default class RelationshipMutation {
     // TODO: more can be done here to get targetRelationships[relationship] to some value previously, then it has to be cleaned up
     let {
       reverseRelationshipForeignKeyColumnName,
-      RelationshipClass,
       relationshipType,
       RelationshipCache,
       ReverseRelationshipCache,
       reverseRelationshipType,
     } = metadata;
-    let existingRelationship = RelationshipCache.get(source);
-    let reverseRelationships = RelationshipQuery.findReverseRelationships(source, RelationshipClass, metadata);
+    let existingRelationship = RelationshipCache.get(source) as Model;
+    if (targetRelationship && targetRelationship === existingRelationship) {
+      // NOTE: Handle for ReverseRelationshipType: HasMany
+      return;
+    }
+
+    let reverseRelationshipsPointingToSource = RelationshipQuery.findReverseRelationships(source, metadata); // TODO: Fix this, it should find existingRelationship(?)
     let SourceClass = source.constructor as typeof Model;
     let freshRemainingSourceReferenceToExistingRelationship =
       existingRelationship &&
-      reverseRelationships.length > 0 &&
+      reverseRelationshipsPointingToSource.length > 0 &&
       Array.from(InstanceDB.getReferences(source))
         .reverse()
         .find((sourceReference) => {
@@ -83,25 +86,27 @@ export default class RelationshipMutation {
                 source[SourceClass.primaryKeyName] && RelationshipCache.get(sourceReference) !== null
             ); // NOTE: This gets the fresh last instance most of the time
           } else if (relationshipType === "HasMany") {
+            // TODO: build this
           } // TODO: add ManyToMany, HasMany in future. This might get the fresh last instance most of the time
         });
 
     if (SINGLE_VALUE_RELATIONSHIPS.includes(relationshipType)) {
       RelationshipCache.delete(source);
 
-      reverseRelationships.forEach((existingTargetRelationshipReference) => {
+      reverseRelationshipsPointingToSource.forEach((existingRelationshipReference) => {
         if (SINGLE_VALUE_RELATIONSHIPS.includes(reverseRelationshipType)) {
           return freshRemainingSourceReferenceToExistingRelationship
             ? ReverseRelationshipCache.set(
-                existingTargetRelationshipReference,
+                existingRelationshipReference,
                 freshRemainingSourceReferenceToExistingRelationship
               )
-            : ReverseRelationshipCache.delete(existingTargetRelationshipReference); // TODO: with HasMany do it differently
+            : ReverseRelationshipCache.delete(existingRelationshipReference); // TODO: with HasMany do it differently
         }
 
-        // TODO: this only does deletes but it should replace if needed
-        let targetReverseRelationship = ReverseRelationshipCache.get(existingTargetRelationshipReference) as Model[];
-        if (targetReverseRelationship && existingTargetRelationshipReference !== targetRelationship) {
+        // NOTE: this only does deletes but it should replace if needed
+        // NOTE: maybe check freshRemainingSourceReferenceToExistingRelationship here as well(?)
+        let targetReverseRelationship = ReverseRelationshipCache.get(existingRelationshipReference) as Model[];
+        if (targetReverseRelationship && existingRelationshipReference !== targetRelationship) {
           debugger;
           let targetIndex = targetReverseRelationship.findIndex((relationship) => relationship === source);
           if (targetIndex !== -1 && targetReverseRelationship[targetIndex] === source) {
