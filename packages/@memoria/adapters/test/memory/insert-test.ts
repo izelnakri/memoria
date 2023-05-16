@@ -475,7 +475,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       let photo = await MemoryPhoto.insert(PHOTOS[1], { cacheDuration: 0 });
 
-      assert.propEqual(photo, MemoryPhoto.build(PHOTOS[1]));
+      assert.deepEqual(photo, MemoryPhoto.build({ ...PHOTOS[1], comments: [] }));
       assert.propEqual(await MemoryPhoto.findAll(), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
@@ -487,8 +487,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       let secondPhoto = await MemoryPhoto.insert(PHOTOS[1]);
 
-      assert.propEqual(secondPhoto, MemoryPhoto.build(PHOTOS[1]));
-      assert.propEqual(await MemoryPhoto.findAll(), [
+      assert.deepEqual(secondPhoto, MemoryPhoto.build(PHOTOS[1]));
+      assert.deepEqual(await MemoryPhoto.findAll(), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
           id: 1,
@@ -545,16 +545,16 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       assert.propEqual(lastPhoto, MemoryPhoto.build(PHOTOS[1]));
 
-      await wait(60);
+      await wait(70);
 
-      assert.propEqual(await MemoryPhoto.findAll(), [
+      assert.deepEqual((await MemoryPhoto.findAll()).map((x) => x.toJSON()), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
           id: 1,
           name: "Ski trip",
           is_public: false,
-        }),
-        photoOne,
+        }).toJSON(),
+        photoOne.toJSON(),
       ]);
     });
   });

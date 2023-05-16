@@ -31,6 +31,7 @@ export default class RelationshipMutation {
     if (reverseRelationshipType === "OneToOne") {
       this.setReflectiveSideRelationship(model, targetRelationship, metadata);
     } else if (reverseRelationshipType === "HasMany") {
+      this.setReflectiveSideRelationship(model, targetRelationship, metadata);
       // TODO: implement HasMany
     }
   }
@@ -50,7 +51,11 @@ export default class RelationshipMutation {
   }
 
   static cleanRelationshipsOn(source: Model, metadata: RelationshipMetadata, targetRelationship?: AnotherModel | null) {
-    // TODO: more can be done here to get targetRelationships[relationship] to some value previously, then it has to be cleaned up
+    let existingRelationship = metadata.RelationshipCache.get(source) as Model;
+    if (targetRelationship && targetRelationship === existingRelationship) {
+      return;
+    }
+    // NOTE: Handle for ReverseRelationshipType: HasMany(?)
     let {
       reverseRelationshipForeignKeyColumnName,
       relationshipType,
@@ -58,11 +63,6 @@ export default class RelationshipMutation {
       ReverseRelationshipCache,
       reverseRelationshipType,
     } = metadata;
-    let existingRelationship = RelationshipCache.get(source) as Model;
-    if (targetRelationship && targetRelationship === existingRelationship) {
-      // NOTE: Handle for ReverseRelationshipType: HasMany
-      return;
-    }
 
     let reverseRelationshipsPointingToSource = RelationshipQuery.findReverseRelationships(source, metadata); // TODO: Fix this, it should find existingRelationship(?)
     let SourceClass = source.constructor as typeof Model;
@@ -107,10 +107,11 @@ export default class RelationshipMutation {
         // NOTE: maybe check freshRemainingSourceReferenceToExistingRelationship here as well(?)
         let targetReverseRelationship = ReverseRelationshipCache.get(existingRelationshipReference) as Model[];
         if (targetReverseRelationship && existingRelationshipReference !== targetRelationship) {
-          debugger;
           let targetIndex = targetReverseRelationship.findIndex((relationship) => relationship === source);
           if (targetIndex !== -1 && targetReverseRelationship[targetIndex] === source) {
-            targetReverseRelationship.splice(targetIndex, 1);
+            freshRemainingSourceReferenceToExistingRelationship
+              ? (targetReverseRelationship[targetIndex] = freshRemainingSourceReferenceToExistingRelationship)
+              : targetReverseRelationship.splice(targetIndex, 1);
           }
         }
       });
@@ -120,13 +121,20 @@ export default class RelationshipMutation {
   static setReflectiveSideRelationship(
     model: Model,
     targetRelationship: null | Model,
-    { relationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }
+    { relationshipType, reverseRelationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }
   ) {
     // TODO: make this work for HasMany Arrays in future
     if (targetRelationship) {
-      ReverseRelationshipCache.set(targetRelationship, model);
+      if (reverseRelationshipType === "HasMany") {
+        let existingRelationship = ReverseRelationshipCache.get(targetRelationship) as Model[];
+        if (existingRelationship && !existingRelationship.includes(model)) {
+          existingRelationship.push(model);
+        }
+      } else {
+        ReverseRelationshipCache.set(targetRelationship, model);
+      }
 
-      if (relationshipType === "OneToOne") {
+      if (relationshipType !== "BelongsTo") {
         targetRelationship[reverseRelationshipForeignKeyColumnName] =
           model[(model.constructor as typeof Model).primaryKeyName];
       }
@@ -201,18 +209,22 @@ export default class RelationshipMutation {
 
   static removeHasManyRelationshipFor(relationshipArray, targetRelationship) {
     if (relationshipArray.belongsTo && relationshipArray.metadata.reverseRelationshipName) {
-      let targetRelationshipInstances = InstanceDB.getReferences(targetRelationship);
-      let { relationshipName } = relationshipArray.metadata;
-      let fallback = Array.from(InstanceDB.getReferences(relationshipArray.belongsTo))
-        .reverse()
-        .find((reference) => {
-          let hasManyRecords = reference[relationshipName];
-          if (Array.isArray(hasManyRecords)) {
-            return hasManyRecords.some((record) => targetRelationshipInstances.has(record));
-          }
-        });
+      // let targetRelationshipInstances = InstanceDB.getReferences(targetRelationship);
+      // let { relationshipName } = relationshipArray.metadata;
+      // let fallback = Array.from(InstanceDB.getReferences(relationshipArray.belongsTo))
+      //   .reverse()
+      //   .find((reference) => {
+      //     let hasManyRecords = reference[relationshipName];
+      //     if (Array.isArray(hasManyRecords)) {
+      //       return hasManyRecords.some((record) =>
+      //       // return hasManyRecords.some((record) => targetRelationshipInstances.has(record)); // TODO: change this!
+      //     }
+      //   });
 
-      targetRelationship[relationshipArray.metadata.reverseRelationshipName] = fallback || null; // TODO: instead, resort to another possible reference(?)
+      relationshipArray.metadata.ReverseRelationshipCache.delete(targetRelationship);
+      // debugger;
+      // targetRelationship[relationshipArray.metadata.reverseRelationshipName] = fallback || null; // TODO: instead, resort to another possible reference(?)
+      // targetRelationship[relationshipArray.metadata.reverseRelationshipName] = null; // TODO: instead, resort to another possible reference(?)
       // TODO: clean reflexive references(?)
     }
   }

@@ -11,6 +11,7 @@ export default function generateUser() {
         return "users";
       }
     };
+
     static Serializer = class UserSerializer extends Serializer {
       static modelKeyNameFromPayload(_Model: typeof Model) {
         return "user";

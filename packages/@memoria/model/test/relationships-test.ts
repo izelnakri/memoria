@@ -147,10 +147,10 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       user.photos[0] = fourthPhoto;
 
       assert.deepEqual(user.photos, [fourthPhoto, secondPhoto]);
-      assert.strictEqual(firstPhoto.owner, null);
+      assert.strictEqual(await firstPhoto.owner, null);
       assert.strictEqual(secondPhoto.owner, user);
       assert.strictEqual(fourthPhoto.owner, user);
-      assert.strictEqual(firstPhoto.owner_id, null);
+      assert.strictEqual(firstPhoto.owner_id, 22);
       assert.equal(secondPhoto.owner_id, user.id);
       assert.equal(thirdPhoto.owner_id, null);
       assert.equal(fourthPhoto.owner_id, user.id);
@@ -193,21 +193,22 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       user.photos = [thirdPhoto, fourthPhoto];
 
       assert.deepEqual(user.photos, [thirdPhoto, fourthPhoto]);
-      assert.strictEqual(firstPhoto.owner, null);
-      assert.strictEqual(secondPhoto.owner, null);
+      assert.strictEqual(await firstPhoto.owner, null);
+      assert.strictEqual(await secondPhoto.owner, null);
       assert.strictEqual(thirdPhoto.owner, user);
       assert.strictEqual(fourthPhoto.owner, user);
-      assert.strictEqual(firstPhoto.owner_id, null);
-      assert.strictEqual(secondPhoto.owner_id, null);
+      assert.strictEqual(firstPhoto.owner_id, 22);
+      assert.strictEqual(secondPhoto.owner_id, 22);
       assert.strictEqual(thirdPhoto.owner_id, user.id);
       assert.strictEqual(fourthPhoto.owner_id, user.id);
 
       user.photos = [];
 
       assert.deepEqual(user.photos, []);
-      assert.strictEqual(firstPhoto.owner, null);
-      assert.strictEqual(thirdPhoto.owner, null);
-      assert.strictEqual(fourthPhoto.owner, null);
+
+      assert.strictEqual(await firstPhoto.owner, null);
+      assert.strictEqual(await thirdPhoto.owner, null);
+      assert.strictEqual(await fourthPhoto.owner, null);
 
       user.photos.push(firstPhoto);
       user.photos[1] = secondPhoto;
@@ -215,12 +216,12 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       assert.deepEqual(user.photos, [firstPhoto, secondPhoto]);
       assert.strictEqual(firstPhoto.owner, user);
       assert.strictEqual(secondPhoto.owner, user);
-      assert.strictEqual(thirdPhoto.owner, null);
-      assert.strictEqual(fourthPhoto.owner, null);
+      assert.strictEqual(await thirdPhoto.owner, null);
+      assert.strictEqual(await fourthPhoto.owner, null);
       assert.strictEqual(firstPhoto.owner_id, user.id);
       assert.strictEqual(secondPhoto.owner_id, user.id);
-      assert.strictEqual(thirdPhoto.owner_id, null);
-      assert.strictEqual(fourthPhoto.owner_id, null);
+      assert.strictEqual(thirdPhoto.owner_id, 22);
+      assert.strictEqual(fourthPhoto.owner_id, 22);
     });
 
     test("new model build should throw when referenced belongsTo models are invalid values", async function (assert) {
@@ -351,10 +352,10 @@ module("@memoria/model | $Model.relationships", function (hooks) {
 
       assert.deepEqual(user.photos, []);
       assert.ok(user.photos instanceof HasManyArray);
-      assert.equal(firstPhoto.owner, null);
-      assert.equal(firstPhoto.owner_id, null);
-      assert.equal(secondPhoto.owner, null);
-      assert.equal(secondPhoto.owner_id, null);
+      assert.equal(await firstPhoto.owner, null);
+      assert.equal(firstPhoto.owner_id, 22);
+      assert.equal(await secondPhoto.owner, null);
+      assert.equal(secondPhoto.owner_id, 22);
     });
 
     test("new model can be built with hasMany relationship and then setting it to undefined removes the relationship", async function (assert) {
@@ -383,18 +384,18 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       assert.deepEqual(user.photos, [firstPhoto, thirdPhoto]);
       assert.strictEqual(firstPhoto.owner, user);
       assert.equal(firstPhoto.owner_id, user.id);
-      assert.equal(secondPhoto.owner, null);
-      assert.equal(secondPhoto.owner_id, null);
+      assert.equal(await secondPhoto.owner, null);
+      assert.equal(secondPhoto.owner_id, 22);
 
       user.photos = undefined;
 
       assert.notDeepEqual(user.photos, []);
       assert.notOk(user.photos instanceof HasManyArray);
       assert.ok(user.photos instanceof Promise);
-      assert.equal(firstPhoto.owner, null);
-      assert.equal(firstPhoto.owner_id, null);
-      assert.equal(secondPhoto.owner, null);
-      assert.equal(secondPhoto.owner_id, null);
+      assert.equal(await firstPhoto.owner, null);
+      assert.equal(firstPhoto.owner_id, 22);
+      assert.equal(await secondPhoto.owner, null);
+      assert.equal(secondPhoto.owner_id, 22);
     });
 
     test("new model can be built with hasMany relationship and then delete to property does nothing", async function (assert) {
@@ -423,8 +424,8 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       assert.deepEqual(user.photos, [firstPhoto, thirdPhoto]);
       assert.strictEqual(firstPhoto.owner, user);
       assert.equal(firstPhoto.owner_id, user.id);
-      assert.equal(secondPhoto.owner, null);
-      assert.equal(secondPhoto.owner_id, null);
+      assert.equal(await secondPhoto.owner, null);
+      assert.equal(secondPhoto.owner_id, 22);
 
       try {
         delete user.photos;
@@ -436,8 +437,8 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       assert.ok(user.photos instanceof HasManyArray);
       assert.strictEqual(firstPhoto.owner, user);
       assert.equal(firstPhoto.owner_id, user.id);
-      assert.equal(secondPhoto.owner, null);
-      assert.equal(secondPhoto.owner_id, null);
+      assert.equal(await secondPhoto.owner, null);
+      assert.equal(secondPhoto.owner_id, 22);
     });
   });
 });

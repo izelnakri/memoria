@@ -147,7 +147,7 @@ export default class HasManyArray extends Array {
                 }
 
                 if (existingInstance !== value) {
-                  // NOTE: this makes it NOT index preserving, in future maybe optimize
+                  // NOTE: Below makes reverse relationship tracking logic, this makes it NOT index preserving, in future maybe optimize
                   RelationshipMutation.removeHasManyRelationshipFor(self, existingInstance);
                   RelationshipMutation.addHasManyRelationshipFor(self, value);
                 }
@@ -222,6 +222,21 @@ export default class HasManyArray extends Array {
 
   toJSON() {
     return this.map((model) => model.toJSON());
+  }
+
+  reload() {
+    if (!this.belongsTo) {
+      throw new Error("Cannot reload a hasManyArray that does not belong to a model");
+    } else if (!this.metadata.relationshipName) {
+      return this.clear();
+    }
+
+    let Class = this.belongsTo.constructor as typeof Model;
+    if (!this.belongsTo[Class.primaryKeyName]) {
+      return this.clear();
+    }
+
+    return Class.Adapter.fetchRelationship(this.belongsTo, this.metadata.relationshipName, this.metadata);
   }
 
   concat(_otherHasManyArrays: Model[] | HasManyArray): Array<Model> {

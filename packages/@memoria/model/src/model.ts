@@ -633,6 +633,12 @@ export default class Model {
     return Object.isSealed(this);
   }
 
+  get isInMemoryCachedRecord() {
+    let Class = this.constructor as typeof Model;
+
+    return this === Class.Cache.get(this[Class.primaryKeyName]);
+  }
+
   #_isFrozen = false;
   get isFrozen() {
     return this.#_isFrozen;

@@ -12,8 +12,10 @@ type AnotherModel = Model;
 type RelationshipMap<Value> = Map<RelationshipTableKey, Value>;
 type JSObject = { [key: string]: any };
 
+// TODO: make some relationshipName arguments just relationshipMetadata so less copying/generating data around
 export default class RelationshipDB {
   static instanceRecordsBelongsToCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map();
+  // static instanceRecordsBelongsToSettingCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map(); // TODO: Maybe this is needed to hasMany reload logic
   static instanceRecordsOneToOneCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map();
   static instanceRecordsHasManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
   static instanceRecordsManyToManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
@@ -90,18 +92,15 @@ export default class RelationshipDB {
   // NOTE: null doesnt get cached on fetch
   // NOTE: belongsTo reflective mutations can be done here
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
-    let Class = model.constructor as typeof Model;
     let { relationshipType, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
-    // let { relationshipName, relationshipType, reverseRelationshipName, reverseRelationshipType, RelationshipClass } =
-    //   metadata;
 
     // let previousRelationship = cache.get(model);
     if (ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)) {
-      // TODO: doesnt clear existing relationship
+      // TODO: doesnt clear existing relationship(?)
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
       // NOTE: This is costly, in future find a way probably a way to optimize it
-      this.appendExistingReverseRelationshipsToArray(array, metadata);
+      this.synchronizeBelongsToAndHasManyReferences(array, metadata);
 
       RelationshipCache.set(model, array);
 
@@ -146,28 +145,43 @@ export default class RelationshipDB {
     // }
   }
 
-  static appendExistingReverseRelationshipsToArray(
+  static synchronizeBelongsToAndHasManyReferences(
     array: HasManyArray,
-    { RelationshipClass, ReverseRelationshipCache }: RelationshipMetadata
+    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipForeignKeyColumnName }: RelationshipMetadata
   ) {
     if (!array.belongsTo) {
       return array;
     }
+    let belongsToModel = array.belongsTo;
+    let Class = belongsToModel.constructor as typeof Model;
+    let primaryKey = belongsToModel[Class.primaryKeyName];
+    let currentBelongsToValues = new Set(array);
 
+    // if its built but not persisted models, keep em
     for (let referenceSet of InstanceDB.getAllReferences(RelationshipClass)) {
-      let [foundReference, _, alternativeReference] = Array.from(referenceSet)
+      // Photo owner_id
+      let [foundReference, _persistedReference, alternativeReference] = Array.from(referenceSet)
         .reverse()
         .reduce(
           (result, reference) => {
+            if (primaryKey !== reference[reverseRelationshipForeignKeyColumnName as string]) {
+              return result;
+            } else if (currentBelongsToValues.has(reference) || !ReverseRelationshipCache.has(reference)) {
+              return result;
+            }
+
+            let oldReference = ReverseRelationshipCache.get(reference);
+            ReverseRelationshipCache.set(reference, belongsToModel);
+
             if (result[0]) {
               return result;
             } else if (!result[1] && reference.isPersisted) {
               result[1] = InstanceDB.getPersistedModels(RelationshipClass).get(
                 reference[RelationshipClass.primaryKeyName]
               ) as Model;
-              if (ReverseRelationshipCache.get(result[1]) === array.belongsTo) {
+              if (ReverseRelationshipCache.get(result[1]) === belongsToModel) {
                 result[0] = result[1];
-              } else if (ReverseRelationshipCache.get(reference) === array.belongsTo) {
+              } else if (oldReference === belongsToModel) {
                 result[2] = reference;
               }
 
@@ -187,6 +201,7 @@ export default class RelationshipDB {
         );
       let targetInstance = foundReference || alternativeReference;
       if (targetInstance) {
+        // TODO: this should check if the instance has reference!(?)
         array.push(targetInstance);
       }
     }
@@ -238,28 +253,30 @@ export default class RelationshipDB {
     }
   }
 
+  // NOTE: this can be optimized, at a point *before* it is used
   static referenceIsRelatedTo(
     model: Model,
     reference: AnotherModel,
-    { relationshipName, relationshipType, SourceClass, foreignKeyColumnName }: RelationshipMetadata
+    {
+      relationshipName,
+      relationshipType,
+      SourceClass,
+      foreignKeyColumnName,
+      reverseRelationshipForeignKeyColumnName,
+    }: RelationshipMetadata
   ): void | boolean {
-    if (
-      relationshipType === "BelongsTo" &&
-      reference[foreignKeyColumnName as string] === model[(model.constructor as typeof Model).primaryKeyName]
-    ) {
-      return true;
-    } else if (
-      relationshipType === "OneToOne" &&
-      model[foreignKeyColumnName as string] === reference[SourceClass.primaryKeyName]
-    ) {
-      return true;
-    }
-
-    let relationshipValue = this.findRelationshipFor(reference, relationshipName, relationshipType);
-    if (Array.isArray(relationshipValue)) {
-      return relationshipValue.some((anyModel) => model === anyModel);
-    } else if (relationshipValue) {
-      return model === relationshipValue;
+    if (relationshipType === "BelongsTo") {
+      return (
+        reference[foreignKeyColumnName as string] === model[(model.constructor as typeof Model).primaryKeyName] ||
+        this.findRelationshipFor(reference, relationshipName, relationshipType) === model
+      );
+    } else if (relationshipType === "OneToOne") {
+      return (
+        model[foreignKeyColumnName as string] === reference[SourceClass.primaryKeyName] ||
+        this.findRelationshipFor(reference, relationshipName, relationshipType) === model
+      );
+    } else if (relationshipType === "HasMany") {
+      return model[reverseRelationshipForeignKeyColumnName as string] === reference[SourceClass.primaryKeyName];
     }
   }
 
@@ -287,17 +304,7 @@ export default class RelationshipDB {
         } else if (relationshipType === "OneToOne") {
           RelationshipCache.set(modelReference, null);
         } else if (relationshipType === "HasMany") {
-          let relationshipValue = RelationshipCache.get(modelReference);
-          if (relationshipValue instanceof HasManyArray) {
-            relationshipValue.clear();
-          }
-          // let relationshipValue = RelationshipCache.get(modelReference);
-          // if (Array.isArray(relationshipValue)) {
-          //   let index = (relationshipValue as Model[]).indexOf(model);
-          //   if (index !== -1) {
-          //     (relationshipValue as Model[]).splice(index, 1);
-          //   }
-          // }
+          modelReference[relationshipName] = [];
         } else if (relationshipType === "ManyToMany") {
           let relationshipValue = RelationshipCache.get(modelReference);
           if (Array.isArray(relationshipValue)) {
@@ -389,11 +396,11 @@ export default class RelationshipDB {
       return null;
     } else if (metadata.relationshipType === "BelongsTo" && !model[metadata.foreignKeyColumnName as string]) {
       return RelationshipDB.cacheRelationship(model, metadata, null);
+    } else if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
+      return Class.Adapter.fetchRelationship(model, relationshipName, metadata);
     }
 
-    let result = ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)
-      ? null
-      : RelationshipQuery.findPossibleReferenceInMemory(model, metadata);
+    let result = RelationshipQuery.findPossibleReferenceInMemory(model, metadata);
 
     return result
       ? RelationshipDB.cacheRelationship(model, metadata, result)

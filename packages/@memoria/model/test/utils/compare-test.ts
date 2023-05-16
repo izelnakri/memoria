@@ -45,18 +45,18 @@ module("@memoria/model | Utils | compare", function (hooks) {
 
       for (let comparableIndex = suspectIndex + 1; comparableIndex < data.length; comparableIndex++) {
         let comparable = data[comparableIndex];
-        let failureMessage =
-          "data[" +
-          suspectIndex +
-          "] (" +
-          typeOf(suspect) +
-          ") should be smaller than data[" +
-          comparableIndex +
-          "] (" +
-          typeOf(comparable) +
-          ")";
+        // let failureMessage =
+        //   "data[" +
+        //   suspectIndex +
+        //   "] (" +
+        //   typeOf(suspect) +
+        //   ") should be smaller than data[" +
+        //   comparableIndex +
+        //   "] (" +
+        //   typeOf(comparable) +
+        //   ")";
 
-        assert.equal(compare(suspect, comparable), -1, failureMessage);
+        assert.equal(compare(suspect, comparable), -1);
       }
     }
   });
