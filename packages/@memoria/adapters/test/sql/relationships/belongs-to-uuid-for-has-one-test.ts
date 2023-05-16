@@ -231,7 +231,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for UUID
 
       let deletedPhoto = await SQLPhoto.delete(fetchedPhoto);
 
-      assert.propEqual(deletedPhoto, fetchedPhoto);
+      assert.deepEqual(deletedPhoto, fetchedPhoto);
       assert.equal(deletedPhoto.group, null);
       assert.equal(deletedPhoto.group_uuid, null);
       assert.equal(fetchedPhoto.group, null);

@@ -71,13 +71,14 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
       let deletedPhoto = await SQLPhoto.delete({ id: 2 });
-      assert.propEqual(
+      assert.deepEqual(
         deletedPhoto,
         SQLPhoto.build({
           id: 2,
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
+          comments: [],
         })
       );
       assert.notOk(deletedPhoto.isNew);
@@ -118,6 +119,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           updated_at: deletedComment.updated_at,
           photo_id: null,
           user_id: null,
+          comments: [],
         })
       );
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
@@ -248,6 +250,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.deepEqual(
@@ -257,6 +260,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.equal(groupPhoto.group, null);

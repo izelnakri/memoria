@@ -323,10 +323,12 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.notStrictEqual(firstPhoto.group, group);
 
-      assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
+      let newlyGeneratedGroup = firstPhoto.group;
+
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), MemoryGroup.Cache.get(group.id).toJSON());
       assert.equal(firstPhoto.group_id, group.id);
-
       assert.strictEqual(group.photo, secondPhoto); // it is secondPhoto... WTF?!
 
       let updatedGroup = await MemoryGroup.update(insertedGroup.toJSON()); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
@@ -345,12 +347,11 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       assert.equal(updatedGroup.photo, null);
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
+      assert.strictEqual(secondPhoto.group, newlyGeneratedGroup);
+      assert.equal(secondPhoto.group_id, newlyGeneratedGroup.id);
 
-      assert.strictEqual(secondPhoto.group, insertedGroup);
-      assert.equal(secondPhoto.group_id, insertedGroup.id);
-
-      assert.strictEqual(firstPhoto.group, insertedGroup);
-      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 
@@ -408,7 +409,11 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, group);
+
+      let newlyGeneratedGroup = firstPhoto.group;
+
+      assert.notStrictEqual(firstPhoto.group, insertedGroup);
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), MemoryGroup.Cache.get(group.id).toJSON());
       assert.equal(firstPhoto.group_id, group.id);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
@@ -426,12 +431,12 @@ module("@memoria/adapters | MemoryAdapter | Relationships | @hasOne API for ID(i
       updatedGroup.photo = null;
 
       assert.strictEqual(updatedGroup.photo, null);
-      assert.strictEqual(secondPhoto.group, insertedGroup);
-      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(secondPhoto.group, newlyGeneratedGroup);
+      assert.equal(secondPhoto.group_id, newlyGeneratedGroup.id);
 
       assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, insertedGroup);
-      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       let deletedGroup = await MemoryGroup.delete(updatedGroup);
 

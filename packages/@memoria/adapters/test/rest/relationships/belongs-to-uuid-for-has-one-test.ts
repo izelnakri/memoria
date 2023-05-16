@@ -244,7 +244,7 @@ module(
 
         let deletedPhoto = await RESTPhoto.delete(fetchedPhoto);
 
-        assert.propEqual(deletedPhoto, fetchedPhoto);
+        assert.deepEqual(deletedPhoto, fetchedPhoto);
         assert.equal(deletedPhoto.group, null);
         assert.equal(deletedPhoto.group_uuid, null);
         assert.equal(fetchedPhoto.group, null);

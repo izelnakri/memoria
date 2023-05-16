@@ -279,7 +279,9 @@ module("@memoria/adapters | SQLAdapter | Relationships | @hasOne API for ID(inte
 
       assert.equal(fetchedGroup.photo, null);
       assert.strictEqual(photo.group, group);
+
       assert.strictEqual(group.photo, photo);
+
       assert.equal(photo.group_id, group.id);
 
       let deletedGroup = await SQLGroup.delete(fetchedGroup);
@@ -324,10 +326,12 @@ module("@memoria/adapters | SQLAdapter | Relationships | @hasOne API for ID(inte
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.notStrictEqual(firstPhoto.group, group);
 
-      assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
+      let newlyGeneratedGroup = firstPhoto.group;
+
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), SQLGroup.Cache.get(group.id).toJSON());
       assert.equal(firstPhoto.group_id, group.id);
-
       assert.strictEqual(group.photo, secondPhoto); // it is secondPhoto... WTF?!
 
       let updatedGroup = await SQLGroup.update(insertedGroup.toJSON()); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
@@ -347,11 +351,11 @@ module("@memoria/adapters | SQLAdapter | Relationships | @hasOne API for ID(inte
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
 
-      assert.strictEqual(secondPhoto.group, insertedGroup);
-      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(secondPhoto.group, newlyGeneratedGroup);
+      assert.equal(secondPhoto.group_id, newlyGeneratedGroup.id);
 
-      assert.strictEqual(firstPhoto.group, insertedGroup);
-      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       let deletedGroup = await SQLGroup.delete(updatedGroup);
 
@@ -408,8 +412,10 @@ module("@memoria/adapters | SQLAdapter | Relationships | @hasOne API for ID(inte
       insertedGroup.photo = secondPhoto;
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
-      assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, group);
+      let newlyGeneratedGroup = firstPhoto.group;
+
+      assert.notStrictEqual(firstPhoto.group, insertedGroup);
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), SQLGroup.Cache.get(group.id).toJSON());
       assert.equal(firstPhoto.group_id, group.id);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
@@ -427,12 +433,12 @@ module("@memoria/adapters | SQLAdapter | Relationships | @hasOne API for ID(inte
       updatedGroup.photo = null;
 
       assert.strictEqual(updatedGroup.photo, null);
-      assert.strictEqual(secondPhoto.group, insertedGroup);
-      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, insertedGroup);
-      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       let deletedGroup = await SQLGroup.delete(updatedGroup);
 
