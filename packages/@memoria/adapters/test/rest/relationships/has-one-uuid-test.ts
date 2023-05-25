@@ -176,6 +176,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for UUID(u
       assert.strictEqual(fetchedGroup.photo, photo);
       assert.strictEqual(group.photo, photo);
       assert.strictEqual(photo.group, fetchedGroup);
+
       assert.equal(photo.group_uuid, fetchedGroup.uuid);
 
       let newPhoto = RESTPhoto.build({ name: "Another cover photo" });

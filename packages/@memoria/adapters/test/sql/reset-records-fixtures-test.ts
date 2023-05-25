@@ -1,4 +1,4 @@
-import Model, { DB, PrimaryGeneratedColumn, Column, CreateDateColumn, CacheError, RuntimeError } from "@memoria/model";
+import Model, { DB, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, CacheError, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import SQLAdapter from "../helpers/sql-adapter.js";
@@ -53,6 +53,9 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
 
       @CreateDateColumn()
       inserted_at: Date;
+
+      @UpdateDateColumn()
+      updated_at: Date;
     }
     await DB.resetRecords();
 
@@ -90,14 +93,15 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     assert.propEqual(await Photo.findAll(), PHOTOS);
 
     let photoComments = await PhotoComment.findAll();
-    assert.propEqual(photoComments, [
+    assert.matchJson(photoComments.map((photoComment) => photoComment.toJSON()), [
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         content: "Interesting indeed",
         photo_id: 2,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[3].inserted_at,
+        inserted_at: photoComments[3].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -105,7 +109,8 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         photo_id: 1,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -113,7 +118,8 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         photo_id: 1,
         user_id: 2,
         is_important: true,
-        inserted_at: photoComments[1].inserted_at,
+        inserted_at: photoComments[1].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
@@ -121,7 +127,8 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
         photo_id: 1,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[2].inserted_at,
+        inserted_at: photoComments[2].inserted_at.toJSON(),
+        updated_at: String
       },
     ]);
 
@@ -131,22 +138,24 @@ module("@memoria/adapters | SQLAdapter | $Model.resetRecords(initialState)", fun
     assert.notOk(photoComment.isDeleted);
     assert.notOk(photoComment.isDirty);
     assert.deepEqual(photoComment.changes, {});
-    assert.deepEqual(photoComment.revision, {
+    assert.matchJson(photoComment.revision, {
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
       content: "Interesting indeed",
       photo_id: 2,
       user_id: 1,
       is_important: true,
-      inserted_at: photoComments[0].inserted_at,
+      inserted_at: photoComments[0].inserted_at.toJSON(),
+      updated_at: String
     });
-    assert.deepEqual(photoComment.revisionHistory, [
+    assert.matchJson(photoComment.revisionHistory, [
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         content: "Interesting indeed",
         photo_id: 2,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String
       },
     ]);
   });

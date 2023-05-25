@@ -132,15 +132,20 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       assert.propEqual(firstComment.updated_at, comment.updated_at);
     });
 
-    test("$Model.update(attributes) does not throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
+    test("$Model.update(attributes) does throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
       const { SQLPhoto, SQLPhotoComment } = generateModels();
       await DB.resetRecords();
 
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
-      let photo = await SQLPhoto.update({ id: 1, name: "ME", is_verified: false });
+      try {
+        await SQLPhoto.update({ id: 1, name: "ME", is_verified: false });
+      } catch (error) {
+        assert.equal(error.message, 'is_verified is not a valid attribute for a SQLPhoto partial! Provided { is_verified: false }');
+      }
 
+      let photo = await SQLPhoto.update({ id: 1, name: "ME" });
       assert.matchJson(photo, {
         id: 1,
         name: "ME",
@@ -150,11 +155,18 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
         owner_id: null,
       });
 
+      try {
+        await SQLPhotoComment.update({
+          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          location: "Amsterdam",
+        });
+      } catch (error) {
+        assert.equal(error.message, 'location is not a valid attribute for a SQLPhotoComment partial! Provided { location: Amsterdam }');
+      }
+
       let photoComment = await SQLPhotoComment.update({
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-        location: "Amsterdam",
       });
-
       assert.matchJson(photoComment, {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         inserted_at: String,

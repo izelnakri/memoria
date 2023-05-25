@@ -196,10 +196,11 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
         assert.ok(error.message.includes("/users/44"));
       }
 
-      assert.ok(RESTPhoto.build(photo));
+      RESTPhoto.build(photo);
+
       let insertedUser = await RESTUser.insert({ id: 44, first_name: "Izel", last_name: "Nakri" });
 
-      assert.propContains(insertedUser, { id: 44, first_name: "Izel", last_name: "Nakri" });
+      assert.propContains(insertedUser.toJSON(), { id: 44, first_name: "Izel", last_name: "Nakri" });
       assert.propEqual(photo.owner, insertedUser);
     });
 

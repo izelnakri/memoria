@@ -403,7 +403,7 @@ export default class MemoryAdapter {
         }
 
         let relationship = model[Model.primaryKeyName]
-          ? await RelationshipClass.peekBy({
+          ? RelationshipClass.peekBy({
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
             })
           : null;
@@ -425,7 +425,7 @@ export default class MemoryAdapter {
         return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
       }
 
-      return resolve(null); // TODO: ManyToMany not implemented because of this, implement this
+      return resolve(null); // NOTE: ManyToMany not implemented yet.
     });
   }
 }

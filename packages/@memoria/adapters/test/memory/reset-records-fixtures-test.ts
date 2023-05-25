@@ -1,4 +1,4 @@
-import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn, CacheError, RuntimeError } from "@memoria/model";
+import Model, { PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
@@ -46,6 +46,9 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
 
       @CreateDateColumn()
       inserted_at: Date;
+
+      @UpdateDateColumn()
+      updated_at: Date;
     }
 
     return { Photo, PhotoComment, User };
@@ -82,10 +85,11 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     assert.propEqual(await Photo.findAll(), PHOTOS);
 
     let photoComments = await PhotoComment.findAll();
-    assert.propEqual(photoComments, [
+    assert.matchJson(photoComments.map((photoComment) => photoComment.toJSON()), [
       {
         content: "What a nice photo!",
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 1,
         user_id: 1,
@@ -93,7 +97,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
       },
       {
         content: "I agree",
-        inserted_at: photoComments[1].inserted_at,
+        inserted_at: photoComments[1].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 1,
         user_id: 2,
@@ -101,7 +106,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
       },
       {
         content: "I was kidding",
-        inserted_at: photoComments[2].inserted_at,
+        inserted_at: photoComments[2].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 1,
         user_id: 1,
@@ -109,7 +115,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
       },
       {
         content: "Interesting indeed",
-        inserted_at: photoComments[3].inserted_at,
+        inserted_at: photoComments[3].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 2,
         user_id: 1,
@@ -123,18 +130,20 @@ module("@memoria/adapters | MemoryAdapter | $Model.resetRecords(initialState)", 
     assert.notOk(photoComment.isDeleted);
     assert.notOk(photoComment.isDirty);
     assert.deepEqual(photoComment.changes, {});
-    assert.deepEqual(photoComment.revision, {
+    assert.matchJson(photoComment.revision, {
       content: "What a nice photo!",
-      inserted_at: photoComments[0].inserted_at,
+      inserted_at: photoComments[0].inserted_at.toJSON(),
+      updated_at: String,
       is_important: true,
       photo_id: 1,
       user_id: 1,
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
     });
-    assert.deepEqual(photoComment.revisionHistory, [
+    assert.matchJson(photoComment.revisionHistory, [
       {
         content: "What a nice photo!",
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 1,
         user_id: 1,

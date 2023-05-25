@@ -18,7 +18,7 @@ module(
         this.Server = Server;
 
         let firstGroup = await RESTGroup.insert({ name: "Some group" });
-        let secondGroup = await RESTGroup.insert({ first_name: "Moris" });
+        let secondGroup = await RESTGroup.insert({ name: "Another group" });
         let photo = RESTPhoto.build({ name: "Dinner photo", group_uuid: secondGroup.uuid });
 
         assert.strictEqual(photo.group, secondGroup);
@@ -30,7 +30,7 @@ module(
         this.Server = Server;
 
         let firstGroup = await RESTGroup.insert({ name: "Some group" });
-        let secondGroup = await RESTGroup.insert({ first_name: "Moris" });
+        let secondGroup = await RESTGroup.insert({ name: "Another group" });
         let photo = RESTPhoto.build({ name: "Dinner photo", group_uuid: secondGroup.uuid });
 
         assert.strictEqual(photo.group, secondGroup);
@@ -45,7 +45,7 @@ module(
         this.Server = Server;
 
         let firstGroup = await RESTGroup.insert({ name: "Some group" });
-        let secondGroup = await RESTGroup.insert({ first_name: "Moris" });
+        let secondGroup = await RESTGroup.insert({ name: "Another group" });
         let photo = RESTPhoto.build({ name: "Dinner photo" });
 
         assert.equal(photo.group, null);
@@ -467,7 +467,7 @@ module(
             },
             {
               uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-              first_name: "Another Group",
+              name: "Another Group",
             },
           ]);
 

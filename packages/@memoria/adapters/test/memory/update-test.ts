@@ -176,14 +176,19 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       assert.propEqual({ ...firstComment, updated_at: comment.updated_at, content: "Coolie" }, comment);
     });
 
-    test("$Model.update(attributes) doesnt throw an exception when a model gets updated with an unknown attribute", async function (assert) {
+    test("$Model.update(attributes) does throw an exception when a model gets updated with an unknown attribute", async function (assert) {
       const { MemoryPhoto, MemoryPhotoComment } = generateModels();
 
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
-      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
+      try {
+        await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
+      } catch (error) {
+        assert.equal(error.message, 'is_verified is not a valid attribute for a MemoryPhoto partial! Provided { is_verified: false }');
+      }
 
+      let photo = await MemoryPhoto.update({ id: 1, name: "ME" });
       assert.matchJson(photo, {
         href: "ski-trip.jpeg",
         id: 1,
@@ -193,11 +198,18 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         owner_id: null,
       });
 
+      try {
+        await MemoryPhotoComment.update({
+          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          location: "Amsterdam",
+        });
+      } catch (error) {
+        assert.equal(error.message, 'location is not a valid attribute for a MemoryPhotoComment partial! Provided { location: Amsterdam }');
+      }
+
       let photoComment = await MemoryPhotoComment.update({
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-        location: "Amsterdam",
       });
-
       assert.matchJson(photoComment, {
         content: "Interesting indeed",
         inserted_at: String,
@@ -405,7 +417,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         }),
       ]);
 
-      let photo = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false }, { cacheDuration: 0 });
+      let photo = await MemoryPhoto.update({ id: 1, name: "ME" }, { cacheDuration: 0 });
 
       assert.matchJson(photo, {
         href: "ski-trip.jpeg",
@@ -419,7 +431,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
 
       await MemoryPhoto.insert(PHOTOS[0]);
 
-      let anotherPhoto = await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
+      let anotherPhoto = await MemoryPhoto.update({ id: 1, name: "ME" });
 
       assert.matchJson(anotherPhoto, {
         href: "ski-trip.jpeg",

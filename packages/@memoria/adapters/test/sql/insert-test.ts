@@ -257,13 +257,30 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       await Promise.all(PHOTOS.map((photo) => SQLPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)));
 
-      await SQLPhoto.insert({
-        published_at: new Date("2017-10-10").toJSON(),
-        description: "Some description",
-      });
-      await SQLPhoto.insert({ location: "Istanbul", is_public: false });
-      await SQLPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-      await SQLPhotoComment.insert({ reply_id: 1 });
+      try {
+        await SQLPhoto.insert({
+          published_at: new Date("2017-10-10").toJSON(),
+          description: "Some description",
+        });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a SQLPhoto partial! Provided'));
+      }
+      try {
+        await SQLPhoto.insert({ location: "Istanbul", is_public: false });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a SQLPhoto partial! Provided'));
+      }
+
+      try {
+        await SQLPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a SQLPhotoComment partial! Provided'));
+      }
+      try {
+        await SQLPhotoComment.insert({ reply_id: 1 });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a SQLPhotoComment partial! Provided'));
+      }
 
       assert.deepEqual(Array.from(SQLPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
       assert.deepEqual(Array.from(SQLPhotoComment.columnNames), [
@@ -279,19 +296,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       assert.propEqual(
         await SQLPhoto.findAll(),
         [
-          ...PHOTOS,
-          {
-            id: 4,
-            is_public: true,
-            name: "Photo default name",
-            href: null,
-          },
-          {
-            id: 5,
-            is_public: false,
-            name: "Photo default name",
-            href: null,
-          },
+          ...PHOTOS
         ].map((photo) => SQLPhoto.build(photo))
       );
     });

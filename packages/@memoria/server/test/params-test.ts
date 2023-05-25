@@ -473,7 +473,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
 
       this.Server = Server;
       this.Server.post("/photos", async ({ params, queryParams }) => {
-        assert.deepEqual(params, { name: null, title: "Cool" });
+        assert.deepEqual(params, { name: null });
         assert.deepEqual(queryParams, { is_important: true, filter: 32 });
 
         return { photo: Photo.serializer(await Photo.insert(params)) };
@@ -482,7 +482,7 @@ module("@memoria/server | params, headers, queryParams tests", function (hooks) 
       await $.ajax({
         type: "POST",
         url: "/photos?is_important=true&filter=32",
-        data: { name: "", title: "Cool" },
+        data: { name: "" },
       }).then((data, textStatus, jqXHR) => {
         assert.equal(jqXHR.status, 201);
         assert.equal(Photo.Cache.size, 4);

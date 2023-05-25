@@ -16,9 +16,9 @@ import {
 import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
-// import HasManyArray from "./has-many-array.js";
 
 export type PrimaryKey = number | string;
+
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
@@ -330,11 +330,11 @@ export default class Model {
   }
 
   static peekBy(queryObject: QueryObject, options?: ModelBuildOptions): Model | null {
-    return this.Adapter.peekBy(this, queryObject, options);
+    return this.Adapter.peekBy(this, validatePartialModelInput(queryObject, this), options);
   }
 
   static peekAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Model[] {
-    return this.Adapter.peekAll(this, queryObject, options);
+    return this.Adapter.peekAll(this, validatePartialModelInput(queryObject, this), options);
   }
 
   static async find(
@@ -352,17 +352,18 @@ export default class Model {
   }
 
   static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | null> {
-    let result = await this.Adapter.findBy(this, queryObject, options);
+    let result = await this.Adapter.findBy(this, validatePartialModelInput(queryObject, this), options);
 
     return result ? RelationshipDB.cache(result, "update", result) : null;
   }
 
   static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | null> {
-    let result = await this.Adapter.findAll(this, queryObject, options);
+    let result = await this.Adapter.findAll(this, validatePartialModelInput(queryObject, this), options);
 
     return result ? result.map((model) => RelationshipDB.cache(model, "update", model)) : null;
   }
 
+  // TODO: BUG when you have relationship references but no foreign key provided as pure object then attribute dont get sent along
   static async insert(record?: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (record && record[this.primaryKeyName]) {
       primaryKeyTypeSafetyCheck(record, this);
@@ -370,7 +371,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.insert(this, record || {}, options);
+    let model = await this.Adapter.insert(this, validatePartialModelInput(record, this) || {}, options);
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -396,7 +397,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.update(this, record, options);
+    let model = await this.Adapter.update(this, validatePartialModelInput(record, this), options);
 
     if (record instanceof this) {
       this.unsetRecordInTransit(record);
@@ -411,8 +412,8 @@ export default class Model {
 
   static async save(record: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     return shouldInsertOrUpdateARecord(this, record) === "insert"
-      ? await this.Adapter.insert(this, record, options)
-      : await this.Adapter.update(this, record, options);
+      ? await this.Adapter.insert(this, validatePartialModelInput(record, this), options)
+      : await this.Adapter.update(this, validatePartialModelInput(record, this), options);
   }
 
   static unload(record: ModelRefOrInstance, options?: ModelBuildOptions): Model {
@@ -446,9 +447,9 @@ export default class Model {
   }
 
   static async saveAll(records: QueryObject[] | ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
-    return records.every((record) => shouldInsertOrUpdateARecord(this, record) === "update")
-      ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[], options)
-      : await this.Adapter.insertAll(this, records, options);
+    return records.some((record) => shouldInsertOrUpdateARecord(this, record) === "insert")
+      ? await this.Adapter.insertAll(this, validatePartialModelInputs(records, this), options)
+      : await this.Adapter.updateAll(this, validatePartialModelInputs(records, this) as ModelRefOrInstance[], options);
   }
 
   static async insertAll(records: QueryObject[], options?: ModelBuildOptions): Promise<Model[]> {
@@ -480,7 +481,7 @@ export default class Model {
       throw error;
     }
 
-    let models = await this.Adapter.insertAll(this, records, options);
+    let models = await this.Adapter.insertAll(this, validatePartialModelInputs(records, this), options);
 
     records.forEach((record) => {
       if (record instanceof this) {
@@ -511,7 +512,7 @@ export default class Model {
       this.setRecordInTransit(record);
     });
 
-    let models = await this.Adapter.updateAll(this, records, options);
+    let models = await this.Adapter.updateAll(this, validatePartialModelInputs(records, this), options);
 
     records.forEach((record) => {
       if (record instanceof this) {
@@ -815,4 +816,43 @@ function revisionAndLockModel(model, options?, buildObject?) {
     model.revisionHistory.add(model);
 
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
+}
+
+// NOTE: In future make validation for values
+function validatePartialModelInput(object: QueryObject, Class: typeof Model) {
+  if (object && !(object instanceof Class)) {
+    let relationshipNames = RelationshipSchema.getRelationshipTable(Class); // NOTE: This is not perfect for await find({ photos }) but fine for now.
+    let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(Class);
+
+    return Object.keys(object).reduce((result, keyName) => {
+      if (Class.columnNames.has(keyName)) {
+        result[keyName] = object[keyName];
+
+        return result;
+      } else if (!(keyName in relationshipNames)) {
+        throw new RuntimeError(`${keyName} is not a valid attribute for a ${Class.name} partial! Provided { ${keyName}: ${object[keyName]} }`);
+      }
+
+      result[keyName] = object[keyName];
+
+      if (belongsToColumnNames.has(keyName)) {
+        let { foreignKeyColumnName } = relationshipNames[keyName];
+        if (!object[keyName]) {
+          result[foreignKeyColumnName as string] = null;
+        } else if (object[keyName] && object[keyName] instanceof Model) {
+          let RelationshipClass = object[keyName].constructor as typeof Model;
+
+          result[foreignKeyColumnName as string] = object[keyName][RelationshipClass.primaryKeyName];
+        }
+      }
+
+      return result;
+    }, {});
+  }
+
+  return object;
+}
+
+function validatePartialModelInputs(objects: QueryObject[], Class: typeof Model) {
+  return objects.map((object) => validatePartialModelInput(object, Class));
 }

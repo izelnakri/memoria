@@ -181,7 +181,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
     const notFoundComment = await PhotoComment.findBy({
       uuid: "374c7f4a-85d6-429a-bf2a-0719525f5111",
     });
-    const notFoundComments = await Photo.findAll({ content: "Aint easy" });
+    const notFoundComments = await Photo.findAll({ name: "Aint easy" });
 
     assert.equal(Photo.serializer(notFoundPhoto), undefined);
     assert.deepEqual(Photo.serializer({}), {

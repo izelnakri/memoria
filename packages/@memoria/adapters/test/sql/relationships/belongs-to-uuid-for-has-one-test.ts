@@ -13,7 +13,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for UUID
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
-      let secondGroup = await SQLGroup.insert({ first_name: "Moris" });
+      let secondGroup = await SQLGroup.insert({ name: "Another group" });
       let photo = SQLPhoto.build({ name: "Dinner photo", group_uuid: secondGroup.uuid });
 
       assert.strictEqual(photo.group, secondGroup);
@@ -24,7 +24,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for UUID
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
-      let secondGroup = await SQLGroup.insert({ first_name: "Moris" });
+      let secondGroup = await SQLGroup.insert({ name: "Another group" });
       let photo = SQLPhoto.build({ name: "Dinner photo", group_uuid: secondGroup.uuid });
 
       assert.strictEqual(photo.group, secondGroup);
@@ -38,7 +38,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for UUID
       let { SQLPhoto, SQLGroup } = setupSQLModels();
 
       let firstGroup = await SQLGroup.insert({ name: "Some group" });
-      let secondGroup = await SQLGroup.insert({ first_name: "Moris" });
+      let secondGroup = await SQLGroup.insert({ name: "Another group" });
       let photo = SQLPhoto.build({ name: "Dinner photo" });
 
       assert.equal(photo.group, null);
@@ -448,7 +448,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for UUID
         },
         {
           uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
-          first_name: "Another Group",
+          name: "Another Group",
         },
       ]);
 
