@@ -1,7 +1,7 @@
 // ChatGPT: Build me test cases & implementation below on this file based on the previous tests & files:
 // NOTE: Maybe in future test quality upgrade: add one extra photo to the tests, make intermediary built instances, check their upgrade on fetch
 import { module, test } from "qunitx";
-import { RelationshipPromise, RelationshipDB, InstanceDB } from "@memoria/model";
+import { RelationshipPromise, RelationshipDB } from "@memoria/model";
 import setupMemoria from "../../helpers/setup-memoria.js";
 import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
 
@@ -309,7 +309,7 @@ module(
       test("Fetched model can remove the relationship before update", async function (assert) {
         let { MemoryPhoto, MemoryUser } = generateModels();
 
-        let user = await MemoryUser.insert({ name: "Some user" });
+        let user = await MemoryUser.insert({ first_name: "Izel" });
         let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
@@ -341,7 +341,7 @@ module(
       test("Fetched model can remove the relationship before delete", async function (assert) {
         let { MemoryPhoto, MemoryUser } = generateModels();
 
-        let user = await MemoryUser.insert({ name: "Some user" });
+        let user = await MemoryUser.insert({ first_name: "Izel" });
         let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
@@ -374,7 +374,7 @@ module(
       test("Fallback behavior for fkey mutations clear the HasManyArray when there is cached & persisted but no instances of the reference with fkey pointing to it", async function (assert) {
         let { MemoryPhoto, MemoryUser } = generateModels();
 
-        let user = await MemoryUser.insert({ name: "Some user" });
+        let user = await MemoryUser.insert({ first_name: "Izel" });
         let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
@@ -406,8 +406,8 @@ module(
         test("When related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
           let { MemoryPhoto, MemoryUser } = generateModels();
 
-          let user = await MemoryUser.insert({ name: "Some user" });
-          let secondUser = await MemoryUser.insert({ name: "Another user" });
+          let user = await MemoryUser.insert({ first_name: "Izel" });
+          let secondUser = await MemoryUser.insert({ first_name: "John" });
           let thirdUser = MemoryUser.build({ id: 3, name: "Third user" });
 
           let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
@@ -546,8 +546,8 @@ module(
         test("Reverse relationship can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
           let { MemoryPhoto, MemoryUser } = generateModels();
 
-          let firstUser = await MemoryUser.insert({ name: "Some group" });
-          let secondUser = await MemoryUser.insert({ name: "Some group" });
+          let firstUser = await MemoryUser.insert({ first_name: "Izel" });
+          let secondUser = await MemoryUser.insert({ first_name: "John" });
           let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
           assert.strictEqual(photo.owner, secondUser);
@@ -605,11 +605,11 @@ module(
           MemoryUser.cache([
             {
               id: 1,
-              name: "Some group",
+              first_name: "Izel",
             },
             {
               id: 2,
-              name: "Another group",
+              first_name: "John",
             },
           ]);
 

@@ -1,8 +1,9 @@
 import Model from "../model.js";
-import { RelationshipMutation } from "../stores/index.js";
+import { RelationshipMutation, RelationshipSchema } from "../stores/index.js";
 import type { RelationshipMetadata } from "../stores/index.js";
 import { transformValue } from "../serializer.js";
 import type { ModelBuildOptions } from "../model.js";
+import { validateRelationshipInput } from "../validators/index.js";
 
 type QueryObject = { [key: string]: any };
 
@@ -13,12 +14,11 @@ export default function defineForeignKeySetter(
   buildOptions: ModelBuildOptions,
   relationshipMetadata: RelationshipMetadata
 ) {
-  let { RelationshipClass, RelationshipCache, relationshipName } = relationshipMetadata;
-  let cache = buildObject && buildObject[relationshipName] && RelationshipClass.primaryKeyName in buildObject[relationshipName]
-    ? buildObject[relationshipName][RelationshipClass.primaryKeyName] || getTransformedValue(model, columnName, buildObject)
+  let { RelationshipCache } = relationshipMetadata;
+  let cache = hasProvidedRelationship(buildObject, relationshipMetadata)
+    ? generateForeignKeyValueFromRelationshipOrProvidedValue(model, columnName, buildObject, relationshipMetadata)
     : getTransformedValue(model, columnName, buildObject);
 
-  debugger;
   // TODO: add the mutation here for once, is this really needed(?)
   return Object.defineProperty(model, columnName, {
     configurable: false,
@@ -52,6 +52,33 @@ export default function defineForeignKeySetter(
       }
     },
   });
+}
+
+function hasProvidedRelationship(buildObject: QueryObject | Model, { RelationshipCache, relationshipName }: RelationshipMetadata) {
+  return buildObject instanceof Model ? !!RelationshipCache.has(buildObject) : relationshipName in buildObject;
+}
+
+function generateForeignKeyValueFromRelationshipOrProvidedValue(
+  model: Model,
+  columnName: string,
+  buildObject: QueryObject | Model,
+  relationshipMetadata : RelationshipMetadata
+) {
+  let { RelationshipClass, relationshipName, reverseRelationshipName } = relationshipMetadata;
+  let relationshipReference = buildObject[relationshipName];
+  if (!relationshipReference || !(RelationshipClass.primaryKeyName in relationshipReference)) {
+    return getTransformedValue(model, columnName, buildObject);
+  } else if (buildObject[columnName] !== undefined) {
+    let reverseMetadata = RelationshipSchema.getRelationshipMetadataFor(RelationshipClass, reverseRelationshipName);
+
+    validateRelationshipInput(
+      reverseMetadata.relationshipType === 'HasMany' ? [buildObject] : buildObject,
+      model.constructor as typeof Model,
+      reverseMetadata
+    );
+  }
+
+  return relationshipReference[RelationshipClass.primaryKeyName] || getTransformedValue(model, columnName, buildObject);
 }
 
 function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {

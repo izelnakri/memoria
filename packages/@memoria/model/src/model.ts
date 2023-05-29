@@ -14,7 +14,7 @@ import {
   InstanceDB,
 } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils/index.js";
-import { validatePartialModelInput } from "./validations/index.js";
+import { validatePartialModelInput } from "./validators/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
 import definePrimaryKeySetter from "./setters/primary-key.js";
@@ -113,7 +113,7 @@ export default class Model {
     }
 
     let buildOptions = { copy: false, revision: true, ...options };
-    let model = new this(buildOptions);
+    let model = new this(buildOptions); // TODO: Move buildObject validations here
 
     if (buildObject) {
       if (buildObject.revisionHistory) {
@@ -133,7 +133,7 @@ export default class Model {
 
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
     let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
-    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, buildObject[this.primaryKeyName] || null);
+    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, buildObject[this.primaryKeyName] || null); // NOTE: This shouldnt create an empty set if validations fail
 
     Array.from(this.columnNames).forEach((columnName) => {
       if (columnName === this.primaryKeyName) {
@@ -144,6 +144,10 @@ export default class Model {
         definedColumnPropertySetter(model, columnName, buildObject, buildOptions);
       }
     });
+
+    // NOTE: At this point model is not in existingInstances array because validations can run and throw exceptions!
+    // Removed the generation on InstanceDB.getOrCreateExistingInstancesSet when primaryKey is not there
+    existingInstances.add(model);
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
@@ -166,7 +170,7 @@ export default class Model {
       });
     });
 
-    existingInstances.add(model);
+    // existingInstances.add(model);
 
     return revisionAndLockModel(model, options, buildObject);
   }

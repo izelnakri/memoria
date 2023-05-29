@@ -401,8 +401,9 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }
       });
 
-      let somePeekedModel = await MemoryGroup.peek(group.uuid);
+      let somePeekedModel = await MemoryGroup.peek(group.uuid); // TODO: PEEK GENERATES A RelationshipCache RECORD!! WTF
 
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
       assert.strictEqual(groupPhoto.group, insertedGroup);
 
       let newBuiltReference = MemoryGroup.build({

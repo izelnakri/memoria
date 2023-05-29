@@ -22,6 +22,21 @@ export interface RelationshipMetadata {
   reverseRelationshipForeignKeyColumnName: null | string;
 }
 
+export interface BelongsToRelationshipMetadata extends RelationshipMetadata {
+  foreignKeyColumnName: string;
+  reverseRelationshipForeignKeyColumnName: null;
+}
+
+export interface HasOneRelationshipMetadata extends RelationshipMetadata {
+  foreignKeyColumnName: null;
+  reverseRelationshipForeignKeyColumnName: string;
+}
+
+export interface HasManyRelationshipMetadata extends RelationshipMetadata {
+  foreignKeyColumnName: null;
+  reverseRelationshipForeignKeyColumnName: string;
+}
+
 export interface RelationshipTable {
   [relationshipName: string]: RelationshipMetadata;
 }

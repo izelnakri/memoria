@@ -6,6 +6,7 @@ import InstanceDB from "../instance/db.js";
 import { clearObject } from "../../utils/index.js";
 import type { RelationshipMetadata } from "./schema.js";
 import HasManyArray from "../../has-many-array.js";
+import { RelationshipPromise } from "../../promises/index.js";
 
 type RelationshipTableKey = string; // Example: "MemoryUser:comments"
 type AnotherModel = Model;
@@ -76,13 +77,17 @@ export default class RelationshipDB {
       });
     }
 
+    // TODO: This is removed because let photo = await RESTPhoto.insert({ name: "Dinner photo", owner: user }); immediately clears owner cache for photo.owner!
+    // NOTE: just plain wrong logic, not needed
     // NOTE: TRY: dont delete references related to the same model, only delete references related to the same model with different id(?)
-    outputRecord.fetchedRelationships.forEach((relationshipName: string) => {
-      let relationship = RelationshipDB.findRelationshipFor(outputRecord, relationshipName);
-      if (relationship && relationship[(relationship.constructor as typeof Model).primaryKeyName]) {
-        RelationshipDB.findRelationshipCacheFor(Class, relationshipName).delete(outputRecord);
-      }
-    });
+    // outputRecord.fetchedRelationships.forEach((relationshipName: string) => {
+    //   let relationship = RelationshipDB.findRelationshipFor(outputRecord, relationshipName);
+
+    //   // TODO: This is messed up, because insert() does this! with assignment that shouldnt be cleared, it clears all assignments!
+    //   // if (relationship && relationship[(relationship.constructor as typeof Model).primaryKeyName]) {
+    //   //   RelationshipDB.findRelationshipCacheFor(Class, relationshipName).delete(outputRecord);
+    //   // }
+    // });
 
     InstanceDB.makeModelPersisted(outputRecord);
 
@@ -479,4 +484,17 @@ function generateNewArrayFromInputIfNeeded(input, model, metadata) {
   }
 
   return input instanceof Model ? input : null;
+}
+
+const SINGLE_VALUE_RELATIONSHIPS = new Set(["BelongsTo", "OneToOne"]);
+
+function isInvalidRelationshipInput(input, metadata) {
+  if (input === null || input instanceof RelationshipPromise) {
+    return false;
+  } else if (SINGLE_VALUE_RELATIONSHIPS.has(metadata.relationshipType) && !(input instanceof Model)) {
+    return true;
+  } else if (metadata.relationshipType === "HasMany" && !(input instanceof Model || Array.isArray(input))) {
+    // TODO: also make sure if its array that all of its values are models
+    return true;
+  }
 }
