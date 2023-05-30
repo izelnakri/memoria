@@ -19,7 +19,7 @@ export default class RelationshipMutation {
   ) {
     let { foreignKeyColumnName, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
 
-    this.cleanRelationshipsOn(model, metadata, targetRelationship);
+    this.removeOrSetFallbackReverseRelationshipsFor(model, metadata, targetRelationship); // NOTE: This is correct
 
     RelationshipCache.set(model, targetRelationship);
 
@@ -41,34 +41,39 @@ export default class RelationshipMutation {
     targetRelationship: Model | null,
     metadata: RelationshipMetadata
   ) {
-    let { RelationshipCache } = metadata;
+    this.removeOrSetFallbackReverseRelationshipsFor(model, metadata); // NOTE: this cleans all the previous reverse relationships for model
 
-    this.cleanRelationshipsOn(model, metadata); // NOTE: this cleans all the previous reverse relationships for model
-
-    RelationshipCache.set(model, targetRelationship);
+    metadata.RelationshipCache.set(model, targetRelationship);
 
     this.setReflectiveSideRelationship(model, targetRelationship, metadata);
   }
 
-  static cleanRelationshipsOn(source: Model, metadata: RelationshipMetadata, targetRelationship?: AnotherModel | null) {
+  static removeOrSetFallbackReverseRelationshipsFor(source: Model, metadata: RelationshipMetadata, targetRelationship?: AnotherModel | null) {
     let existingRelationship = metadata.RelationshipCache.get(source) as Model;
+    let existingRelationshipReferences = existingRelationship && InstanceDB.getReferences(existingRelationship);
     if (targetRelationship && targetRelationship === existingRelationship) {
       return;
     }
     // NOTE: Handle for ReverseRelationshipType: HasMany(?)
     let {
       reverseRelationshipForeignKeyColumnName,
+      foreignKeyColumnName,
       relationshipType,
+      RelationshipClass,
       RelationshipCache,
+      reverseRelationshipName,
       ReverseRelationshipCache,
       reverseRelationshipType,
     } = metadata;
+    if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
+      throw new Error(`removeOrSetFallbackReverseRelationshipsFor ${relationshipType} should never hit based on the written logic!!`);
+    }
 
     let reverseRelationshipsPointingToSource = RelationshipQuery.findReverseRelationships(source, metadata); // TODO: Fix this, it should find existingRelationship(?)
     let SourceClass = source.constructor as typeof Model;
     let freshRemainingSourceReferenceToExistingRelationship =
       existingRelationship &&
-      reverseRelationshipsPointingToSource.length > 0 &&
+      (!existingRelationshipReferences || !(existingRelationshipReferences.has(targetRelationship))) &&
       Array.from(InstanceDB.getReferences(source))
         .reverse()
         .find((sourceReference) => {
@@ -79,7 +84,8 @@ export default class RelationshipMutation {
           }
 
           if (relationshipType === "BelongsTo") {
-            return RelationshipCache.get(sourceReference) === existingRelationship;
+            return RelationshipCache.get(sourceReference) === existingRelationship ||
+              (existingRelationship[SourceClass.primaryKeyName] && sourceReference[foreignKeyColumnName as string] === existingRelationship[SourceClass.primaryKeyName]);
           } else if (relationshipType === "OneToOne") {
             return (
               existingRelationship[reverseRelationshipForeignKeyColumnName as string] ===
@@ -121,7 +127,7 @@ export default class RelationshipMutation {
   static setReflectiveSideRelationship(
     model: Model,
     targetRelationship: null | Model,
-    { relationshipType, reverseRelationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }
+    { RelationshipCache, relationshipType, reverseRelationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }: RelationshipMetadata,
   ) {
     // TODO: make this work for HasMany Arrays in future
     if (targetRelationship) {
@@ -195,7 +201,7 @@ export default class RelationshipMutation {
       // );
       // let previousRelationship = reverseRelationshipCache.get(targetRelationship);
       // if (previousRelationship) {
-      //   this.cleanRelationshipsOn(
+      //   this.removeOrSetFallbackReverseRelationshipsFor(
       //     previousRelationship,
       //     targetRelationship,
       //     relationshipArray.metadata,

@@ -427,10 +427,14 @@ export default class RelationshipDB {
       if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
         (existingRelationship as HasManyArray).clear();
       } else if (existingRelationship) {
-        RelationshipMutation.cleanRelationshipsOn(model, metadata);
+        RelationshipMutation.removeOrSetFallbackReverseRelationshipsFor(model, metadata);
       }
 
       return model;
+    } else if (isInvalidRelationshipInput(input, metadata)) {
+      return model;
+      // throw new RuntimeError(`Invalid relationship input for ${Class.name}.${relationshipName}`);
+    }
     }
 
     let targetRelationship = generateNewArrayFromInputIfNeeded(input, model, metadata);

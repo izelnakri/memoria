@@ -38,7 +38,7 @@ export default function defineForeignKeySetter(
       buildOptions.revision && dirtyTrackAttribute(this, columnName, cache);
 
       if (!RelationshipCache.has(this)) {
-        return RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata); // works for reverse relationships(OneToOne and HasMany)
+        return RelationshipMutation.removeOrSetFallbackReverseRelationshipsFor(this, relationshipMetadata); // works for reverse relationships(OneToOne and HasMany)
       }
 
       let existingRelationship = RelationshipCache.get(this) as Model | null;
@@ -48,7 +48,7 @@ export default function defineForeignKeySetter(
         existingRelationship &&
         existingRelationship[relationshipMetadata.RelationshipClass.primaryKeyName] !== cache
       ) {
-        RelationshipMutation.cleanRelationshipsOn(this, relationshipMetadata);
+        RelationshipMutation.removeOrSetFallbackReverseRelationshipsFor(this, relationshipMetadata);
       }
     },
   });
