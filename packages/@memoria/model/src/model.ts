@@ -59,7 +59,8 @@ export default class Model {
   static Adapter: typeof MemoryAdapter = MemoryAdapter;
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
-  static DEBUG = { // NOTE: Rename this to Stores
+  static DEBUG = {
+    // NOTE: Rename this to Stores
     Schema,
     DB,
     RelationshipSchema,
@@ -133,7 +134,11 @@ export default class Model {
 
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
     let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
-    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, buildObject[this.primaryKeyName] || null); // NOTE: This shouldnt create an empty set if validations fail
+    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(
+      model,
+      buildObject,
+      buildObject[this.primaryKeyName] || null
+    ); // NOTE: This shouldnt create an empty set if validations fail
 
     Array.from(this.columnNames).forEach((columnName) => {
       if (columnName === this.primaryKeyName) {

@@ -427,7 +427,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static fetchRelationship(model: MemoriaModel, relationshipName: string, relationshipMetadata?: RelationshipMetadata) {
     let Model = model.constructor as typeof MemoriaModel;
     let metadata = relationshipMetadata || RelationshipSchema.getRelationshipMetadataFor(Model, relationshipName);
-    let { relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
+    let { SourceClass, relationshipType, RelationshipClass, reverseRelationshipName } = metadata;
 
     return new RelationshipPromise(async (resolve, reject) => {
       try {
@@ -449,38 +449,44 @@ export default class SQLAdapter extends MemoryAdapter {
 
           return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
         } else if (relationshipType === "OneToOne") {
-          if (reverseRelationshipName) {
-            let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
-            let relationshipModel = model[Model.primaryKeyName]
-              ? await RelationshipClass.findBy({
-                  [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
-                })
-              : null;
-            if (!relationshipModel) {
-              return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
-              // NOTE: now doesnt throw to match REST behavior
-              // throw new NotFoundError(
-              //   {},
-              //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
-              // );
-            }
-
-            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModel));
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+          if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
+            throw new Error(
+              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
+            );
           }
 
-          return reject("OneToOne edge case!");
+          let relationship = model[Model.primaryKeyName]
+            ? await RelationshipClass.findBy({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+            : null;
+          // if (!relationshipModel) {
+          //   return resolve(RelationshipDB.cacheRelationship(model, metadata, null));
+          //   // NOTE: now doesnt throw to match REST behavior
+          //   // throw new NotFoundError(
+          //   //   {},
+          //   //   `${RelationshipClass.tableName} table record with ${RelationshipClass.primaryKeyName}:${model[reverseRelationshipForeignKeyColumnName]} not found`
+          //   // );
+          // }
+
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
         } else if (relationshipType === "HasMany") {
-          if (reverseRelationshipName) {
-            let foreignKeyColumnName = metadata.foreignKeyColumnName as string;
-            let relationshipModels = await RelationshipClass.findAll({
-              [foreignKeyColumnName]: model[Model.primaryKeyName],
-            });
-            // TODO: This could be buggy, check it
-
-            return resolve(RelationshipDB.cacheRelationship(model, metadata, relationshipModels));
+          let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
+          if (!reverseRelationshipForeignKeyColumnName) {
+            throw new Error(
+              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+            );
           }
 
-          return reject();
+          let relationship = model[Model.primaryKeyName]
+            ? await RelationshipClass.findAll({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
+            : [];
+          // NOTE: peekAll generate new instances each time, this is a feature, not a bug(?). That way when we mutate foreignKey of existing record, hasMany array stays in tact
+
+          return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
         }
       } catch (error) {
         return reject(error);

@@ -1,3 +1,29 @@
+Major experiment #1: Fix this so fetchRelationship() actually returns with dangling reference records
+
+hasMany getter should make adjustments *each* time because hasMany may not be fetched on set AND the result of that fetch currently should return the fetchedData *not* existing references(?)
+-> change this, in the meantime, make it on the getter
+
+Question, should it do a fallback retention or not.(Its extra computation so lets remove it for now)(It is still needed because when copied references(one fkey gets removed, other should be still in tact!)
+
+// TODO: In future build a generic param filter/validation throw on unrelated attributes use it for build, find, insert, query. Do this even before the CRUD/requests
+// TODO: Make Model.peek({ owner }) should make a Model.peek({ owner_id: x }) query
+RESTAdapter should check find() and findAll() requests responses to see the data satisfies the query object because server can return anything
+
+globalThis changed in QUnit v2.9, what to do about it in QUnitX
+even if lib/setup/node-js-environment runs, new fetch gets interferred and not mocked(?)
+After setting up/changing node-js-environment, make pretender correctly mock the node.js "fetch"
+
+============
+model.fetchRelationship() should do bookeeping *AFTER* to all belongsTo records, Does appending but no removal
+reverse iteration to maintain the same order as the model that fetchRelationship called on
+only effect references that reference directly the model, not the modelReferences.has(possibleReference)
+delete extra models, append not existing models
+================
+
+// TODO: peek, peekBy and peekAll should return the instances that exists if such instances has no changes(?)
+// TODO: should findAll on hasMany append existing possible references(?) no it should represent the fetched values(right?)
+
+// TODO: what happens when you copy over data for HasManyArray? Does it copy over models references to the new copied instance(?)
 Key to global optimization HistoryLog(a basis for CRDT), Datalog
 
 -> Embedded relationships should be done seperatedly
@@ -79,3 +105,19 @@ class User extends Model {
 }
 
 SyncStrategies(after CommitHistory)
+
+
+Done stuff:
+- LazyPromise
+- PatternMatching match(value, exp) : boolean
+- In-memory DB/Adapter/ORM, timeout & sync(!!)
+- Adapter interface
+- Dirty Attribute check
+- (!) Relationship tracking, reflective relationships
+- HasManyArray
+- QUnitX universal testing & API
+- class static API
+- HTTP Server in-browser mocking
+
+Future: datalog, HistoryLog, CRDT, Deno KV Adapter, Changeset/query support
+model/src/stores/log/db.ts

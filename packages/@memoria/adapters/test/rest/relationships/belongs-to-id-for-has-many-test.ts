@@ -1,40 +1,41 @@
-// ChatGPT: Build me test cases & implementation below on this file based on the previous tests & files:
-// NOTE: Maybe in future test quality upgrade: add one extra photo to the tests, make intermediary built instances, check their upgrade on fetch
 import { module, test } from "qunitx";
-import { RelationshipPromise, RelationshipDB, InstanceDB } from "@memoria/model";
+import { RelationshipPromise, RelationshipDB, InstanceDB, UnauthorizedError, NotFoundError } from "@memoria/model";
+import { HTTP } from "@memoria/adapters";
+import ServerResponse from "@memoria/response";
 import setupMemoria from "../../helpers/setup-memoria.js";
-import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
+import setupRESTModels from "../../helpers/models-with-relations/rest/id/index.js";
 
 module(
-  "@memoria/adapters | MemoryAdapter | Relationships | @belongsTo API for ID(integer) pointing to HasMany",
+  "@memoria/adapters | RESTAdapter | Relationships | @belongsTo API for ID(integer) pointing to HasMany",
   function (hooks) {
     setupMemoria(hooks);
 
     module("Relationship fetch tests", function () {
       test("Model can fetch its not loaded relationship", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let firstUser = await MemoryUser.insert({
+        let firstUser = await RESTUser.insert({
           first_name: "Izel",
         });
-        let secondUser = await MemoryUser.insert({
+        let secondUser = await RESTUser.insert({
           first_name: "John",
         });
         let [firstPhoto, secondPhoto, thirdPhoto] = await Promise.all([
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "First photo",
             owner_id: secondUser.id,
           }),
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "Second photo",
             owner_id: secondUser.id,
           }),
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "Third photo",
             owner_id: secondUser.id,
           }),
         ]);
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = RESTPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
         let userPhotosPromise = secondUser.photos;
 
         assert.ok(userPhotosPromise instanceof RelationshipPromise);
@@ -51,36 +52,37 @@ module(
       });
 
       test("Models relationship can remove from array when relationships foreign keys set to null", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let firstUser = await MemoryUser.insert({ first_name: "Izel" });
-        let secondUser = await MemoryUser.insert({ first_name: "John" });
+        let firstUser = await RESTUser.insert({ first_name: "Izel" });
+        let secondUser = await RESTUser.insert({ first_name: "John" });
         let [firstPhoto, secondPhoto, thirdPhoto] = await Promise.all([
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "First photo",
             owner_id: secondUser.id,
           }),
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "Second photo",
             owner_id: secondUser.id,
           }),
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "Third photo",
             owner_id: secondUser.id,
           }),
         ]);
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = RESTPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
 
         await Promise.all([
-          MemoryPhoto.update({ id: firstPhoto.id, owner_id: null }),
-          MemoryPhoto.update({ id: thirdPhoto.id, owner_id: null }),
+          RESTPhoto.update({ id: firstPhoto.id, owner_id: null }),
+          RESTPhoto.update({ id: thirdPhoto.id, owner_id: null }),
         ]);
 
         assert.hasMany(await secondUser.photos, [secondPhoto]);
         assert.strictEqual(firstPhoto.owner, null);
         assert.strictEqual(thirdPhoto.owner, null);
 
-        await MemoryPhoto.update({ id: secondPhoto.id, owner_id: null });
+        await RESTPhoto.update({ id: secondPhoto.id, owner_id: null });
 
         assert.strictHasMany(secondUser.photos, []);
         assert.strictHasMany(await firstUser.photos, []);
@@ -91,18 +93,19 @@ module(
       });
 
       test("Models empty relationship reference can be deleted and fetched when changed", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let firstUser = await MemoryUser.insert({ first_name: "Izel" });
-        let secondUser = await MemoryUser.insert({ first_name: "John" });
+        let firstUser = await RESTUser.insert({ first_name: "Izel" });
+        let secondUser = await RESTUser.insert({ first_name: "John" });
         let [firstPhoto] = await Promise.all([
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "First photo",
             owner_id: secondUser.id,
           }),
         ]);
 
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = RESTPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
 
         assert.ok(secondUser.photos instanceof RelationshipPromise);
         assert.hasMany(await secondUser.photos, [firstPhoto]);
@@ -115,13 +118,13 @@ module(
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), false);
         assert.ok(secondUser.photos instanceof RelationshipPromise);
 
-        MemoryPhoto.update({ id: firstPhoto.id, owner_id: null });
+        RESTPhoto.update({ id: firstPhoto.id, owner_id: null });
 
-        let secondPhoto = await MemoryPhoto.insert({
+        let secondPhoto = await RESTPhoto.insert({
           name: "Second photo",
           owner_id: secondUser.id,
         });
-        let thirdPhoto = await MemoryPhoto.insert({
+        let thirdPhoto = await RESTPhoto.insert({
           name: "Third photo",
           owner_id: secondUser.id,
         });
@@ -146,18 +149,19 @@ module(
       });
 
       test("Models empty relationship reference can turn to promise and then can be retried with reload to fetch correctly", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let firstUser = await MemoryUser.insert({ first_name: "Izel" });
-        let secondUser = await MemoryUser.insert({ first_name: "John" });
+        let firstUser = await RESTUser.insert({ first_name: "Izel" });
+        let secondUser = await RESTUser.insert({ first_name: "John" });
         let [firstPhoto] = await Promise.all([
-          MemoryPhoto.insert({
+          RESTPhoto.insert({
             name: "First photo",
             owner_id: secondUser.id,
           }),
         ]);
 
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = RESTPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
 
         assert.ok(secondUser.photos instanceof RelationshipPromise);
         assert.hasMany(await secondUser.photos, [firstPhoto]);
@@ -174,14 +178,14 @@ module(
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), true);
         assert.hasMany(secondUser.photos, [firstPhoto, builtPhoto]);
 
-        await MemoryPhoto.update({ id: firstPhoto.id, owner_id: null });
+        await RESTPhoto.update({ id: firstPhoto.id, owner_id: null });
 
         let secondUserPhotosPromise = secondUser.photos;
-        let secondPhoto = await MemoryPhoto.insert({
+        let secondPhoto = await RESTPhoto.insert({
           name: "Second photo",
           owner_id: secondUser.id,
         });
-        let thirdPhoto = await MemoryPhoto.insert({
+        let thirdPhoto = await RESTPhoto.insert({
           name: "Third photo",
           owner_id: secondUser.id,
         });
@@ -200,11 +204,12 @@ module(
 
     module("Basic relationship assignment then commit tests", function () {
       test("New model can be built from scratch and it sends the right data to the server during post", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = MemoryUser.build({ first_name: "Izel" });
-        let firstPhoto = MemoryPhoto.build({ name: "Dinner photo", owner: user });
-        let secondPhoto = MemoryPhoto.build({ name: "user photo", owner: user });
+        let user = RESTUser.build({ first_name: "Izel" });
+        let firstPhoto = RESTPhoto.build({ name: "Dinner photo", owner: user });
+        let secondPhoto = RESTPhoto.build({ name: "user photo", owner: user });
 
         assert.strictEqual(firstPhoto.owner, user);
         assert.equal(firstPhoto.owner_id, user.id);
@@ -217,14 +222,14 @@ module(
         assert.strictEqual(secondPhoto.owner, user);
         assert.strictHasMany(await user.photos, [firstPhoto, secondPhoto]);
 
-        let insertedPhoto = await MemoryPhoto.insert(firstPhoto);
+        let insertedPhoto = await RESTPhoto.insert(firstPhoto);
 
         assert.strictEqual(firstPhoto.owner, user);
         assert.equal(insertedPhoto.owner_id, null);
         assert.strictEqual(insertedPhoto.owner, user);
         assert.strictHasMany(await user.photos, [insertedPhoto, secondPhoto]);
 
-        let insertedUser = await MemoryUser.insert(user);
+        let insertedUser = await RESTUser.insert(user);
 
         assert.strictEqual(user, insertedUser);
         assert.strictEqual(firstPhoto.owner, insertedUser);
@@ -235,17 +240,18 @@ module(
       });
 
       test("New model can have relationship set afterwards and it sends the right data to the server during post", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = await MemoryUser.insert({ first_name: "Izel" });
-        let firstPhoto = MemoryPhoto.build({ name: "Dinner photo", owner_id: user.id });
-        let secondPhoto = MemoryPhoto.build({ name: "Second photo" });
+        let user = await RESTUser.insert({ first_name: "Izel" });
+        let firstPhoto = RESTPhoto.build({ name: "Dinner photo", owner_id: user.id });
+        let secondPhoto = RESTPhoto.build({ name: "Second photo" });
 
         assert.equal(firstPhoto.user, null);
         assert.equal(secondPhoto.user, null);
         assert.ok(user.photos instanceof RelationshipPromise);
 
-        let insertedPhoto = await MemoryPhoto.insert(firstPhoto);
+        let insertedPhoto = await RESTPhoto.insert(firstPhoto);
 
         assert.strictEqual(firstPhoto, insertedPhoto);
         assert.equal(firstPhoto.user, null);
@@ -255,7 +261,7 @@ module(
 
         secondPhoto.owner_id = user.id;
 
-        let secondInsertedPhoto = await MemoryPhoto.insert(secondPhoto);
+        let secondInsertedPhoto = await RESTPhoto.insert(secondPhoto);
 
         assert.hasMany(user.photos, [insertedPhoto, secondInsertedPhoto]);
         assert.strictEqual(secondInsertedPhoto, secondPhoto);
@@ -270,11 +276,12 @@ module(
       });
 
       test("Fetched model can request the relationship(without embed) and change the relationship before update", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner: user });
-        let secondPhoto = MemoryPhoto.build({ name: "Second photo" });
+        let user = await RESTUser.insert({ first_name: "Izel" });
+        let photo = await RESTPhoto.insert({ name: "Dinner photo", owner: user });
+        let secondPhoto = RESTPhoto.build({ name: "Second photo" });
 
         assert.strictEqual(photo.owner, user);
         assert.equal(photo.owner_id, user.id);
@@ -282,13 +289,13 @@ module(
         assert.hasMany(await user.photos, [photo]);
 
         let lastFirstPhoto = user.photos[0];
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await RESTPhoto.find(photo.id);
 
         assert.strictEqual(fetchedPhoto.owner, user);
         assert.equal(fetchedPhoto.owner_id, user.id);
         assert.strictHasMany(user.photos, [fetchedPhoto]);
 
-        let newUser = MemoryUser.build({ first_name: "Brendan" });
+        let newUser = RESTUser.build({ first_name: "Brendan" });
 
         fetchedPhoto.owner = newUser;
 
@@ -300,7 +307,7 @@ module(
         assert.hasMany(await newUser.photos, []);
         assert.strictHasMany(user.photos, [lastFirstPhoto]);
 
-        let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
+        let updatedPhoto = await RESTPhoto.update(fetchedPhoto);
 
         assert.strictEqual(fetchedPhoto, updatedPhoto);
         assert.strictEqual(updatedPhoto.owner, newUser);
@@ -310,14 +317,15 @@ module(
       });
 
       test("Fetched model can remove the relationship before update", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let user = await RESTUser.insert({ first_name: "Izel" });
+        let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await RESTPhoto.find(photo.id);
 
         assert.notStrictEqual(fetchedPhoto, photo);
         assert.strictEqual(fetchedPhoto.owner, user);
@@ -342,7 +350,7 @@ module(
         assert.strictHasMany(user.photos, [lastFetchedPhoto]); // NOTE: make this strict
         assert.equal(InstanceDB.getReferences(photo).size, 4);
 
-        let updatedPhoto = await MemoryPhoto.update(fetchedPhoto);
+        let updatedPhoto = await RESTPhoto.update(fetchedPhoto);
 
         assert.strictEqual(updatedPhoto, fetchedPhoto);
         assert.equal(updatedPhoto.user, null);
@@ -351,14 +359,15 @@ module(
       });
 
       test("Fetched model can remove the relationship before delete", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let user = await RESTUser.insert({ first_name: "Izel" });
+        let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await RESTPhoto.find(photo.id);
 
         assert.strictEqual(fetchedPhoto.owner, user);
         assert.equal(fetchedPhoto.owner_id, user.id);
@@ -371,7 +380,7 @@ module(
         assert.equal(fetchedPhoto.owner_id, null);
         assert.hasMany(user.photos, [photo]); // NOTE: make this strict
 
-        let deletedPhoto = await MemoryPhoto.delete(fetchedPhoto);
+        let deletedPhoto = await RESTPhoto.delete(fetchedPhoto);
 
         assert.deepEqual(deletedPhoto.toJSON(), fetchedPhoto.toJSON());
         assert.equal(deletedPhoto.owner, null);
@@ -382,14 +391,15 @@ module(
       });
 
       test("Fallback behavior for fkey mutations clear the HasManyArray when there is cached & persisted but no instances of the reference with fkey pointing to it", async function (assert) {
-        let { MemoryPhoto, MemoryUser } = generateModels();
+        let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+        this.Server = Server;
 
-        let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let user = await RESTUser.insert({ first_name: "Izel" });
+        let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await RESTPhoto.find(photo.id);
 
         assert.strictEqual(fetchedPhoto.owner, user);
         assert.equal(fetchedPhoto.owner_id, user.id);
@@ -416,13 +426,14 @@ module(
       "Reverse side mutations: Changing relationship across different relationship instance assignments then commit tests",
       function () {
         test("When related models reflective relationships are completely cleared it doesnt clear the foreign key, just the relationship(previous pointers) of and to the model", async function (assert) {
-          let { MemoryPhoto, MemoryUser } = generateModels();
+          let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+          this.Server = Server;
 
-          let user = await MemoryUser.insert({ first_name: "Izel" });
-          let secondUser = await MemoryUser.insert({ first_name: "John" });
-          let thirdUser = MemoryUser.build({ id: 3, name: "Third user" });
+          let user = await RESTUser.insert({ first_name: "Izel" });
+          let secondUser = await RESTUser.insert({ first_name: "John" });
+          let thirdUser = RESTUser.build({ id: 3, name: "Third user" });
 
-          let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+          let photo = await RESTPhoto.insert({ name: "Dinner photo", owner_id: user.id });
 
           assert.equal(photo.owner_id, user.id);
           assert.strictEqual(photo.owner, user);
@@ -435,7 +446,7 @@ module(
           assert.strictHasMany(user.photos, []);
           assert.equal(lastFetchedPhoto.owner_id, user.id);
           assert.notStrictEqual(lastFetchedPhoto.owner, user);
-          assert.deepEqual(lastFetchedPhoto.owner.toJSON(), MemoryUser.Cache.get(user.id).toJSON());
+          assert.deepEqual(lastFetchedPhoto.owner.toJSON(), RESTUser.Cache.get(user.id).toJSON());
           assert.strictHasMany(user.photos, []);
 
           secondUser.photos = [lastFetchedPhoto];
@@ -470,7 +481,7 @@ module(
           assert.ok(lastFetchedPhoto.owner instanceof RelationshipPromise);
           assert.equal(await lastFetchedPhoto.owner, null);
 
-          let insertedThirdUser = await MemoryUser.insert(thirdUser);
+          let insertedThirdUser = await RESTUser.insert(thirdUser);
 
           assert.equal(lastFetchedPhoto.owner_id, insertedThirdUser.id);
           assert.strictEqual(lastFetchedPhoto.owner, insertedThirdUser);
@@ -483,11 +494,12 @@ module(
       "CRUD: Relationship mutations and commit tests on models full lifecycle: Mutations on all sides",
       function () {
         test("Model can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-          let { MemoryUser, MemoryPhoto } = generateModels();
+          let { Server, RESTUser, RESTPhoto } = setupRESTModels();
+          this.Server = Server;
 
-          let firstPhoto = await MemoryPhoto.insert({ name: "First photo" });
-          let secondPhoto = await MemoryPhoto.insert({ name: "Second photo" });
-          let user = MemoryUser.build({ first_name: "Izels", photos: [secondPhoto] });
+          let firstPhoto = await RESTPhoto.insert({ name: "First photo" });
+          let secondPhoto = await RESTPhoto.insert({ name: "Second photo" });
+          let user = RESTUser.build({ first_name: "Izels", photos: [secondPhoto] });
 
           assert.strictHasMany(user.photos, [secondPhoto]);
           assert.equal(secondPhoto.owner_id, null);
@@ -500,7 +512,7 @@ module(
           assert.equal(secondPhoto.owner_id, null);
           assert.strictHasMany(user.photos, [secondPhoto, firstPhoto]);
 
-          let insertedUser = await MemoryUser.insert(user);
+          let insertedUser = await RESTUser.insert(user);
 
           assert.strictEqual(user, insertedUser);
           assert.strictHasMany(insertedUser.photos, [secondPhoto, firstPhoto]);
@@ -513,7 +525,7 @@ module(
 
           assert.strictHasMany(insertedUser.photos, [secondPhoto, firstPhoto]);
 
-          let updatedUser = await MemoryUser.update(insertedUser);
+          let updatedUser = await RESTUser.update(insertedUser);
 
           assert.strictEqual(insertedUser, updatedUser);
           assert.strictHasMany(updatedUser.photos, [secondPhoto, firstPhoto]);
@@ -550,7 +562,7 @@ module(
           assert.strictHasMany(updatedUser.photos, []);
           assert.strictHasMany(insertedUser.photos, []);
 
-          let deletedUser = await MemoryUser.delete(updatedUser);
+          let deletedUser = await RESTUser.delete(updatedUser);
 
           assert.deepEqual(updatedUser.photos, []); // NOTE: this is not null, but removed stuff
           assert.deepEqual(deletedUser.photos, []);
@@ -561,11 +573,12 @@ module(
         });
 
         test("Reverse relationship can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-          let { MemoryPhoto, MemoryUser } = generateModels();
+          let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+          this.Server = Server;
 
-          let firstUser = await MemoryUser.insert({ first_name: "Izel" });
-          let secondUser = await MemoryUser.insert({ first_name: "John" });
-          let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
+          let firstUser = await RESTUser.insert({ first_name: "Izel" });
+          let secondUser = await RESTUser.insert({ first_name: "John" });
+          let photo = RESTPhoto.build({ name: "Dinner photo", owner: secondUser });
 
           assert.strictEqual(photo.owner, secondUser);
           assert.equal(photo.owner_id, secondUser.id);
@@ -577,7 +590,7 @@ module(
           assert.hasMany(await firstUser.photos, []);
           assert.ok(secondUser.photos instanceof RelationshipPromise);
 
-          let insertedPhoto = await MemoryPhoto.insert(photo);
+          let insertedPhoto = await RESTPhoto.insert(photo);
 
           assert.strictEqual(photo, insertedPhoto);
           assert.strictEqual(insertedPhoto.owner, firstUser);
@@ -592,7 +605,7 @@ module(
           assert.hasMany(await secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
-          let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
+          let updatedPhoto = await RESTPhoto.update(insertedPhoto);
 
           assert.strictEqual(insertedPhoto, updatedPhoto);
           assert.strictEqual(updatedPhoto.owner, secondUser);
@@ -607,7 +620,7 @@ module(
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
-          let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
+          let deletedPhoto = await RESTPhoto.delete(updatedPhoto);
 
           assert.equal(updatedPhoto.owner, null);
           assert.equal(deletedPhoto.owner, null);
@@ -616,7 +629,8 @@ module(
         });
 
         test("Model can be fetched, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
-          let { MemoryPhoto, MemoryUser } = generateModels();
+          let { Server, MemoryUser, RESTPhoto, RESTUser } = setupRESTModels();
+          this.Server = Server;
 
           MemoryUser.cache([
             {
@@ -629,9 +643,9 @@ module(
             },
           ]);
 
-          let firstUser = await MemoryUser.find(1);
-          let secondUser = await MemoryUser.find(2);
-          let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
+          let firstUser = await RESTUser.find(1);
+          let secondUser = await RESTUser.find(2);
+          let photo = RESTPhoto.build({ name: "Dinner photo", owner: secondUser });
 
           assert.strictEqual(photo.owner, secondUser);
           assert.equal(photo.owner_id, secondUser.id);
@@ -644,7 +658,7 @@ module(
           assert.hasMany(await firstUser.photos, []);
           assert.hasMany(secondUser.photos, []);
 
-          let insertedPhoto = await MemoryPhoto.insert(photo);
+          let insertedPhoto = await RESTPhoto.insert(photo);
 
           assert.strictEqual(photo, insertedPhoto);
           assert.strictEqual(insertedPhoto.owner, firstUser);
@@ -659,7 +673,7 @@ module(
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
-          let updatedPhoto = await MemoryPhoto.update(insertedPhoto);
+          let updatedPhoto = await RESTPhoto.update(insertedPhoto);
 
           assert.strictEqual(insertedPhoto, updatedPhoto);
           assert.strictEqual(updatedPhoto.owner, secondUser);
@@ -673,12 +687,85 @@ module(
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
-          let deletedPhoto = await MemoryPhoto.delete(updatedPhoto);
+          let deletedPhoto = await RESTPhoto.delete(updatedPhoto);
 
           assert.equal(updatedPhoto.owner, null);
           assert.equal(deletedPhoto.owner, null);
           assert.equal(deletedPhoto.owner_id, null);
           assert.equal(secondUser.photo, null);
+        });
+
+        test("Deleting a related model should delete the models relationship references", async function (assert) {
+          let { Server, RESTPhoto, RESTUser } = setupRESTModels();
+          this.Server = Server;
+
+          let photo = await RESTPhoto.insert({ id: 22, name: "Dinner photo" });
+          let user = RESTUser.build({ first_name: "Izel", photos: [photo] });
+
+          assert.equal(photo.owner_id, user.id);
+          assert.strictHasMany(user.photos, [photo]);
+
+          await RESTPhoto.delete(photo);
+
+          assert.hasMany(user.photos, []);
+          assert.equal(photo.owner_id, null);
+        });
+
+        test("Models empty relationship reference can turn to promise, incorrectly fetched(with server error), than can be retried to fetch correctly", async function (assert) {
+          assert.expect(11);
+
+          let { Server, RESTUser, RESTPhoto, MemoryPhoto } = setupRESTModels();
+          this.Server = Server;
+
+          let user = RESTUser.build({ id: 44, first_name: "Izel" });
+
+          this.Server.get("/photos", async ({ params }) => {
+            return ServerResponse(401, { message: "Not authorized" });
+          });
+
+          try {
+            await user.photos;
+          } catch (error) {
+            assert.ok(error instanceof UnauthorizedError);
+            assert.equal(
+              error.message,
+              `Server responds with unauthorized access to GET ${HTTP.host}/photos?owner_id=44`
+            );
+          }
+
+          assert.ok(user.photos instanceof RelationshipPromise);
+          assert.deepEqual(user.errors, []);
+
+          this.Server.get("/photos", async ({ params }) => {
+            return ServerResponse(404, { message: "Not found this record" });
+          });
+
+          try {
+            await user.photos;
+          } catch (error) {
+            assert.ok(error instanceof NotFoundError);
+            assert.equal(error.message, `Server responded with not found for GET ${HTTP.host}/photos?owner_id=44`);
+          }
+
+          assert.ok(user.photos instanceof RelationshipPromise);
+          assert.deepEqual(user.errors, []);
+
+          await MemoryPhoto.insert({ id: 5, name: "Dinner photo", owner_id: user.id });
+
+          this.Server.get("/photos", async ({ queryParams }) => {
+            let photos = await MemoryPhoto.findAll(queryParams);
+
+            return { photos: MemoryPhoto.serializer(photos) };
+          });
+
+          let result = await user.photos.reload();
+
+          assert.deepEqual(
+            result.map((photo) => photo.toJSON()),
+            [RESTPhoto.peek(5).toJSON()]
+          );
+          assert.equal(user.photos[0].name, "Dinner photo");
+          assert.equal(user.photos[0].owner_id, 44);
         });
       }
     );

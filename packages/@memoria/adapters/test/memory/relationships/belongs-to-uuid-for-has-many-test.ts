@@ -1,12 +1,13 @@
-// ChatGPT: Build me test cases & implementation below on this file based on the previous tests & files:
-// NOTE: Maybe in future test quality upgrade: add one extra photo to the tests, make intermediary built instances, check their upgrade on fetch
 import { module, test } from "qunitx";
 import { RelationshipPromise, RelationshipDB, InstanceDB } from "@memoria/model";
 import setupMemoria from "../../helpers/setup-memoria.js";
-import generateModels from "../../helpers/models-with-relations/memory/id/index.js";
+import generateModels from "../../helpers/models-with-relations/memory/uuid/index.js";
+
+const FIRST_TARGET_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f21";
+const SECOND_TARGET_UUID = "374c7f4a-85d6-429a-bf2a-0719525f5f22";
 
 module(
-  "@memoria/adapters | MemoryAdapter | Relationships | @belongsTo API for ID(integer) pointing to HasMany",
+  "@memoria/adapters | MemoryAdapter | Relationships | @belongsTo API for UUID(string) pointing to HasMany",
   function (hooks) {
     setupMemoria(hooks);
 
@@ -23,18 +24,18 @@ module(
         let [firstPhoto, secondPhoto, thirdPhoto] = await Promise.all([
           MemoryPhoto.insert({
             name: "First photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
           MemoryPhoto.insert({
             name: "Second photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
           MemoryPhoto.insert({
             name: "Third photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
         ]);
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_uuid: secondUser.uuid });
         let userPhotosPromise = secondUser.photos;
 
         assert.ok(userPhotosPromise instanceof RelationshipPromise);
@@ -45,7 +46,7 @@ module(
           assert.strictEqual(photo.owner, secondUser);
         });
 
-        assert.equal(builtPhoto.owner_id, secondUser.id);
+        assert.equal(builtPhoto.owner_uuid, secondUser.uuid);
         assert.strictEqual(builtPhoto.owner, secondUser);
         assert.hasMany(secondUser.photos, [firstPhoto, secondPhoto, thirdPhoto, builtPhoto]);
       });
@@ -58,29 +59,29 @@ module(
         let [firstPhoto, secondPhoto, thirdPhoto] = await Promise.all([
           MemoryPhoto.insert({
             name: "First photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
           MemoryPhoto.insert({
             name: "Second photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
           MemoryPhoto.insert({
             name: "Third photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
         ]);
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_uuid: secondUser.uuid });
 
         await Promise.all([
-          MemoryPhoto.update({ id: firstPhoto.id, owner_id: null }),
-          MemoryPhoto.update({ id: thirdPhoto.id, owner_id: null }),
+          MemoryPhoto.update({ uuid: firstPhoto.uuid, owner_uuid: null }),
+          MemoryPhoto.update({ uuid: thirdPhoto.uuid, owner_uuid: null }),
         ]);
 
         assert.hasMany(await secondUser.photos, [secondPhoto]);
         assert.strictEqual(firstPhoto.owner, null);
         assert.strictEqual(thirdPhoto.owner, null);
 
-        await MemoryPhoto.update({ id: secondPhoto.id, owner_id: null });
+        await MemoryPhoto.update({ uuid: secondPhoto.uuid, owner_uuid: null });
 
         assert.strictHasMany(secondUser.photos, []);
         assert.strictHasMany(await firstUser.photos, []);
@@ -98,11 +99,11 @@ module(
         let [firstPhoto] = await Promise.all([
           MemoryPhoto.insert({
             name: "First photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
         ]);
 
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_uuid: secondUser.uuid });
 
         assert.ok(secondUser.photos instanceof RelationshipPromise);
         assert.hasMany(await secondUser.photos, [firstPhoto]);
@@ -111,19 +112,19 @@ module(
 
         secondUser.photos = undefined;
 
-        assert.equal(builtPhoto.owner_id, secondUser.id);
+        assert.equal(builtPhoto.owner_uuid, secondUser.uuid);
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), false);
         assert.ok(secondUser.photos instanceof RelationshipPromise);
 
-        MemoryPhoto.update({ id: firstPhoto.id, owner_id: null });
+        MemoryPhoto.update({ uuid: firstPhoto.uuid, owner_uuid: null });
 
         let secondPhoto = await MemoryPhoto.insert({
           name: "Second photo",
-          owner_id: secondUser.id,
+          owner_uuid: secondUser.uuid,
         });
         let thirdPhoto = await MemoryPhoto.insert({
           name: "Third photo",
-          owner_id: secondUser.id,
+          owner_uuid: secondUser.uuid,
         });
 
         assert.ok(secondUser.photos instanceof RelationshipPromise);
@@ -132,10 +133,10 @@ module(
         assert.strictEqual(builtPhoto.owner, secondUser);
         assert.hasMany(await secondUser.photos, [secondPhoto, thirdPhoto, builtPhoto]);
 
-        builtPhoto.owner_id = firstUser.id;
+        builtPhoto.owner_uuid = firstUser.uuid;
 
         assert.hasMany(secondUser.photos, [secondPhoto, thirdPhoto]);
-        assert.equal(builtPhoto.owner_id, firstUser.id);
+        assert.equal(builtPhoto.owner_uuid, firstUser.uuid);
         assert.ok(firstUser.photos instanceof RelationshipPromise);
         assert.strictHasMany(await firstUser.photos, []);
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), false);
@@ -153,11 +154,11 @@ module(
         let [firstPhoto] = await Promise.all([
           MemoryPhoto.insert({
             name: "First photo",
-            owner_id: secondUser.id,
+            owner_uuid: secondUser.uuid,
           }),
         ]);
 
-        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_id: secondUser.id });
+        let builtPhoto = MemoryPhoto.build({ name: "Fourth photo", owner_uuid: secondUser.uuid });
 
         assert.ok(secondUser.photos instanceof RelationshipPromise);
         assert.hasMany(await secondUser.photos, [firstPhoto]);
@@ -166,7 +167,7 @@ module(
 
         secondUser.photos = undefined;
 
-        assert.equal(builtPhoto.owner_id, secondUser.id);
+        assert.equal(builtPhoto.owner_uuid, secondUser.uuid);
         assert.ok(secondUser.photos instanceof RelationshipPromise);
         assert.hasMany(await secondUser.photos, [firstPhoto]);
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), false);
@@ -174,16 +175,16 @@ module(
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), true);
         assert.hasMany(secondUser.photos, [firstPhoto, builtPhoto]);
 
-        await MemoryPhoto.update({ id: firstPhoto.id, owner_id: null });
+        await MemoryPhoto.update({ uuid: firstPhoto.uuid, owner_uuid: null });
 
         let secondUserPhotosPromise = secondUser.photos;
         let secondPhoto = await MemoryPhoto.insert({
           name: "Second photo",
-          owner_id: secondUser.id,
+          owner_uuid: secondUser.uuid,
         });
         let thirdPhoto = await MemoryPhoto.insert({
           name: "Third photo",
-          owner_id: secondUser.id,
+          owner_uuid: secondUser.uuid,
         });
         let secondUserPhotosReloadPromise = secondUserPhotosPromise.reload();
 
@@ -191,7 +192,7 @@ module(
         assert.hasMany(await secondUserPhotosReloadPromise, [secondPhoto, thirdPhoto]);
         assert.hasMany(secondUser.photos, [secondPhoto, thirdPhoto]);
 
-        builtPhoto.owner_id = secondUser.id;
+        builtPhoto.owner_uuid = secondUser.uuid;
 
         assert.strictEqual(builtPhoto.owner, secondUser);
         assert.hasMany(secondUser.photos, [secondPhoto, thirdPhoto, builtPhoto]);
@@ -207,9 +208,9 @@ module(
         let secondPhoto = MemoryPhoto.build({ name: "user photo", owner: user });
 
         assert.strictEqual(firstPhoto.owner, user);
-        assert.equal(firstPhoto.owner_id, user.id);
+        assert.equal(firstPhoto.owner_uuid, user.uuid);
         assert.strictEqual(secondPhoto.owner, user);
-        assert.equal(secondPhoto.owner_id, user.id);
+        assert.equal(secondPhoto.owner_uuid, user.uuid);
         assert.ok(user.photos instanceof RelationshipPromise);
 
         assert.strictHasMany(await user.photos, []);
@@ -220,7 +221,7 @@ module(
         let insertedPhoto = await MemoryPhoto.insert(firstPhoto);
 
         assert.strictEqual(firstPhoto.owner, user);
-        assert.equal(insertedPhoto.owner_id, null);
+        assert.equal(insertedPhoto.owner_uuid, null);
         assert.strictEqual(insertedPhoto.owner, user);
         assert.strictHasMany(await user.photos, [insertedPhoto, secondPhoto]);
 
@@ -229,8 +230,8 @@ module(
         assert.strictEqual(user, insertedUser);
         assert.strictEqual(firstPhoto.owner, insertedUser);
         assert.strictEqual(insertedPhoto.owner, insertedUser);
-        assert.equal(insertedPhoto.owner_id, insertedUser.id);
-        assert.equal(secondPhoto.owner_id, insertedUser.id);
+        assert.equal(insertedPhoto.owner_uuid, insertedUser.uuid);
+        assert.equal(secondPhoto.owner_uuid, insertedUser.uuid);
         assert.strictHasMany(insertedUser.photos, [insertedPhoto, secondPhoto]);
       });
 
@@ -238,7 +239,7 @@ module(
         let { MemoryPhoto, MemoryUser } = generateModels();
 
         let user = await MemoryUser.insert({ first_name: "Izel" });
-        let firstPhoto = MemoryPhoto.build({ name: "Dinner photo", owner_id: user.id });
+        let firstPhoto = MemoryPhoto.build({ name: "Dinner photo", owner_uuid: user.uuid });
         let secondPhoto = MemoryPhoto.build({ name: "Second photo" });
 
         assert.equal(firstPhoto.user, null);
@@ -253,16 +254,16 @@ module(
         assert.ok(user.photos instanceof RelationshipPromise);
         assert.hasMany(await user.photos, [insertedPhoto]);
 
-        secondPhoto.owner_id = user.id;
+        secondPhoto.owner_uuid = user.uuid;
 
         let secondInsertedPhoto = await MemoryPhoto.insert(secondPhoto);
 
         assert.hasMany(user.photos, [insertedPhoto, secondInsertedPhoto]);
         assert.strictEqual(secondInsertedPhoto, secondPhoto);
         assert.strictEqual(secondInsertedPhoto.owner, user);
-        assert.equal(secondInsertedPhoto.owner_id, user.id);
+        assert.equal(secondInsertedPhoto.owner_uuid, user.uuid);
 
-        firstPhoto.owner_id = user.id;
+        firstPhoto.owner_uuid = user.uuid;
 
         assert.hasMany(user.photos, [insertedPhoto, secondInsertedPhoto]);
         assert.strictEqual(firstPhoto.owner, user);
@@ -277,15 +278,15 @@ module(
         let secondPhoto = MemoryPhoto.build({ name: "Second photo" });
 
         assert.strictEqual(photo.owner, user);
-        assert.equal(photo.owner_id, user.id);
+        assert.equal(photo.owner_uuid, user.uuid);
         assert.ok(user.photos instanceof RelationshipPromise);
         assert.hasMany(await user.photos, [photo]);
 
         let lastFirstPhoto = user.photos[0];
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
         assert.strictEqual(fetchedPhoto.owner, user);
-        assert.equal(fetchedPhoto.owner_id, user.id);
+        assert.equal(fetchedPhoto.owner_uuid, user.uuid);
         assert.strictHasMany(user.photos, [fetchedPhoto]);
 
         let newUser = MemoryUser.build({ first_name: "Brendan" });
@@ -293,7 +294,7 @@ module(
         fetchedPhoto.owner = newUser;
 
         assert.strictEqual(fetchedPhoto.owner, newUser);
-        assert.equal(fetchedPhoto.owner_id, newUser.id);
+        assert.equal(fetchedPhoto.owner_uuid, newUser.uuid);
         assert.strictHasMany(user.photos, [lastFirstPhoto]);
 
         assert.ok(newUser.photos instanceof RelationshipPromise);
@@ -304,7 +305,7 @@ module(
 
         assert.strictEqual(fetchedPhoto, updatedPhoto);
         assert.strictEqual(updatedPhoto.owner, newUser);
-        assert.equal(updatedPhoto.owner_id, newUser.id);
+        assert.equal(updatedPhoto.owner_uuid, newUser.uuid);
         assert.strictHasMany(newUser.photos, [updatedPhoto]);
         assert.strictHasMany(user.photos, []);
       });
@@ -313,17 +314,17 @@ module(
         let { MemoryPhoto, MemoryUser } = generateModels();
 
         let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_uuid: user.uuid });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
         assert.notStrictEqual(fetchedPhoto, photo);
         assert.strictEqual(fetchedPhoto.owner, user);
-        assert.equal(fetchedPhoto.owner_id, user.id);
+        assert.equal(fetchedPhoto.owner_uuid, user.uuid);
         assert.strictEqual(photo.owner, user);
-        assert.equal(photo.owner_id, user.id);
+        assert.equal(photo.owner_uuid, user.uuid);
         assert.ok(user.photos instanceof RelationshipPromise);
         assert.equal(InstanceDB.getReferences(photo).size, 3);
         assert.hasMany(await user.photos, [fetchedPhoto]); // NOTE: This generates one extra instance due to peekAll(), but it is actually fetchedPhoto(?)
@@ -333,10 +334,10 @@ module(
         assert.notStrictEqual(lastFetchedPhoto, fetchedPhoto);
         assert.equal(InstanceDB.getReferences(photo).size, 4);
 
-        fetchedPhoto.owner_id = null;
+        fetchedPhoto.owner_uuid = null;
 
         assert.equal(fetchedPhoto.owner, null);
-        assert.equal(fetchedPhoto.owner_id, null);
+        assert.equal(fetchedPhoto.owner_uuid, null);
 
         assert.equal(InstanceDB.getReferences(photo).size, 4);
         assert.strictHasMany(user.photos, [lastFetchedPhoto]); // NOTE: make this strict
@@ -346,7 +347,7 @@ module(
 
         assert.strictEqual(updatedPhoto, fetchedPhoto);
         assert.equal(updatedPhoto.user, null);
-        assert.equal(updatedPhoto.user_id, null);
+        assert.equal(updatedPhoto.user_uuid, null);
         assert.strictHasMany(user.photos, []); // NOTE: make this strict
       });
 
@@ -354,30 +355,30 @@ module(
         let { MemoryPhoto, MemoryUser } = generateModels();
 
         let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_uuid: user.uuid });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
         assert.strictEqual(fetchedPhoto.owner, user);
-        assert.equal(fetchedPhoto.owner_id, user.id);
+        assert.equal(fetchedPhoto.owner_uuid, user.uuid);
         assert.ok(user.photos instanceof RelationshipPromise);
         assert.hasMany(await user.photos, [fetchedPhoto]);
 
-        fetchedPhoto.owner_id = null;
+        fetchedPhoto.owner_uuid = null;
 
         assert.equal(fetchedPhoto.owner, null);
-        assert.equal(fetchedPhoto.owner_id, null);
+        assert.equal(fetchedPhoto.owner_uuid, null);
         assert.hasMany(user.photos, [photo]); // NOTE: make this strict
 
         let deletedPhoto = await MemoryPhoto.delete(fetchedPhoto);
 
         assert.deepEqual(deletedPhoto.toJSON(), fetchedPhoto.toJSON());
         assert.equal(deletedPhoto.owner, null);
-        assert.equal(deletedPhoto.owner_id, null);
+        assert.equal(deletedPhoto.owner_uuid, null);
         assert.equal(fetchedPhoto.owner, null);
-        assert.equal(fetchedPhoto.owner_id, null);
+        assert.equal(fetchedPhoto.owner_uuid, null);
         assert.strictHasMany(user.photos, []);
       });
 
@@ -385,29 +386,29 @@ module(
         let { MemoryPhoto, MemoryUser } = generateModels();
 
         let user = await MemoryUser.insert({ first_name: "Izel" });
-        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+        let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_uuid: user.uuid });
 
         assert.strictEqual(photo.owner, user);
 
-        let fetchedPhoto = await MemoryPhoto.find(photo.id);
+        let fetchedPhoto = await MemoryPhoto.find(photo.uuid);
 
         assert.strictEqual(fetchedPhoto.owner, user);
-        assert.equal(fetchedPhoto.owner_id, user.id);
+        assert.equal(fetchedPhoto.owner_uuid, user.uuid);
         assert.ok(user.photos instanceof RelationshipPromise);
         assert.hasMany(await user.photos, [fetchedPhoto]);
 
         let lastFetchedPhoto = user.photos[0];
 
-        lastFetchedPhoto.owner_id = null;
+        lastFetchedPhoto.owner_uuid = null;
 
         assert.equal(lastFetchedPhoto.owner, null);
-        assert.equal(lastFetchedPhoto.owner_id, null);
+        assert.equal(lastFetchedPhoto.owner_uuid, null);
         assert.strictHasMany(user.photos, [fetchedPhoto]);
 
-        fetchedPhoto.owner_id = null;
+        fetchedPhoto.owner_uuid = null;
 
         assert.equal(photo.owner, user);
-        assert.equal(photo.owner_id, user.id);
+        assert.equal(photo.owner_uuid, user.uuid);
         assert.strictHasMany(user.photos, [photo]);
       });
     });
@@ -420,11 +421,11 @@ module(
 
           let user = await MemoryUser.insert({ first_name: "Izel" });
           let secondUser = await MemoryUser.insert({ first_name: "John" });
-          let thirdUser = MemoryUser.build({ id: 3, name: "Third user" });
+          let thirdUser = MemoryUser.build({ uuid: FIRST_TARGET_UUID, name: "Third user" });
 
-          let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_id: user.id });
+          let photo = await MemoryPhoto.insert({ name: "Dinner photo", owner_uuid: user.uuid });
 
-          assert.equal(photo.owner_id, user.id);
+          assert.equal(photo.owner_uuid, user.uuid);
           assert.strictEqual(photo.owner, user);
           assert.hasMany(await user.photos, [photo]);
 
@@ -433,23 +434,23 @@ module(
           user.photos = [];
 
           assert.strictHasMany(user.photos, []);
-          assert.equal(lastFetchedPhoto.owner_id, user.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, user.uuid);
           assert.notStrictEqual(lastFetchedPhoto.owner, user);
-          assert.deepEqual(lastFetchedPhoto.owner.toJSON(), MemoryUser.Cache.get(user.id).toJSON());
+          assert.deepEqual(lastFetchedPhoto.owner.toJSON(), MemoryUser.Cache.get(user.uuid).toJSON());
           assert.strictHasMany(user.photos, []);
 
           secondUser.photos = [lastFetchedPhoto];
 
           assert.strictHasMany(secondUser.photos, [lastFetchedPhoto]);
           assert.strictEqual(lastFetchedPhoto.owner, secondUser);
-          assert.equal(lastFetchedPhoto.owner_id, secondUser.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, secondUser.uuid);
           assert.strictHasMany(user.photos, []);
 
           secondUser.photos.clear();
 
           assert.strictHasMany(secondUser.photos, []);
           assert.strictHasMany(user.photos, []);
-          assert.equal(lastFetchedPhoto.owner_id, secondUser.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, secondUser.uuid);
           assert.notStrictEqual(lastFetchedPhoto.owner, secondUser);
           assert.deepEqual(lastFetchedPhoto.owner.toJSON(), secondUser.toJSON());
 
@@ -457,7 +458,7 @@ module(
 
           assert.strictHasMany(thirdUser.photos, [lastFetchedPhoto]);
           assert.strictEqual(lastFetchedPhoto.owner, thirdUser);
-          assert.equal(lastFetchedPhoto.owner_id, thirdUser.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, thirdUser.uuid);
           assert.strictHasMany(user.photos, []);
           assert.strictHasMany(secondUser.photos, []);
 
@@ -466,13 +467,13 @@ module(
           assert.strictHasMany(thirdUser.photos, []);
           assert.strictHasMany(secondUser.photos, []);
           assert.strictHasMany(user.photos, []);
-          assert.equal(lastFetchedPhoto.owner_id, thirdUser.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, thirdUser.uuid);
           assert.ok(lastFetchedPhoto.owner instanceof RelationshipPromise);
           assert.equal(await lastFetchedPhoto.owner, null);
 
           let insertedThirdUser = await MemoryUser.insert(thirdUser);
 
-          assert.equal(lastFetchedPhoto.owner_id, insertedThirdUser.id);
+          assert.equal(lastFetchedPhoto.owner_uuid, insertedThirdUser.uuid);
           assert.strictEqual(lastFetchedPhoto.owner, insertedThirdUser);
           assert.hasMany(await lastFetchedPhoto.owner.photos, [lastFetchedPhoto]);
         });
@@ -490,14 +491,14 @@ module(
           let user = MemoryUser.build({ first_name: "Izels", photos: [secondPhoto] });
 
           assert.strictHasMany(user.photos, [secondPhoto]);
-          assert.equal(secondPhoto.owner_id, null);
+          assert.equal(secondPhoto.owner_uuid, null);
 
           firstPhoto.owner = user; // NOTE: this should trigger a logical warning(!!) setting user to firstPhoto but secondPhoto already has user as well(?) clean that first(?)
 
           assert.strictEqual(firstPhoto.owner, user);
-          assert.equal(firstPhoto.owner_id, null);
+          assert.equal(firstPhoto.owner_uuid, null);
           assert.equal(secondPhoto.owner, user);
-          assert.equal(secondPhoto.owner_id, null);
+          assert.equal(secondPhoto.owner_uuid, null);
           assert.strictHasMany(user.photos, [secondPhoto, firstPhoto]);
 
           let insertedUser = await MemoryUser.insert(user);
@@ -505,11 +506,11 @@ module(
           assert.strictEqual(user, insertedUser);
           assert.strictHasMany(insertedUser.photos, [secondPhoto, firstPhoto]);
           assert.strictEqual(firstPhoto.owner, insertedUser);
-          assert.equal(firstPhoto.owner_id, insertedUser.id);
+          assert.equal(firstPhoto.owner_uuid, insertedUser.uuid);
           assert.strictEqual(secondPhoto.owner, insertedUser);
-          assert.equal(secondPhoto.owner_id, insertedUser.id);
+          assert.equal(secondPhoto.owner_uuid, insertedUser.uuid);
 
-          secondPhoto.owner_id = insertedUser.id;
+          secondPhoto.owner_uuid = insertedUser.uuid;
 
           assert.strictHasMany(insertedUser.photos, [secondPhoto, firstPhoto]);
 
@@ -518,9 +519,9 @@ module(
           assert.strictEqual(insertedUser, updatedUser);
           assert.strictHasMany(updatedUser.photos, [secondPhoto, firstPhoto]);
           assert.strictEqual(firstPhoto.owner, updatedUser);
-          assert.equal(firstPhoto.owner_id, updatedUser.id);
+          assert.equal(firstPhoto.owner_uuid, updatedUser.uuid);
           assert.strictEqual(secondPhoto.owner, updatedUser);
-          assert.equal(secondPhoto.owner_id, updatedUser.id);
+          assert.equal(secondPhoto.owner_uuid, updatedUser.uuid);
 
           updatedUser.photos = [secondPhoto];
 
@@ -528,11 +529,11 @@ module(
           assert.equal(RelationshipDB.has(firstPhoto, "owner"), false);
           assert.notStrictEqual(firstPhoto.owner, updatedUser);
           assert.deepEqual(firstPhoto.owner.toJSON(), updatedUser.toJSON());
-          assert.equal(firstPhoto.owner_id, updatedUser.id);
+          assert.equal(firstPhoto.owner_uuid, updatedUser.uuid);
           assert.equal(RelationshipDB.has(firstPhoto.owner, "photos"), false);
 
           assert.strictEqual(secondPhoto.owner, updatedUser);
-          assert.equal(secondPhoto.owner_id, updatedUser.id);
+          assert.equal(secondPhoto.owner_uuid, updatedUser.uuid);
           assert.equal(RelationshipDB.has(firstPhoto.owner, "photos"), false);
 
           assert.strictHasMany(updatedUser.photos, [secondPhoto]);
@@ -542,9 +543,9 @@ module(
           assert.equal(RelationshipDB.has(firstPhoto.owner, "photos"), false);
           assert.notStrictEqual(firstPhoto.owner, updatedUser);
           assert.deepEqual(firstPhoto.owner.toJSON(), updatedUser.toJSON());
-          assert.equal(firstPhoto.owner_id, updatedUser.id);
+          assert.equal(firstPhoto.owner_uuid, updatedUser.uuid);
           assert.equal(secondPhoto.owner, null);
-          assert.equal(secondPhoto.owner_id, null);
+          assert.equal(secondPhoto.owner_uuid, null);
 
           assert.strictHasMany(user.photos, []);
           assert.strictHasMany(updatedUser.photos, []);
@@ -555,9 +556,9 @@ module(
           assert.deepEqual(updatedUser.photos, []); // NOTE: this is not null, but removed stuff
           assert.deepEqual(deletedUser.photos, []);
           assert.equal(secondPhoto.owner, null);
-          assert.equal(secondPhoto.owner_id, null);
+          assert.equal(secondPhoto.owner_uuid, null);
           assert.equal(firstPhoto.owner, null);
-          assert.equal(firstPhoto.owner_id, null);
+          assert.equal(firstPhoto.owner_uuid, null);
         });
 
         test("Reverse relationship can be built, created, updated, deleted with correct changing relationships in one flow", async function (assert) {
@@ -568,12 +569,12 @@ module(
           let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
           assert.strictEqual(photo.owner, secondUser);
-          assert.equal(photo.owner_id, secondUser.id);
+          assert.equal(photo.owner_uuid, secondUser.uuid);
 
-          photo.owner_id = firstUser.id;
+          photo.owner_uuid = firstUser.uuid;
 
           assert.strictEqual(photo.owner, firstUser);
-          assert.equal(photo.owner_id, firstUser.id);
+          assert.equal(photo.owner_uuid, firstUser.uuid);
           assert.hasMany(await firstUser.photos, []);
           assert.ok(secondUser.photos instanceof RelationshipPromise);
 
@@ -581,14 +582,14 @@ module(
 
           assert.strictEqual(photo, insertedPhoto);
           assert.strictEqual(insertedPhoto.owner, firstUser);
-          assert.equal(insertedPhoto.owner_id, firstUser.id);
+          assert.equal(insertedPhoto.owner_uuid, firstUser.uuid);
           assert.strictHasMany(firstUser.photos, [insertedPhoto]);
           assert.ok(secondUser.photos instanceof RelationshipPromise);
 
-          insertedPhoto.owner_id = secondUser.id;
+          insertedPhoto.owner_uuid = secondUser.uuid;
 
           assert.strictEqual(insertedPhoto.owner, secondUser);
-          assert.equal(insertedPhoto.owner_id, secondUser.id);
+          assert.equal(insertedPhoto.owner_uuid, secondUser.uuid);
           assert.hasMany(await secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
@@ -596,14 +597,14 @@ module(
 
           assert.strictEqual(insertedPhoto, updatedPhoto);
           assert.strictEqual(updatedPhoto.owner, secondUser);
-          assert.strictEqual(updatedPhoto.owner_id, secondUser.id);
+          assert.strictEqual(updatedPhoto.owner_uuid, secondUser.uuid);
           assert.strictHasMany(secondUser.photos, [updatedPhoto]);
           assert.hasMany(firstUser.photos, []);
 
-          updatedPhoto.owner_id = null;
+          updatedPhoto.owner_uuid = null;
 
           assert.equal(updatedPhoto.owner, null);
-          assert.equal(updatedPhoto.owner_id, null);
+          assert.equal(updatedPhoto.owner_uuid, null);
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
@@ -611,7 +612,7 @@ module(
 
           assert.equal(updatedPhoto.owner, null);
           assert.equal(deletedPhoto.owner, null);
-          assert.equal(deletedPhoto.owner_id, null);
+          assert.equal(deletedPhoto.owner_uuid, null);
           assert.hasMany(secondUser.photos, []);
         });
 
@@ -620,27 +621,27 @@ module(
 
           MemoryUser.cache([
             {
-              id: 1,
+              uuid: FIRST_TARGET_UUID,
               first_name: "Izel",
             },
             {
-              id: 2,
+              uuid: SECOND_TARGET_UUID,
               first_name: "John",
             },
           ]);
 
-          let firstUser = await MemoryUser.find(1);
-          let secondUser = await MemoryUser.find(2);
+          let firstUser = await MemoryUser.find(FIRST_TARGET_UUID);
+          let secondUser = await MemoryUser.find(SECOND_TARGET_UUID);
           let photo = MemoryPhoto.build({ name: "Dinner photo", owner: secondUser });
 
           assert.strictEqual(photo.owner, secondUser);
-          assert.equal(photo.owner_id, secondUser.id);
+          assert.equal(photo.owner_uuid, secondUser.uuid);
           assert.hasMany(await secondUser.photos, []);
 
-          photo.owner_id = firstUser.id;
+          photo.owner_uuid = firstUser.uuid;
 
           assert.strictEqual(photo.owner, firstUser);
-          assert.equal(photo.owner_id, firstUser.id);
+          assert.equal(photo.owner_uuid, firstUser.uuid);
           assert.hasMany(await firstUser.photos, []);
           assert.hasMany(secondUser.photos, []);
 
@@ -648,14 +649,14 @@ module(
 
           assert.strictEqual(photo, insertedPhoto);
           assert.strictEqual(insertedPhoto.owner, firstUser);
-          assert.equal(insertedPhoto.owner_id, firstUser.id);
+          assert.equal(insertedPhoto.owner_uuid, firstUser.uuid);
           assert.strictHasMany(firstUser.photos, [insertedPhoto]);
           assert.hasMany(secondUser.photos, []);
 
-          insertedPhoto.owner_id = secondUser.id;
+          insertedPhoto.owner_uuid = secondUser.uuid;
 
           assert.notStrictEqual(insertedPhoto.owner, firstUser);
-          assert.equal(insertedPhoto.owner_id, secondUser.id);
+          assert.equal(insertedPhoto.owner_uuid, secondUser.uuid);
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
@@ -666,10 +667,10 @@ module(
           assert.strictHasMany(secondUser.photos, [updatedPhoto]);
           assert.hasMany(firstUser.photos, []);
 
-          updatedPhoto.owner_id = null;
+          updatedPhoto.owner_uuid = null;
 
           assert.equal(updatedPhoto.owner, null);
-          assert.equal(updatedPhoto.owner_id, null);
+          assert.equal(updatedPhoto.owner_uuid, null);
           assert.hasMany(secondUser.photos, []);
           assert.hasMany(firstUser.photos, []);
 
@@ -677,7 +678,7 @@ module(
 
           assert.equal(updatedPhoto.owner, null);
           assert.equal(deletedPhoto.owner, null);
-          assert.equal(deletedPhoto.owner_id, null);
+          assert.equal(deletedPhoto.owner_uuid, null);
           assert.equal(secondUser.photo, null);
         });
       }

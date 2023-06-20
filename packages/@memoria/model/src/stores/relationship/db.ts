@@ -58,6 +58,7 @@ export default class RelationshipDB {
 
     // NOTE: walks down and mutates the graph based on received primary key or foreign key updates from server. Really needed.
     // NOTE: this changes all possible relationships where model could be the value relationship!
+    // NOTE: It does a transfer of old references to the new reference after server sync
     // Example: when photo inserted or update (belongsTo gets updated)
     // User:photos should get updated
     // Post:photo should get update
@@ -71,6 +72,7 @@ export default class RelationshipDB {
         modelInstances
       );
     });
+
     if (cachedRecord) {
       cachedRecord.fetchedRelationships.forEach((relationshipName: string) => {
         RelationshipDB.findRelationshipCacheFor(Class, relationshipName).delete(cachedRecord);
@@ -105,7 +107,7 @@ export default class RelationshipDB {
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
       // NOTE: This is costly, in future find a way probably a way to optimize it
-      this.synchronizeBelongsToAndHasManyReferences(array, metadata);
+      this.onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(array, metadata); // TODO: THIS MUTATES TO FETCHED PHOTO WHILE THERE IS A FRESH INSTANCE AHEAD
 
       RelationshipCache.set(model, array);
 
@@ -150,7 +152,8 @@ export default class RelationshipDB {
     // }
   }
 
-  static synchronizeBelongsToAndHasManyReferences(
+  // NOTE: Adds records if there is an existing belongsTo reference
+  static onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(
     array: HasManyArray,
     { RelationshipClass, ReverseRelationshipCache, reverseRelationshipForeignKeyColumnName }: RelationshipMetadata
   ) {
@@ -162,21 +165,20 @@ export default class RelationshipDB {
     let primaryKey = belongsToModel[Class.primaryKeyName];
     let currentBelongsToValues = new Set(array);
 
-    // if its built but not persisted models, keep em
     for (let referenceSet of InstanceDB.getAllReferences(RelationshipClass)) {
-      // Photo owner_id
-      let [foundReference, _persistedReference, alternativeReference] = Array.from(referenceSet)
+      // NOTE: This finds the first record that points to the array.belongsTo
+      let [foundRelationship, _persistedRelationship, alternativeRelationship] = Array.from(referenceSet)
         .reverse()
         .reduce(
           (result, reference) => {
             if (primaryKey !== reference[reverseRelationshipForeignKeyColumnName as string]) {
               return result;
             } else if (currentBelongsToValues.has(reference) || !ReverseRelationshipCache.has(reference)) {
-              return result;
+              return result; // NOTE: This would ignore the last value although it could be the fresh edge record(seems wrong logic!)
             }
 
             let oldReference = ReverseRelationshipCache.get(reference);
-            ReverseRelationshipCache.set(reference, belongsToModel);
+            // ReverseRelationshipCache.set(reference, belongsToModel); // NOTE: This shouldnt be needed, creates bugs
 
             if (result[0]) {
               return result;
@@ -204,9 +206,9 @@ export default class RelationshipDB {
           },
           [null, null, null] as [Model | null, Model | null, Model | null]
         );
-      let targetInstance = foundReference || alternativeReference;
-      if (targetInstance) {
-        // TODO: this should check if the instance has reference!(?)
+      let targetInstance = foundRelationship || alternativeRelationship;
+      let targetInstances = targetInstance && InstanceDB.getReferences(targetInstance);
+      if (targetInstance && array.includes((element) => !targetInstances.has(element))) {
         array.push(targetInstance);
       }
     }
@@ -396,11 +398,13 @@ export default class RelationshipDB {
 
     let cache = this.findRelationshipCacheFor(Class, relationshipName, metadata.relationshipType);
     if (cache.has(model)) {
-      return cache.get(model);
+      let result = cache.get(model);
+
+      return result ? this.cacheRelationship(model, metadata, result) : result;
     } else if (!asyncLookup) {
       return null;
     } else if (metadata.relationshipType === "BelongsTo" && !model[metadata.foreignKeyColumnName as string]) {
-      return RelationshipDB.cacheRelationship(model, metadata, null);
+      return this.cacheRelationship(model, metadata, null);
     } else if (ARRAY_ASKING_RELATIONSHIPS.has(metadata.relationshipType)) {
       return Class.Adapter.fetchRelationship(model, relationshipName, metadata);
     }
@@ -408,7 +412,7 @@ export default class RelationshipDB {
     let result = RelationshipQuery.findPossibleReferenceInMemory(model, metadata);
 
     return result
-      ? RelationshipDB.cacheRelationship(model, metadata, result)
+      ? this.cacheRelationship(model, metadata, result)
       : Class.Adapter.fetchRelationship(model, relationshipName, metadata);
   }
 
@@ -416,6 +420,7 @@ export default class RelationshipDB {
   // NOTE: it should never remove its own existing copies(same primaryKey, also when primaryKey null gets built)
   // NOTE: it should remove in batches connections(as more instances of certain model exists)
   static set(model: Model, relationshipName: string, input: null | Model | Model[], _copySource?: Model) {
+    // TODO: filter pure object assignments and other things!
     let Class = model.constructor as typeof Model;
     let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
     let { RelationshipCache, reverseRelationshipType } = metadata;
@@ -434,7 +439,6 @@ export default class RelationshipDB {
     } else if (isInvalidRelationshipInput(input, metadata)) {
       return model;
       // throw new RuntimeError(`Invalid relationship input for ${Class.name}.${relationshipName}`);
-    }
     }
 
     let targetRelationship = generateNewArrayFromInputIfNeeded(input, model, metadata);

@@ -249,7 +249,6 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       let { Server, RESTUser, RESTPhoto } = setupRESTModels();
       this.Server = Server;
 
-      debugger;
       let user = await RESTUser.insert({ first_name: "Izel" });
       let copiedUser = RESTUser.build(user);
 

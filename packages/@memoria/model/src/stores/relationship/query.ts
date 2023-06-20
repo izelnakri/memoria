@@ -63,7 +63,6 @@ export default class RelationshipQuery {
       // return relationshipFoundByInstanceReferences || reverseLookupFallback || instanceLookupFallback;
       let result = relationshipFoundByInstanceReferences || instanceLookupFallback || reverseLookupFallback;
       // TODO: instanceLookupFallback generates new instances and returns for updatedUser on firstPhoto.owner
-      debugger;
       // TODO: reverseLookup should give a model which has hasManyArray, how would we know? Basically the fresh one(append to both sides)
       if (result) {
         return result;

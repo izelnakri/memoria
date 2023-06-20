@@ -12,6 +12,7 @@ export default class RelationshipMutation {
   // NOTE: There are two cases when building(transfer/copy without removal), setting on demand
   // Summary: gets reverseRelationshipCache, existingRelationship (if it exists, clean(REMOVE IT))
   // Sets new relationship on the cache, sets foreign key on the model, sets reverse relationship on the target model
+
   static cleanAndSetBelongsToRelationshipFor(
     model: Model,
     targetRelationship: Model | null,
@@ -48,7 +49,11 @@ export default class RelationshipMutation {
     this.setReflectiveSideRelationship(model, targetRelationship, metadata);
   }
 
-  static removeOrSetFallbackReverseRelationshipsFor(source: Model, metadata: RelationshipMetadata, targetRelationship?: AnotherModel | null) {
+  static removeOrSetFallbackReverseRelationshipsFor(
+    source: Model,
+    metadata: RelationshipMetadata,
+    targetRelationship?: AnotherModel | null
+  ) {
     let existingRelationship = metadata.RelationshipCache.get(source) as Model;
     let existingRelationshipReferences = existingRelationship && InstanceDB.getReferences(existingRelationship);
     if (targetRelationship && targetRelationship === existingRelationship) {
@@ -66,14 +71,21 @@ export default class RelationshipMutation {
       reverseRelationshipType,
     } = metadata;
     if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
-      throw new Error(`removeOrSetFallbackReverseRelationshipsFor ${relationshipType} should never hit based on the written logic!!`);
+      throw new Error(
+        `removeOrSetFallbackReverseRelationshipsFor ${relationshipType} should never hit based on the written logic!!`
+      );
     }
 
-    let reverseRelationshipsPointingToSource = RelationshipQuery.findReverseRelationships(source, metadata); // TODO: Fix this, it should find existingRelationship(?)
+    // TODO: Whole algorithm here needs to CHANGE!! Comparison and mutation should be correct and apply to all instances(?)
+    let reverseRelationshipsPointingToSource = RelationshipQuery.findReverseRelationships(source, metadata);
+    // NOTE: this needs to be a merge of all the **same side** other instance relationships pointing to the **existing** relationship **not** the source
     let SourceClass = source.constructor as typeof Model;
+
     let freshRemainingSourceReferenceToExistingRelationship =
       existingRelationship &&
-      (!existingRelationshipReferences || !(existingRelationshipReferences.has(targetRelationship))) &&
+      (!existingRelationshipReferences || !existingRelationshipReferences.has(targetRelationship)) &&
+      // NOTE: check if sourceInstancesPointingToExistingRelationship.length > 1 or 0
+      // (reverseRelationshipsPointingToSource.length > 0 || sourceInstancesPointingToExistingRelationship.length > 1) && // TODO: is this check correct?!?, it was merely an update but we cant know which records to update/replace properly
       Array.from(InstanceDB.getReferences(source))
         .reverse()
         .find((sourceReference) => {
@@ -84,16 +96,17 @@ export default class RelationshipMutation {
           }
 
           if (relationshipType === "BelongsTo") {
-            return RelationshipCache.get(sourceReference) === existingRelationship ||
-              (existingRelationship[SourceClass.primaryKeyName] && sourceReference[foreignKeyColumnName as string] === existingRelationship[SourceClass.primaryKeyName]);
+            return (
+              RelationshipCache.get(sourceReference) === existingRelationship ||
+              (existingRelationship[SourceClass.primaryKeyName] &&
+                sourceReference[foreignKeyColumnName as string] === existingRelationship[SourceClass.primaryKeyName])
+            );
           } else if (relationshipType === "OneToOne") {
             return (
               existingRelationship[reverseRelationshipForeignKeyColumnName as string] ===
                 source[SourceClass.primaryKeyName] && RelationshipCache.get(sourceReference) !== null
             ); // NOTE: This gets the fresh last instance most of the time
-          } else if (relationshipType === "HasMany") {
-            // TODO: build this
-          } // TODO: add ManyToMany, HasMany in future. This might get the fresh last instance most of the time
+          }
         });
 
     if (SINGLE_VALUE_RELATIONSHIPS.includes(relationshipType)) {
@@ -106,11 +119,9 @@ export default class RelationshipMutation {
                 existingRelationshipReference,
                 freshRemainingSourceReferenceToExistingRelationship
               )
-            : ReverseRelationshipCache.delete(existingRelationshipReference); // TODO: with HasMany do it differently
+            : ReverseRelationshipCache.delete(existingRelationshipReference);
         }
 
-        // NOTE: this only does deletes but it should replace if needed
-        // NOTE: maybe check freshRemainingSourceReferenceToExistingRelationship here as well(?)
         let targetReverseRelationship = ReverseRelationshipCache.get(existingRelationshipReference) as Model[];
         if (targetReverseRelationship && existingRelationshipReference !== targetRelationship) {
           let targetIndex = targetReverseRelationship.findIndex((relationship) => relationship === source);
@@ -127,9 +138,16 @@ export default class RelationshipMutation {
   static setReflectiveSideRelationship(
     model: Model,
     targetRelationship: null | Model,
-    { RelationshipCache, relationshipType, reverseRelationshipType, reverseRelationshipForeignKeyColumnName, ReverseRelationshipCache }: RelationshipMetadata,
+    {
+      RelationshipCache,
+      relationshipType,
+      reverseRelationshipType,
+      reverseRelationshipForeignKeyColumnName,
+      ReverseRelationshipCache,
+    }: RelationshipMetadata
   ) {
     // TODO: make this work for HasMany Arrays in future
+
     if (targetRelationship) {
       if (reverseRelationshipType === "HasMany") {
         let existingRelationship = ReverseRelationshipCache.get(targetRelationship) as Model[];
@@ -156,11 +174,6 @@ export default class RelationshipMutation {
       let foundIndex = existingRelationship.findIndex((relationship) => targetRelationshipInstances.has(relationship));
       if (foundIndex === -1) {
         return existingRelationship.push(targetRelationship);
-      }
-
-      let foundRelationship = existingRelationship[foundIndex];
-      if (foundRelationship !== targetRelationship) {
-        existingRelationship[foundIndex] = targetRelationship;
       }
     }
   }
