@@ -6,14 +6,6 @@ import type { RelationshipMetadata } from "./schema.js";
 
 export default class RelationshipQuery {
   // NOTE: In future it should score them by lastPersisted = timestamp and get the most fresh reference(?)
-  // TODO: BelongsTo lookup should add or edit instance on the hasMany array(if needed)(do it across all possible arrays(?) here there is iteration though?
-  //
-  // builtPhoto.owner lookup assigns append to secondUser.photos anotherSecondUser.photos
-  //
-
-  // static refreshHasManyRelationships(model: Model, metadata: RelationshipMetadata) {
-
-  // }
 
   static findPossibleReferenceInMemory(model: Model, metadata: RelationshipMetadata): Model | null | undefined {
     let {
@@ -30,7 +22,6 @@ export default class RelationshipQuery {
         return null;
       } else if (foreignKeyValue) {
         let targetModel = InstanceDB.getPersistedModels(RelationshipClass).get(foreignKeyValue);
-        // NOTE: change this(?) it is also wrong because it might be a relationship pointer to some other reference record!
         if (!targetModel) {
           return targetModel;
         }
@@ -52,7 +43,7 @@ export default class RelationshipQuery {
       }
 
       let [relationshipFoundFromReverseLookup, reverseLookupFallback, reverseLookupLastResort] =
-        this.findPossibleReferenceInMemoryByReverseRelationshipInstances(model, metadata, foreignKeyValue); // TODO: this should give reverseLookupFallback even if it isn't pointing to the model(?)
+        this.findPossibleReferenceInMemoryByReverseRelationshipInstances(model, metadata, foreignKeyValue);
       if (relationshipFoundFromReverseLookup) {
         return relationshipFoundFromReverseLookup;
       }
@@ -60,22 +51,12 @@ export default class RelationshipQuery {
       let [relationshipFoundByInstanceReferences, instanceLookupFallback] =
         this.findPossibleReferenceInMemoryByInstanceReferences(model, metadata, foreignKeyColumnName as string);
 
-      // return relationshipFoundByInstanceReferences || reverseLookupFallback || instanceLookupFallback;
       let result = relationshipFoundByInstanceReferences || instanceLookupFallback || reverseLookupFallback;
-      // TODO: instanceLookupFallback generates new instances and returns for updatedUser on firstPhoto.owner
-      // TODO: reverseLookup should give a model which has hasManyArray, how would we know? Basically the fresh one(append to both sides)
       if (result) {
         return result;
-      }
-
-      if (metadata.reverseRelationshipType === "HasMany" && reverseLookupLastResort) {
+      } else if (metadata.reverseRelationshipType === "HasMany" && reverseLookupLastResort) {
         return reverseLookupLastResort; // TODO: does this also append/add to otherside(?)
       }
-
-      // let cacheCopy = foreignKeyValue ? RelationshipClass.peek(foreignKeyValue) : undefined; // TODO: instead get from instances(and append to them the model or peek(but hasMany won't find it on reverseLookup), TODO: this should never generate via peek
-      // if (cacheCopy) {
-      //   return cacheCopy as Model;
-      // }
     } else if (relationshipType === "OneToOne") {
       let modelInstances = InstanceDB.getReferences(model);
       let Class = model.constructor as typeof Model;
@@ -150,7 +131,6 @@ export default class RelationshipQuery {
     }
   }
 
-  // TODO: reverseLookupFallback can be a CACHED RECORD!! PREVENT THIS
   static findPossibleReferenceInMemoryByReverseRelationshipInstances(
     model: Model,
     metadata: RelationshipMetadata,
@@ -296,7 +276,6 @@ export default class RelationshipQuery {
           if (reverseRelationship && reverseRelationship.includes(source)) {
             result.push(instance);
           }
-          // TODO: maybe add the other case? targetRelationshipSources && reverseRelationship && targetRelationshipSources.has(instance)
         });
 
         return result;

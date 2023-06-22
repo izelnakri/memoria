@@ -8,7 +8,7 @@ type JSObject = { [key: string]: any };
 
 export default function validatePartialModelInput(input: JSObject, Class: typeof Model) {
   if (input && !(input instanceof Class)) {
-    let relationshipNames = RelationshipSchema.getRelationshipTable(Class); // NOTE: This is not perfect for await find({ photos }) but fine for now.
+    let relationshipNames = RelationshipSchema.getRelationshipTable(Class);
     let belongsToRelationships = RelationshipSchema.getRelationshipTable(Class, "BelongsTo");
 
     return Object.keys(input).reduce((result: JSObject, keyName) => {
@@ -24,13 +24,10 @@ export default function validatePartialModelInput(input: JSObject, Class: typeof
 
       result[keyName] = input[keyName];
 
-      // TODO: Here raise an error on foreign-key vs object mismatch
       if (keyName in belongsToRelationships) {
         let { RelationshipClass, foreignKeyColumnName } = relationshipNames[keyName] as BelongsToRelationshipMetadata;
         if (foreignKeyColumnName in input) {
-          // TODO: sometimes the relationship is null directly
           if (input[keyName]) {
-            // TODO: probably problematic due to undefined/null mismatch
             if (
               !(input[keyName] instanceof RelationshipPromise) &&
               input[keyName][RelationshipClass.primaryKeyName] !== input[foreignKeyColumnName]

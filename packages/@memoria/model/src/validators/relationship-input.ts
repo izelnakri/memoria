@@ -15,7 +15,7 @@ export default function validateRelationshipInput(
 ) {
   if (
     SINGLE_VALUE_RELATIONSHIPS.includes(relationshipType) &&
-    (input === true || input === null || isPartialModelInput(input, RelationshipClass))
+    (input === null || isPartialModelInput(input, RelationshipClass))
   ) {
     return input;
   } else if (

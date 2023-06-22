@@ -13,10 +13,10 @@ type AnotherModel = Model;
 type RelationshipMap<Value> = Map<RelationshipTableKey, Value>;
 type JSObject = { [key: string]: any };
 
-// TODO: make some relationshipName arguments just relationshipMetadata so less copying/generating data around
+// TODO: refactor some relationshipName arguments just relationshipMetadata so less copying/generating data around
 export default class RelationshipDB {
   static instanceRecordsBelongsToCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map();
-  // static instanceRecordsBelongsToSettingCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map(); // TODO: Maybe this is needed to hasMany reload logic
+  // static instanceRecordsBelongsToSettingCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map(); // TODO: Maybe this is needed to hasMany reload logic on old data
   static instanceRecordsOneToOneCache: RelationshipMap<WeakMap<Model, null | Model>> = new Map();
   static instanceRecordsHasManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
   static instanceRecordsManyToManyCache: RelationshipMap<WeakMap<Model, null | Model[]>> = new Map();
@@ -79,35 +79,21 @@ export default class RelationshipDB {
       });
     }
 
-    // TODO: This is removed because let photo = await RESTPhoto.insert({ name: "Dinner photo", owner: user }); immediately clears owner cache for photo.owner!
-    // NOTE: just plain wrong logic, not needed
-    // NOTE: TRY: dont delete references related to the same model, only delete references related to the same model with different id(?)
-    // outputRecord.fetchedRelationships.forEach((relationshipName: string) => {
-    //   let relationship = RelationshipDB.findRelationshipFor(outputRecord, relationshipName);
-
-    //   // TODO: This is messed up, because insert() does this! with assignment that shouldnt be cleared, it clears all assignments!
-    //   // if (relationship && relationship[(relationship.constructor as typeof Model).primaryKeyName]) {
-    //   //   RelationshipDB.findRelationshipCacheFor(Class, relationshipName).delete(outputRecord);
-    //   // }
-    // });
-
     InstanceDB.makeModelPersisted(outputRecord);
 
     return outputRecord;
   }
 
-  // NOTE: null doesnt get cached on fetch
-  // NOTE: belongsTo reflective mutations can be done here
+  // NOTE: belongsTo reflective mutations can be done here, in future
   static cacheRelationship(model: Model, metadata: RelationshipMetadata, relationship: Model | Model[] | null) {
     let { relationshipType, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
 
     // let previousRelationship = cache.get(model);
     if (ARRAY_ASKING_RELATIONSHIPS.has(relationshipType)) {
-      // TODO: doesnt clear existing relationship(?)
       let array = new HasManyArray(relationship as Model[], model, metadata);
 
       // NOTE: This is costly, in future find a way probably a way to optimize it
-      this.onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(array, metadata); // TODO: THIS MUTATES TO FETCHED PHOTO WHILE THERE IS A FRESH INSTANCE AHEAD
+      this.onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(array, metadata);
 
       RelationshipCache.set(model, array);
 
@@ -126,18 +112,6 @@ export default class RelationshipDB {
           RelationshipSchema.getRelationshipMetadataFor(RelationshipClass, metadata.reverseRelationshipName)
         );
       }
-
-      // let { ReverseRelationshipCache } = metadata;
-      // let reverseRelationship = ReverseRelationshipCache.get(relationship);
-      // TODO:
-      // let reverseRelationshipCache = RelationshipDB.findRelationshipCacheFor(
-      //   RelationshipClass,
-      //   reverseRelationshipName,
-      //   reverseRelationshipType as string
-      // );
-      // let reverseRelationship = reverseRelationshipCache;
-      // previousRelationship or newAssigned reflection(?!?)
-      // let reverseRelationshipCache =
     }
 
     return relationship;
@@ -152,7 +126,6 @@ export default class RelationshipDB {
     // }
   }
 
-  // NOTE: Adds records if there is an existing belongsTo reference
   static onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(
     array: HasManyArray,
     { RelationshipClass, ReverseRelationshipCache, reverseRelationshipForeignKeyColumnName }: RelationshipMetadata
@@ -174,11 +147,10 @@ export default class RelationshipDB {
             if (primaryKey !== reference[reverseRelationshipForeignKeyColumnName as string]) {
               return result;
             } else if (currentBelongsToValues.has(reference) || !ReverseRelationshipCache.has(reference)) {
-              return result; // NOTE: This would ignore the last value although it could be the fresh edge record(seems wrong logic!)
+              return result; // NOTE: This would ignore the last value although it could be the fresh edge record(seems wrong logic!?)
             }
 
             let oldReference = ReverseRelationshipCache.get(reference);
-            // ReverseRelationshipCache.set(reference, belongsToModel); // NOTE: This shouldnt be needed, creates bugs
 
             if (result[0]) {
               return result;
@@ -468,16 +440,7 @@ export default class RelationshipDB {
 
       RelationshipCache.set(model, new HasManyArray(targetRelationship as Model[], model, metadata));
 
-      // TODO: do reflection(?)
-
       return model;
-    } else {
-      // TODO: probably remove this case
-      if (Array.isArray(input) && !input.every((instance) => instance instanceof Model)) {
-        throw new Error(`Tried to set a non model instance value to ${Class.name}.${relationshipName}!`);
-      }
-
-      RelationshipCache.set(model, Array.isArray(input) ? input : null);
     }
 
     return model;
@@ -502,7 +465,6 @@ function isInvalidRelationshipInput(input, metadata) {
   } else if (SINGLE_VALUE_RELATIONSHIPS.has(metadata.relationshipType) && !(input instanceof Model)) {
     return true;
   } else if (metadata.relationshipType === "HasMany" && !(input instanceof Model || Array.isArray(input))) {
-    // TODO: also make sure if its array that all of its values are models
     return true;
   }
 }

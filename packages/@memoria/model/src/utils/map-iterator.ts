@@ -11,9 +11,9 @@ export function filter(map, predicate: Function) {
 
 export function find(map, predicate: Function) {
   for (let entry in map.entries()) {
-    // if (predicate(entry)) {
-    //   return entry;
-    // }
+    if (predicate(entry)) {
+      return entry;
+    }
   }
 }
 

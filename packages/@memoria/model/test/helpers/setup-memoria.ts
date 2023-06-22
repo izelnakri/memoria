@@ -38,6 +38,7 @@ export default function (hooks) {
             : "assert.hasMany(hasManyArray, expectedHasManyArray): hasManyArray is not an array",
         });
       }
+
       let belongsToKey = hasManyArray.metadata.reverseRelationshipName;
       let belongsToForeignKey = hasManyArray.metadata.reverseRelationshipForeignKeyColumnName;
       let TargetModel = hasManyArray.belongsTo.constructor as typeof Model;
@@ -52,9 +53,9 @@ export default function (hooks) {
         }
 
         if (strictMode) {
-          assert.strictEqual(hasManyArray[index], expectedModel);
+          assert.strictEqual(hasManyArray[targetIndex], expectedModel);
         } else {
-          assert.deepEqual(hasManyArray[index].toJSON(), expectedModel.toJSON());
+          assert.deepEqual(hasManyArray[targetIndex].toJSON(), expectedModel.toJSON());
 
           let expectedBelongsToReference = RelationshipDB.findRelationshipFor(expectedModel, belongsToKey);
           if (expectedBelongsToReference) {

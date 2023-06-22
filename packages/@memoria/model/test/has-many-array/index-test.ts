@@ -5,7 +5,6 @@ import setupMemoria from "../helpers/setup-memoria.js";
 import generateModels from "../helpers/relationship-test-models/index.js";
 import setupSinon from "../helpers/setup-sinon.js";
 
-// TODO: Add hasManyArray.reload() tests
 module("@memoria/model | HasManyArray", function (hooks) {
   setupMemoria(hooks);
   setupSinon(hooks);
