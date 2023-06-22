@@ -3,8 +3,7 @@ import type { BelongsToRelationshipMetadata } from "../stores/relationship/schem
 import { RuntimeError } from "../errors/index.js";
 import { RelationshipPromise } from "../promises/index.js";
 import Model from "../model.js";
-
-type JSObject = { [key: string]: any };
+import type { JSObject } from "../types.js";
 
 export default function validatePartialModelInput(input: JSObject, Class: typeof Model) {
   if (input && !(input instanceof Class)) {

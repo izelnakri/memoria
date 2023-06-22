@@ -196,8 +196,8 @@ export default class HasManyArray extends Array {
         return true;
       },
       deleteProperty(self, propertyName) {
-        let propertyAsNumber = typeof propertyName !== "symbol" && Number(propertyName);
-        if (!isNaN(propertyAsNumber as number)) {
+        let propertyAsNumber = Number(propertyName);
+        if (Number.isInteger(propertyAsNumber)) {
           if (propertyAsNumber >= self.length) {
             throw new Error(
               `You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`

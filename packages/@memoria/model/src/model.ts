@@ -15,6 +15,7 @@ import {
 } from "./stores/index.js";
 import { clearObject, primaryKeyTypeSafetyCheck } from "./utils/index.js";
 import { validatePartialModelInput } from "./validators/index.js";
+import type { JSObject } from "./types.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
 import definePrimaryKeySetter from "./setters/primary-key.js";
@@ -23,7 +24,7 @@ import defineForeignKeySetter from "./setters/foreign-key.js";
 
 export type PrimaryKey = number | string;
 
-type QueryObject = { [key: string]: any };
+type QueryObject = JSObject;
 type ModelRefOrInstance = ModelReference | Model;
 
 const INVALID_BUILD_OBJECT_TYPE = Symbol("null");
@@ -273,7 +274,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.insert(this, validatePartialModelInput(record, this) || {}, options);
+    let model = await this.Adapter.insert(this, record ? validatePartialModelInput(record, this) : {}, options);
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -696,6 +697,6 @@ function revisionAndLockModel(model, options?, buildObject?) {
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
 }
 
-function validatePartialModelInputs(objects: QueryObject[], Class: typeof Model) {
+function validatePartialModelInputs(objects, Class: typeof Model) {
   return objects.map((object) => validatePartialModelInput(object, Class));
 }

@@ -5,6 +5,10 @@ export type PrimaryKey = number | string;
 export type ModelName = string;
 export type ModuleDatabase<Value> = Map<ModelName, Value>;
 
+export interface JSObject {
+  [key: string]: any;
+}
+
 export interface DecoratorBucket {
   [decoratorKey: string]: any;
 }

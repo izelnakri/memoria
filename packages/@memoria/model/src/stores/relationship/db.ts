@@ -180,7 +180,7 @@ export default class RelationshipDB {
         );
       let targetInstance = foundRelationship || alternativeRelationship;
       let targetInstances = targetInstance && InstanceDB.getReferences(targetInstance);
-      if (targetInstance && array.includes((element) => !targetInstances.has(element))) {
+      if (targetInstance && array.includes((element) => !(targetInstances as Set<Model>).has(element))) {
         array.push(targetInstance);
       }
     }

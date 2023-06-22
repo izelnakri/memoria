@@ -77,7 +77,7 @@ export default class RelationshipMutation {
 
     let freshRemainingSourceReferenceToExistingRelationship =
       existingRelationship &&
-      (!existingRelationshipReferences || !existingRelationshipReferences.has(targetRelationship)) &&
+      (!existingRelationshipReferences || !existingRelationshipReferences.has(targetRelationship as Model)) &&
       // NOTE: check if sourceInstancesPointingToExistingRelationship.length > 1 or 0
       // (reverseRelationshipsPointingToSource.length > 0 || sourceInstancesPointingToExistingRelationship.length > 1) && // TODO: is this check correct?!?, it was merely an update but we cant know which records to update/replace properly
       Array.from(InstanceDB.getReferences(source))
@@ -150,7 +150,7 @@ export default class RelationshipMutation {
       }
 
       if (relationshipType !== "BelongsTo") {
-        targetRelationship[reverseRelationshipForeignKeyColumnName] =
+        targetRelationship[reverseRelationshipForeignKeyColumnName as string] =
           model[(model.constructor as typeof Model).primaryKeyName];
       }
     }

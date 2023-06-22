@@ -2,6 +2,7 @@ import compare from "./utils/compare.js";
 import { get } from "./utils/object.js";
 import deepEqual from "./utils/deep-equal.js";
 import match from "./utils/match.js";
+import type { JSObject } from "./types.js";
 
 // TODO: provide object interface for these:
 // mapBy(array), findBy(object), uniqBy(array), sortBy(array), filterBy(object), isAny(object), isEvery(object)
@@ -38,7 +39,7 @@ export default class Enum {
     return indexes.map((index) => array[index]);
   }
 
-  static sortBy<T>(array: Array<T>, ..._key: string[]): Array<T> {
+  static sortBy(array: Array<JSObject>, ..._key: string[]): Array<JSObject> {
     let sortKeys = Array.isArray(arguments[1]) ? arguments[1] : Array.from(arguments).slice(1);
 
     return Array.from(array).sort((elementOne, elementTwo) => {
@@ -58,7 +59,7 @@ export default class Enum {
     return array.find((element) => match(get(element, key), value)) || null;
   }
 
-  static filterBy<T>(array: Array<T>, key: string, value: any): Array<T> {
+  static filterBy(array: Array<JSObject>, key: string, value: any): Array<JSObject> {
     return array.filter((element) => match(get(element, key), value));
   }
 
