@@ -1,4 +1,4 @@
-import { Connection, createConnection, EntitySchema } from "typeorm";
+import { Connection, createConnection, EntitySchema, In } from "typeorm";
 import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
@@ -124,13 +124,14 @@ export default class SQLAdapter extends MemoryAdapter {
     try {
       if (Array.isArray(primaryKey)) {
         // TODO: this might also need adjustments/move to normal query
-        let foundModels = await Manager.findByIds(Model, primaryKey, {
+        let foundModels = await Manager.find(Model, {
+          where: { [Model.primaryKeyName]: In(primaryKey) },
           order: { [Model.primaryKeyName]: "ASC" },
         });
         // TODO: this might be problematic with null models!!
         return foundModels.map((model) => this.cache(Model, toJSON(model), options));
       } else if (typeof primaryKey === "number" || typeof primaryKey === "string") {
-        let foundModel = await Manager.findOne(Model, primaryKey);
+        let foundModel = await Manager.findOne(Model, { where: { [Model.primaryKeyName]: primaryKey } });
         return foundModel && this.cache(Model, toJSON(foundModel), options);
       }
     } catch (error) {
@@ -152,7 +153,7 @@ export default class SQLAdapter extends MemoryAdapter {
     options?: ModelBuildOptions
   ): Promise<MemoriaModel | null> {
     let Manager = await this.getEntityManager();
-    let foundModel = await Manager.findOne(Model, getTargetKeysFromInstance(queryObject));
+    let foundModel = await Manager.findOneBy(Model, getTargetKeysFromInstance(queryObject));
 
     return foundModel ? this.cache(Model, toJSON(foundModel), options) : null;
   }

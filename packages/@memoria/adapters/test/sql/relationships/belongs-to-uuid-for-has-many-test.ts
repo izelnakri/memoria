@@ -117,7 +117,7 @@ module(
         assert.equal(RelationshipDB.has(builtPhoto, "owner"), false);
         assert.ok(secondUser.photos instanceof RelationshipPromise);
 
-        SQLPhoto.update({ uuid: firstPhoto.uuid, owner_uuid: null });
+        await SQLPhoto.update({ uuid: firstPhoto.uuid, owner_uuid: null });
 
         let secondPhoto = await SQLPhoto.insert({
           name: "Second photo",
