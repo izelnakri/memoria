@@ -15,11 +15,11 @@
   ],
   "dependencies": {
     "@memoria/server": "0.0.32",
-    "kleur": "4.1.4",
+    "kleur": "4.1.5",
     "inflected": "^2.1.0",
-    "recursive-lookup": "1.0.0",
-    "@babel/core": "7.16.0",
-    "@babel/preset-typescript": "7.16.0",
-    "babel-plugin-module-extension-resolver": "1.0.0-rc.2"
+    "recursive-lookup": "1.1.0",
+    "@babel/core": "7.22.5",
+    "@babel/preset-typescript": "7.22.5",
+    "babel-plugin-module-extension-resolver": "1.0.0"
   }
 }
