@@ -2,7 +2,39 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
-#### [0.0.31](https://github.com/izelnakri/memoria/compare/0.0.31...0.0.31)
+#### [0.0.32](https://github.com/izelnakri/memoria/compare/0.0.32...0.0.32)
+
+- Belongs-To-Has-Many-Tests [`#73`](https://github.com/izelnakri/memoria/pull/73)
+- Bump docker/login-action from 2.0.0 to 2.1.0 [`#59`](https://github.com/izelnakri/memoria/pull/59)
+- Bump actions/checkout from 3.0.2 to 3.3.0 [`#64`](https://github.com/izelnakri/memoria/pull/64)
+- Bump docker/build-push-action from 3.1.1 to 4.0.0 [`#67`](https://github.com/izelnakri/memoria/pull/67)
+- Bump docker/setup-buildx-action from 2.0.0 to 2.5.0 [`#69`](https://github.com/izelnakri/memoria/pull/69)
+- package.json adjusted to new test structure [`1cdd6f7`](https://github.com/izelnakri/memoria/commit/1cdd6f79fbab0578386af9a5d54e8ceac94e3120)
+- update packages [`6f82f42`](https://github.com/izelnakri/memoria/commit/6f82f42d53381049dad4f652b188ab5722c1e23d)
+- belongs-to-id-for-has-many-tests on every adapter [`f598808`](https://github.com/izelnakri/memoria/commit/f5988086c942eb2c9e58f689af060a1315ac9218)
+- reverse rel checks added to belongs to tests [`2bc431e`](https://github.com/izelnakri/memoria/commit/2bc431e97db5adeb6349101edf456c3c08dec669)
+- First finished belongsTo-&gt;HasMany tests [`6c2d7f6`](https://github.com/izelnakri/memoria/commit/6c2d7f6ea778d8f3ec42fcdeac71bcb70d2200d6)
+- Base changes prior belongs-to-has-many tests [`9fb0713`](https://github.com/izelnakri/memoria/commit/9fb0713f10da710e6571ff2d2090aa478d1b43e1)
+- Refactor Model.build() setters to own modules [`6f625a2`](https://github.com/izelnakri/memoria/commit/6f625a23b113245880cb11d5094f39d00957cfb6)
+- Major DX Improvement: validatePartialModelInput() [`5a8ec27`](https://github.com/izelnakri/memoria/commit/5a8ec27fc47a7c8d9b05a53f2ae0e5a9813f7e63)
+- update typeorm to latest@0.3.17 [`56f4f17`](https://github.com/izelnakri/memoria/commit/56f4f17872ab512603ba4575aaa39bec74029683)
+- @BelongsTo for @HasMany initial fetch tests [`3f45b14`](https://github.com/izelnakri/memoria/commit/3f45b14ed9b46d9b1c24d36bc8cdab47b812b2aa)
+- initial validators for relationship & columns [`fc694a2`](https://github.com/izelnakri/memoria/commit/fc694a275328510f6f73a7fe2049ebdbb204c4a9)
+- Adjust mutated relation tests for new HasManyArray [`99012fe`](https://github.com/izelnakri/memoria/commit/99012fec9fb4bb1e12501dbb3c89724e9d3f1a01)
+- Cleanup relationship assignment logic [`1d90739`](https://github.com/izelnakri/memoria/commit/1d90739c1cc85b7460dae4246256abb3cbe26b4e)
+- Initial clean up on notes & new implementation [`0155b3a`](https://github.com/izelnakri/memoria/commit/0155b3a784487c401547ed6c75a66e6a27168eb4)
+- Initial BelongsTo-&gt;HasMany test cases [`ecb9c3d`](https://github.com/izelnakri/memoria/commit/ecb9c3dfd834366d9585421d8de0156db062c024)
+- @BelongsTo tests fkey enchancements [`77c7cc5`](https://github.com/izelnakri/memoria/commit/77c7cc56cb69740da5c4bbb734e86c8abb93b125)
+- add initial validators for relationship sets [`13efb19`](https://github.com/izelnakri/memoria/commit/13efb1954138c82d39563dd1152a531dd62a014d)
+- Improve internal cleanRelationshipsOn logic [`34b7196`](https://github.com/izelnakri/memoria/commit/34b719654a11759506c528c1a0fb1e9b0997c44a)
+- cleanRelationshipsOn optimized for HasMany: [`7b44916`](https://github.com/izelnakri/memoria/commit/7b449161a192c54563aaa92b0df433073a3387ff)
+- Fix all type errors [`fa77d20`](https://github.com/izelnakri/memoria/commit/fa77d207fb9c5ba77499c0552cebf72cd0c361db)
+- Improve foreign key relationship tests [`80a68a8`](https://github.com/izelnakri/memoria/commit/80a68a8828346226d9804d7556d6d85a2b88674f)
+- remove unreliable match-json dependency [`1e43870`](https://github.com/izelnakri/memoria/commit/1e4387085ad26101cc533ef16d061ae5d5cb683a)
+
+#### [0.0.32](https://github.com/izelnakri/memoria/compare/0.0.31...0.0.32)
+
+> 20 April 2023
 
 - Major RelationshipCache optimization [`#71`](https://github.com/izelnakri/memoria/pull/71)
 - major RelationshipCache lookup optimizations [`944a51a`](https://github.com/izelnakri/memoria/commit/944a51aa144333ac4a9d6fc16194aca045177842)
@@ -13,6 +45,7 @@ All notable changes to this project will be documented in this file. Dates are d
 - Cleanup RelationshipMetadata's [`d9474c5`](https://github.com/izelnakri/memoria/commit/d9474c5130a19dcdf86f10ad2079143bfade14b6)
 - Optimize ReverseRelationshipsTable lookup [`642c097`](https://github.com/izelnakri/memoria/commit/642c09731a1ee004251f940aaafe6a5f274c2e63)
 - Cleanup & optimize RelationshipSchema code [`a36bd08`](https://github.com/izelnakri/memoria/commit/a36bd089afa669e336554b8720d5f5e36501dcd8)
+- Release 0.0.32 [`93ea844`](https://github.com/izelnakri/memoria/commit/93ea84429ce6c192d2d3d2496becf8d4e3908217)
 
 #### [0.0.31](https://github.com/izelnakri/memoria/compare/0.0.30...0.0.31)
 
