@@ -71,13 +71,14 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
       let deletedPhoto = await RESTPhoto.delete({ id: 2 });
-      assert.propEqual(
+      assert.deepEqual(
         deletedPhoto,
         RESTPhoto.build({
           id: 2,
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
+          comments: [],
         })
       );
       assert.notOk(deletedPhoto.isNew);
@@ -107,7 +108,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
       let deletedComment = await RESTPhotoComment.delete({
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       });
-      assert.propEqual(
+      assert.deepEqual(
         deletedComment,
         RESTPhotoComment.build({
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -117,6 +118,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
           updated_at: deletedComment.updated_at,
           photo_id: null,
           user_id: null,
+          comments: [],
         })
       );
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
@@ -247,6 +249,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.deepEqual(
@@ -256,6 +259,7 @@ module("@memoria/adapters | RESTAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.equal(groupPhoto.group, null);

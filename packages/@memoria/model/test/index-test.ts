@@ -63,6 +63,9 @@ module("@memoria/model | Public API", function (hooks) {
       @Column({ type: "varchar", default: "Imported Photo" })
       name: string;
 
+      @Column()
+      href: string;
+
       static async publicPhotos() {
         return await super.findAll({ is_public: true });
       }
@@ -71,11 +74,17 @@ module("@memoria/model | Public API", function (hooks) {
       @PrimaryGeneratedColumn("uuid")
       uuid: string;
 
+      @Column()
+      content: string;
+
       @CreateDateColumn()
       inserted_at: Date;
 
       @Column("boolean", { default: true })
       is_important: boolean;
+
+      @Column("int")
+      user_id: number;
 
       @Column("bigint")
       photo_id: number;
@@ -132,15 +141,15 @@ module("@memoria/model | Public API", function (hooks) {
 
     await Promise.all([Photo, PhotoComment, User].map((model) => model.resetCache()));
 
-    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important", "photo_id"]);
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "content", "inserted_at", "is_important", "user_id", "photo_id"]);
     assert.deepEqual(Array.from(User.columnNames), []);
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
-    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "inserted_at", "is_important", "photo_id"]);
+    assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "content", "inserted_at", "is_important", "user_id", "photo_id"]);
     assert.deepEqual(Array.from(User.columnNames), []);
   });
 

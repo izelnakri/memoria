@@ -261,13 +261,35 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       await Promise.all(PHOTOS.map((photo) => MemoryPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => MemoryPhotoComment.insert(photoComment)));
 
-      await MemoryPhoto.insert({
-        published_at: new Date("2017-10-10").toJSON(),
-        description: "Some description",
-      });
-      await MemoryPhoto.insert({ location: "Istanbul", is_public: false });
-      await MemoryPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
-      await MemoryPhotoComment.insert({ reply_id: 1 });
+      try {
+        await MemoryPhoto.insert({
+          published_at: new Date("2017-10-10").toJSON(),
+          description: "Some description",
+        });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a MemoryPhoto partial! Provided'));
+      }
+      try {
+        await MemoryPhoto.insert({ description: "Some description" });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a MemoryPhoto partial! Provided'));
+      }
+      try {
+        await MemoryPhoto.insert({ location: "Istanbul", is_public: false });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a MemoryPhoto partial! Provided'));
+      }
+
+      try {
+        await MemoryPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a MemoryPhotoComment partial! Provided'));
+      }
+      try {
+        await MemoryPhotoComment.insert({ reply_id: 1 });
+      } catch (error) {
+        assert.ok(error.message.includes('is not a valid attribute for a MemoryPhotoComment partial! Provided'));
+      }
 
       assert.deepEqual(Array.from(MemoryPhoto.columnNames), [
         "id",
@@ -290,19 +312,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
       assert.propEqual(
         await MemoryPhoto.findAll(),
         [
-          ...PHOTOS,
-          {
-            id: 4,
-            is_public: true,
-            name: "Photo default name",
-            href: null,
-          },
-          {
-            id: 5,
-            is_public: false,
-            name: "Photo default name",
-            href: null,
-          },
+          ...PHOTOS
         ].map((photo) => MemoryPhoto.build(photo))
       );
     });
@@ -391,8 +401,9 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
         }
       });
 
-      let somePeekedModel = await MemoryGroup.peek(group.uuid);
+      let somePeekedModel = await MemoryGroup.peek(group.uuid); // TODO: PEEK GENERATES A RelationshipCache RECORD!! WTF
 
+      assert.equal(RelationshipDB.has(cachedReference, "owner"), false);
       assert.strictEqual(groupPhoto.group, insertedGroup);
 
       let newBuiltReference = MemoryGroup.build({
@@ -475,7 +486,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       let photo = await MemoryPhoto.insert(PHOTOS[1], { cacheDuration: 0 });
 
-      assert.propEqual(photo, MemoryPhoto.build(PHOTOS[1]));
+      assert.deepEqual(photo, MemoryPhoto.build({ ...PHOTOS[1], comments: [] }));
       assert.propEqual(await MemoryPhoto.findAll(), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
@@ -487,8 +498,8 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       let secondPhoto = await MemoryPhoto.insert(PHOTOS[1]);
 
-      assert.propEqual(secondPhoto, MemoryPhoto.build(PHOTOS[1]));
-      assert.propEqual(await MemoryPhoto.findAll(), [
+      assert.deepEqual(secondPhoto, MemoryPhoto.build(PHOTOS[1]));
+      assert.deepEqual(await MemoryPhoto.findAll(), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
           id: 1,
@@ -545,16 +556,16 @@ module("@memoria/adapters | MemoryAdapter | $Model.insert()", function (hooks) {
 
       assert.propEqual(lastPhoto, MemoryPhoto.build(PHOTOS[1]));
 
-      await wait(60);
+      await wait(70);
 
-      assert.propEqual(await MemoryPhoto.findAll(), [
+      assert.deepEqual((await MemoryPhoto.findAll()).map((x) => x.toJSON()), [
         MemoryPhoto.build({
           href: "ski-trip.jpeg",
           id: 1,
           name: "Ski trip",
           is_public: false,
-        }),
-        photoOne,
+        }).toJSON(),
+        photoOne.toJSON(),
       ]);
     });
   });

@@ -37,9 +37,7 @@ export default function generateRESTModels() {
       });
 
       this.get("/photos", async ({ queryParams }) => {
-        let photos = queryParams.group_uuid
-          ? await Photo.findAll({ group_uuid: queryParams.group_uuid })
-          : await Photo.findAll();
+        let photos = queryParams ? await Photo.findAll(queryParams) : await Photo.findAll();
 
         return { photos: Photo.serializer(photos) };
       });
@@ -61,6 +59,16 @@ export default function generateRESTModels() {
       this.post("/users", async (request) => {
         try {
           let user = await User.insert(request.params.user);
+
+          return { user: User.serializer(user) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
+      this.put("/users/:uuid", async (request) => {
+        try {
+          let user = await User.update(request.params.user);
 
           return { user: User.serializer(user) };
         } catch (changeset) {

@@ -1,5 +1,5 @@
 import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
-import Model, { Changeset, PrimaryGeneratedColumn, Column, Serializer } from "@memoria/model";
+import Model, { Changeset, PrimaryGeneratedColumn, Column, InstanceDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
 
@@ -196,10 +196,11 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
         assert.ok(error.message.includes("/users/44"));
       }
 
-      assert.ok(RESTPhoto.build(photo));
+      RESTPhoto.build(photo);
+
       let insertedUser = await RESTUser.insert({ id: 44, first_name: "Izel", last_name: "Nakri" });
 
-      assert.propContains(insertedUser, { id: 44, first_name: "Izel", last_name: "Nakri" });
+      assert.propContains(insertedUser.toJSON(), { id: 44, first_name: "Izel", last_name: "Nakri" });
       assert.propEqual(photo.owner, insertedUser);
     });
 
@@ -211,10 +212,74 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       let firstPhoto = MemoryPhoto.build({ name: "Family photo", owner: users[0] });
       let secondPhoto = MemoryPhoto.build({ name: "Trip photo", owner: users[1] });
 
-      assert.propEqual(firstPhoto.owner, users[0]);
       assert.equal(firstPhoto.owner_id, users[0].id);
-      assert.propEqual(secondPhoto.owner, users[1]);
+      assert.propEqual(firstPhoto.owner, users[0]);
       assert.equal(secondPhoto.owner_id, users[1].id);
+      assert.propEqual(secondPhoto.owner, users[1]);
+    });
+
+    test('When $Model.build() is provided with a foreign key and the reference as pure object it sets it correctly', async function (assert) {
+      let { Server, RESTUser, RESTPhoto } = setupRESTModels();
+      this.Server = Server;
+
+      let user = await RESTUser.insert({ first_name: "Izel" });
+      let copiedUser = RESTUser.build(user);
+
+      assert.notStrictEqual(user, copiedUser);
+      assert.deepEqual(user.toJSON(), copiedUser.toJSON());
+
+      let builtPhoto = RESTPhoto.build({ name: "Dinner photo", owner: user, owner_id: user.id });
+
+      assert.equal(builtPhoto.owner_id, 1);
+      assert.strictEqual(builtPhoto.owner, user);
+
+      let anotherBuiltPhoto = RESTPhoto.build({
+        name: "Dinner photo",
+        owner: { id: 1, first_name: "Izel", last_name: null },
+        owner_id: user.id
+      });
+
+      assert.equal(anotherBuiltPhoto.owner_id, 1);
+      assert.notStrictEqual(anotherBuiltPhoto.owner, user);
+      assert.deepEqual(anotherBuiltPhoto.owner.toJSON(), user.toJSON());
+    });
+
+    // NOTE: Move this to validation tests along with other validation tests.
+    test('When $Model.build() is provided with mismatched foreign key and reference with wrong primary key it throws!', async function (assert) {
+      let { Server, RESTUser, RESTPhoto } = setupRESTModels();
+      this.Server = Server;
+
+      let user = await RESTUser.insert({ first_name: "Izel" });
+      let copiedUser = RESTUser.build(user);
+
+      assert.notStrictEqual(user, copiedUser);
+      assert.deepEqual(user.toJSON(), copiedUser.toJSON());
+
+      try {
+        RESTPhoto.build({ name: "Dinner photo", owner: user, owner_id: 99 });
+      } catch (error) {
+        assert.equal(error.message, 'You cannot provide different owner_id: 99 and owner.id: 1 for RESTPhoto partial!');
+      }
+
+      try {
+        RESTPhoto.build({
+          name: "Dinner photo",
+          owner: { id: 55, first_name: "Izel", last_name: null },
+          owner_id: user.id
+        });
+      } catch (error) {
+        assert.equal(error.message, 'You cannot provide different owner_id: 1 and owner.id: 55 for RESTPhoto partial!');
+      }
+
+      assert.equal(InstanceDB.getAllUnknownInstances(RESTPhoto).length, 2); // NOTE: Make this 0 in future
+      assert.ok(InstanceDB.getAllUnknownInstances(RESTPhoto).every((set) => set.size === 0));
+
+      let builtPhoto = RESTPhoto.build({ name: "Dinner photo", owner: user, owner_id: user.id });
+
+      assert.equal(InstanceDB.getAllUnknownInstances(RESTPhoto).length, 3); // NOTE: Make this 1 in future
+      assert.deepEqual(InstanceDB.getAllUnknownInstances(RESTPhoto)[2], new Set([builtPhoto]));
+      assert.equal(builtPhoto.owner_id, 1);
+      assert.strictEqual(builtPhoto.owner, user);
     });
   });
 

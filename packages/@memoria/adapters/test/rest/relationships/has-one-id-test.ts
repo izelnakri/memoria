@@ -334,10 +334,12 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for ID(int
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.notStrictEqual(firstPhoto.group, group);
 
-      assert.strictEqual(firstPhoto.group, group); // NOTE: this was controversial but probably makes sense
-      assert.equal(firstPhoto.group_id, group.id);
+      let newlyGeneratedGroup = firstPhoto.group;
 
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), RESTGroup.Cache.get(group.id).toJSON());
+      assert.equal(firstPhoto.id, group.id);
       assert.strictEqual(group.photo, secondPhoto); // it is secondPhoto... WTF?!
 
       let updatedGroup = await RESTGroup.update(insertedGroup.toJSON()); // NOTE: this makes firstPhoto.group to updatedGroup.id, probably good/intentional
@@ -357,10 +359,10 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for ID(int
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
 
-      assert.strictEqual(secondPhoto.group, insertedGroup);
+      assert.strictEqual(secondPhoto.group, newlyGeneratedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
 
-      assert.strictEqual(firstPhoto.group, insertedGroup);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
       assert.equal(firstPhoto.group_id, insertedGroup.id);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
@@ -420,7 +422,11 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for ID(int
 
       assert.strictEqual(insertedGroup.photo, secondPhoto);
       assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, group);
+
+      let newlyGeneratedGroup = firstPhoto.group;
+
+      assert.notStrictEqual(firstPhoto.group, insertedGroup);
+      assert.deepEqual(newlyGeneratedGroup.toJSON(), RESTGroup.Cache.get(group.id).toJSON());
       assert.equal(firstPhoto.group_id, group.id);
       assert.strictEqual(secondPhoto.group, insertedGroup);
       assert.equal(secondPhoto.group_id, insertedGroup.id);
@@ -438,12 +444,12 @@ module("@memoria/adapters | RESTAdapter | Relationships | @hasOne API for ID(int
       updatedGroup.photo = null;
 
       assert.strictEqual(updatedGroup.photo, null);
-      assert.strictEqual(secondPhoto.group, insertedGroup);
-      assert.equal(secondPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(secondPhoto.group, newlyGeneratedGroup);
+      assert.equal(secondPhoto.group_id, newlyGeneratedGroup.id);
 
       assert.strictEqual(group.photo, secondPhoto);
-      assert.strictEqual(firstPhoto.group, insertedGroup);
-      assert.equal(firstPhoto.group_id, insertedGroup.id);
+      assert.strictEqual(firstPhoto.group, newlyGeneratedGroup);
+      assert.equal(firstPhoto.group_id, newlyGeneratedGroup.id);
 
       let deletedGroup = await RESTGroup.delete(updatedGroup);
 

@@ -29,6 +29,9 @@ class Photo extends Model {
   @Column("bool")
   is_public: boolean;
 
+  @Column("int")
+  user_id: number;
+
   @BelongsTo((type) => User, (user) => user.photos)
   user: User;
 }

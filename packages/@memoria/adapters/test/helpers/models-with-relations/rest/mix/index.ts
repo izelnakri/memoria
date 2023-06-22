@@ -78,6 +78,16 @@ export default function generateRESTModels() {
         }
       });
 
+      this.put("/users/:id", async (request) => {
+        try {
+          let user = await User.update(request.params.user);
+
+          return { user: User.serializer(user) };
+        } catch (changeset) {
+          return { errors: Changeset.serializer(changeset) };
+        }
+      });
+
       this.get("/users", async () => {
         let users = await User.findAll();
 

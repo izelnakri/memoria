@@ -114,7 +114,8 @@ module("@memoria/model | Utils | object", function (hooks) {
     assert.strictEqual(get(obj, "Foo.bar"), undefined);
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
-    let photo = (await Photo.find(1)) as object;
+
+    let photo = await Photo.find(1);
 
     assert.equal(get(photo, "foo"), undefined);
     assert.equal(get(photo, "foo.bar"), undefined);

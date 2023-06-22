@@ -4,6 +4,7 @@ import Model, {
   InsertError,
   RuntimeError,
   CreateDateColumn,
+  UpdateDateColumn,
   Changeset,
   DB,
   PrimaryGeneratedColumn,
@@ -60,6 +61,9 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
 
       @CreateDateColumn()
       inserted_at: Date;
+
+      @UpdateDateColumn()
+      updated_at: Date;
     }
 
     await DB.resetRecords();
@@ -105,6 +109,9 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
 
       @CreateDateColumn()
       inserted_at: Date;
+
+      @UpdateDateColumn()
+      updated_at: Date;
     }
 
     return new Memoria({
@@ -221,14 +228,15 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
     assert.propEqual(await Photo.findAll(), PHOTOS);
 
     let photoComments = await PhotoComment.findAll();
-    assert.propEqual(photoComments, [
+    assert.matchJson(photoComments.map((photoComment) => photoComment.toJSON()), [
       {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
         content: "What a nice photo!",
         photo_id: 1,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "77653ad3-47e4-4ec2-b49f-57ea36a627e7",
@@ -236,7 +244,8 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         photo_id: 1,
         user_id: 2,
         is_important: true,
-        inserted_at: photoComments[1].inserted_at,
+        inserted_at: photoComments[1].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "d351963d-e725-4092-a37c-1ca1823b57d3",
@@ -244,7 +253,8 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         photo_id: 1,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[2].inserted_at,
+        inserted_at: photoComments[2].inserted_at.toJSON(),
+        updated_at: String
       },
       {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
@@ -252,7 +262,8 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
         photo_id: 2,
         user_id: 1,
         is_important: true,
-        inserted_at: photoComments[3].inserted_at,
+        inserted_at: photoComments[3].inserted_at.toJSON(),
+        updated_at: String
       },
     ]);
 
@@ -262,18 +273,20 @@ module("@memoria/adapters | RESTAdapter | $Model.resetRecords(initialState)", fu
     assert.notOk(photoComment.isDeleted);
     assert.notOk(photoComment.isDirty);
     assert.deepEqual(photoComment.changes, {});
-    assert.deepEqual(photoComment.revision, {
+    assert.matchJson(photoComment.revision, {
       content: "What a nice photo!",
-      inserted_at: photoComments[0].inserted_at,
+      inserted_at: photoComments[0].inserted_at.toJSON(),
+      updated_at: String,
       is_important: true,
       photo_id: 1,
       user_id: 1,
       uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
     });
-    assert.deepEqual(photoComment.revisionHistory, [
+    assert.matchJson(photoComment.revisionHistory, [
       {
         content: "What a nice photo!",
-        inserted_at: photoComments[0].inserted_at,
+        inserted_at: photoComments[0].inserted_at.toJSON(),
+        updated_at: String,
         is_important: true,
         photo_id: 1,
         user_id: 1,

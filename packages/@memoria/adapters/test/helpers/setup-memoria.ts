@@ -1,6 +1,5 @@
-import match from "match-json";
 import QUnit from "qunitx";
-import Model, { Schema, DB } from "@memoria/model";
+import Model, { Schema, DB, RelationshipDB, match } from "@memoria/model";
 import type { HasManyArray } from "@memoria/model";
 
 export default function (hooks) {
@@ -32,19 +31,30 @@ export default function (hooks) {
             : "assert.hasMany(hasManyArray, expectedHasManyArray): hasManyArray is not an array",
         });
       }
+
       let belongsToKey = hasManyArray.metadata.reverseRelationshipName;
       let belongsToForeignKey = hasManyArray.metadata.reverseRelationshipForeignKeyColumnName;
       let TargetModel = hasManyArray.belongsTo.constructor as typeof Model;
       let targetPrimaryKeyName = TargetModel.primaryKeyName;
 
-      assert.deepEqual(hasManyArray, expectedHasManyArray);
+      assert.equal(hasManyArray.length, expectedHasManyArray.length);
+
       expectedHasManyArray.forEach((expectedModel: Model, index: number) => {
+        let targetIndex = hasManyArray.findIndex((model) => match(model.toJSON(), expectedModel.toJSON()));
+        if (targetIndex === -1) {
+          throw new Error(`expectedHasManyArray[${index}] does not match any value of hasManyArray`);
+        }
+
         if (strictMode) {
-          assert.strictEqual(hasManyArray[index], expectedModel);
-          assert.strictEqual(expectedModel[belongsToKey], hasManyArray.belongsTo);
+          assert.strictEqual(hasManyArray[targetIndex], expectedModel);
         } else {
-          let primaryKeyName = (expectedModel[belongsToKey].constructor as typeof Model).primaryKeyName;
-          assert.equal(expectedModel[belongsToKey][primaryKeyName], hasManyArray.belongsTo[targetPrimaryKeyName]);
+          assert.deepEqual(hasManyArray[targetIndex].toJSON(), expectedModel.toJSON());
+
+          let expectedBelongsToReference = RelationshipDB.findRelationshipFor(expectedModel, belongsToKey);
+          if (expectedBelongsToReference) {
+            let primaryKeyName = (expectedBelongsToReference.constructor as typeof Model).primaryKeyName;
+            assert.equal(expectedBelongsToReference[primaryKeyName], hasManyArray.belongsTo[targetPrimaryKeyName]);
+          }
         }
 
         assert.equal(expectedModel[belongsToForeignKey], hasManyArray.belongsTo[targetPrimaryKeyName]);

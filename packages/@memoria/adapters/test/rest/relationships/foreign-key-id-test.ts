@@ -175,7 +175,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
-          assert.deepEqual(await thirdGroup.photo, updatedTargetPhoto);
+          assert.strictEqual(await thirdGroup.photo, updatedTargetPhoto);
         })
       );
 
@@ -360,7 +360,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
-          assert.deepEqual(await targetGroup.photo, updatedTargetPhoto);
+          assert.strictEqual(await targetGroup.photo, updatedTargetPhoto);
         })
       );
 

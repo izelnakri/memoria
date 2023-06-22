@@ -403,7 +403,7 @@ export default class MemoryAdapter {
         }
 
         let relationship = model[Model.primaryKeyName]
-          ? await RelationshipClass.peekBy({
+          ? RelationshipClass.peekBy({
               [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
             })
           : null;
@@ -420,12 +420,11 @@ export default class MemoryAdapter {
         let relationship = model[Model.primaryKeyName]
           ? RelationshipClass.peekAll({ [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName] })
           : [];
-        // NOTE: peekAll generate new instances each time, this is a feature, not a bug(?). That way when we mutate foreignKey of existing record, hasMany array stays in tact
 
         return resolve(RelationshipDB.cacheRelationship(model, metadata, relationship));
       }
 
-      return resolve(null); // TODO: ManyToMany not implemented because of this, implement this
+      return resolve(null); // NOTE: ManyToMany not implemented yet.
     });
   }
 }

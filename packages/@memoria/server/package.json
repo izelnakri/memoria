@@ -11,10 +11,10 @@
   ],
   "dependencies": {
     "inflected": "^2.1.0",
-    "kleur": "4.1.4",
+    "kleur": "4.1.5",
     "fake-xml-http-request": "^2.1.2",
     "pretender": "^3.4.7",
     "route-recognizer": "^0.3.4",
-    "jsdom": "18.1.1"
+    "jsdom": "22.1.0"
   }
 }

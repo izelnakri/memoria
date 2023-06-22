@@ -2,56 +2,61 @@ import InstanceDB from "../instance/db.js";
 import RelationshipDB from "./db.js";
 import type Model from "../../model.js";
 import type { PrimaryKey } from "../../model.js";
-import type { RelationshipMetadata, RelationshipCache } from "./schema.js";
+import type { RelationshipMetadata } from "./schema.js";
 
 export default class RelationshipQuery {
   // NOTE: In future it should score them by lastPersisted = timestamp and get the most fresh reference(?)
-  // TODO: BelongsTo lookup should add or edit instance on the hasMany array(if needed)(do it across all possible arrays(?) here there is iteration though?
-  //
-  // builtPhoto.owner lookup assigns append to secondUser.photos anotherSecondUser.photos
-  //
-
-  // static refreshHasManyRelationships(model: Model, metadata: RelationshipMetadata) {
-
-  // }
 
   static findPossibleReferenceInMemory(model: Model, metadata: RelationshipMetadata): Model | null | undefined {
     let {
       RelationshipClass,
       relationshipType,
       foreignKeyColumnName,
+      reverseRelationshipType,
       reverseRelationshipName,
       reverseRelationshipForeignKeyColumnName,
     } = metadata;
     if (relationshipType === "BelongsTo") {
-      if (model[foreignKeyColumnName as string] === null) {
+      let foreignKeyValue = model[foreignKeyColumnName as string];
+      if (foreignKeyValue === null) {
         return null;
-      } else if (model[foreignKeyColumnName as string]) {
-        let targetModel = InstanceDB.getPersistedModels(RelationshipClass).get(model[foreignKeyColumnName as string]);
+      } else if (foreignKeyValue) {
+        let targetModel = InstanceDB.getPersistedModels(RelationshipClass).get(foreignKeyValue);
+        if (!targetModel) {
+          return targetModel;
+        }
+
+        let reverseRelationship = RelationshipDB.findRelationshipFor(targetModel, reverseRelationshipName as string);
+        // NOTE: maybe add a check that it isnt cachedData(?)
         if (
-          !targetModel ||
-          !reverseRelationshipName ||
-          RelationshipDB.findRelationshipFor(targetModel, reverseRelationshipName as string) !== null
+          reverseRelationshipType === "OneToOne" &&
+          reverseRelationship &&
+          InstanceDB.getReferences(reverseRelationship).has(model)
+        ) {
+          return targetModel;
+        } else if (
+          reverseRelationshipType === "HasMany" &&
+          reverseRelationship?.some((reverseRelationshipInstance) => InstanceDB.getReferences(reverseRelationshipInstance).has(model))
         ) {
           return targetModel;
         }
       }
 
-      let [relationshipFoundFromReverseLookup, reverseLookupFallback] =
-        this.findPossibleReferenceInMemoryByReverseRelationshipInstances(
-          model,
-          metadata,
-          model[foreignKeyColumnName as string]
-        );
-
+      let [relationshipFoundFromReverseLookup, reverseLookupFallback, reverseLookupLastResort] =
+        this.findPossibleReferenceInMemoryByReverseRelationshipInstances(model, metadata, foreignKeyValue);
       if (relationshipFoundFromReverseLookup) {
         return relationshipFoundFromReverseLookup;
       }
 
-      let [relationshipFoundByInstanceReferences, instanceLookupFalback] =
+      let [relationshipFoundByInstanceReferences, instanceLookupFallback] =
         this.findPossibleReferenceInMemoryByInstanceReferences(model, metadata, foreignKeyColumnName as string);
 
-      return relationshipFoundByInstanceReferences || reverseLookupFallback || instanceLookupFalback;
+      let result = relationshipFoundByInstanceReferences || instanceLookupFallback || reverseLookupFallback;
+      if (result) {
+        return result;
+      } else if (metadata.reverseRelationshipType === "HasMany" && reverseLookupLastResort) {
+        return reverseLookupLastResort; // TODO: does this also append/add to otherside(?)
+      }
     } else if (relationshipType === "OneToOne") {
       let modelInstances = InstanceDB.getReferences(model);
       let Class = model.constructor as typeof Model;
@@ -96,7 +101,11 @@ export default class RelationshipQuery {
 
               if (!modelIsCachedModel && foreignKeyValue && foreignKeyValue === primaryKey) {
                 result[1] = possibleRelationship;
-              } else if (someRelationship && modelInstances.has(someRelationship)) {
+              } else if (
+                someRelationship &&
+                modelInstances.has(someRelationship) &&
+                !possibleRelationship.isInMemoryCachedRecord
+              ) {
                 result[1] = possibleRelationship;
               }
 
@@ -107,10 +116,10 @@ export default class RelationshipQuery {
         return relationshipFoundFromReverseLookup;
       }
 
-      let [relationshipFoundByInstanceReferences, instanceLookupFalback] =
+      let [relationshipFoundByInstanceReferences, instanceLookupFallback] =
         this.findPossibleReferenceInMemoryByInstanceReferences(model, metadata);
 
-      let result = relationshipFoundByInstanceReferences || reverseLookupFallback || instanceLookupFalback;
+      let result = relationshipFoundByInstanceReferences || reverseLookupFallback || instanceLookupFallback;
       if (result) {
         return result;
       }
@@ -126,63 +135,69 @@ export default class RelationshipQuery {
     model: Model,
     metadata: RelationshipMetadata,
     relationshipModelsPrimaryKeyValue: PrimaryKey
-  ): [Model | undefined, Model | undefined] {
+  ): [Model | undefined, Model | undefined, Model | undefined] {
     let { RelationshipClass, reverseRelationshipName } = metadata;
     let possibleRelationshipSet = InstanceDB.getAllKnownReferences(RelationshipClass).get(
       relationshipModelsPrimaryKeyValue
     );
     if (!possibleRelationshipSet || !InstanceDB.isPersisted(possibleRelationshipSet)) {
-      return [undefined, undefined];
+      return [undefined, undefined, undefined];
     }
     let Class = model.constructor as typeof Model;
     let modelReferences = InstanceDB.getReferences(model);
     let latestPersistedInstance = InstanceDB.getPersistedModels(Class).get(model[Class.primaryKeyName]);
-    let possibleRelationshipsByTime = Array.from(possibleRelationshipSet).reverse();
 
-    return possibleRelationshipsByTime.reduce(
-      (possibleResult, possibleRelationship) => {
-        if (possibleResult[0]) {
-          return possibleResult;
-        }
+    return Array.from(possibleRelationshipSet)
+      .reverse()
+      .reduce(
+        (possibleResult, possibleRelationship) => {
+          if (possibleResult[0]) {
+            return possibleResult;
+          } else if (possibleRelationship === RelationshipClass.Cache.get(possibleRelationship[Class.primaryKeyName])) {
+            return possibleResult;
+          }
 
-        let primaryKeyValue = possibleRelationship[Class.primaryKeyName];
-        if (possibleRelationship === RelationshipClass.Cache.get(primaryKeyValue)) {
-          return possibleResult;
-        }
-
-        let possibleReference = reverseRelationshipName
-          ? RelationshipDB.findRelationshipFor(possibleRelationship, reverseRelationshipName)
-          : undefined;
-        if (Array.isArray(possibleReference)) {
-          possibleReference.find((reference) => {
-            if (reference === model || reference === latestPersistedInstance) {
-              possibleResult[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
-
-              return true;
-            } else if (!possibleResult[1] && modelReferences.has(reference)) {
-              possibleResult[1] = possibleRelationship;
-
-              return true;
+          let possibleReference = reverseRelationshipName
+            ? RelationshipDB.findRelationshipFor(possibleRelationship, reverseRelationshipName)
+            : undefined;
+          if (Array.isArray(possibleReference)) {
+            if (!possibleResult[2]) {
+              possibleResult[2] = possibleRelationship;
             }
-          });
+            possibleReference.find((reference) => {
+              if (reference === model || reference === latestPersistedInstance) {
+                possibleResult[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
+
+                return true;
+              } else if (
+                !possibleResult[1] &&
+                modelReferences.has(reference) &&
+                !possibleRelationship.isInMemoryCachedRecord
+              ) {
+                possibleResult[1] = possibleRelationship;
+
+                return true;
+              }
+            });
+
+            return possibleResult;
+          } else if (
+            possibleReference &&
+            (possibleReference === model || possibleReference === latestPersistedInstance)
+          ) {
+            possibleResult[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
+          } else if (
+            (modelReferences.has(possibleReference) || possibleReference === undefined) &&
+            !possibleResult[1] &&
+            !possibleRelationship.isInMemoryCachedRecord
+          ) {
+            possibleResult[1] = possibleRelationship;
+          }
 
           return possibleResult;
-        } else if (
-          possibleReference &&
-          (possibleReference === model || possibleReference === latestPersistedInstance)
-        ) {
-          possibleResult[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
-        } else if (modelReferences.has(possibleReference)) {
-          possibleResult[1] = possibleRelationship;
-        } else if (possibleReference === undefined && !possibleResult[1]) {
-          // TODO: is this creates bugs?!
-          possibleResult[1] = possibleRelationship;
-        }
-
-        return possibleResult;
-      },
-      [undefined, undefined] as [Model | undefined, Model | undefined]
-    );
+        },
+        [undefined, undefined, undefined] as [Model | undefined, Model | undefined, Model | undefined]
+      );
   }
 
   static findPossibleReferenceInMemoryByInstanceReferences(
@@ -220,7 +235,7 @@ export default class RelationshipQuery {
             return result;
           } else if (relationship === model || relationship === latestPersistedInstance) {
             result[relationship.isLastPersisted ? 0 : 1] = relationship;
-          } else if (instancesSet.has(relationship)) {
+          } else if (instancesSet.has(relationship) && !relationship.isInMemoryCachedRecord) {
             result[1] = relationship;
           }
 
@@ -252,23 +267,31 @@ export default class RelationshipQuery {
 
   static findReverseRelationships(
     source: Model,
-    existingRelationship: Model,
-    reverseRelationshipCache: RelationshipCache
-  ) {
-    if (reverseRelationshipCache) {
-      return Array.from(
-        InstanceDB.getAllReferences(existingRelationship.constructor as typeof Model).reduce((result, instanceSet) => {
-          instanceSet.forEach((instance) => {
-            if (reverseRelationshipCache.get(instance) === source) {
-              result.add(instance);
-            }
-          });
+    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata
+  ): Model[] {
+    if (reverseRelationshipType === "HasMany") {
+      return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {
+        instanceSet.forEach((instance) => {
+          let reverseRelationship = ReverseRelationshipCache.get(instance) as Model[];
+          if (reverseRelationship && reverseRelationship.includes(source)) {
+            result.push(instance);
+          }
+        });
 
-          return result;
-        }, new Set() as Set<Model>)
-      );
+        return result;
+      }, [] as Model[]);
     }
 
-    return [];
+    return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {
+      instanceSet.forEach((instance) => {
+        if (ReverseRelationshipCache.get(instance) === source) {
+          result.push(instance);
+        }
+
+        return result;
+      });
+
+      return result;
+    }, [] as Model[]);
   }
 }

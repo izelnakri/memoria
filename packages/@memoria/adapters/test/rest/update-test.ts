@@ -131,15 +131,20 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
       assert.propEqual(comment, await RESTPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }));
     });
 
-    test("$Model.update(attributes) does not throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
+    test("$Model.update(attributes) does throw an exception when a model gets updated with an unknown $Model.attribute", async function (assert) {
       const { RESTPhoto, RESTPhotoComment, Server } = generateModels();
       this.Server = Server;
 
       await Promise.all(PHOTOS.map((photo) => RESTPhoto.insert(photo)));
       await Promise.all(PHOTO_COMMENTS.map((photoComment) => RESTPhotoComment.insert(photoComment)));
 
-      let photo = await RESTPhoto.update({ id: 1, name: "ME", is_verified: false });
+      try {
+        await RESTPhoto.update({ id: 1, name: "ME", is_verified: false });
+      } catch (error) {
+        assert.equal(error.message, 'is_verified is not a valid attribute for a RESTPhoto partial! Provided { is_verified: false }');
+      }
 
+      let photo = await RESTPhoto.update({ id: 1, name: "ME" });
       assert.matchJson(photo, {
         id: 1,
         name: "ME",
@@ -149,11 +154,18 @@ module("@memoria/adapters | RESTAdapter | $Model.update()", function (hooks) {
         owner_id: null,
       });
 
+      try {
+        await RESTPhotoComment.update({
+          uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
+          location: "Amsterdam",
+        });
+      } catch (error) {
+        assert.equal(error.message, 'location is not a valid attribute for a RESTPhotoComment partial! Provided { location: Amsterdam }');
+      }
+
       let photoComment = await RESTPhotoComment.update({
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
-        location: "Amsterdam",
       });
-
       assert.matchJson(photoComment, {
         uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29",
         inserted_at: String,

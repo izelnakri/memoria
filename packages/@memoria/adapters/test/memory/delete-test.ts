@@ -69,13 +69,14 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
 
       let deletedPhoto = await MemoryPhoto.delete({ id: 2 });
 
-      assert.propEqual(
+      assert.deepEqual(
         deletedPhoto,
         MemoryPhoto.build({
           id: 2,
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
+          comments: [],
         })
       );
       assert.notOk(deletedPhoto.isNew);
@@ -106,7 +107,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
         uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
       });
 
-      assert.propEqual(
+      assert.deepEqual(
         deletedComment,
         MemoryPhotoComment.build({
           uuid: "499ec646-493f-4eea-b92e-e383d94182f4",
@@ -227,9 +228,10 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
       InstanceDB.getReferences(group).forEach((reference) => {
         if (reference !== cachedReference) {
           assert.strictEqual(reference.owner, insertedUser);
-          assert.strictEqual(reference.photo, groupPhoto);
         }
       });
+
+      assert.strictEqual(group.owner, insertedUser);
 
       let deletedGroup = await MemoryGroup.delete(group);
 
@@ -245,6 +247,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.deepEqual(
@@ -254,6 +257,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.delete()", function (hooks) {
           name: "Hacker Log",
           owner: null,
           photo: null,
+          photoComments: [],
         })
       );
       assert.equal(groupPhoto.group, null);

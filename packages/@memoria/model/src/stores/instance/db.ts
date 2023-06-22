@@ -31,7 +31,7 @@ export default class InstanceDB {
     return Array.from(this.getAllKnownReferences(Class).values()).concat(this.getAllUnknownInstances(Class));
   }
 
-  static getPersistedModels(Class: typeof Model) : Map<PrimaryKey, Model> {
+  static getPersistedModels(Class: typeof Model): Map<PrimaryKey, Model> {
     if (!this.persistedModels.has(Class.name)) {
       this.persistedModels.set(Class.name, new Map());
     }
@@ -54,16 +54,16 @@ export default class InstanceDB {
 
     return model[Class.primaryKeyName]
       ? (this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model>)
-      : this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) ||
-          (Array.from(this.getAllKnownReferences(Class).values()).find((set) => set.has(model)) as Set<Model>);
+      : this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) as Set<Model>;
   }
 
+  // NOTE: This could be improved in terms of memory because thrown build() instanceSets are not deleted from memory or has side effects
   static getOrCreateExistingInstancesSet(model: Model, buildObject: JSObject, primaryKey?: PrimaryKey) {
     let Class = model.constructor as typeof Model;
 
     if (primaryKey) {
-      let references = this.getAllKnownReferences(Class);
-      let foundInstanceSet = references.get(primaryKey);
+      let knownReferences = this.getAllKnownReferences(Class);
+      let foundInstanceSet = knownReferences.get(primaryKey);
       if (!foundInstanceSet) {
         let unknownReferences = this.getAllUnknownInstances(Class);
         if (buildObject instanceof Model) {
@@ -76,22 +76,22 @@ export default class InstanceDB {
           foundInstanceSet = new Set();
         }
 
-        references.set(primaryKey, foundInstanceSet);
+        knownReferences.set(primaryKey, foundInstanceSet);
       }
 
       return foundInstanceSet;
     } else if (buildObject instanceof Model) {
-      let references = this.getAllUnknownInstances(Class);
-      let foundInstanceSet = references.find((modelSet) => modelSet.has(buildObject as Model));
+      let unknownReferences = this.getAllUnknownInstances(Class);
+      let foundInstanceSet = unknownReferences.find((modelSet) => modelSet.has(buildObject as Model));
       if (!foundInstanceSet) {
-        foundInstanceSet = new Set([model]);
-        references.push(foundInstanceSet);
+        foundInstanceSet = new Set();
+        unknownReferences.push(foundInstanceSet);
       }
 
       return foundInstanceSet;
     }
 
-    let foundInstanceSet: Set<Model> = new Set([model]);
+    let foundInstanceSet: Set<Model> = new Set();
     this.getAllUnknownInstances(Class).push(foundInstanceSet);
 
     return foundInstanceSet;

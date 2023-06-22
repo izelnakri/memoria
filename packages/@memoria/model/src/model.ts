@@ -13,12 +13,16 @@ import {
   RelationshipMutation,
   InstanceDB,
 } from "./stores/index.js";
-import { clearObject, primaryKeyTypeSafetyCheck, removeFromArray } from "./utils/index.js";
+import { clearObject, primaryKeyTypeSafetyCheck } from "./utils/index.js";
+import { validatePartialModelInput } from "./validators/index.js";
 // import ArrayIterator from "./utils/array-iterator.js";
 import type { ModelReference, RelationshipType } from "./index.js";
-// import HasManyArray from "./has-many-array.js";
+import definePrimaryKeySetter from "./setters/primary-key.js";
+import definedColumnPropertySetter from "./setters/column-property.js";
+import defineForeignKeySetter from "./setters/foreign-key.js";
 
 export type PrimaryKey = number | string;
+
 type QueryObject = { [key: string]: any };
 type ModelRefOrInstance = ModelReference | Model;
 
@@ -33,7 +37,7 @@ interface ModelInstantiateOptions {
 }
 
 export interface ModelBuildOptions extends ModelInstantiateOptions {
-  revision?: boolean;
+  revision?: boolean; // TODO: rename this to trackChanges?
   cacheDuration?: number; // NOTE: rename it to cacheDuration
   copy?: boolean; // NOTE: it copies by default
   // debug?:
@@ -56,6 +60,7 @@ export default class Model {
   static Error: typeof ModelError = ModelError;
   static Serializer: typeof Serializer = Serializer;
   static DEBUG = {
+    // NOTE: Rename this to Stores
     Schema,
     DB,
     RelationshipSchema,
@@ -108,9 +113,8 @@ export default class Model {
       }
     }
 
-    let model = new this(options);
-    let primaryKey = buildObject[this.primaryKeyName] || null;
-    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(model, buildObject, primaryKey);
+    let buildOptions = { copy: false, revision: true, ...options };
+    let model = new this(buildOptions); // TODO: Move buildObject validations here
 
     if (buildObject) {
       if (buildObject.revisionHistory) {
@@ -128,153 +132,27 @@ export default class Model {
       }
     }
 
-    let Class = this;
     let belongsToColumnNames = RelationshipSchema.getBelongsToColumnNames(this); // NOTE: this creates Model.belongsToColumnNames once, which is needed for now until static { } Module init closure
     let belongsToTable = RelationshipSchema.getBelongsToColumnTable(this);
-    let attributeTrackingEnabledForModel = attributeTrackingEnabled(options);
+    let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(
+      model,
+      buildObject,
+      buildObject[this.primaryKeyName] || null
+    ); // NOTE: This shouldnt create an empty set if validations fail
 
     Array.from(this.columnNames).forEach((columnName) => {
       if (columnName === this.primaryKeyName) {
-        Object.defineProperty(model, columnName, {
-          configurable: false,
-          enumerable: true,
-          get() {
-            return primaryKey;
-          },
-          set(value) {
-            let targetValue = value === undefined ? null : value;
-            if (this[columnName] === targetValue) {
-              return;
-            } else if (Class.Cache.get(primaryKey)) {
-              throw new Error(
-                `${Class.name}:${primaryKey} exists in persisted cache, you can't mutate this records primaryKey ${columnName} without unloading it from cache`
-              );
-            } else if (targetValue === null) {
-              let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);
-              if (foundKnownReferences) {
-                InstanceDB.getAllKnownReferences(Class).delete(primaryKey);
-                InstanceDB.getAllUnknownInstances(Class).push(existingInstances);
-
-                existingInstances.forEach((instance) => {
-                  if (instance !== this) {
-                    instance[columnName] = null;
-                  }
-                });
-              }
-
-              primaryKey = targetValue;
-
-              return attributeTrackingEnabledForModel && dirtyTrackAttribute(this, columnName, targetValue);
-            }
-
-            let knownReferencesForTargetValue = InstanceDB.getAllKnownReferences(Class).get(targetValue);
-            if (knownReferencesForTargetValue && knownReferencesForTargetValue !== existingInstances) {
-              throw new Error(
-                `${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`
-              );
-            }
-
-            let oldPrimaryKey = primaryKey;
-            primaryKey = targetValue;
-
-            if (attributeTrackingEnabledForModel) {
-              dirtyTrackAttribute(this, columnName, targetValue);
-            }
-
-            if (knownReferencesForTargetValue) {
-              return;
-            } else if (oldPrimaryKey) {
-              InstanceDB.getAllKnownReferences(Class).delete(oldPrimaryKey);
-              InstanceDB.getAllKnownReferences(Class).set(primaryKey, existingInstances);
-
-              return existingInstances.forEach((instance) => {
-                if (instance !== this) {
-                  instance[columnName] = primaryKey;
-                }
-              });
-            }
-
-            let unknownInstances = InstanceDB.getAllUnknownInstances(Class);
-            if (unknownInstances.includes(existingInstances)) {
-              removeFromArray(unknownInstances, existingInstances);
-
-              existingInstances.forEach((instance) => {
-                if (instance !== this) {
-                  instance[columnName] = primaryKey;
-                }
-              });
-
-              InstanceDB.getAllKnownReferences(Class).set(targetValue, existingInstances as Set<Model>);
-            }
-          },
-        });
-      } else if (attributeTrackingEnabledForModel || belongsToColumnNames.has(columnName)) {
-        let cache = getTransformedValue(model, columnName, buildObject);
-
-        return Object.defineProperty(model, columnName, {
-          configurable: false,
-          enumerable: true,
-          get() {
-            return cache;
-          },
-          set(value) {
-            if (this[columnName] === value) {
-              return;
-            } else if (value instanceof Date && this[columnName] && this[columnName].toJSON() === value.toJSON()) {
-              return;
-            }
-
-            cache = value === undefined ? null : value;
-
-            if (attributeTrackingEnabledForModel) {
-              dirtyTrackAttribute(this, columnName, cache);
-            }
-
-            // TODO: clean this part up
-            if (belongsToColumnNames.has(columnName)) {
-              let relationshipMetadata = belongsToTable[columnName];
-              let { RelationshipClass, relationshipName, RelationshipCache } = relationshipMetadata;
-              let existingRelationship = RelationshipCache.get(this);
-              let existingRelationshipPrimaryKey =
-                existingRelationship && existingRelationship[RelationshipClass.primaryKeyName];
-              if (RelationshipCache.has(this) && existingRelationshipPrimaryKey !== cache) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-                if (existingRelationship) {
-                  // TODO: should this be relationshipMetadata?
-                  RelationshipMutation.cleanRelationshipsOn(this, existingRelationship as Model, metadata);
-                }
-              } else if (!RelationshipCache.has(this)) {
-                let metadata = RelationshipSchema.getRelationshipMetadataFor(Class, relationshipName);
-                let ReverseRelationshipCache = relationshipMetadata.ReverseRelationshipCache;
-                let reverseRelationshipInstances: Model[] = ReverseRelationshipCache
-                  ? InstanceDB.getAllReferences(RelationshipClass).reduce((result: Model[], instanceSet) => {
-                      instanceSet.forEach((possibleRelationship) => {
-                        let reverseRelationshipResult = ReverseRelationshipCache.get(possibleRelationship);
-                        if (reverseRelationshipResult === this) {
-                          result.push(possibleRelationship);
-                        } else if (
-                          Array.isArray(reverseRelationshipResult) &&
-                          reverseRelationshipResult.includes(this)
-                        ) {
-                          // result.push(possibleRelationship); // TODO: what to do about this when building hasMany(?)
-                        }
-                      });
-                      return result;
-                    }, [])
-                  : [];
-                if (metadata.reverseRelationshipName) {
-                  reverseRelationshipInstances.forEach((reverseRelationshipInstance) => {
-                    ReverseRelationshipCache.delete(reverseRelationshipInstance);
-                  });
-                }
-              }
-            }
-          },
-        });
+        definePrimaryKeySetter(model, columnName, buildObject, buildOptions, existingInstances);
+      } else if (belongsToColumnNames.has(columnName)) {
+        defineForeignKeySetter(model, columnName, buildObject, buildOptions, belongsToTable[columnName]);
+      } else if (buildOptions.revision) {
+        definedColumnPropertySetter(model, columnName, buildObject, buildOptions);
       }
-
-      model[columnName] = getTransformedValue(model, columnName, buildObject);
     });
+
+    // NOTE: At this point model is not in existingInstances array because validations can run and throw exceptions!
+    // Removed the generation on InstanceDB.getOrCreateExistingInstancesSet when primaryKey is not there
+    existingInstances.add(model);
 
     let relationshipTable = RelationshipSchema.getRelationshipTable(this);
     Object.keys(relationshipTable).forEach((relationshipName) => {
@@ -282,7 +160,7 @@ export default class Model {
       if (buildObjectType === INSTANCE_OBJECT_TYPE && RelationshipDB.has(buildObject as Model, relationshipName)) {
         RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
       } else if (buildObjectType === PURE_BUILD_OBJECT_TYPE && relationshipName in buildObject) {
-        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]);
+        RelationshipDB.set(model, relationshipName, buildObject[relationshipName]); // TODO: There needs to be a good filter for pure object assignments
       }
 
       Object.defineProperty(model, relationshipName, {
@@ -297,7 +175,7 @@ export default class Model {
       });
     });
 
-    existingInstances.add(model);
+    // existingInstances.add(model);
 
     return revisionAndLockModel(model, options, buildObject);
   }
@@ -354,11 +232,11 @@ export default class Model {
   }
 
   static peekBy(queryObject: QueryObject, options?: ModelBuildOptions): Model | null {
-    return this.Adapter.peekBy(this, queryObject, options);
+    return this.Adapter.peekBy(this, validatePartialModelInput(queryObject, this), options);
   }
 
   static peekAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Model[] {
-    return this.Adapter.peekAll(this, queryObject, options);
+    return this.Adapter.peekAll(this, validatePartialModelInput(queryObject, this), options);
   }
 
   static async find(
@@ -376,17 +254,18 @@ export default class Model {
   }
 
   static async findBy(queryObject: QueryObject, options?: ModelBuildOptions): Promise<Model | null> {
-    let result = await this.Adapter.findBy(this, queryObject, options);
+    let result = await this.Adapter.findBy(this, validatePartialModelInput(queryObject, this), options);
 
     return result ? RelationshipDB.cache(result, "update", result) : null;
   }
 
   static async findAll(queryObject: QueryObject = {}, options?: ModelBuildOptions): Promise<Model[] | null> {
-    let result = await this.Adapter.findAll(this, queryObject, options);
+    let result = await this.Adapter.findAll(this, validatePartialModelInput(queryObject, this), options);
 
     return result ? result.map((model) => RelationshipDB.cache(model, "update", model)) : null;
   }
 
+  // TODO: BUG when you have relationship references but no foreign key provided as pure object then attribute dont get sent along
   static async insert(record?: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     if (record && record[this.primaryKeyName]) {
       primaryKeyTypeSafetyCheck(record, this);
@@ -394,7 +273,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.insert(this, record || {}, options);
+    let model = await this.Adapter.insert(this, validatePartialModelInput(record, this) || {}, options);
 
     if (record instanceof this) {
       record.#_inTransit = false;
@@ -420,7 +299,7 @@ export default class Model {
 
     this.setRecordInTransit(record);
 
-    let model = await this.Adapter.update(this, record, options);
+    let model = await this.Adapter.update(this, validatePartialModelInput(record, this), options);
 
     if (record instanceof this) {
       this.unsetRecordInTransit(record);
@@ -435,8 +314,8 @@ export default class Model {
 
   static async save(record: QueryObject | ModelRefOrInstance, options?: ModelBuildOptions): Promise<Model> {
     return shouldInsertOrUpdateARecord(this, record) === "insert"
-      ? await this.Adapter.insert(this, record, options)
-      : await this.Adapter.update(this, record, options);
+      ? await this.Adapter.insert(this, validatePartialModelInput(record, this), options)
+      : await this.Adapter.update(this, validatePartialModelInput(record, this), options);
   }
 
   static unload(record: ModelRefOrInstance, options?: ModelBuildOptions): Model {
@@ -470,9 +349,9 @@ export default class Model {
   }
 
   static async saveAll(records: QueryObject[] | ModelRefOrInstance[], options?: ModelBuildOptions): Promise<Model[]> {
-    return records.every((record) => shouldInsertOrUpdateARecord(this, record) === "update")
-      ? await this.Adapter.updateAll(this, records as ModelRefOrInstance[], options)
-      : await this.Adapter.insertAll(this, records, options);
+    return records.some((record) => shouldInsertOrUpdateARecord(this, record) === "insert")
+      ? await this.Adapter.insertAll(this, validatePartialModelInputs(records, this), options)
+      : await this.Adapter.updateAll(this, validatePartialModelInputs(records, this) as ModelRefOrInstance[], options);
   }
 
   static async insertAll(records: QueryObject[], options?: ModelBuildOptions): Promise<Model[]> {
@@ -504,7 +383,7 @@ export default class Model {
       throw error;
     }
 
-    let models = await this.Adapter.insertAll(this, records, options);
+    let models = await this.Adapter.insertAll(this, validatePartialModelInputs(records, this), options);
 
     records.forEach((record) => {
       if (record instanceof this) {
@@ -535,7 +414,7 @@ export default class Model {
       this.setRecordInTransit(record);
     });
 
-    let models = await this.Adapter.updateAll(this, records, options);
+    let models = await this.Adapter.updateAll(this, validatePartialModelInputs(records, this), options);
 
     records.forEach((record) => {
       if (record instanceof this) {
@@ -655,6 +534,12 @@ export default class Model {
 
   get isBuilt() {
     return Object.isSealed(this);
+  }
+
+  get isInMemoryCachedRecord() {
+    let Class = this.constructor as typeof Model;
+
+    return this === Class.Cache.get(this[Class.primaryKeyName]);
   }
 
   #_isFrozen = false;
@@ -791,30 +676,6 @@ function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) 
   }
 }
 
-function attributeTrackingEnabled(options?: ModelBuildOptions) {
-  return !options || options.revision !== false;
-}
-
-function dirtyTrackAttribute(model: Model, columnName: string, value: any) {
-  if (model.revision[columnName] === value) {
-    delete model.changes[columnName];
-  } else {
-    model.changes[columnName] = value;
-  }
-
-  model.errors.forEach((error, errorIndex) => {
-    if (error.attribute === columnName) {
-      model.errors.splice(errorIndex, 1);
-    }
-  });
-}
-
-function getTransformedValue(model: Model, keyName: string, buildObject?: QueryObject | Model) {
-  return buildObject && keyName in buildObject
-    ? transformValue(model.constructor as typeof Model, keyName, buildObject[keyName])
-    : model[keyName] || null;
-}
-
 function getBuildObjectType(buildObject: any, Class: typeof Model) {
   if (!buildObject) {
     return INVALID_BUILD_OBJECT_TYPE;
@@ -833,4 +694,8 @@ function revisionAndLockModel(model, options?, buildObject?) {
     model.revisionHistory.add(model);
 
   return options && options.freeze ? (Object.freeze(model) as Model) : Object.seal(model);
+}
+
+function validatePartialModelInputs(objects: QueryObject[], Class: typeof Model) {
+  return objects.map((object) => validatePartialModelInput(object, Class));
 }
