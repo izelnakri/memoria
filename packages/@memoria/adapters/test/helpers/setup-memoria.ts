@@ -1,6 +1,5 @@
-import match from "match-json";
 import QUnit from "qunitx";
-import Model, { Schema, DB, RelationshipDB } from "@memoria/model";
+import Model, { Schema, DB, RelationshipDB, match } from "@memoria/model";
 import type { HasManyArray } from "@memoria/model";
 
 export default function (hooks) {
