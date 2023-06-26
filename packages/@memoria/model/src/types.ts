@@ -1,5 +1,5 @@
 import type Model from "./index.js";
-import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
+import type { ColumnType } from "typeorm/driver/types/ColumnTypes.js";
 
 export type PrimaryKey = number | string;
 export type ModelName = string;

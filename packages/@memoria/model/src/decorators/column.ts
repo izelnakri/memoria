@@ -1,6 +1,6 @@
 import Schema from "../stores/schema.js";
 import type { ColumnDefinition } from "../types.js";
-import type { ColumnType } from "typeorm/driver/types/ColumnTypes";
+import type { ColumnType } from "typeorm/driver/types/ColumnTypes.js";
 
 // NOTE: options manglings here are done for defaultValue generation
 export function Column(keyOrOptions: ColumnDefinition | ColumnType = { type: "varchar" }, options?: ColumnDefinition) {

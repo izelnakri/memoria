@@ -1,7 +1,7 @@
 // NOTE: investigate connection.entityMetadatas;
 // TRUNCATE TABLE table_name RESTART IDENTITY CASCADE; // vs without CASCADE
 import Model from "../model.js";
-import type { ModuleDatabase, SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "../types";
+import type { ModuleDatabase, SchemaDefinition, ColumnSchemaDefinition, ColumnDefinition } from "../types.js";
 import type { MemoryAdapter } from "@memoria/adapters";
 
 export default class Schema {
@@ -10,7 +10,7 @@ export default class Schema {
 
     this.Schemas.forEach((schema) => result.add(schema.target.Adapter));
 
-    return Array.from(result) as typeof MemoryAdapter[];
+    return Array.from(result) as (typeof MemoryAdapter)[];
   }
 
   static Models: ModuleDatabase<typeof Model> = new Map();

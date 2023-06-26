@@ -1,7 +1,7 @@
 import Model from "../model.js";
 import Schema from "./schema.js";
 import { generateUUID } from "../utils/index.js";
-import type { PrimaryKey, ModuleDatabase, ColumnSchemaDefinition, ColumnDefinition } from "../types";
+import type { PrimaryKey, ModuleDatabase, ColumnSchemaDefinition, ColumnDefinition } from "../types.js";
 
 type ModuleSavedRecordDatabase<Value> = ModuleDatabase<Map<PrimaryKey, Value>>;
 
