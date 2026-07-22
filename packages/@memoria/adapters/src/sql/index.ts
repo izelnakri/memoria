@@ -1,4 +1,5 @@
-import { Connection, createConnection, EntitySchema, In } from "typeorm";
+import { DataSource, EntitySchema, In } from "typeorm";
+import type { DataSourceOptions, EntitySchemaOptions } from "typeorm";
 import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
@@ -22,37 +23,71 @@ interface FreeObject {
   [key: string]: any;
 }
 
+// NOTE: every @memoria package has to stay evaluable in a browser bundle -- @memoria/model re-exports
+// the adapters, so this module is pulled into browser builds even when SQLAdapter is never used.
+// esbuild does not shim `process`, so a bare `process.env.X` here is a ReferenceError at import time
+// in the browser, not just when connecting. Read it defensively instead.
+function envVar(key: string): string | undefined {
+  return typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+}
+
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
 export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
   static logging = true;
-  static host = "localhost";
-  static port = 5432;
+  // NOTE: connection defaults follow the standard libpq environment variables so the same code runs
+  // against a local postgres, a docker-compose service and CI without a config file.
+  static host = envVar("PGHOST") || "localhost";
+  static port = Number(envVar("PGPORT")) || 5432;
 
   static CONNECTION_OPTIONS = {
     type: "postgres",
     synchronize: true,
-    username: "postgres",
-    password: "postgres",
-    database: "postgres",
+    username: envVar("PGUSER") || "postgres",
+    password: envVar("PGPASSWORD") || "postgres",
+    database: envVar("PGDATABASE") || "postgres",
   };
 
-  static _connection: null | FreeObject = null;
-  static async getConnection() {
-    if (this._connection && this._connection.isConnected) {
+  static _connection: null | DataSource = null;
+  static async getConnection(): Promise<DataSource> {
+    if (this._connection && this._connection.isInitialized) {
       return this._connection;
     }
 
-    // @ts-ignore
-    this._connection = (await createConnection({
-      // @ts-ignore
-      entities: Schema.Schemas.map((schema) => new EntitySchema(schema)),
+    // NOTE: entities are rebuilt from Schema.Schemas on every (re)connect on purpose. Models can be
+    // declared after the first connection -- a long-lived DataSource would not know about them.
+    this._connection = new DataSource({
+      // NOTE: memoria's own Schema shape is structurally a typeorm EntitySchemaOptions but is built
+      // by the decorators rather than declared, so it is not nominally typed as one.
+      entities: Schema.Schemas.map((schema) => new EntitySchema(schema as EntitySchemaOptions<FreeObject>)),
       ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
-    })) as Connection;
+    } as DataSourceOptions);
+
+    await this._connection.initialize();
 
     return this._connection;
+  }
+
+  // NOTE: postgres does not advance a serial sequence when an explicit primary key is supplied, so
+  // a later sequence-generated insert would collide with an already-taken id. Re-syncing the
+  // sequence to MAX(id) after such an insert is what keeps the two allocation paths compatible.
+  static async syncPrimaryKeySequence(Manager: FreeObject, Model: typeof MemoriaModel) {
+    let metadata = Manager.connection.entityMetadatas.find(
+      (entityMetadata) => entityMetadata.targetName === Model.name
+    );
+    if (!metadata) {
+      throw new RuntimeError(
+        `${Model.name} has no entity metadata registered on the SQLAdapter connection. Was the model declared before $Model.resetSchemas()?`
+      );
+    }
+
+    let { tableName } = metadata;
+
+    await Manager.query(
+      `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+    );
   }
 
   static async getEntityManager() {
@@ -76,7 +111,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // let globalScope = PlatformTools.getGlobalVariable();
     // globalScope.typeormMetadataArgsStorage = new MetadataArgsStorage();
 
-    await connection.close();
+    await connection.destroy();
 
     return Schema;
   }
@@ -203,14 +238,8 @@ export default class SQLAdapter extends MemoryAdapter {
         .returning("*")
         .execute();
 
-      // NOTE: this updates postgres sequence by max id, important when id provided
       if (Model.primaryKeyType === "id" && record[Model.primaryKeyName]) {
-        let tableName = Manager.connection.entityMetadatas.find(
-          (metadata) => metadata.targetName === Model.name
-        ).tableName;
-        await Manager.query(
-          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-        );
+        await this.syncPrimaryKeySequence(Manager, Model);
       }
 
       return this.cache(
@@ -342,18 +371,13 @@ export default class SQLAdapter extends MemoryAdapter {
       let targetRecords = records.map((record) => ({ ...record }));
       let result = await Manager.createQueryBuilder()
         .insert()
-        .into(Model, Model.columnNames)
-        .values(targetRecords) // NOTE: probably doent need relationships filter as it is
+        .into(Model, [...Model.columnNames])
+        .values(targetRecords as FreeObject[]) // NOTE: probably doent need relationships filter as it is
         .returning("*")
         .execute();
 
       if (primaryKey && typeof primaryKey === "number") {
-        let tableName = Manager.connection.entityMetadatas.find(
-          (metadata) => metadata.targetName === Model.name
-        ).tableName;
-        await Manager.query(
-          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-        );
+        await this.syncPrimaryKeySequence(Manager, Model);
       }
 
       return result.raw.map((rawResult, index) =>

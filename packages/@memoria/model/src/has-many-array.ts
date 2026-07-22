@@ -236,7 +236,8 @@ export default class HasManyArray extends Array {
       return this.clear();
     }
 
-    return Class.Adapter.fetchRelationship(this.belongsTo, this.metadata.relationshipName, this.metadata);
+    let metadata = this.metadata as RelationshipMetadata;
+    return Class.Adapter.fetchRelationship(this.belongsTo, metadata.relationshipName, metadata);
   }
 
   concat(_otherHasManyArrays: Model[] | HasManyArray): Array<Model> {

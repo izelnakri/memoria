@@ -1,6 +1,13 @@
+// NOTE: SQLAdapter is deliberately NOT re-exported here. It statically imports typeorm, and this
+// module is reachable from @memoria/model, so a root-level re-export dragged the whole typeorm
+// dependency tree -- including node-only transitives like safe-buffer/buffer -- into every browser
+// bundle, whether or not the consumer ever touched SQL. Import it from the subpath instead:
+//
+//   import SQLAdapter from "@memoria/adapters/sql";
+//
+// typeorm is an optional peer dependency for the same reason: only SQL users need it installed.
 import MemoryAdapter from "./memory/index.js";
 import RESTAdapter from "./rest/index.js";
-import SQLAdapter from "./sql/index.js";
 import HTTP from "./http.js";
 
 export type { HTTPOptions } from "./http.js";
@@ -50,4 +57,4 @@ export interface JSObject {
 //   // hasDirtyAttributes, dirtyType, fields, errors
 // }
 
-export { HTTP, MemoryAdapter, RESTAdapter, SQLAdapter };
+export { HTTP, MemoryAdapter, RESTAdapter };

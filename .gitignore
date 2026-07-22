@@ -1,11 +1,10 @@
-/dist
 node_modules
-.parcel-cache
-/examples/dist
-/coverage
-/examples/.cache
 dist/
+/coverage
 /tmp
-sketchpad.js
+/examples/dist
+/examples/.cache
+# NOTE: generated API docs (typedoc -> docs/api) and the local mdBook output both live here.
 docs
 .env
+.DS_Store

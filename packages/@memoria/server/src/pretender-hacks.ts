@@ -1,5 +1,5 @@
 import kleur from "kleur";
-import { classify, singularize } from "inflected";
+import { singularize } from "inflected";
 import Model from "@memoria/model";
 
 export default function hackPretender(Pretender) {
@@ -193,12 +193,11 @@ export default function hackPretender(Pretender) {
   });
   // END: Pretender REST default hack: For better UX
 
-  function getDefaultRouteHandler(verb, path, serverContext, ResourceModel) {
+  function getDefaultRouteHandler(verb, path, _serverContext, ResourceModel) {
     const paths = path.split(/\//g);
     const lastPath = paths[paths.length - 1];
     const pluralResourceName = lastPath.includes(":") ? paths[paths.length - 2] : lastPath;
     const resourceName = singularize(pluralResourceName);
-    const resourceClassName = classify(resourceName);
 
     if (verb === "GET") {
       if (lastPath.includes(":")) {

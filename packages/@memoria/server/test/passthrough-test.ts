@@ -165,6 +165,32 @@ module("@memoria/server | passthrough tests", function (hooks) {
       assert.deepEqual(jqXHR.responseJSON, { movie: "is too-big-to-fail" });
     });
   });
+  // NOTE: covers the "test this.passthrough('/something') when there is a urlPrefix" TODO below.
+  // Relative passthroughs are resolved by the patched Pretender.prototype[verb] in
+  // pretender-hacks.ts, not by Memserver's passthrough wrapper -- this pins that behaviour down so
+  // the resolution cannot be moved or dropped without a failing test.
+  test("this.passthrough(relativeUrl) resolves against this.urlPrefix", async function (assert) {
+    assert.expect(2);
+
+    let Server = new Memoria({
+      routes() {
+        this.urlPrefix = "http://localhost:4000";
+
+        this.passthrough("/films");
+      },
+    });
+
+    this.Server = Server;
+
+    await $.ajax({
+      type: "GET",
+      url: "http://localhost:4000/films",
+      headers: { "Content-Type": "application/json" },
+    }).then((data, textStatus, jqXHR) => {
+      assert.equal(jqXHR.status, 200);
+      assert.deepEqual(jqXHR.responseJSON, { film: "responsed correctly" });
+    });
+  });
 });
 
 // TODO: TEST BELOW ISNT WORKING: has beforeEach!! afterwards
