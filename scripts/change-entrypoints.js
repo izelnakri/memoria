@@ -38,5 +38,7 @@ async function changeLibEntrypoint(libraryName) {
     }, {});
   }
 
-  await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
+  // NOTE: trailing newline matters -- without it every `npm run build` leaves the two package.json
+  // files dirty against prettier, so the build could never be verified as a no-op in CI.
+  await fs.writeFile(`packages/${libraryName}/package.json`, `${JSON.stringify(oldJSON, null, 2)}\n`);
 }
