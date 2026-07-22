@@ -78,6 +78,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # NOTE: upstream bug workaround. qunitx-cli's bin prefers a prebuilt SEA binary from the
+      # optional qunitx-cli-linux-x64 package, but the published v0.31.1 binary was compiled on
+      # NixOS and hardcodes a /nix/store ELF interpreter:
+      #
+      #   interpreter /nix/store/8kvxvr3...-glibc-2.42-67/lib/ld-linux-x86-64.so.2
+      #
+      # It therefore cannot execute on any non-Nix Linux, including these runners. Deleting the
+      # optional package makes the launcher fall back to dist/cli.js, which runs on plain Node and
+      # uses the playwright-core in node_modules -- matching the browsers installed below. Remove
+      # this step once qunitx-cli ships a portable linux-x64 binary.
+      - name: Drop the non-portable prebuilt qunitx binary
+        run: rm -rf node_modules/qunitx-cli-linux-x64
       # NOTE: qunitx-cli drives the browser through playwright-core, which ships no browsers of its
       # own. Only chromium is needed -- the suite does not run the firefox/webkit matrix.
       - name: Install chromium
