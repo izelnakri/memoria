@@ -37,7 +37,7 @@ export default class DB {
 
     TimeoutDB.set(
       primaryKey,
-      setTimeout(() => Class.Cache.get(primaryKey) && Class.Adapter.unload(Class, cachedModel), timer)
+      setTimeout(() => Class.Cache.get(primaryKey) && Class.Adapter.unload(Class, cachedModel), timer),
     );
 
     return TimeoutDB.get(primaryKey);
@@ -77,7 +77,7 @@ export default class DB {
 
         return result;
       },
-      { insert: {}, update: {}, delete: {} }
+      { insert: {}, update: {}, delete: {} },
     );
     this._defaultValuesCache.set(Class.name, target);
 

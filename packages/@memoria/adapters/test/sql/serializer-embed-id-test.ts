@@ -198,7 +198,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       Photo,
       Photo.peek(1),
       "somethingElse",
-      Activity
+      Activity,
     );
 
     assert.deepEqual(activity, activityLookupWithoutModel);
@@ -219,19 +219,19 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       Photo,
       await Photo.find(1),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     let secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(2),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     let thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(3),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -277,7 +277,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -286,7 +286,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 
@@ -312,19 +312,19 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
     });
     assert.equal(
       Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(2), "userActivity", Activity),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
-      await Photo.find(1)
+      await Photo.find(1),
     );
     assert.equal(
       Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "userPhoto", Photo),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
-      await Photo.find(1)
+      await Photo.find(1),
     );
   });
 
@@ -338,19 +338,19 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
       Photo,
       await Photo.find(1),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     let secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(2),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     let thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(3),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -396,7 +396,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -405,7 +405,7 @@ module("@memoria/adapters | SQLAdapter | Relationship API for ID(integer)", func
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 

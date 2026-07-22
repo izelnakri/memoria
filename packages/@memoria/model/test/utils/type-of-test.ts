@@ -40,7 +40,7 @@ module("@memoria/model | Utils | typeOf", function (hooks) {
     assert.equal(typeOf(Symbol("a")), "symbol");
     assert.equal(
       typeOf(() => {}),
-      "function"
+      "function",
     );
     assert.equal(typeOf(Object.create(null)), "object");
   });

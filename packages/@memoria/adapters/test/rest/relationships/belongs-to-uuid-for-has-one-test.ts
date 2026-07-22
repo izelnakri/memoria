@@ -313,7 +313,7 @@ module(
           assert.strictEqual(photo.group, insertedThirdGroup);
           assert.strictEqual(photo.group.photo, photo);
         });
-      }
+      },
     );
 
     module(
@@ -599,7 +599,7 @@ module(
           assert.equal(photo.group.name, "Some group");
           assert.equal(photo.group_uuid, "374c7f4a-85d6-429a-bf2a-0719525f5f29");
         });
-      }
+      },
     );
-  }
+  },
 );

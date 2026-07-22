@@ -77,7 +77,7 @@ export default class HasManyArray extends Array {
       });
     } else if (array) {
       throw new Error(
-        "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements"
+        "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements",
       );
     }
 
@@ -90,7 +90,7 @@ export default class HasManyArray extends Array {
           if (!isNaN(targetIndex)) {
             if (targetIndex > self.length) {
               throw new Error(
-                `You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`
+                `You cannot add HasManyArray[${targetIndex}] to HasManyArray of ${self.length} elements. You can expand the HasManyArray by one element at a time!`,
               );
             } else if (!(value instanceof Model)) {
               if (value) {
@@ -110,7 +110,7 @@ export default class HasManyArray extends Array {
             let instanceToAddReferencesSet = InstanceDB.getReferences(value);
             if (self.metadata.RelationshipClass && value.constructor.name !== self.metadata.RelationshipClass.name) {
               throw new Error(
-                `This HasManyArray accepts ${self.metadata.RelationshipClass.name} instances, you tried to assign ${value.constructor.name} instance!`
+                `This HasManyArray accepts ${self.metadata.RelationshipClass.name} instances, you tried to assign ${value.constructor.name} instance!`,
               );
             }
 
@@ -185,7 +185,7 @@ export default class HasManyArray extends Array {
               return true;
             } else if (value !== self.length) {
               throw new Error(
-                `You cant change the length of an hasManyArray to ${value} when actual length is ${self.length}`
+                `You cant change the length of an hasManyArray to ${value} when actual length is ${self.length}`,
               );
             }
           }
@@ -200,7 +200,7 @@ export default class HasManyArray extends Array {
         if (Number.isInteger(propertyAsNumber)) {
           if (propertyAsNumber >= self.length) {
             throw new Error(
-              `You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`
+              `You cant delete the index of ${propertyAsNumber} when hasManyArray.length is ${self.length}`,
             );
           }
 
@@ -366,7 +366,7 @@ export default class HasManyArray extends Array {
   replace(existingReference: Model | Model[], targetToReplace: Model | Model[]): this {
     let referencesToRemove = new Set(Array.isArray(existingReference) ? existingReference : [existingReference]);
     let referencesToAdd = new Set(
-      filterInstancesToAddFor(this, Array.isArray(targetToReplace) ? targetToReplace : [targetToReplace])
+      filterInstancesToAddFor(this, Array.isArray(targetToReplace) ? targetToReplace : [targetToReplace]),
     );
 
     this.forEach((model, index) => {
@@ -534,14 +534,14 @@ function filterInstancesToAddFor(array: HasManyArray, instancesToLookup: Model[]
         return throwError(
           shouldThrow,
           "HasManyArray cannot be instantiated or added with model types different than one another!",
-          result
+          result,
         );
       }
 
       let instanceReferences = InstanceDB.getReferences(instanceToLookup) as Set<Model>;
       if (result[1].has(instanceReferences)) {
         let existingInstance = instancesToAdd.find(
-          (instance) => InstanceDB.getReferences(instance) === instanceReferences
+          (instance) => InstanceDB.getReferences(instance) === instanceReferences,
         ) as Model;
         let instanceReferencesArray = Array.from(instanceReferences);
         if (instanceReferencesArray.indexOf(instanceToLookup) > instanceReferencesArray.indexOf(existingInstance)) {
@@ -556,7 +556,7 @@ function filterInstancesToAddFor(array: HasManyArray, instancesToLookup: Model[]
 
       return result as [Model[], Set<Set<Model>>];
     },
-    [[] as Model[], new Set()]
+    [[] as Model[], new Set()],
   )[0] as Model[];
 }
 

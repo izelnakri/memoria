@@ -17,7 +17,7 @@ export default function validatePartialModelInput(input: JSObject, Class: typeof
         return result;
       } else if (!(keyName in relationshipNames)) {
         throw new RuntimeError(
-          `${keyName} is not a valid attribute for a ${Class.name} partial! Provided { ${keyName}: ${input[keyName]} }`
+          `${keyName} is not a valid attribute for a ${Class.name} partial! Provided { ${keyName}: ${input[keyName]} }`,
         );
       }
 
@@ -34,12 +34,12 @@ export default function validatePartialModelInput(input: JSObject, Class: typeof
               throw new RuntimeError(
                 `You cannot provide different ${foreignKeyColumnName}: ${input[foreignKeyColumnName]} and ${keyName}.${
                   RelationshipClass.primaryKeyName
-                }: ${input[keyName][RelationshipClass.primaryKeyName]} for ${Class.name} partial!`
+                }: ${input[keyName][RelationshipClass.primaryKeyName]} for ${Class.name} partial!`,
               );
             }
           } else if (input[keyName] === null && input[foreignKeyColumnName] !== null) {
             throw new RuntimeError(
-              `You cannot provide different ${foreignKeyColumnName}: ${input[foreignKeyColumnName]} and ${keyName}: null for ${Class.name} partial!`
+              `You cannot provide different ${foreignKeyColumnName}: ${input[foreignKeyColumnName]} and ${keyName}: null for ${Class.name} partial!`,
             );
           }
 

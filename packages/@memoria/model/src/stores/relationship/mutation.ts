@@ -15,7 +15,7 @@ export default class RelationshipMutation {
   static cleanAndSetBelongsToRelationshipFor(
     model: Model,
     targetRelationship: Model | null,
-    metadata: RelationshipMetadata
+    metadata: RelationshipMetadata,
   ) {
     let { foreignKeyColumnName, RelationshipClass, RelationshipCache, reverseRelationshipType } = metadata;
 
@@ -37,7 +37,7 @@ export default class RelationshipMutation {
   static cleanAndSetOneToOneRelationshipFor(
     model: Model,
     targetRelationship: Model | null,
-    metadata: RelationshipMetadata
+    metadata: RelationshipMetadata,
   ) {
     this.removeOrSetFallbackReverseRelationshipsFor(model, metadata);
 
@@ -49,7 +49,7 @@ export default class RelationshipMutation {
   static removeOrSetFallbackReverseRelationshipsFor(
     source: Model,
     metadata: RelationshipMetadata,
-    targetRelationship?: AnotherModel | null
+    targetRelationship?: AnotherModel | null,
   ) {
     let existingRelationship = metadata.RelationshipCache.get(source) as Model;
     let existingRelationshipReferences = existingRelationship && InstanceDB.getReferences(existingRelationship);
@@ -66,7 +66,7 @@ export default class RelationshipMutation {
     } = metadata;
     if (relationshipType === "HasMany" || relationshipType === "ManyToMany") {
       throw new Error(
-        `removeOrSetFallbackReverseRelationshipsFor ${relationshipType} should never hit based on the written logic!!`
+        `removeOrSetFallbackReverseRelationshipsFor ${relationshipType} should never hit based on the written logic!!`,
       );
     }
 
@@ -111,7 +111,7 @@ export default class RelationshipMutation {
           return freshRemainingSourceReferenceToExistingRelationship
             ? ReverseRelationshipCache.set(
                 existingRelationshipReference,
-                freshRemainingSourceReferenceToExistingRelationship
+                freshRemainingSourceReferenceToExistingRelationship,
               )
             : ReverseRelationshipCache.delete(existingRelationshipReference);
         }
@@ -137,7 +137,7 @@ export default class RelationshipMutation {
       reverseRelationshipType,
       reverseRelationshipForeignKeyColumnName,
       ReverseRelationshipCache,
-    }: RelationshipMetadata
+    }: RelationshipMetadata,
   ) {
     if (targetRelationship) {
       if (reverseRelationshipType === "HasMany") {

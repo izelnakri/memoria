@@ -177,7 +177,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -187,7 +187,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -227,7 +227,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements"
+            "Invalid param passed to HasManyArray. Either provide an array of memoria Models or dont provide any elements",
           );
         }
       });
@@ -240,7 +240,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
             assert.ok(error instanceof Error);
             assert.equal(error.message, "HasManyArray cannot have non memoria Model instance inside!");
           }
-        }
+        },
       );
 
       assert.equal(RelationshipMutation.addHasManyRelationshipFor.callCount, 0);
@@ -367,7 +367,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -449,7 +449,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });
@@ -665,7 +665,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });
@@ -739,7 +739,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
       } catch (error) {
         assert.equal(
           error.message,
-          `You cannot add HasManyArray[1] to HasManyArray of 0 elements. You can expand the HasManyArray by one element at a time!`
+          `You cannot add HasManyArray[1] to HasManyArray of 0 elements. You can expand the HasManyArray by one element at a time!`,
         );
       }
 
@@ -760,7 +760,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
       } catch (error) {
         assert.equal(
           error.message,
-          `You cannot add HasManyArray[5] to HasManyArray of 2 elements. You can expand the HasManyArray by one element at a time!`
+          `You cannot add HasManyArray[5] to HasManyArray of 2 elements. You can expand the HasManyArray by one element at a time!`,
         );
       }
 
@@ -775,7 +775,7 @@ module("@memoria/model | HasManyArray", function (hooks) {
       } catch (error) {
         assert.equal(
           error.message,
-          `You cannot add HasManyArray[5] to HasManyArray of 2 elements. You can expand the HasManyArray by one element at a time!`
+          `You cannot add HasManyArray[5] to HasManyArray of 2 elements. You can expand the HasManyArray by one element at a time!`,
         );
       }
 

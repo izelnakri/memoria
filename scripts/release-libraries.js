@@ -1,30 +1,32 @@
 import "./build-libraries.js";
-import fs from 'fs/promises';
-import { promisify } from 'util';
-import { exec } from 'child_process';
+import fs from "fs/promises";
+import { promisify } from "util";
+import { exec } from "child_process";
 
 const shell = promisify(exec);
 const version = process.argv[2];
 
 if (!version) {
-  console.error('No version provided for upgrade!');
+  console.error("No version provided for upgrade!");
   process.exit(1);
 }
 
 const TARGET_LIBRARIES = [
-  '@memoria/adapters',
-  '@memoria/model',
-  '@memoria/response',
-  '@memoria/server',
-  '@memoria/cli',
-]
+  "@memoria/adapters",
+  "@memoria/model",
+  "@memoria/response",
+  "@memoria/server",
+  "@memoria/cli",
+];
 let PROJECT_JSON = JSON.parse((await fs.readFile(`package.json`)).toString());
 
 await Promise.all(TARGET_LIBRARIES.map((libraryName) => bumpVersion(libraryName, version, PROJECT_JSON.dependencies)));
 
 console.log(`Bumped these packages to v${version}`, TARGET_LIBRARIES);
 
-await Promise.all(TARGET_LIBRARIES.map((libraryName) => shell(`npm publish --workspace=${libraryName} --access public`)));
+await Promise.all(
+  TARGET_LIBRARIES.map((libraryName) => shell(`npm publish --workspace=${libraryName} --access public`)),
+);
 
 TARGET_LIBRARIES.forEach((libraryName) => {
   console.log(`Released v${version} of ${libraryName} on npm!`);
@@ -32,7 +34,7 @@ TARGET_LIBRARIES.forEach((libraryName) => {
 
 PROJECT_JSON.version = version;
 
-await fs.writeFile('package.json', JSON.stringify(PROJECT_JSON, null, 2));
+await fs.writeFile("package.json", JSON.stringify(PROJECT_JSON, null, 2));
 
 await Promise.all(TARGET_LIBRARIES.map((libraryName) => makeLibEntrypointTS(libraryName)));
 
@@ -58,7 +60,7 @@ async function bumpVersion(libraryName, version, projectJSONDependencies) {
     return { ...result, [dependency]: oldJSON.dependencies[dependency] };
   }, oldDependencies);
 
-  oldJSON.main = 'dist/index.js'; // NOTE: make npm packages target JS
+  oldJSON.main = "dist/index.js"; // NOTE: make npm packages target JS
 
   await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
 }
@@ -67,7 +69,7 @@ async function makeLibEntrypointTS(libraryName) {
   let packageJSON = await fs.readFile(`packages/${libraryName}/package.json`);
   let oldJSON = JSON.parse(packageJSON.toString());
 
-  oldJSON.main = 'src/index.ts'; // NOTE: make npm packages target TS for development
+  oldJSON.main = "src/index.ts"; // NOTE: make npm packages target TS for development
 
   await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
 }

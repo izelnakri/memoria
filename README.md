@@ -24,30 +24,31 @@ stability, development speed, extensibility, runtime performance & debuggability
 It is based on these principles:
 
 - TypeORM based Entity API: This makes the SQLAdapter easy to work with typeorm while making the API usable in browser
-for frontend.
+  for frontend.
 
 - One Schema/Class that can be used in 4 environments with different Adapters: MemoryAdapter, RESTAdapter, SQLAdapter,
-GraphQLAdapter(in future maybe).
+  GraphQLAdapter(in future maybe).
 
 - Default Model CRUD operations represented as static class methods: User.insert(), User.update() etc.
 
 - Provides ember-data like property dirty tracking on changed properties until successful CRUD operation.
 
 - Optional entity/instance based caching: Enabled by default, timeout adjustable, RESTAdapter & SQLAdapter extends from
-MemoryAdapter which provides this caching. Also useful for advanced frontend tests when used with in-browser mode of
-@memoria/server.
+  MemoryAdapter which provides this caching. Also useful for advanced frontend tests when used with in-browser mode of
+  @memoria/server.
 
 - [Ecto Changeset](https://hexdocs.pm/ecto/Ecto.Changeset.html) inspired: Changeset structs with pipeline
-operators are very powerful. Memoria CRUD operations return ChangesetError which extends from JS Error with Ecto-like Changeset shape.
+  operators are very powerful. Memoria CRUD operations return ChangesetError which extends from JS Error with Ecto-like Changeset shape.
 
 ## Installation
+
 In order to use memoria CLI you need to have typescript set up in your project folder.
 `memoria` binary will only work on typescript project directories since it uses ts-node under the hood for
 `memoria console` and `memoria g fixtures $modelName` generation commands.
 
-``` npm install -g @memoria/cli ```
+`npm install -g @memoria/cli`
 
-``` memoria ```
+`memoria`
 
 You can use the CLI to create relevant boilerplate files and initial setup
 
@@ -55,38 +56,38 @@ You can use the CLI to create relevant boilerplate files and initial setup
 
 ```ts
 // memoria MODEL API
-import Model, { primaryGeneratedColumn, Column } from '@memoria/model';
+import Model, { primaryGeneratedColumn, Column } from "@memoria/model";
 // OR:
-const Model = require('@memoria/model').default;
+const Model = require("@memoria/model").default;
 // THEN:
 
 class User extends Model {
- // Optionally add static Adapter = RESTAdapter; by default its MemoryAdapter
- @PrimaryGeneratedColumn()
- id: number;
+  // Optionally add static Adapter = RESTAdapter; by default its MemoryAdapter
+  @PrimaryGeneratedColumn()
+  id: number;
 
- @Column()
- firstName: string;
+  @Column()
+  firstName: string;
 
- @Column()
- lastName: string
+  @Column()
+  lastName: string;
 
- // NOTE: you can add here your static methods
- static serializer(modelOrArray) {
-   return modelOrArray;
- }
-};
+  // NOTE: you can add here your static methods
+  static serializer(modelOrArray) {
+    return modelOrArray;
+  }
+}
 // allows User.serializer(user);
 
 await User.findAll(); // [];
 
-await User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }
+await User.insert({ firstName: "Izel", lastName: "Nakri" }); // User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }
 
 let usersAfterInsert = await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
 let insertedUser = usersAfterInsert[0];
 
-insertedUser.firstName = 'Isaac';
+insertedUser.firstName = "Isaac";
 
 await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
 
@@ -96,9 +97,9 @@ await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
 
 let updatedUser = await User.find(1); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
 
-let anotherUser = await User.insert({ firstName: 'Brendan' }); // User{ id: 2, firstName: 'Brendan', lastName: null }
+let anotherUser = await User.insert({ firstName: "Brendan" }); // User{ id: 2, firstName: 'Brendan', lastName: null }
 
-updatedUser.firstName = 'Izel';
+updatedUser.firstName = "Izel";
 
 await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, User{ id: 2, firstName: 'Brendan', lastName: null }]
 
@@ -232,7 +233,7 @@ import routes from "./routes";
 
 const Memoria = new memoria({
   initializer: initializer,
-  routes: routes
+  routes: routes,
 });
 
 export default Memoria;
@@ -253,10 +254,9 @@ static method(`static customSerializer(modelOrArray) {}`) on the model:
 memoria serializer API:
 
 ```js
-import Model from '@memoria/model';
+import Model from "@memoria/model";
 
-class User extends Model {
-}
+class User extends Model {}
 
 const user = await User.find(1);
 
@@ -270,7 +270,7 @@ const serializedUsersForEndpoint = { users: User.serializer(users) }; // or user
 Custom serializers:
 
 ```js
-import Model from '@memoria/model';
+import Model from "@memoria/model";
 
 class User extends Model {
   static customSerializer(modelObjectOrArray) {
@@ -283,7 +283,7 @@ class User extends Model {
 
   static customSerialize(object) {
     return Object.assign({}, object, {
-      newKey: 'something'
+      newKey: "something",
     });
   }
 }
@@ -310,17 +310,17 @@ const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // o
 - Less code output and dependencies.
 
 - No bad APIs such as association(). Better APIs, no strange factory API that introduces redundant concepts as traits,
-or implicit association behavior. Your model inserts are your factories. You can easily create different ES6 standard
-methods on the model modules, thus memoria is easier and better to extend.
+  or implicit association behavior. Your model inserts are your factories. You can easily create different ES6 standard
+  methods on the model modules, thus memoria is easier and better to extend.
 
 - No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
-This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation during
-runtime for all CRUD. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations
-could be done in future as types or TS type decorators(like `class-validator` npm package).
+  This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation during
+  runtime for all CRUD. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations
+  could be done in future as types or TS type decorators(like `class-validator` npm package).
 
 - route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,
-underscore or do any other string manipulation to get the reference model definition. It also returns correct default
-http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
+  underscore or do any other string manipulation to get the reference model definition. It also returns correct default
+  http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
 
 - very easy to debug/develop the server, serialize any data in a very predictable and functional way.
 

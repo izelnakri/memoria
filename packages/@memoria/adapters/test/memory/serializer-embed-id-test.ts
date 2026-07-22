@@ -190,7 +190,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       Photo,
       Photo.peek(1),
       "somethingElse",
-      Activity
+      Activity,
     );
 
     assert.deepEqual(activity, activityLookupWithoutModel);
@@ -199,7 +199,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     assert.equal(Photo.Serializer.getEmbeddedRelationship(Photo, Photo.peek(2), "activity", Activity), undefined);
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
-      await Photo.find(1)
+      await Photo.find(1),
     );
     assert.equal(Activity.Serializer.getEmbeddedRelationship(Activity, Activity.peek(2), "photo", Photo), undefined);
   });
@@ -214,19 +214,19 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       Photo,
       await Photo.find(1),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(2),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(3),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -272,7 +272,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -281,7 +281,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 
@@ -307,19 +307,19 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
     });
     assert.equal(
       Photo.Serializer.getEmbeddedRelationship(Photo, await Photo.find(2), "userActivity", Activity),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
-      await Photo.find(1)
+      await Photo.find(1),
     );
     assert.equal(
       Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "userPhoto", Photo),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
-      await Photo.find(1)
+      await Photo.find(1),
     );
   });
 
@@ -333,19 +333,19 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
       Photo,
       await Photo.find(1),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(2),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.find(3),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -391,7 +391,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -400,7 +400,7 @@ module("@memoria/adapters | MemoryAdapter | Serializer API for ID(integer)", fun
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 

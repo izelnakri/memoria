@@ -175,7 +175,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllKnownReferences(Post).size, 1);
       assert.deepEqual(
         InstanceDB.getAllKnownReferences(Post).get(anotherPost.id),
-        new Set([builtPost, anotherPost, finalPost])
+        new Set([builtPost, anotherPost, finalPost]),
       );
 
       InstanceDB.getAllKnownReferences(Post)
@@ -197,7 +197,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.strictEqual(
         InstanceDB.getAllKnownReferences(Post).get(insertedPost.id),
-        InstanceDB.getReferences(insertedPost)
+        InstanceDB.getReferences(insertedPost),
       );
       assert.deepEqual([insertedPost.id, builtPost.id], [1, 1]);
 
@@ -220,7 +220,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "Post:1 exists in persisted cache, you can't mutate this records primaryKey id without unloading it from cache"
+          "Post:1 exists in persisted cache, you can't mutate this records primaryKey id without unloading it from cache",
         );
       }
 
@@ -228,7 +228,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       assert.equal(InstanceDB.getAllUnknownInstances(Post).length, 0);
       assert.strictEqual(
         InstanceDB.getAllKnownReferences(Post).get(insertedPost.id),
-        InstanceDB.getReferences(insertedPost)
+        InstanceDB.getReferences(insertedPost),
       );
 
       assert.ok(insertedPost.id);
@@ -329,7 +329,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         assert.deepEqual(InstanceDB.getAllUnknownInstances(Post), [InstanceDB.getReferences(builtPost)]);
         assert.deepEqual(
           InstanceDB.getAllKnownReferences(Post).get(1),
-          new Set([Post.Cache.get(firstInsert.id), firstInsert])
+          new Set([Post.Cache.get(firstInsert.id), firstInsert]),
         );
 
         try {
@@ -346,7 +346,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         assert.deepEqual(InstanceDB.getAllUnknownInstances(Post), [InstanceDB.getReferences(builtPost)]);
         assert.deepEqual(
           InstanceDB.getAllKnownReferences(Post).get(1),
-          new Set([Post.Cache.get(firstInsert.id), firstInsert])
+          new Set([Post.Cache.get(firstInsert.id), firstInsert]),
         );
       });
 
@@ -376,7 +376,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
         assert.strictEqual(InstanceDB.getAllKnownReferences(Post).get(1), InstanceDB.getReferences(firstInsert));
         assert.deepEqual(
           InstanceDB.getReferences(secondInsert),
-          new Set([Post.Cache.get(secondInsert.id), secondInsert])
+          new Set([Post.Cache.get(secondInsert.id), secondInsert]),
         );
         assert.strictEqual(InstanceDB.getAllKnownReferences(Post).get(2), InstanceDB.getReferences(secondInsert));
       });

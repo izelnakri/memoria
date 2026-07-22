@@ -18,27 +18,27 @@ module("@memoria/model | HasManyArray DX enumeration methods", function (hooks) 
 
       assert.strictEqual(
         array.any((x) => x === firstPhoto),
-        false
+        false,
       );
       assert.strictEqual(
         array.any((x) => x === firstPhotoCopy),
-        true
+        true,
       );
       assert.strictEqual(
         array.any((x) => x),
-        true
+        true,
       );
       assert.strictEqual(
         emptyHasManyArray.any((x) => x === firstPhoto),
-        false
+        false,
       );
       assert.strictEqual(
         emptyHasManyArray.any((x) => x === firstPhotoCopy),
-        false
+        false,
       );
       assert.strictEqual(
         emptyHasManyArray.any((x) => x),
-        false
+        false,
       );
     });
   });

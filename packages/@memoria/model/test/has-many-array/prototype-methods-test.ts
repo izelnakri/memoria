@@ -503,7 +503,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });
@@ -533,7 +533,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });
@@ -875,7 +875,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
               [array, firstPhoto],
               [array, secondPhoto],
               [array, thirdPhoto],
-            ]
+            ],
           );
         });
       });
@@ -1405,7 +1405,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
         assert.deepEqual(
           array.splice(-2, deleteCount, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
-          []
+          [],
         );
         assert.deepEqual(array, [
           firstPhoto,
@@ -1468,7 +1468,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
         assert.deepEqual(
           array.splice(0, deleteCount, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
-          []
+          [],
         );
         assert.deepEqual(array, [
           sixthPhoto,
@@ -1531,7 +1531,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
 
         assert.deepEqual(
           array.splice(2, deleteCount, null, sixthPhoto, anotherPhoto, thirdPhotoCopy, null, secondPhotoCopy),
-          []
+          [],
         );
         assert.deepEqual(array, [
           firstPhoto,
@@ -1715,7 +1715,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });
@@ -1743,7 +1743,7 @@ module("@memoria/model | HasManyArray Array.prototype methods", function (hooks)
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+            `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
           );
         }
       });

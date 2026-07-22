@@ -5,5 +5,8 @@ tmp
 docs
 package-lock.json
 CHANGELOG.md
-public
-examples/dist
+
+# NOTE: examples/ is aspirational sketch code, not compiled or tested, and parts of it are not even
+# syntactically valid TypeScript (examples/adapters/database.ts). Excluded until it is either
+# rewritten against the current API or deleted -- see MILESTONES.md.
+examples

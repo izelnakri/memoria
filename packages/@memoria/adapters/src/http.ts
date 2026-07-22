@@ -66,7 +66,7 @@ export default class HTTP {
         logging: this.logging,
         timeout: this.timeout,
       },
-      options || {}
+      options || {},
     );
   }
 
@@ -80,7 +80,7 @@ export default class HTTP {
         timeout: this.timeout,
         body,
       },
-      options || {}
+      options || {},
     );
   }
 
@@ -94,7 +94,7 @@ export default class HTTP {
         timeout: this.timeout,
         body: body,
       },
-      options || {}
+      options || {},
     );
   }
 
@@ -108,14 +108,14 @@ export default class HTTP {
         timeout: this.timeout,
         body: body,
       },
-      options || {}
+      options || {},
     );
   }
 }
 
 async function makeFetchRequest(
   httpOptions: HTTPOptions,
-  options: HTTPMemoriaOptions
+  options: HTTPMemoriaOptions,
 ): Promise<JSObject | MemoriaModel | MemoriaModel[] | null> {
   // TODO: could have the requestTime metadata
   // TODO: could implement logging
@@ -127,7 +127,7 @@ async function makeFetchRequest(
       timedOut = true;
       timeoutController.abort();
     },
-    httpOptions.timeout ? httpOptions.timeout : DEFAULT_TIMEOUT_IN_MS
+    httpOptions.timeout ? httpOptions.timeout : DEFAULT_TIMEOUT_IN_MS,
   );
   let inputBody = httpOptions.body as JSObject;
 
@@ -166,7 +166,7 @@ async function makeFetchRequest(
       throw new ErrorInterface(
         new Changeset(Model ? getModelFromPayload(httpOptions.body as JSObject, Model) : undefined),
         errors as ErrorMetadata[],
-        getErrorMessage(ErrorInterface, httpOptions)
+        getErrorMessage(ErrorInterface, httpOptions),
       );
     }
 
@@ -223,7 +223,7 @@ function getErrorsIfExists(json: JSObject, httpOptions): void | ErrorMetadata[] 
     }
 
     throw new RuntimeError(
-      `${httpOptions.method} ${httpOptions.url} Response jsonBody.errors[] missing "message" for each error!`
+      `${httpOptions.method} ${httpOptions.url} Response jsonBody.errors[] missing "message" for each error!`,
     );
   } else if (json && "error" in json) {
     if (isObject(json.error) && "message" in json.error) {
@@ -231,7 +231,7 @@ function getErrorsIfExists(json: JSObject, httpOptions): void | ErrorMetadata[] 
     }
 
     throw new RuntimeError(
-      `${httpOptions.method} ${httpOptions.url} Response jsonBody.error missing "message" property!`
+      `${httpOptions.method} ${httpOptions.url} Response jsonBody.error missing "message" property!`,
     );
   }
 }
@@ -245,7 +245,7 @@ function getModelFromPayload(jsonBody: JSObject, Model: typeof MemoriaModel): un
     return;
   } else if (!Model.Serializer.modelKeyNameForPayload) {
     throw new RuntimeError(
-      "You provided a Model to your http operation but Model.Serializer misses keyNameForPayload()"
+      "You provided a Model to your http operation but Model.Serializer misses keyNameForPayload()",
     );
   }
 

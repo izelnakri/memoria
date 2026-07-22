@@ -68,8 +68,8 @@ module("@memoria/model | Utils | match", function (hooks) {
       assert.ok(
         match(
           () => {},
-          () => {}
-        )
+          () => {},
+        ),
       );
       assert.ok(match([], []));
       assert.ok(match(["a", "b", "c"], ["a", "b"]));
@@ -83,7 +83,7 @@ module("@memoria/model | Utils | match", function (hooks) {
       assert.ok(match(new Human(), Human));
       assert.ok(match(new Human(), new Human()));
       assert.ok(
-        match(new Human({ firstName: "Izel", lastName: "Nakri" }), new Human({ firstName: "Izel", lastName: "Nakri" }))
+        match(new Human({ firstName: "Izel", lastName: "Nakri" }), new Human({ firstName: "Izel", lastName: "Nakri" })),
       );
     });
 
@@ -279,7 +279,7 @@ module("@memoria/model | Utils | match", function (hooks) {
             active: true,
             createdAt: new Date("2055-11-10"),
           },
-        })
+        }),
       );
       assert.ok(
         match(MATCH_TEST_EXAMPLES, {
@@ -300,7 +300,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: undefined,
             },
           ],
-        })
+        }),
       );
       assert.ok(
         match(MATCH_TEST_EXAMPLES, {
@@ -329,7 +329,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: undefined,
             },
           ],
-        })
+        }),
       );
       assert.ok(
         match(MATCH_TEST_EXAMPLES, {
@@ -358,7 +358,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: undefined,
             },
           ],
-        })
+        }),
       );
     });
 
@@ -369,8 +369,8 @@ module("@memoria/model | Utils | match", function (hooks) {
           MATCH_TEST_EXAMPLES,
           Object.assign(copy(MATCH_TEST_EXAMPLES), {
             tags: ["sssss"],
-          })
-        )
+          }),
+        ),
       );
       assert.notOk(match(MATCH_TEST_EXAMPLES, { id: 1, name: "Wrong name" }));
       assert.notOk(match(MATCH_TEST_EXAMPLES, { id: String }));
@@ -389,7 +389,7 @@ module("@memoria/model | Utils | match", function (hooks) {
             active: true,
             createdAt: new Date("1999-11-10"),
           },
-        })
+        }),
       );
       assert.notOk(
         match(MATCH_TEST_EXAMPLES, {
@@ -410,7 +410,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: null,
             },
           ],
-        })
+        }),
       );
       assert.notOk(
         match(MATCH_TEST_EXAMPLES, {
@@ -439,7 +439,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: undefined,
             },
           ],
-        })
+        }),
       );
       assert.notOk(
         match(MATCH_TEST_EXAMPLES, {
@@ -468,7 +468,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               meta: undefined,
             },
           ],
-        })
+        }),
       );
     });
   });
@@ -518,10 +518,10 @@ module("@memoria/model | Utils | match", function (hooks) {
           function () {},
           function () {
             return true;
-          }
+          },
         ),
         false,
-        "Anonymous functions"
+        "Anonymous functions",
       );
 
       assert.equal(match(f0, f0), true, "Function references"); // same references
@@ -530,19 +530,19 @@ module("@memoria/model | Utils | match", function (hooks) {
       assert.equal(match(f1, f2), false, "Function references"); // different source code, different references
       assert.equal(
         match(function () {}, true),
-        false
+        false,
       );
       assert.equal(
         match(function () {}, undefined),
-        false
+        false,
       );
       assert.equal(
         match(function () {}, null),
-        false
+        false,
       );
       assert.equal(
         match(function () {}, {}),
-        false
+        false,
       );
     });
   });
@@ -561,13 +561,13 @@ module("@memoria/model | Utils | match", function (hooks) {
         match(INPUT_ARRAY_EXAMPLE, [
           { id: 1, name: "Some", relatedModel: Object },
           { id: 1, relatedModel: Object },
-        ])
+        ]),
       );
       assert.ok(
         match(INPUT_ARRAY_EXAMPLE, [
           { id: 1, name: "Some", relatedModel: Object, relatedModels: Array },
           { id: 1, name: "Some", relatedModel: Object, relatedModels: Array },
-        ])
+        ]),
       );
 
       assert.ok(
@@ -590,7 +590,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               createdAt: Date,
             },
           },
-        ])
+        ]),
       );
       assert.ok(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -630,7 +630,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               },
             ],
           },
-        ])
+        ]),
       );
       assert.ok(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -673,7 +673,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               },
             ],
           },
-        ])
+        ]),
       );
       assert.ok(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -704,20 +704,20 @@ module("@memoria/model | Utils | match", function (hooks) {
               },
             ],
           },
-        ])
+        ]),
       );
     });
 
     test("match() returns false various partial objects when property is missing", function (assert) {
       assert.notOk(
-        match(INPUT_ARRAY_EXAMPLE, [MATCH_TEST_EXAMPLES, Object.assign({}, MATCH_TEST_EXAMPLES, { id: 99 })])
+        match(INPUT_ARRAY_EXAMPLE, [MATCH_TEST_EXAMPLES, Object.assign({}, MATCH_TEST_EXAMPLES, { id: 99 })]),
       );
       assert.notOk(
         match(INPUT_ARRAY_EXAMPLE, [
           Object.assign(copy(MATCH_TEST_EXAMPLES), {
             tags: ["sssss"],
           }),
-        ])
+        ]),
       );
       assert.notOk(match(INPUT_ARRAY_EXAMPLE, [MATCH_TEST_EXAMPLES, { id: 1, name: "Wrong name" }]));
       assert.notOk(match(INPUT_ARRAY_EXAMPLE, [{ id: String }, MATCH_TEST_EXAMPLES]));
@@ -728,7 +728,7 @@ module("@memoria/model | Utils | match", function (hooks) {
         match(INPUT_ARRAY_EXAMPLE, [
           MATCH_TEST_EXAMPLES,
           { id: 1, name: "Some", relatedModel: Object, relatedModels: [] },
-        ])
+        ]),
       );
 
       assert.notOk(
@@ -744,7 +744,7 @@ module("@memoria/model | Utils | match", function (hooks) {
             },
           },
           MATCH_TEST_EXAMPLES,
-        ])
+        ]),
       );
       assert.notOk(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -768,7 +768,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               },
             ],
           },
-        ])
+        ]),
       );
       assert.notOk(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -799,7 +799,7 @@ module("@memoria/model | Utils | match", function (hooks) {
               },
             ],
           },
-        ])
+        ]),
       );
       assert.notOk(
         match(INPUT_ARRAY_EXAMPLE, [
@@ -831,7 +831,7 @@ module("@memoria/model | Utils | match", function (hooks) {
             ],
           },
           MATCH_TEST_EXAMPLES,
-        ])
+        ]),
       );
     });
   });

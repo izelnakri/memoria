@@ -4,7 +4,4 @@
 import validatePartialModelInput from "./partial-model-input.js";
 import validateRelationshipInput from "./relationship-input.js";
 
-export {
-  validatePartialModelInput,
-  validateRelationshipInput
-};
+export { validatePartialModelInput, validateRelationshipInput };

@@ -1,15 +1,15 @@
-import fs from 'fs/promises';
+import fs from "fs/promises";
 
 const TARGET_LIBRARIES = [
-  '@memoria/adapters',
-  '@memoria/model',
+  "@memoria/adapters",
+  "@memoria/model",
   // '@memoria/response',
   // '@memoria/server',
   // '@memoria/cli',
-]
+];
 
-const TARGETING_JS = process.argv[2] === 'js';
-let TARGET_ENTRYPOINT = TARGETING_JS ? 'dist/index.js' : 'src/index.ts';
+const TARGETING_JS = process.argv[2] === "js";
+let TARGET_ENTRYPOINT = TARGETING_JS ? "dist/index.js" : "src/index.ts";
 
 console.log('LIBRARY TARGET ENTRYPOINTS("main") ARE:', TARGET_ENTRYPOINT);
 
@@ -19,7 +19,7 @@ async function changeLibEntrypoint(libraryName) {
   let packageJSON = await fs.readFile(`packages/${libraryName}/package.json`);
   let oldJSON = JSON.parse(packageJSON.toString());
 
-  oldJSON.main = TARGET_ENTRYPOINT
+  oldJSON.main = TARGET_ENTRYPOINT;
 
   // NOTE: `exports` takes precedence over `main` in node and every modern bundler, so a package
   // that declares one has to have it re-pointed too -- otherwise flipping `main` to dist/ silently
@@ -27,12 +27,12 @@ async function changeLibEntrypoint(libraryName) {
   // keeps deep imports working is left alone.
   if (oldJSON.exports) {
     oldJSON.exports = Object.keys(oldJSON.exports).reduce((result, subpath) => {
-      if (subpath === '*' || subpath.endsWith('*')) {
+      if (subpath === "*" || subpath.endsWith("*")) {
         return { ...result, [subpath]: oldJSON.exports[subpath] };
       }
 
-      let sourcePath = subpath === '.' ? 'src/index.ts' : `src/${subpath.slice(2)}/index.ts`;
-      let distPath = subpath === '.' ? 'dist/index.js' : `dist/${subpath.slice(2)}/index.js`;
+      let sourcePath = subpath === "." ? "src/index.ts" : `src/${subpath.slice(2)}/index.ts`;
+      let distPath = subpath === "." ? "dist/index.js" : `dist/${subpath.slice(2)}/index.js`;
 
       return { ...result, [subpath]: `./${TARGETING_JS ? distPath : sourcePath}` };
     }, {});

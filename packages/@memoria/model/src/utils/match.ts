@@ -60,7 +60,7 @@ export default function match(item: JSObject, patternExpression: any, isCyclical
         return false;
       } else if (
         Object.keys(patternsCylicalReferences).some(
-          (key) => !deepEqual(itemsCyclicalReferences[key], patternsCylicalReferences[key])
+          (key) => !deepEqual(itemsCyclicalReferences[key], patternsCylicalReferences[key]),
         )
       ) {
         return false;

@@ -12,7 +12,7 @@ export default function defineForeignKeySetter(
   columnName: string,
   buildObject: QueryObject | Model = {},
   buildOptions: ModelBuildOptions,
-  relationshipMetadata: RelationshipMetadata
+  relationshipMetadata: RelationshipMetadata,
 ) {
   let { RelationshipCache } = relationshipMetadata;
   let cache = hasProvidedRelationship(buildObject, relationshipMetadata)
@@ -56,7 +56,7 @@ export default function defineForeignKeySetter(
 
 function hasProvidedRelationship(
   buildObject: QueryObject | Model,
-  { RelationshipCache, relationshipName }: RelationshipMetadata
+  { RelationshipCache, relationshipName }: RelationshipMetadata,
 ) {
   return buildObject instanceof Model ? !!RelationshipCache.has(buildObject) : relationshipName in buildObject;
 }
@@ -65,7 +65,7 @@ function generateForeignKeyValueFromRelationshipOrProvidedValue(
   model: Model,
   columnName: string,
   buildObject: QueryObject | Model,
-  relationshipMetadata: RelationshipMetadata
+  relationshipMetadata: RelationshipMetadata,
 ) {
   let { RelationshipClass, relationshipName, reverseRelationshipName } = relationshipMetadata;
   let relationshipReference = buildObject[relationshipName];
@@ -77,7 +77,7 @@ function generateForeignKeyValueFromRelationshipOrProvidedValue(
     validateRelationshipInput(
       reverseMetadata.relationshipType === "HasMany" ? [buildObject] : buildObject,
       model.constructor as typeof Model,
-      reverseMetadata
+      reverseMetadata,
     );
   }
 

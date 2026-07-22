@@ -20,32 +20,32 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
 
       assert.propEqual(
         initialPhotos,
-        PHOTOS.map((photo) => SQLPhoto.build(photo))
+        PHOTOS.map((photo) => SQLPhoto.build(photo)),
       );
 
       assert.ok(
-        initialPhotos.every((photo) => !photo.isNew && photo.isPersisted && !photo.isDirty && !photo.isDeleted)
+        initialPhotos.every((photo) => !photo.isNew && photo.isPersisted && !photo.isDirty && !photo.isDeleted),
       );
 
       let initialPhotoComments = await Promise.all(
-        PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment))
+        PHOTO_COMMENTS.map((photoComment) => SQLPhotoComment.insert(photoComment)),
       );
 
       assert.ok(
         initialPhotoComments.every(
-          (comment) => !comment.isNew && comment.isPersisted && !comment.isDirty && !comment.isDeleted
-        )
+          (comment) => !comment.isNew && comment.isPersisted && !comment.isDirty && !comment.isDeleted,
+        ),
       );
       assert.deepEqual(
         (await SQLPhoto.findAll()).map((photo) => photo.id),
-        [1, 2, 3]
+        [1, 2, 3],
       );
 
       await SQLPhoto.insert();
 
       assert.deepEqual(
         (await SQLPhoto.findAll()).map((photo) => photo.id),
-        [1, 2, 3, 4]
+        [1, 2, 3, 4],
       );
 
       await SQLPhoto.insert();
@@ -67,7 +67,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
             name: "Photo default name",
             href: null,
           },
-        ].map((photo) => SQLPhoto.build(photo))
+        ].map((photo) => SQLPhoto.build(photo)),
       );
 
       const initialCommentUUIDs = (await SQLPhotoComment.findAll()).map((photoComment) => photoComment.uuid);
@@ -179,7 +179,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
             name: "Baby photo",
             href: "/baby.jpg",
           },
-        ].map((photo) => SQLPhoto.build(photo))
+        ].map((photo) => SQLPhoto.build(photo)),
       );
 
       const initialCommentUUIDs = (await SQLPhotoComment.findAll()).map((comment) => comment.uuid);
@@ -229,12 +229,12 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       assert.matchJson(
         allComments.find((comment) => comment.uuid === commentOne.uuid),
         JSON.parse(JSON.stringify(commentOne)),
-        "first comment insert in the database"
+        "first comment insert in the database",
       );
       assert.matchJson(
         allComments.find((comment) => comment.uuid === commentTwo.uuid),
         JSON.parse(JSON.stringify(commentTwo)),
-        "first comment insert in the database"
+        "first comment insert in the database",
       );
 
       assert.deepEqual(commentOne.inserted_at, new Date("2015-10-25T20:54:04.447Z"));
@@ -263,23 +263,23 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
           description: "Some description",
         });
       } catch (error) {
-        assert.ok(error.message.includes('is not a valid attribute for a SQLPhoto partial! Provided'));
+        assert.ok(error.message.includes("is not a valid attribute for a SQLPhoto partial! Provided"));
       }
       try {
         await SQLPhoto.insert({ location: "Istanbul", is_public: false });
       } catch (error) {
-        assert.ok(error.message.includes('is not a valid attribute for a SQLPhoto partial! Provided'));
+        assert.ok(error.message.includes("is not a valid attribute for a SQLPhoto partial! Provided"));
       }
 
       try {
         await SQLPhotoComment.insert({ updated_at: new Date("2017-01-10").toJSON(), like_count: 22 });
       } catch (error) {
-        assert.ok(error.message.includes('is not a valid attribute for a SQLPhotoComment partial! Provided'));
+        assert.ok(error.message.includes("is not a valid attribute for a SQLPhotoComment partial! Provided"));
       }
       try {
         await SQLPhotoComment.insert({ reply_id: 1 });
       } catch (error) {
-        assert.ok(error.message.includes('is not a valid attribute for a SQLPhotoComment partial! Provided'));
+        assert.ok(error.message.includes("is not a valid attribute for a SQLPhotoComment partial! Provided"));
       }
 
       assert.deepEqual(Array.from(SQLPhoto.columnNames), ["id", "name", "href", "is_public", "owner_id", "group_uuid"]);
@@ -295,9 +295,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
       ]);
       assert.propEqual(
         await SQLPhoto.findAll(),
-        [
-          ...PHOTOS
-        ].map((photo) => SQLPhoto.build(photo))
+        [...PHOTOS].map((photo) => SQLPhoto.build(photo)),
       );
     });
   });
@@ -315,7 +313,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
           id: null,
           is_public: null,
           name: "some name",
-        })
+        }),
       );
 
       assert.equal(InstanceDB.getReferences(photo).size, 1);
@@ -330,7 +328,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
           id: 1,
           is_public: null,
           name: "some name",
-        })
+        }),
       );
       assert.propEqual(
         photo,
@@ -339,7 +337,7 @@ module("@memoria/adapters | SQLAdapter | $Model.insert()", function (hooks) {
           id: 1,
           is_public: null,
           name: "some name",
-        })
+        }),
       );
       assert.propEqual(SQLPhoto.peek(insertedPhoto.id), insertedPhoto);
       assert.equal(InstanceDB.getReferences(photo).size, 5);

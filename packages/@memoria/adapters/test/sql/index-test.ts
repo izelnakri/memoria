@@ -113,8 +113,8 @@ module("@memoria/model | Public API", function (hooks) {
     } catch (error) {
       assert.ok(
         /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
-          error.message
-        )
+          error.message,
+        ),
       );
     }
 
@@ -128,8 +128,8 @@ module("@memoria/model | Public API", function (hooks) {
     } catch (error) {
       assert.ok(
         /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
-          error.message
-        )
+          error.message,
+        ),
       );
     }
     assert.ok(Photo._Store._DB === PhotoComment._Store._DB);

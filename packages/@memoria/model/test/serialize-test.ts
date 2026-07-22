@@ -225,7 +225,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
       PhotoComment.serializer(firstComment),
       Object.assign({}, firstComment, {
         author: targetSerializedUser,
-      })
+      }),
     );
     assert.propEqual(
       Photo.serializer(firstPhoto),
@@ -233,7 +233,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
         comments: PhotoComment.peekAll({ photo_id: 1 }).map((comment) => {
           return Object.assign({}, comment, { author: User.peek(comment.user_id) });
         }),
-      })
+      }),
     );
 
     const targetUsers = await User.findAll();
@@ -249,7 +249,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
       PhotoComment.serializer(photoComments),
       photoComments.map((comment) => {
         return Object.assign({}, comment, { author: User.peek(comment.user_id) });
-      })
+      }),
     );
     assert.propEqual(
       Photo.serializer(targetPhotos),
@@ -259,7 +259,7 @@ module("@memoria/model | $Model.serialize()", function (hooks) {
             return Object.assign({}, comment, { author: User.peek(comment.user_id) });
           }),
         });
-      })
+      }),
     );
   });
 

@@ -20,7 +20,7 @@ import {
 } from "./relationship.js";
 
 function ManyToMany() {
-  throw new Error('ManyToMany decorator is not implemented yet!');
+  throw new Error("ManyToMany decorator is not implemented yet!");
 }
 
 export default {
