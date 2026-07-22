@@ -357,6 +357,31 @@ between tests.
 
 ---
 
+## Milestone 16b: Upstream — qunitx-cli publishes a non-portable Linux binary
+
+Not a memoria bug, but memoria's CI carries the workaround, so it belongs on this list.
+
+`qunitx-cli`'s npm bin prefers a prebuilt SEA binary from the optional `qunitx-cli-linux-x64` package.
+The published v0.31.1 artifact was compiled on NixOS and hardcodes a Nix ELF interpreter:
+
+```
+interpreter /nix/store/8kvxvr3...-glibc-2.42-67/lib/ld-linux-x86-64.so.2
+```
+
+It cannot execute on any non-Nix Linux — `cannot execute: required file not found`. It runs fine on the
+NixOS machine this repo is developed on, which is why it does not reproduce locally. The CI browser job
+deletes `node_modules/qunitx-cli-linux-x64` so the launcher falls back to `dist/cli.js`.
+
+**Tasks:**
+
+- [ ] Fix the qunitx-cli release pipeline to build the linux-x64 SEA in a glibc container (or patchelf
+      the interpreter to `/lib64/ld-linux-x86-64.so.2`) and republish
+- [ ] Consider making the launcher verify the binary actually execs before committing to it, instead of
+      relying on `access(X_OK)` — the file is executable, it just cannot be loaded
+- [ ] Remove the `rm -rf node_modules/qunitx-cli-linux-x64` step from `.github/workflows/ci.yml`
+
+---
+
 ## Milestone 17: TypeScript 7
 
 TypeScript 7 (the native port) removes `baseUrl` and `moduleResolution: node10`, both of which this repo
