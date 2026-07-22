@@ -60,7 +60,7 @@ export default class ModelError extends Error {
   constructor(model: Model, errorMetadata: ErrorMetadata) {
     if (!model) {
       throw new Error(
-        "ModelError should pass an memoria model instance when creating new MemoriaError($model, errorMetadata)"
+        "ModelError should pass an memoria model instance when creating new MemoriaError($model, errorMetadata)",
       );
     } else if (!errorMetadata.attribute) {
       throw new Error("ModelError: attribute missing during MemoriaError instance initialization");

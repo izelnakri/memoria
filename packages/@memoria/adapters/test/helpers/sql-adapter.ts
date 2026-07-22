@@ -1,4 +1,4 @@
-import { SQLAdapter } from "@memoria/adapters";
+import SQLAdapter from "@memoria/adapters/sql";
 
 export default class TestSQLAdapter extends SQLAdapter {
   static CONNECTION_OPTIONS = {

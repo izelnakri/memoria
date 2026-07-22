@@ -10,7 +10,7 @@ export default function isCyclical(
   currentObject: any,
   seenMap: WeakMap<JSObject, ParentReferenceMap> = new WeakMap(),
   parentObject?: JSObject,
-  currentKeyName: string = ""
+  currentKeyName: string = "",
 ): boolean {
   if (!currentObject || typeof currentObject !== "object") {
     return false;

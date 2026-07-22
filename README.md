@@ -1,329 +1,314 @@
-![docker-based-ci](https://github.com/izelnakri/memoria/workflows/docker-based-ci/badge.svg)
+[![CI](https://github.com/izelnakri/memoria/actions/workflows/ci.yml/badge.svg)](https://github.com/izelnakri/memoria/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/izelnakri/memoria/branch/main/graph/badge.svg?token=I416U3QJL7)](https://codecov.io/gh/izelnakri/memoria)
 [![npm version](https://badge.fury.io/js/@memoria%2Fmodel.svg)](https://badge.fury.io/js/@memoria%2Fmodel)
 
-# Memoria: Elegant, simple & very flexible ORM for JavaScript/TypeScript
+# memoria
 
-Memoria is an in-memory/off-memory state management solution for JavaScript apps on client and/or server side. It is a
-very flexible typeorm-like entity definition API that just use JS classes and decorators to define or generate the
-schema. You can choose different adapters and use the same CRUD interface: `MemoryAdapter`, `RESTAdapter` or
-`SQLAdapter`. In other words it is a general purpose data library for JavaScript. It is also extremely useful library
-for making frontend e2e tests extremely fast by utilizing an in-browser http server and in-memory MemoryAdapter models
-in the mock server.
+**One model definition. Three adapters. The same CRUD API in the browser, in Node, and against a real
+database.**
 
-You can also use it for rapid prototyping frontends for a demo: one can also use the library for single-file SPA demo
-deployments, as a frontend SPA data store or as a backend HTTP Server ORM. The http mock server(@memoria/server) can be
-run in-browser and node environments, thus allows for running your in-memory test suite in SSR(server-side rendering)
-environment if it is needed.
+memoria is a universal data-management library for JavaScript and TypeScript. You declare a model once, with
+decorators, and then choose where its records actually live:
 
-In summary, this is an extremely flexible and complete data management solution for JS based applications. It tries to
-be as intuitive as it could be, without introducing new JS concepts or much boilerplates for any mutation. It is also
-very easy to write automated tests on this framework, introspect any part of the state so it doesn't compromise on
-stability, development speed, extensibility, runtime performance & debuggability.
+| Adapter         | Records live in                     | Typical use                                 |
+| --------------- | ----------------------------------- | ------------------------------------------- |
+| `MemoryAdapter` | an in-memory store                  | tests, prototypes, frontend state, fixtures |
+| `RESTAdapter`   | a remote HTTP API, cached in memory | frontend data layer                         |
+| `SQLAdapter`    | PostgreSQL, via TypeORM             | backend ORM                                 |
 
-It is based on these principles:
+Swapping the adapter does not change your model code, your queries or your call sites. Relationship tracking,
+dirty tracking, changesets and serializers behave identically across all three, because `RESTAdapter` and
+`SQLAdapter` both extend `MemoryAdapter` — there is one implementation of the semantics and three
+implementations of persistence.
 
-- TypeORM based Entity API: This makes the SQLAdapter easy to work with typeorm while making the API usable in browser
-for frontend.
+`@memoria/server` additionally provides an in-browser (and in-Node) HTTP mock server, so the same models can
+back a mocked API during frontend tests without a network.
 
-- One Schema/Class that can be used in 4 environments with different Adapters: MemoryAdapter, RESTAdapter, SQLAdapter,
-GraphQLAdapter(in future maybe).
+> **Status:** pre-1.0 and under active development. The MemoryAdapter, RESTAdapter and SQLAdapter share one
+> CRUD + relationship suite: 842 tests in Node, 726 in the browser. See [MILESTONES.md](MILESTONES.md) for
+> what works, what is missing, and what is next.
 
-- Default Model CRUD operations represented as static class methods: User.insert(), User.update() etc.
-
-- Provides ember-data like property dirty tracking on changed properties until successful CRUD operation.
-
-- Optional entity/instance based caching: Enabled by default, timeout adjustable, RESTAdapter & SQLAdapter extends from
-MemoryAdapter which provides this caching. Also useful for advanced frontend tests when used with in-browser mode of
-@memoria/server.
-
-- [Ecto Changeset](https://hexdocs.pm/ecto/Ecto.Changeset.html) inspired: Changeset structs with pipeline
-operators are very powerful. Memoria CRUD operations return ChangesetError which extends from JS Error with Ecto-like Changeset shape.
+---
 
 ## Installation
-In order to use memoria CLI you need to have typescript set up in your project folder.
-`memoria` binary will only work on typescript project directories since it uses ts-node under the hood for
-`memoria console` and `memoria g fixtures $modelName` generation commands.
 
-``` npm install -g @memoria/cli ```
+```sh
+npm install @memoria/model @memoria/adapters
+```
 
-``` memoria ```
+`@memoria/server` and `@memoria/response` are optional, and only needed for HTTP mocking:
 
-You can use the CLI to create relevant boilerplate files and initial setup
+```sh
+npm install --save-dev @memoria/server @memoria/response
+```
 
-### memoria Model API
+The SQLAdapter needs TypeORM and a Postgres driver. They are optional peer dependencies, so you only install
+them if you actually use SQL:
+
+```sh
+npm install typeorm pg
+```
+
+Requires **Node.js >= 22**, and `experimentalDecorators` enabled in your `tsconfig.json`.
+
+---
+
+## Defining a model
 
 ```ts
-// memoria MODEL API
-import Model, { primaryGeneratedColumn, Column } from '@memoria/model';
-// OR:
-const Model = require('@memoria/model').default;
-// THEN:
+import Model, { PrimaryGeneratedColumn, Column } from "@memoria/model";
 
 class User extends Model {
- // Optionally add static Adapter = RESTAdapter; by default its MemoryAdapter
- @PrimaryGeneratedColumn()
- id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
- @Column()
- firstName: string;
+  @Column()
+  firstName: string;
 
- @Column()
- lastName: string
+  @Column()
+  lastName: string;
 
- // NOTE: you can add here your static methods
- static serializer(modelOrArray) {
-   return modelOrArray;
- }
-};
-// allows User.serializer(user);
-
-await User.findAll(); // [];
-
-await User.insert({ firstName: 'Izel', lastName: 'Nakri' }); // User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }
-
-let usersAfterInsert = await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
-
-let insertedUser = usersAfterInsert[0];
-
-insertedUser.firstName = 'Isaac';
-
-await User.findAll(); // [User{ id: 1, firstName: 'Izel', lastName: 'Nakri' }]
-
-await User.update(insertedUser); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
-
-await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }]
-
-let updatedUser = await User.find(1); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
-
-let anotherUser = await User.insert({ firstName: 'Brendan' }); // User{ id: 2, firstName: 'Brendan', lastName: null }
-
-updatedUser.firstName = 'Izel';
-
-await User.findAll(); // [User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }, User{ id: 2, firstName: 'Brendan', lastName: null }]
-
-await User.delete(updatedUser); // User{ id: 1, firstName: 'Isaac', lastName: 'Nakri' }
-
-await User.findAll(); // [User{ id: 2, firstName: 'Brendan', lastName: null }]
-```
-
-NOTE: API also works for UUIDs instead of id primary keys
-
-### memoria Server API
-
-```js
-
-// in memoria/routes.ts:
-
-import User from './models/user';
-import Response from '@memoria/response';
-
-interface Request {
-  headers: object,
-  params: object,
-  queryParams: object,
-  body: object
-}
-
-export default function() {
-  this.logging = true; // OPTIONAL: only if you want to log incoming requests/responses
-  this.urlPrefix = 'http://localhost:8000/api'; // OPTIONAL: if you want to scope all the routes under a host/url
-
-  this.post('/users', async (request: Request) => {
-    const user = await User.insert(request.params.user);
-
-    return { user: User.serializer(user) };
-  });
-
-  // OR:
-  this.post('/users', User);
-
-  this.get('/users', async (request: Request) => {
-    if (request.queryParams.filter === 'is_active') {
-      const users = await User.findAll({ is_active: true });
-
-      return { users: User.serializer(users) };
-    }
-
-    return Response(422, { error: 'filter is required' });
-  });
-
-  // Shorthand without filter, displaying all users: this.get('/users', User);
-
-  this.get('/users/:id', async (request: Request) => {
-    return { user: User.serializer(await User.find(request.params.id)) };
-    // NOTE: you can wrap it with auth through custom User.findFromHeaders(request.headers) if needed.
-  });
-
-  // OR:
-  this.get('/users/:id', User);
-
-  this.put('/users/:id', async (request: Request) => {
-    let user = await User.find(request.params.id);
-
-    if (!user) {
-      return Response(404, { error: 'user not found');
-    }
-
-    return { user: User.serializer(await User.update(request.params.user)) };
-  });
-
-  // OR:
-  this.put('/users/:id', User);
-
-  this.delete('/users/:id', async ({ params }) => {
-    const user = await User.find(params.id);
-
-    if (!user) {
-      return Response(404, { errors: 'user not found' });
-    }
-
-    return await User.delete(user);
-  });
-
-  // OR:
-  this.delete('/users/:id', User);
-
-  // You can also mock APIs under different hostname
-
-  this.get('https://api.github.com/users/:username', (request) => {
-    // NOTE: your mocking logic
-  });
-
-  // OTHER OPTIONS:
-
-  this.passthrough('https://api.stripe.com');
-  // OR: this.passthrough('https://somedomain.com/api');
-
-  // OPTIONAL: this.timing(500); if you want to slow down responses for testing something etc.
-  // BookRoutes.apply(this); // if you want to apply routes from a separate file
+  @Column("boolean", { default: true })
+  isActive: boolean;
 }
 ```
 
-You can also add routes on demand for your tests:
+A model uses `MemoryAdapter` unless you say otherwise. To point it elsewhere, set the static `Adapter`:
 
 ```ts
-import Server from './memoria/index';
-import Response from '@memoria/response';
+import { RESTAdapter } from "@memoria/adapters";
+import SQLAdapter from "@memoria/adapters/sql"; // NOTE: subpath -- keeps typeorm out of browser bundles
 
-test('testing form submit errors when backend is down', async function (assert)  {
+class User extends Model {
+  static Adapter = RESTAdapter;
+  // ...
+}
+```
 
-  Server.post('/users'. (request) => {
-    return Response(500, {});
-  });
+UUID primary keys work the same way — `@PrimaryGeneratedColumn("uuid")` with a `uuid: string` field. Every
+adapter is tested against both integer and UUID primary keys.
 
-  // NOTE: also there is Server.get, Server.update, Server.delete, Server.put for mocking with those verbs
+## CRUD
 
-  await visit('/form');
+Every operation is a static method on the model and returns model instances:
 
-  // submit the form
-  // POST /users will be added to your route handlers or gets overwritten if it exists
+```ts
+await User.findAll(); // []
+
+let user = await User.insert({ firstName: "Izel", lastName: "Nakri" });
+// User { id: 1, firstName: 'Izel', lastName: 'Nakri', isActive: true }
+
+user.firstName = "Isaac";
+// NOTE: nothing is persisted until update() -- User.findAll() still reports 'Izel'
+
+await User.update(user); // User { id: 1, firstName: 'Isaac', ... }
+
+await User.find(1);
+await User.findBy({ firstName: "Isaac" });
+await User.findAll({ isActive: true });
+
+await User.delete(user);
+```
+
+`insertAll` / `updateAll` / `deleteAll` take arrays. `peek`, `peekBy` and `peekAll` are the synchronous,
+cache-only counterparts of `find`, `findBy` and `findAll` — they never touch the network or the database.
+
+`Model.build(attributes)` creates a tracked instance without persisting it.
+
+## Relationships
+
+Relationships are declared with decorators that take the related class directly, and are tracked
+bidirectionally in memory. Assigning one side updates the other and keeps the foreign key in sync, with no
+save in between:
+
+```ts
+import Model, { PrimaryGeneratedColumn, Column, BelongsTo, HasMany } from "@memoria/model";
+import User from "./user.js";
+
+class Photo extends Model {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  href: string;
+
+  @Column("int")
+  owner_id: number;
+
+  @BelongsTo(User)
+  owner;
+}
+```
+
+```ts
+let user = await User.insert({ firstName: "Izel" });
+let photo = Photo.build({ owner: user });
+
+photo.owner_id; // 1 -- derived from the assignment
+user.photos; // HasManyArray containing photo, if User declares @HasMany(Photo)
+```
+
+Unfetched relationships resolve lazily and are awaitable:
+
+```ts
+let photos = await user.photos; // fetches through the model's adapter if not already loaded
+```
+
+`BelongsTo`, `HasOne` and `HasMany` are implemented across all three adapters. `ManyToMany` is **not yet
+implemented** — see [MILESTONES.md](MILESTONES.md).
+
+## Dirty tracking and changesets
+
+Every tracked instance knows what changed since it was last persisted:
+
+```ts
+let user = await User.find(1);
+
+user.firstName = "Isaac";
+
+user.isDirty; // true
+user.changes; // { firstName: 'Isaac' }
+user.revision; // the last persisted state
+user.changedAttributes();
+
+user.rollbackAttributes();
+user.isDirty; // false
+```
+
+Failed CRUD operations reject with an [Ecto-inspired](https://hexdocs.pm/ecto/Ecto.Changeset.html) changeset
+error carrying the attempted action and per-field errors, rather than an opaque message:
+
+```ts
+try {
+  await User.insert({ firstName: null });
+} catch (error) {
+  error.action; // 'insert'
+  error.errors; // [{ id, modelName, attribute, message }]
+}
+```
+
+## HTTP mocking with @memoria/server
+
+```ts
+import Memoria from "@memoria/server";
+import Response from "@memoria/response";
+import User from "./models/user.js";
+
+const Server = new Memoria({
+  routes() {
+    this.urlPrefix = "http://localhost:8000/api";
+
+    this.get("/users", async () => {
+      return { users: User.serializer(await User.findAll()) };
+    });
+
+    // Shorthand: derives the default handler and status code from the model
+    this.post("/users", User);
+
+    this.get("/users/:id", async (request) => {
+      let user = await User.find(request.params.id);
+
+      return user ? { user: User.serializer(user) } : Response(404, { error: "not found" });
+    });
+
+    this.passthrough("https://api.stripe.com");
+  },
+});
+
+// Server.shutdown() stops intercepting.
+```
+
+Routes can be overridden per test, which is the point of the whole thing:
+
+```ts
+test("shows an error when the backend is down", async function (assert) {
+  Server.post("/users", () => Response(500, {}));
+
+  // ... drive your UI and assert on the failure path
 });
 ```
 
-### memoria init/shutdown API
+## Serializers
 
 ```ts
-// in memoria/index.ts:
-
-import memoria from "@memoria/server";
-import initializer from "./initializer";
-import routes from "./routes";
-
-const Memoria = new memoria({
-  initializer: initializer,
-  routes: routes
-});
-
-export default Memoria;
-
-// If you want to shutdown request mocking: Memoria.shutdown();
-// If you want to reset a database with predefined data:
-// User.resetRecords([{ id: 1, firstName: 'Izel', lastName: 'Nakri' }, { id: 2, firstName: 'Brendan', lastName: 'Eich' }]);
-```
-
-This is basically a superior mirage.js API & implementation. Also check the tests...
-
-### memoria serializer API:
-
-memoria serializer is very straight-forward, performant and functional/explicit. We have two ways to serialize model
-data, it is up to you the developer if you want to serialize it in a custom format(for example JSONAPI) by adding a new
-static method(`static customSerializer(modelOrArray) {}`) on the model:
-
-memoria serializer API:
-
-```js
-import Model from '@memoria/model';
+User.serializer(user); // a single record
+User.serializer(users); // an array
 
 class User extends Model {
-}
-
-const user = await User.find(1);
-
-const serializedUserForEndpoint = { user: User.serializer(user) }; // or User.serialize(user);
-
-const users = await User.findAll({ active: true });
-
-const serializedUsersForEndpoint = { users: User.serializer(users) }; // or users.map((user) => User.serialize(user));
-```
-
-Custom serializers:
-
-```js
-import Model from '@memoria/model';
-
-class User extends Model {
-  static customSerializer(modelObjectOrArray) {
-    if (Array.isArray(objectOrArray)) {
-      return modelObjectOrArray.map((object) => this.serialize(object));
-    }
-
-    return this.customSerialize(objectOrArray);
+  static customSerializer(objectOrArray) {
+    return Array.isArray(objectOrArray)
+      ? objectOrArray.map((object) => this.customSerialize(object))
+      : this.customSerialize(objectOrArray);
   }
 
   static customSerialize(object) {
-    return Object.assign({}, object, {
-      newKey: 'something'
-    });
+    return { ...object, newKey: "something" };
   }
 }
-
-const user = await User.find(1);
-
-const serializedUserForEndpoint = { user: User.customSerializer(user) }; // or User.customSerialize(user);
-
-const users = await User.findAll({ active: true });
-
-const serializedUsersForEndpoint = { users: User.customSerializer(users) }; // or users.map((user) => User.customSerialize(user));
 ```
 
-### Why this is superior to Mirage?
+---
 
-- Class static method provide a better and more functional way to work on CRUD operations.
+## Development
 
-- Better typecasting on submitted JSON data and persisted models. Empty string are `null`, '123' is a JS number, integer foreign key columns are not strings.
+```sh
+npm install
+docker compose up -d   # postgres on 5432, for the SQLAdapter suite
+npm test               # node suite, then browser suite
+```
 
-- can run on node.js thus allows frontend mocking on server-side rendering context.
+| Command                   | What it does                                                 |
+| ------------------------- | ------------------------------------------------------------ |
+| `npm run test:node`       | 842 tests on `node:test` (model + all three adapters)        |
+| `npm run test:browser`    | 726 tests in headless chromium (model, memory, REST, server) |
+| `npm run test:node:watch` | node suite in watch mode                                     |
+| `npm run typecheck`       | `tsc --noEmit` over every package's `src/`                   |
+| `npm run format`          | prettier check (`format:fix` to write)                       |
+| `npm run build`           | compile all packages to `dist/`                              |
 
-- `@memoria/response` does not require `new Response`, just `Response`.
+The two suites cover different ground on purpose. The browser run includes `@memoria/server` and
+`@memoria/response`; the Node run currently skips them because Pretender cannot intercept Node's native
+`fetch` yet. The Node run is the only one that exercises `SQLAdapter`, which needs a real database.
 
-- Less code output and dependencies.
+Postgres settings come from the standard libpq environment variables — `PGHOST`, `PGPORT`, `PGUSER`,
+`PGPASSWORD`, `PGDATABASE` — defaulting to `localhost:5432` as `postgres`/`postgres`. If you already run
+Postgres on 5432, point the suite somewhere else:
 
-- No bad APIs such as association(). Better APIs, no strange factory API that introduces redundant concepts as traits,
-or implicit association behavior. Your model inserts are your factories. You can easily create different ES6 standard
-methods on the model modules, thus memoria is easier and better to extend.
+```sh
+PGPORT=5433 npm run test:node
+```
 
-- No implicit model lifecycle callbacks such as `beforeCreate`, `afterCreate`, `afterUpdate`, `beforeDelete` etc.
-This is an old concept that is generally deemed harmful for development, we shouldn't do that extra computation during
-runtime for all CRUD. Autogenerating things after a model gets created is an implicit thus bad behavior. Validations
-could be done in future as types or TS type decorators(like `class-validator` npm package).
+### Architecture
 
-- route shorthands accept the model definition to execute default behavior: `this.post('/users', User)` doesn't need to dasherize,
-underscore or do any other string manipulation to get the reference model definition. It also returns correct default
-http status code based on the HTTP verb, ex. HTTP POST returns 201 Created just like mirage.
+```
+packages/@memoria/model      Model base class, decorators, relationship + instance tracking,
+                             changesets, serializers, revision history
+packages/@memoria/adapters   MemoryAdapter, RESTAdapter, SQLAdapter (subpath export), HTTP client
+packages/@memoria/response   Response helper
+packages/@memoria/server     Pretender-based HTTP mock server
+packages/@memoria/cli        `memoria` binary (console, fixture generation)
+```
 
-- very easy to debug/develop the server, serialize any data in a very predictable and functional way.
+The test suite is written with [qunitx](https://github.com/izelnakri/qunitx), which runs the same test files
+unchanged on `node:test` and in a browser. That is what lets one suite prove the library works in both
+environments.
 
-- API is very similar to Mirage, it can do everything mirage can do, while all redudant and worse API removed.
+## Design principles
 
-- written in Typescript, thus provides type definitions by default.
+- **One schema, many environments.** A TypeORM-compatible entity API that also runs in a browser.
+- **CRUD as static methods.** `User.insert()`, not `new User().save()`.
+- **Explicit over implicit.** No lifecycle callbacks (`beforeCreate`, `afterUpdate`), no factory/trait DSL, no
+  implicit associations. Your inserts are your factories.
+- **Ecto-inspired changesets** for validation and error reporting.
+- **Minimal runtime dependencies.** SQL and HTTP-mocking dependencies are opt-in, and `@memoria/adapters` is
+  structured so that importing it never pulls TypeORM into a browser bundle.
+- **Debuggable.** Every part of the state is introspectable at runtime.
+
+## Contributing
+
+[MILESTONES.md](MILESTONES.md) holds the roadmap and this repo's working conventions — what a change is
+expected to explain, and the rule that `npm test` must be green before a milestone counts as done.
+
+## License
+
+MIT © Izel Nakri

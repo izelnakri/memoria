@@ -138,7 +138,7 @@ export default class Model {
     let existingInstances = InstanceDB.getOrCreateExistingInstancesSet(
       model,
       buildObject,
-      buildObject[this.primaryKeyName] || null
+      buildObject[this.primaryKeyName] || null,
     ); // NOTE: This shouldnt create an empty set if validations fail
 
     Array.from(this.columnNames).forEach((columnName) => {
@@ -184,7 +184,7 @@ export default class Model {
   // NOTE: assigns provided values when key is in Model.columnNames, ignores the rest
   static assign(
     model: Model | ModelRefOrInstance | QueryObject,
-    objectToAssign: ModelRefOrInstance | QueryObject
+    objectToAssign: ModelRefOrInstance | QueryObject,
   ): Model | ModelRefOrInstance | QueryObject {
     this.columnNames.forEach((columnName) => {
       model[columnName] = transformValue(this, columnName, objectToAssign[columnName]);
@@ -242,7 +242,7 @@ export default class Model {
 
   static async find(
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<Model | Model[] | null> {
     let result = await this.Adapter.find(this, primaryKey, options);
     if (result) {
@@ -292,7 +292,7 @@ export default class Model {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(this.build(record)),
-        "$Model.update() called without a record with primaryKey"
+        "$Model.update() called without a record with primaryKey",
       );
     }
 
@@ -331,7 +331,7 @@ export default class Model {
     if (!record || !record[this.primaryKeyName]) {
       throw new RuntimeError(
         new Changeset(this.build(record)),
-        "$Model.delete() called without a record with primaryKey"
+        "$Model.delete() called without a record with primaryKey",
       );
     }
 
@@ -368,7 +368,7 @@ export default class Model {
           let primaryKey = record[this.primaryKeyName] as PrimaryKey;
           if (primaryKey && result.includes(primaryKey)) {
             throw new RuntimeError(
-              `${this.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`
+              `${this.name}.insertAll(records) have duplicate primary key "${primaryKey}" to insert`,
             );
           }
 
@@ -407,7 +407,7 @@ export default class Model {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
-          "$Model.updateAll() called without records having primaryKey"
+          "$Model.updateAll() called without records having primaryKey",
         );
       }
       primaryKeyTypeSafetyCheck(record, this);
@@ -441,7 +441,7 @@ export default class Model {
       if (!record[this.primaryKeyName]) {
         throw new RuntimeError(
           new Changeset(this.build(record)),
-          "$Model.deleteAll() called without records having primaryKey"
+          "$Model.deleteAll() called without records having primaryKey",
         );
       }
 
@@ -591,7 +591,7 @@ export default class Model {
 
   get fetchedRelationships() {
     return Object.keys(RelationshipSchema.getRelationshipTable(this.constructor as typeof Model)).filter(
-      (relationshipName) => RelationshipDB.has(this, relationshipName)
+      (relationshipName) => RelationshipDB.has(this, relationshipName),
     );
   }
 
@@ -640,7 +640,7 @@ function revisionEnabled(options?: ModelBuildOptions) {
 
 function shouldInsertOrUpdateARecord(
   Class: typeof Model,
-  record: QueryObject | ModelRefOrInstance
+  record: QueryObject | ModelRefOrInstance,
 ): "insert" | "update" {
   if (!record[Class.primaryKeyName]) {
     return "insert";
@@ -668,7 +668,7 @@ function checkProvidedFixtures(Class: typeof Model, fixtureArray, buildOptions) 
         });
       } else if (primaryKeys.has(primaryKey)) {
         throw new RuntimeError(
-          `${Class.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`
+          `${Class.name}.resetCache(records) have duplicate primary key "${primaryKey}" in records`,
         );
       }
 

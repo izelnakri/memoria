@@ -35,6 +35,6 @@ CLI.command(["generate", "g"], generateCommand);
 CLI.command(["version", "v"], async () => {
   console.log(
     kleur.cyan("[Memserver CLI]"),
-    JSON.parse((await fs.readFile(`${__dirname}/../package.json`)).toString()).version
+    JSON.parse((await fs.readFile(`${__dirname}/../package.json`)).toString()).version,
   );
 });

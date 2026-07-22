@@ -36,7 +36,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           } catch (error) {
             assert.ok(error instanceof RuntimeError);
           }
-        })
+        }),
       );
     });
 
@@ -53,7 +53,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         SQLPhoto.peek(3),
@@ -62,7 +62,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Selfie",
           href: "selfie.jpeg",
           is_public: false,
-        })
+        }),
       );
     });
 
@@ -80,7 +80,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
@@ -98,7 +98,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         secondModel,
@@ -107,7 +107,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Some name",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.notEqual(secondModel, thirdModel);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
@@ -188,7 +188,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
-        })
+        }),
       );
       assert.propEqual(
         SQLPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
@@ -201,7 +201,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       );
     });
 
@@ -270,7 +270,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
             href: "selfie.jpeg",
             is_public: false,
           }),
-        ]
+        ],
       );
       assert.propEqual(
         SQLPhotoComment.peekAll().sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
@@ -311,7 +311,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
             photo_id: 1,
             user_id: 1,
           }),
-        ]
+        ],
       );
     });
 
@@ -337,7 +337,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
             href: "ski-trip.jpeg",
             is_public: false,
           }),
-        ]
+        ],
       );
       assert.propEqual(
         SQLPhotoComment.peekAll({ photo_id: 1, user_id: 1 }).sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
@@ -360,7 +360,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
             photo_id: 1,
             user_id: 1,
           }),
-        ]
+        ],
       );
       assert.propEqual(
         SQLPhotoComment.peekAll({ user_id: 1 }).sort((a, b) => (a.uuid > b.uuid ? 1 : -1)),
@@ -392,7 +392,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
             photo_id: 1,
             user_id: 1,
           }),
-        ]
+        ],
       );
     });
 
@@ -427,7 +427,7 @@ module("@memoria/adapters | SQLAdapter | Peek API", function (hooks) {
       assert.deepEqual([firstModels[1].isNew, firstModels[1].isPersisted], [false, true]);
 
       let secondModels = SQLPhotoComment.peekAll({ photo_id: 1, user_id: 1 }).sort((a, b) =>
-        a.uuid > b.uuid ? 1 : -1
+        a.uuid > b.uuid ? 1 : -1,
       );
       assert.notEqual(firstModels, secondModels);
       assert.propEqual(secondModels, [

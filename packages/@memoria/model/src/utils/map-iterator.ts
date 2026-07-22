@@ -19,5 +19,5 @@ export function find(map, predicate: Function) {
 
 export default {
   filter,
-  find
-}
+  find,
+};

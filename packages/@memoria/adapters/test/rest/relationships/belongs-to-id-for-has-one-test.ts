@@ -314,7 +314,7 @@ module(
           assert.strictEqual(photo.group, insertedThirdGroup);
           assert.strictEqual(photo.group.photo, photo);
         });
-      }
+      },
     );
 
     module(
@@ -594,7 +594,7 @@ module(
           assert.equal(photo.group.name, "Some group");
           assert.equal(photo.group_id, 44);
         });
-      }
+      },
     );
-  }
+  },
 );

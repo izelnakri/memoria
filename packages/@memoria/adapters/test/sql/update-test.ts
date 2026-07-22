@@ -45,7 +45,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
 
       let firstPhoto = await SQLPhoto.update({
@@ -61,7 +61,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "S trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(firstPhoto, Object.assign(await SQLPhoto.find(1), { name: "S trip" }));
       assert.notOk(firstPhoto.isNew);
@@ -105,7 +105,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "Family photo",
           href: "family-photo-2.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(secondPhoto, await SQLPhoto.find(2));
 
@@ -142,7 +142,10 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
       try {
         await SQLPhoto.update({ id: 1, name: "ME", is_verified: false });
       } catch (error) {
-        assert.equal(error.message, 'is_verified is not a valid attribute for a SQLPhoto partial! Provided { is_verified: false }');
+        assert.equal(
+          error.message,
+          "is_verified is not a valid attribute for a SQLPhoto partial! Provided { is_verified: false }",
+        );
       }
 
       let photo = await SQLPhoto.update({ id: 1, name: "ME" });
@@ -161,7 +164,10 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           location: "Amsterdam",
         });
       } catch (error) {
-        assert.equal(error.message, 'location is not a valid attribute for a SQLPhotoComment partial! Provided { location: Amsterdam }');
+        assert.equal(
+          error.message,
+          "location is not a valid attribute for a SQLPhotoComment partial! Provided { location: Amsterdam }",
+        );
       }
 
       let photoComment = await SQLPhotoComment.update({
@@ -223,7 +229,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "Something",
           href: "/something.jpg",
           is_public: false,
-        })
+        }),
       );
 
       assert.equal(InstanceDB.getReferences(insertedPhoto).size, 3);
@@ -239,7 +245,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "Another",
           href: "/another.jpg",
           is_public: false,
-        })
+        }),
       );
 
       assert.deepEqual(SQLPhoto.peek(updatedPhoto.id), updatedPhoto);
@@ -315,7 +321,7 @@ module("@memoria/adapters | SQLAdapter | $Model.update()", function (hooks) {
           name: "Changed Hacker Log",
           owner: izel,
           photo: groupPhoto,
-        })
+        }),
       );
 
       assert.equal(InstanceDB.getReferences(group).size, 3);

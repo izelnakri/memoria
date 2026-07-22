@@ -1,10 +1,5 @@
 import { dasherize, pluralize, underscore } from "inflected"; // NOTE: make ember-inflector included in @emberx/string
-import MemoriaModel, {
-  RuntimeError,
-  RelationshipPromise,
-  RelationshipDB,
-  RelationshipSchema,
-} from "@memoria/model";
+import MemoriaModel, { RuntimeError, RelationshipPromise, RelationshipDB, RelationshipSchema } from "@memoria/model";
 import type { PrimaryKey, ModelReference, ModelBuildOptions, RelationshipMetadata } from "@memoria/model";
 import HTTP from "../http.js";
 import MemoryAdapter from "../memory/index.js";
@@ -58,7 +53,7 @@ export default class RESTAdapter extends MemoryAdapter {
   static async resetRecords(
     Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     if (Model) {
       let allRecords = this.peekAll(Model);
@@ -68,7 +63,7 @@ export default class RESTAdapter extends MemoryAdapter {
           `${this.host}/${this.pathForType(Model)}/reset`,
           { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: targetState },
           this.headers,
-          Object.assign({ Model }, options)
+          Object.assign({ Model }, options),
         )) as MemoriaModel[];
       } catch (error) {
         allRecords.forEach((record) => this.cache(Model, record));
@@ -83,7 +78,7 @@ export default class RESTAdapter extends MemoryAdapter {
   static async count(Model: typeof MemoriaModel, query?: QueryObject): Promise<number> {
     let result = (await this.http.get(
       `${this.host}/${this.pathForType(Model)}/count${buildQueryPath(query)}`,
-      this.headers
+      this.headers,
     )) as JSObject;
 
     return result.count as number;
@@ -93,13 +88,13 @@ export default class RESTAdapter extends MemoryAdapter {
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | MemoriaModel | null> {
     if (Array.isArray(primaryKey)) {
       return (await this.http.get(
         `${this.host}/${this.pathForType(Model)}${buildQueryPath({ ids: primaryKey })}`,
         this.headers,
-        Object.assign({ Model }, options)
+        Object.assign({ Model }, options),
       )) as MemoriaModel[];
     }
 
@@ -111,7 +106,7 @@ export default class RESTAdapter extends MemoryAdapter {
       return (await this.http.get(
         `${this.host}/${this.pathForType(Model)}/${primaryKey}`,
         this.headers,
-        Object.assign({ Model }, options)
+        Object.assign({ Model }, options),
       )) as MemoriaModel;
     }
 
@@ -122,12 +117,12 @@ export default class RESTAdapter extends MemoryAdapter {
   static async findBy(
     Model: typeof MemoriaModel,
     query: QueryObject,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel | null> {
     let result = await this.http.get(
       `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     );
 
     return result && (result as MemoriaModel[]).length ? (result as MemoriaModel[])[0] : null;
@@ -137,7 +132,7 @@ export default class RESTAdapter extends MemoryAdapter {
   static async findAll(
     Model: typeof MemoriaModel,
     query: QueryObject,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | null> {
     return (await this.query(Model, query, options)) as MemoriaModel[] | null;
   }
@@ -146,51 +141,51 @@ export default class RESTAdapter extends MemoryAdapter {
   static async query(
     Model: typeof MemoriaModel,
     query: QueryObject,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | MemoriaModel | null> {
     return (await this.http.get(
       `${this.host}/${this.pathForType(Model)}${buildQueryPath(query)}`,
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     )) as MemoriaModel[] | MemoriaModel | null;
   }
 
   static async insert(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     )) as MemoriaModel;
   }
 
   static async update(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     )) as MemoriaModel;
   }
 
   static async delete(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/${record[Model.primaryKeyName]}`,
       { [Model.Serializer.modelKeyNameForPayload(Model)]: record },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     );
 
     return this.unload(Model, record);
@@ -200,13 +195,13 @@ export default class RESTAdapter extends MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     return (await this.http.post(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     )) as MemoriaModel[];
   }
 
@@ -214,13 +209,13 @@ export default class RESTAdapter extends MemoryAdapter {
   static async updateAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     return (await this.http.put(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     )) as MemoriaModel[];
   }
 
@@ -228,13 +223,13 @@ export default class RESTAdapter extends MemoryAdapter {
   static async deleteAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     await this.http.delete(
       `${this.host}/${this.pathForType(Model)}/bulk`,
       { [pluralize(Model.Serializer.modelKeyNameForPayload(Model))]: records },
       this.headers,
-      Object.assign({ Model }, options)
+      Object.assign({ Model }, options),
     );
 
     return this.unloadAll(Model, records);
@@ -257,14 +252,14 @@ export default class RESTAdapter extends MemoryAdapter {
             RelationshipDB.cacheRelationship(
               model,
               metadata,
-              await RelationshipClass.find(model[foreignKeyColumnName] as PrimaryKey)
-            )
+              await RelationshipClass.find(model[foreignKeyColumnName] as PrimaryKey),
+            ),
           );
         } else if (relationshipType === "OneToOne") {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
+              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`,
             );
           }
 
@@ -279,12 +274,14 @@ export default class RESTAdapter extends MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`,
             );
           }
 
           let relationship = model[Model.primaryKeyName]
-            ? await RelationshipClass.findAll({ [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName] })
+            ? await RelationshipClass.findAll({
+                [reverseRelationshipForeignKeyColumnName]: model[Model.primaryKeyName],
+              })
             : [];
           // NOTE: peekAll generate new instances each time, this is a feature, not a bug(?). That way when we mutate foreignKey of existing record, hasMany array stays in tact
 
@@ -324,7 +321,7 @@ function buildQueryPath(queryObject?: JSObject) {
         }
 
         return Object.assign(result, { [key]: queryObject[key] });
-      }, {})
+      }, {}),
     );
     Object.keys(arrayParams).forEach((keyName) => {
       arrayParams[keyName].forEach((value) => {

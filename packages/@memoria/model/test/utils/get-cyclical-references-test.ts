@@ -577,7 +577,7 @@ module("@memoria/model | Utils | getCyclicalReferences", function (hooks) {
       ]);
       assert.deepEqual(
         getCyclicalReferences(new Set([obj, objTwo, objThree, [obj, circularB, [circularB, circularB]]])),
-        []
+        [],
       );
     });
   });

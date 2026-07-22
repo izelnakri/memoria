@@ -7,7 +7,13 @@ export type PrimaryKey = number | string;
 
 type QueryObject = { [key: string]: any };
 
-export default function definePrimaryKeySetter(model: Model, columnName: string, buildObject: QueryObject | Model = {}, buildOptions: ModelBuildOptions, existingInstances: Set<Model>) {
+export default function definePrimaryKeySetter(
+  model: Model,
+  columnName: string,
+  buildObject: QueryObject | Model = {},
+  buildOptions: ModelBuildOptions,
+  existingInstances: Set<Model>,
+) {
   let Class = model.constructor as typeof Model;
   let primaryKey = buildObject[Class.primaryKeyName] || null;
 
@@ -23,7 +29,7 @@ export default function definePrimaryKeySetter(model: Model, columnName: string,
         return;
       } else if (Class.Cache.get(primaryKey)) {
         throw new Error(
-          `${Class.name}:${primaryKey} exists in persisted cache, you can't mutate this records primaryKey ${columnName} without unloading it from cache`
+          `${Class.name}:${primaryKey} exists in persisted cache, you can't mutate this records primaryKey ${columnName} without unloading it from cache`,
         );
       } else if (targetValue === null) {
         let foundKnownReferences = InstanceDB.getAllKnownReferences(Class).get(primaryKey);
@@ -46,7 +52,7 @@ export default function definePrimaryKeySetter(model: Model, columnName: string,
       let knownReferencesForTargetValue = InstanceDB.getAllKnownReferences(Class).get(targetValue);
       if (knownReferencesForTargetValue && knownReferencesForTargetValue !== existingInstances) {
         throw new Error(
-          `${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`
+          `${Class.name}:${targetValue} already exists in cache. Build a class with ${Class.name}.build({ ${columnName}:${targetValue} }) instead of mutating it!`,
         );
       }
 

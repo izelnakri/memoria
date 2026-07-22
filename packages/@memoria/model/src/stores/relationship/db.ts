@@ -31,7 +31,7 @@ export default class RelationshipDB {
 
   static findRelationshipFor(model: Model, relationshipName: string, relationshipType?: string) {
     return this.findRelationshipCacheFor(model.constructor as typeof Model, relationshipName, relationshipType).get(
-      model
+      model,
     );
   }
 
@@ -69,7 +69,7 @@ export default class RelationshipDB {
       this.updateRelationshipsGloballyFromARelationship(
         outputRecord,
         reverseRelationships[relationshipClassName],
-        modelInstances
+        modelInstances,
       );
     });
 
@@ -109,7 +109,7 @@ export default class RelationshipDB {
         RelationshipMutation.adjustHasManyRelationshipFor(
           relationship as Model,
           model,
-          RelationshipSchema.getRelationshipMetadataFor(RelationshipClass, metadata.reverseRelationshipName)
+          RelationshipSchema.getRelationshipMetadataFor(RelationshipClass, metadata.reverseRelationshipName),
         );
       }
     }
@@ -128,7 +128,7 @@ export default class RelationshipDB {
 
   static onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound(
     array: HasManyArray,
-    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipForeignKeyColumnName }: RelationshipMetadata
+    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipForeignKeyColumnName }: RelationshipMetadata,
   ) {
     if (!array.belongsTo) {
       return array;
@@ -156,7 +156,7 @@ export default class RelationshipDB {
               return result;
             } else if (!result[1] && reference.isPersisted) {
               result[1] = InstanceDB.getPersistedModels(RelationshipClass).get(
-                reference[RelationshipClass.primaryKeyName]
+                reference[RelationshipClass.primaryKeyName],
               ) as Model;
               if (ReverseRelationshipCache.get(result[1]) === belongsToModel) {
                 result[0] = result[1];
@@ -176,7 +176,7 @@ export default class RelationshipDB {
 
             return result;
           },
-          [null, null, null] as [Model | null, Model | null, Model | null]
+          [null, null, null] as [Model | null, Model | null, Model | null],
         );
       let targetInstance = foundRelationship || alternativeRelationship;
       let targetInstances = targetInstance && InstanceDB.getReferences(targetInstance);
@@ -192,7 +192,7 @@ export default class RelationshipDB {
   static updateRelationshipsGloballyFromARelationship(
     model: Model,
     reverseRelationshipMetadatas: RelationshipMetadata[],
-    modelInstances: Set<Model>
+    modelInstances: Set<Model>,
   ) {
     let Class = model.constructor as typeof Model;
     let modelInstancesArray = Array.from(modelInstances);
@@ -242,7 +242,7 @@ export default class RelationshipDB {
       SourceClass,
       foreignKeyColumnName,
       reverseRelationshipForeignKeyColumnName,
-    }: RelationshipMetadata
+    }: RelationshipMetadata,
   ): void | boolean {
     if (relationshipType === "BelongsTo") {
       return (
@@ -268,7 +268,7 @@ export default class RelationshipDB {
       this.deleteRelationshipsGloballyFromARelationship(
         model,
         reverseRelationships[relationshipClassName],
-        modelInstances
+        modelInstances,
       );
     });
 
@@ -309,7 +309,7 @@ export default class RelationshipDB {
   static deleteRelationshipsGloballyFromARelationship(
     _model: Model,
     reverseRelationshipMetadatas: RelationshipMetadata[],
-    modelInstances: Set<Model>
+    modelInstances: Set<Model>,
   ) {
     let modelInstancesArray = Array.from(modelInstances);
     let possibleReferences = InstanceDB.getAllReferences(reverseRelationshipMetadatas[0].SourceClass) as Array<
@@ -425,13 +425,13 @@ export default class RelationshipDB {
       return RelationshipMutation.cleanAndSetBelongsToRelationshipFor(
         model,
         targetRelationship as Model | null,
-        metadata
+        metadata,
       );
     } else if (metadata.relationshipType === "OneToOne") {
       return RelationshipMutation.cleanAndSetOneToOneRelationshipFor(
         model,
         targetRelationship as Model | null,
-        metadata
+        metadata,
       );
     } else if (metadata.relationshipType === "HasMany") {
       if (existingRelationship) {

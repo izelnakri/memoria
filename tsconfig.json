@@ -1,30 +1,36 @@
 {
-  "ts-node": {
-    "transpileOnly": true
-  },
+  // NOTE: This is the *transpilation* config. It intentionally has a wide `include` so that
+  // tsx/esbuild and editors apply `experimentalDecorators` to every file they touch — test files
+  // included. esbuild only applies a tsconfig's compilerOptions to files matched by `include`,
+  // and memoria's decorators are legacy-style, so a test file outside `include` would silently be
+  // compiled with stage-3 decorator semantics and blow up at runtime.
+  //
+  // Type *checking* is driven by tsconfig.typecheck.json, which narrows `include` to src only.
   "typedocOptions": {
     "entryPoints": ["packages/@memoria/model/src/index.ts", "packages/@memoria/adapters/src/index.ts"],
-    "out": "docs"
+    "out": "docs/api"
   },
   "compilerOptions": {
-    "target": "ESNEXT",                          /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */
-    "module": "commonjs",
-    "declaration": true,                   /* Generates corresponding '.d.ts' file. */
-    "outDir": "./dist",                        /* Redirect output structure to the directory. */
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "declaration": true,
+    "outDir": "./dist",
     "inlineSourceMap": true,
     "inlineSources": true,
-    "moduleResolution": "node",
     "esModuleInterop": true,
-    "baseUrl": "./",                       /* Base directory to resolve non-absolute module names. */
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "baseUrl": "./",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,         /* Enables experimental support for emitting type metadata for decorators. */
-    // Enhance Strictness
+    "emitDecoratorMetadata": true,
+
+    // Strictness
     "noUnusedLocals": true,
-    "noImplicitThis": true,
-    // Enabling these breaks @glimmer/application, fix and reenable this
-    "noImplicitAny": false,
-    "suppressImplicitAnyIndexErrors": false,
     "noUnusedParameters": true,
+    "noImplicitThis": true,
+    "noImplicitAny": false,
     "strictNullChecks": true,
     "allowUnreachableCode": false,
     "noImplicitReturns": false,
@@ -35,16 +41,14 @@
 
     "paths": {
       "@memoria/adapters": ["packages/@memoria/adapters/src"],
-      "@memoria/model": ["packages/@memoria/model/src"]
+      "@memoria/adapters/sql": ["packages/@memoria/adapters/src/sql/index.ts"],
+      "@memoria/model": ["packages/@memoria/model/src"],
+      "@memoria/response": ["packages/@memoria/response/src"],
+      "@memoria/server": ["packages/@memoria/server/src"]
     },
 
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
-  "include": ["packages/@memoria/adapter/src/**/*", "packages/@memoria/model/src/**/*"],
-  "exclude": [
-    "test",
-    "packages/@memoria/server"
-  ]
+  "include": ["packages/@memoria/*/src/**/*", "packages/@memoria/*/test/**/*", "test/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "**/dist/**"]
 }

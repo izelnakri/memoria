@@ -230,7 +230,7 @@ module("@memoria/server| handler defaults", function (hooks) {
             this.get("/houses");
           },
         }),
-      /houses route handler cannot be generated automatically/
+      /houses route handler cannot be generated automatically/,
     );
   });
 

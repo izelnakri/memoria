@@ -1,0 +1,14 @@
+{
+  // Type checking is scoped to published source. Test files are excluded on purpose: they lean on
+  // dynamically generated model classes whose properties TypeScript cannot see, which produces
+  // thousands of TS2339s that say nothing about the health of the library. Bringing tests under
+  // the checker is tracked as its own milestone.
+  "extends": "./tsconfig.json",
+  "include": [
+    "packages/@memoria/adapters/src/**/*",
+    "packages/@memoria/model/src/**/*",
+    "packages/@memoria/response/src/**/*",
+    "packages/@memoria/server/src/**/*"
+  ],
+  "exclude": ["node_modules", "**/dist/**"]
+}

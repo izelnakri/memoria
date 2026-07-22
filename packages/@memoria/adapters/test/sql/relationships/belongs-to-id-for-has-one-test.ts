@@ -307,7 +307,7 @@ module("@memoria/adapters | SQLAdapter | Relationships | @belongsTo API for ID(i
         assert.strictEqual(photo.group, insertedThirdGroup);
         assert.strictEqual(photo.group.photo, photo);
       });
-    }
+    },
   );
 
   module("CRUD: Relationship mutations and commit tests on models full lifecycle: Mutations on all sides", function () {

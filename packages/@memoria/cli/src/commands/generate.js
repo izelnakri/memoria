@@ -17,7 +17,7 @@ export default async function generateCommand() {
     return console.log(kleur.red("[Memserver CLI] cannot find /memserver folder. Did you run $ memserver init ?"));
   } else if (!generationType) {
     return console.log(
-      kleur.red("[Memserver CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures")
+      kleur.red("[Memserver CLI] generate should be either $ memserver g model [modelName] or $ memserver g fixtures"),
     );
   } else if (generationType === "model") {
     return await generateModel(modelName, memserverDirectory);
@@ -29,8 +29,8 @@ export default async function generateCommand() {
     kleur.red(
       `[Memserver CLI] $ memserver ${process.argv[2]} ${process.argv[3]} ${
         process.argv[4] || ""
-      } does not exists, available commands:`
-    )
+      } does not exists, available commands:`,
+    ),
   );
 
   return await helpCommand();
@@ -40,8 +40,8 @@ async function generateModel(modelName, memserverDirectory) {
   if (!modelName) {
     return console.log(
       kleur.red(
-        "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user"
-      )
+        "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user",
+      ),
     );
   }
 
@@ -63,7 +63,7 @@ export default class ${classModelName} extends Model {
   constructor() {
     super();
   }
-}`
+}`,
     );
     console.log(kleur.cyan(`[Memserver CLI] /memserver/models/${modelFileName}.ts created`));
   }
@@ -74,7 +74,7 @@ export default class ${classModelName} extends Model {
     await fs.writeFile(
       `${memserverDirectory}/fixtures/${fixtureFileName}.ts`,
       `export default [
-];`
+];`,
     );
     console.log(kleur.cyan(`[Memserver CLI] /memserver/fixtures/${fixtureFileName}.ts created`));
   }
@@ -120,7 +120,7 @@ async function generateFixtures(modelName, memserverDirectory) {
 
         console.log(kleur.yellow(`[MemServer] data written to ${expectedFixtureRelativePath}`));
       }
-    })
+    }),
   );
 }
 
@@ -139,7 +139,7 @@ async function importModelDefinitions(esmDirectory, modelFiles, isTypescript) {
     modelFiles.map(async (modelPath) => {
       console.log(`${esmDirectory}/models/${formatExtension(modelPath, isTypescript)}`);
       return (await import(`${esmDirectory}/models/${formatExtension(modelPath, isTypescript)}`)).default; // TODO: also make it change if its typescript
-    })
+    }),
   );
 
   return modelDefinitions.reduce((result, modelDefinition) => {

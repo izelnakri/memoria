@@ -72,25 +72,25 @@ module("@memoria/model | Utils | compare", function (hooks) {
       assert,
       [0, 0, 1, 2],
       [5, 4],
-      "comparison on number array with different length works correctly"
+      "comparison on number array with different length works correctly",
     );
     testCompareWorksCorrectly(
       assert,
       ["c", "something", "b", "d"],
       ["e", "zzzzzzz"],
-      "comparison on string array with different length works correctly"
+      "comparison on string array with different length works correctly",
     );
     testCompareWorksCorrectly(
       assert,
       [false, false, true, true],
       [true, true, true],
-      "comparison on boolean array with different length works correctly"
+      "comparison on boolean array with different length works correctly",
     );
     testCompareWorksCorrectly(
       assert,
       [new Date("2002-01-01"), new Date("2003-02-02"), new Date("2004-03-04"), new Date("2005-03-04")],
       [new Date("2022-01-01"), new Date("2022-02-02"), new Date("2022-03-04")],
-      "comparison on date array with different length works correctly"
+      "comparison on date array with different length works correctly",
     );
   });
 
@@ -101,7 +101,7 @@ module("@memoria/model | Utils | compare", function (hooks) {
       assert,
       [0, 5, 1, 2],
       [0, 4, 99, 99],
-      "comparison on number array with same length. different values work correctly"
+      "comparison on number array with same length. different values work correctly",
     );
     assert.equal(compare([0, 5, 1, 2], [0, 5, 1, 2]), 0);
     assert.equal(compare([0, 4, 99, 99], [0, 4, 99, 99]), 0);
@@ -110,7 +110,7 @@ module("@memoria/model | Utils | compare", function (hooks) {
       assert,
       ["c", "zzzzzz", "a"],
       ["c", "something", "b"],
-      "comparison on string array with different length works correctly"
+      "comparison on string array with different length works correctly",
     );
     assert.equal(compare(["c", "zzzzzz", "a"], ["c", "zzzzzz", "a"]), 0);
     assert.equal(compare(["c", "something", "b"], ["c", "something", "b"]), 0);
@@ -119,7 +119,7 @@ module("@memoria/model | Utils | compare", function (hooks) {
       assert,
       [true, true, false],
       [true, false, false],
-      "comparison on boolean array with different length works correctly"
+      "comparison on boolean array with different length works correctly",
     );
     assert.equal(compare([true, true, false], [true, true, false]), 0);
     assert.equal(compare([true, false, false], [true, false, false]), 0);
@@ -128,21 +128,21 @@ module("@memoria/model | Utils | compare", function (hooks) {
       assert,
       [new Date("2002-01-01"), new Date("2022-02-02"), new Date("2004-03-04")],
       [new Date("2002-01-01"), new Date("2003-02-02"), new Date("2055-03-04")],
-      "comparison on boolean array with different length works correctly"
+      "comparison on boolean array with different length works correctly",
     );
     assert.equal(
       compare(
         [new Date("2002-01-01"), new Date("2022-02-02"), new Date("2004-03-04")],
-        [new Date("2002-01-01"), new Date("2022-02-02"), new Date("2004-03-04")]
+        [new Date("2002-01-01"), new Date("2022-02-02"), new Date("2004-03-04")],
       ),
-      0
+      0,
     );
     assert.equal(
       compare(
         [new Date("2002-01-01"), new Date("2003-02-02"), new Date("2055-03-04")],
-        [new Date("2002-01-01"), new Date("2003-02-02"), new Date("2055-03-04")]
+        [new Date("2002-01-01"), new Date("2003-02-02"), new Date("2055-03-04")],
       ),
-      0
+      0,
     );
   });
 });

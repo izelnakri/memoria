@@ -13,6 +13,10 @@ import hackPretender from "./pretender-hacks.js"; // NOTE: check this
 const HTTP_VERBS = ["get", "post", "put", "delete"];
 const DEFAULT_PASSTHROUGHS = ["http://localhost:0/chromecheckurl", "http://localhost:30820/socket.io"];
 
+interface FreeObject {
+  [key: string]: any;
+}
+
 interface MemserverOptions {
   logging?: boolean;
   initializer?: () => any | void;
@@ -39,7 +43,9 @@ class Memserver {
     const routes = options.routes || function () {};
     const logging = options.hasOwnProperty("logging") ? options.logging : true;
 
-    const initializerReturn = initializer();
+    // NOTE: the initializer's promise is intentionally not awaited -- a constructor cannot be async.
+    // Callers that need the initializer to have completed must await it themselves.
+    initializer();
 
     return startPretender(routes, Object.assign(options, { logging }));
   }
@@ -53,11 +59,11 @@ function startPretender(routes, options) {
   Pretender.prototype.timing = options.timing;
 
   let pretender = new Pretender(
-    function () {
+    function (this: FreeObject) {
       let Memserver = kleur.cyan("[Memoria]");
 
       if (options.logging) {
-        this.handledRequest = function (verb, path, request) {
+        this.handledRequest = function (verb, _path, request) {
           let method = verb.toUpperCase();
           let requestURL = request.url.startsWith("localhost/") ? request.url.replace("localhost/", "/") : request.url;
 
@@ -69,7 +75,7 @@ function startPretender(routes, options) {
 
           console.log(JSON.parse(request.responseText));
         };
-        this.passthroughRequest = function (verb, path, request) {
+        this.passthroughRequest = function (verb, _path, request) {
           let requestURL = request.url.startsWith("localhost/") ? request.url.replace("localhost/", "/") : request.url;
 
           console.log(Memserver, kleur.yellow("[PASSTHROUGH]"), verb, requestURL);
@@ -82,7 +88,7 @@ function startPretender(routes, options) {
         throw new Error(`Memoria.UnhandledRequest: ${request.method} ${request.url}`);
       };
     },
-    { trackRequests: false }
+    { trackRequests: false },
   );
 
   // HACK: Pretender this.passthrough for better UX
@@ -96,9 +102,10 @@ function startPretender(routes, options) {
       return;
     }
 
-    let initialPart = (this.urlPrefix || "") + (this.namespace ? `/${this.namespace}` : "");
-    let fullUrl = url.startsWith("http") ? url : initialPart + url;
-
+    // NOTE: `url` is passed through unresolved on purpose. The patched Pretender.prototype[verb] in
+    // pretender-hacks.ts already resolves a relative path against urlPrefix/namespace before
+    // registering it, so resolving here as well would be redundant. (This function used to compute
+    // an unused `fullUrl` doing exactly that -- dead duplication of the hack, now removed.)
     HTTP_VERBS.forEach((verb) => pretender[verb](url, passthroughRequest));
   };
 
