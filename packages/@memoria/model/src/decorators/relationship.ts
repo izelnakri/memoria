@@ -11,7 +11,7 @@ type ObjectType<T> = { new (): T } | Function;
 export function OneToOne<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
   return function (target: typeof Model, propertyName: string, descriptor: any) {
     let inverseSideProperty: string | ((object: T) => any);
@@ -65,7 +65,7 @@ export function OneToOne<T>(
     return Class.Adapter.Decorators.OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -74,7 +74,7 @@ export function ManyToOne<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions,
-  type?: "many-to-one" | "one-to-one"
+  type?: "many-to-one" | "one-to-one",
 ) {
   return function (target: typeof Model, propertyName: string, descriptor: any) {
     // Normalize parameters.
@@ -133,7 +133,7 @@ export function ManyToOne<T>(
     return Class.Adapter.Decorators.ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -141,7 +141,7 @@ export function ManyToOne<T>(
 export function OneToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions: string | ((object: T) => any),
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
   return function (target: typeof Model, propertyName: string, descriptor: any) {
     // TODO: inverse
@@ -186,7 +186,7 @@ export function OneToMany<T>(
     return Class.Adapter.Decorators.OneToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -194,7 +194,7 @@ export function OneToMany<T>(
 export function ManyToMany<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
   return function (target: typeof Model, propertyName: string, descriptor: any) {
     // normalize parameters
@@ -248,7 +248,7 @@ export function ManyToMany<T>(
     return Class.Adapter.Decorators.ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -273,7 +273,7 @@ export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColum
     return target.constructor.Adapter.Decorators.JoinColumn(optionsOrOptionsArray)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -305,7 +305,7 @@ export const BelongsTo = ManyToOne;
 export function HasOne<T>(
   typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
   return ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options, "one-to-one");
 }
@@ -330,7 +330,7 @@ export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
       target.constructor,
       propertyKey,
       firstParam,
-      secondParam
+      secondParam,
     );
   };
 }

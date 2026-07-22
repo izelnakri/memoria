@@ -4,7 +4,12 @@ import type { ModelBuildOptions } from "../model.js";
 
 type QueryObject = { [key: string]: any };
 
-export default function defineColumnPropertySetter(model: Model, columnName: string, buildObject: QueryObject | Model = {}, buildOptions: ModelBuildOptions) {
+export default function defineColumnPropertySetter(
+  model: Model,
+  columnName: string,
+  buildObject: QueryObject | Model = {},
+  buildOptions: ModelBuildOptions,
+) {
   let cache = getTransformedValue(model, columnName, buildObject);
 
   return Object.defineProperty(model, columnName, {

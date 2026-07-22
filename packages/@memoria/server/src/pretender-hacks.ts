@@ -142,8 +142,8 @@ export default function hackPretender(Pretender) {
             JSON.stringify({
               error: `[Memoria] ${verb} ${path} route handler did not return anything to respond to the request!`,
             }),
-            headers
-          )
+            headers,
+          ),
         );
         pretender.handledRequest(verb, path, request);
       });

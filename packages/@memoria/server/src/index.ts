@@ -88,7 +88,7 @@ function startPretender(routes, options) {
         throw new Error(`Memoria.UnhandledRequest: ${request.method} ${request.url}`);
       };
     },
-    { trackRequests: false }
+    { trackRequests: false },
   );
 
   // HACK: Pretender this.passthrough for better UX

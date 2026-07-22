@@ -115,8 +115,8 @@ module("@memoria/model | Public API", function (hooks) {
     } catch (error) {
       assert.ok(
         /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
-          error.message
-        )
+          error.message,
+        ),
       );
     }
 
@@ -130,8 +130,8 @@ module("@memoria/model | Public API", function (hooks) {
     } catch (error) {
       assert.ok(
         /\[@memoria\/model\] User has no primary key! Please declare one with @PrimaryGeneratedColumn/.test(
-          error.message
-        )
+          error.message,
+        ),
       );
     }
   });
@@ -142,14 +142,28 @@ module("@memoria/model | Public API", function (hooks) {
     await Promise.all([Photo, PhotoComment, User].map((model) => model.resetCache()));
 
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "content", "inserted_at", "is_important", "user_id", "photo_id"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
+      "uuid",
+      "content",
+      "inserted_at",
+      "is_important",
+      "user_id",
+      "photo_id",
+    ]);
     assert.deepEqual(Array.from(User.columnNames), []);
 
     await Promise.all(PHOTO_FIXTURES.map((photo) => Photo.insert(photo)));
     await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
 
     assert.deepEqual(Array.from(Photo.columnNames), ["id", "is_public", "name", "href"]);
-    assert.deepEqual(Array.from(PhotoComment.columnNames), ["uuid", "content", "inserted_at", "is_important", "user_id", "photo_id"]);
+    assert.deepEqual(Array.from(PhotoComment.columnNames), [
+      "uuid",
+      "content",
+      "inserted_at",
+      "is_important",
+      "user_id",
+      "photo_id",
+    ]);
     assert.deepEqual(Array.from(User.columnNames), []);
   });
 

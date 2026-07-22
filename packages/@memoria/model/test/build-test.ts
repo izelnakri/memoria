@@ -218,7 +218,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.propEqual(secondPhoto.owner, users[1]);
     });
 
-    test('When $Model.build() is provided with a foreign key and the reference as pure object it sets it correctly', async function (assert) {
+    test("When $Model.build() is provided with a foreign key and the reference as pure object it sets it correctly", async function (assert) {
       let { Server, RESTUser, RESTPhoto } = setupRESTModels();
       this.Server = Server;
 
@@ -236,7 +236,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       let anotherBuiltPhoto = RESTPhoto.build({
         name: "Dinner photo",
         owner: { id: 1, first_name: "Izel", last_name: null },
-        owner_id: user.id
+        owner_id: user.id,
       });
 
       assert.equal(anotherBuiltPhoto.owner_id, 1);
@@ -245,7 +245,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
     });
 
     // NOTE: Move this to validation tests along with other validation tests.
-    test('When $Model.build() is provided with mismatched foreign key and reference with wrong primary key it throws!', async function (assert) {
+    test("When $Model.build() is provided with mismatched foreign key and reference with wrong primary key it throws!", async function (assert) {
       let { Server, RESTUser, RESTPhoto } = setupRESTModels();
       this.Server = Server;
 
@@ -258,17 +258,17 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       try {
         RESTPhoto.build({ name: "Dinner photo", owner: user, owner_id: 99 });
       } catch (error) {
-        assert.equal(error.message, 'You cannot provide different owner_id: 99 and owner.id: 1 for RESTPhoto partial!');
+        assert.equal(error.message, "You cannot provide different owner_id: 99 and owner.id: 1 for RESTPhoto partial!");
       }
 
       try {
         RESTPhoto.build({
           name: "Dinner photo",
           owner: { id: 55, first_name: "Izel", last_name: null },
-          owner_id: user.id
+          owner_id: user.id,
         });
       } catch (error) {
-        assert.equal(error.message, 'You cannot provide different owner_id: 1 and owner.id: 55 for RESTPhoto partial!');
+        assert.equal(error.message, "You cannot provide different owner_id: 1 and owner.id: 55 for RESTPhoto partial!");
       }
 
       assert.equal(InstanceDB.getAllUnknownInstances(RESTPhoto).length, 2); // NOTE: Make this 0 in future
@@ -325,7 +325,7 @@ module("@memoria/model | $Model.build() tests", function (hooks) {
       assert.deepEqual(emptyModel.changes, { name: "another new name", isPublic: true });
       assert.matchChangeset(
         emptyModel.changeset,
-        new Changeset(emptyModel, { name: "another new name", isPublic: true })
+        new Changeset(emptyModel, { name: "another new name", isPublic: true }),
       );
       assert.deepEqual(emptyModel.revisionHistory, [{ id: null, isPublic: null, name: "Imported photo" }]);
       assert.deepEqual(emptyModel.revision, { id: null, isPublic: null, name: "Imported photo" });

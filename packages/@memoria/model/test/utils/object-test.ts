@@ -157,7 +157,7 @@ module("@memoria/model | Utils | object", function (hooks) {
     assert.equal(get({}, "foo.bar.length"), undefined);
     assert.equal(
       get(function () {}, "foo.bar.length"),
-      undefined
+      undefined,
     );
     assert.equal(get("", "foo.bar.length"), undefined);
   });
@@ -261,7 +261,7 @@ module("@memoria/model | Utils | object", function (hooks) {
     assert.deepEqual(
       setProperties(undefined, undefined),
       undefined,
-      "noop for undefined properties and undefined object"
+      "noop for undefined properties and undefined object",
     );
 
     assert.deepEqual(setProperties({}), undefined, "noop for no properties");
@@ -286,7 +286,7 @@ module("@memoria/model | Utils | object", function (hooks) {
       {
         bar: 2,
       },
-      "Set an additional, previously unset property"
+      "Set an additional, previously unset property",
     );
   });
 });

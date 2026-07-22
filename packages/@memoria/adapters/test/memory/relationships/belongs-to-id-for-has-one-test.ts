@@ -305,7 +305,7 @@ module(
           assert.strictEqual(photo.group, insertedThirdGroup);
           assert.strictEqual(photo.group.photo, photo);
         });
-      }
+      },
     );
 
     module(
@@ -513,7 +513,7 @@ module(
           assert.equal(deletedPhoto.group_id, null);
           assert.equal(secondGroup.photo, null);
         });
-      }
+      },
     );
-  }
+  },
 );

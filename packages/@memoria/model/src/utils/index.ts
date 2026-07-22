@@ -46,7 +46,7 @@ export function primaryKeyTypeSafetyCheck(model: Model | AnyObject, ModelDefinit
       new Changeset(Class.build(model)),
       `Wrong ${Class.primaryKeyName} input type: entered ${typeof model[Class.primaryKeyName]} instead of ${
         Class.primaryKeyType
-      }`
+      }`,
     );
   }
 

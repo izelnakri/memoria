@@ -30,7 +30,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           } catch (error) {
             assert.ok(error instanceof RuntimeError);
           }
-        })
+        }),
       );
     });
 
@@ -70,7 +70,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
@@ -88,7 +88,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         secondModel,
@@ -97,7 +97,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           name: "Some name",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.notEqual(secondModel, thirdModel);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
@@ -194,7 +194,7 @@ module("@memoria/adapters | MemoryAdapter | Peek API", function (hooks) {
           is_important: true,
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       );
     });
 

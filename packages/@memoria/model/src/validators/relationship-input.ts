@@ -11,7 +11,7 @@ const MULTI_VALUE_RELATIONSHIPS = ["HasMany", "ManyToMany"];
 export default function validateRelationshipInput(
   input: any,
   Class: typeof Model,
-  { RelationshipClass, relationshipType, relationshipName }: RelationshipMetadata
+  { RelationshipClass, relationshipType, relationshipName }: RelationshipMetadata,
 ) {
   if (
     SINGLE_VALUE_RELATIONSHIPS.includes(relationshipType) &&

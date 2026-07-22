@@ -31,7 +31,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           } catch (error) {
             assert.ok(error instanceof RuntimeError);
           }
-        })
+        }),
       );
     });
 
@@ -71,7 +71,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
@@ -92,7 +92,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual(
         secondModel,
@@ -101,7 +101,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.notEqual(secondModel, thirdModel);
     });
@@ -152,7 +152,7 @@ module("@memoria/adapters | MemoryAdapter | Find API", function (hooks) {
           name: "Some name",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
 
       let thirdModels = await MemoryPhoto.find([1, 3]);

@@ -68,7 +68,7 @@ export default class MemoryAdapter {
   static resetCache(
     Model: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): MemoriaModel[] {
     Model.Cache.clear();
 
@@ -82,12 +82,12 @@ export default class MemoryAdapter {
   static async resetRecords(
     Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     if (Model) {
       if (targetState && targetState.length > 0) {
         let newTargetState = targetState.map((model: ModelRefOrInstance) =>
-          assignDefaultValuesForInsert(model || {}, Model)
+          assignDefaultValuesForInsert(model || {}, Model),
         );
 
         return this.resetCache(Model, newTargetState, options);
@@ -113,7 +113,7 @@ export default class MemoryAdapter {
           }
 
           return result;
-        }, {})
+        }, {}),
       );
 
       let outputRecord =
@@ -150,7 +150,7 @@ export default class MemoryAdapter {
   static peek(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): MemoriaModel[] | MemoriaModel | null {
     if (Array.isArray(primaryKey)) {
       return (primaryKey as PrimaryKey[]).reduce((result, targetKey) => {
@@ -200,7 +200,7 @@ export default class MemoryAdapter {
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | MemoriaModel | null> {
     return this.peek(Model, primaryKey, options);
   }
@@ -208,7 +208,7 @@ export default class MemoryAdapter {
   static async findBy(
     Model: typeof MemoriaModel,
     queryObject: object,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel | null> {
     return this.peekBy(Model, queryObject, options);
   }
@@ -216,7 +216,7 @@ export default class MemoryAdapter {
   static async findAll(
     Model: typeof MemoriaModel,
     queryObject: object = {},
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | null> {
     return this.peekAll(Model, queryObject, options);
   }
@@ -224,7 +224,7 @@ export default class MemoryAdapter {
   static async insert(
     Model: typeof MemoriaModel,
     record?: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let inputOptions = { ...options, isNew: false };
     let targetRecord = record || {};
@@ -259,7 +259,7 @@ export default class MemoryAdapter {
   static async update(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let cachedRecord = Model.Cache.get(record[Model.primaryKeyName]) as MemoriaModel;
     if (!cachedRecord) {
@@ -280,7 +280,7 @@ export default class MemoryAdapter {
 
           return result;
         },
-        record.isFrozen ? Model.build(record) : record
+        record.isFrozen ? Model.build(record) : record,
       );
 
       return this.cache(Model, outputRecord, options);
@@ -296,7 +296,7 @@ export default class MemoryAdapter {
 
         return result;
       },
-      { ...record }
+      { ...record },
     ) as ModelRefOrInstance;
 
     return this.cache(Model, outputRecord, options);
@@ -324,7 +324,7 @@ export default class MemoryAdapter {
   static async delete(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     return this.unload(Model, record, options);
   }
@@ -332,7 +332,7 @@ export default class MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     models: QueryObject[] | ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.insert(Model, model, options)));
   }
@@ -340,7 +340,7 @@ export default class MemoryAdapter {
   static async updateAll(
     Model: typeof MemoriaModel,
     models: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.update(Model, model, options)));
   }
@@ -348,7 +348,7 @@ export default class MemoryAdapter {
   static unloadAll(
     Model: typeof MemoriaModel,
     models?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): MemoriaModel[] {
     if (!models) {
       Model.Cache.clear();
@@ -362,7 +362,7 @@ export default class MemoryAdapter {
   static async deleteAll(
     Model: typeof MemoriaModel,
     models: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     return await Promise.all(models.map((model) => this.unload(Model, model, options)));
   }
@@ -391,14 +391,14 @@ export default class MemoryAdapter {
           RelationshipDB.cacheRelationship(
             model,
             metadata,
-            RelationshipClass.peek(model[foreignKeyColumnName] as PrimaryKey)
-          )
+            RelationshipClass.peek(model[foreignKeyColumnName] as PrimaryKey),
+          ),
         );
       } else if (relationshipType === "OneToOne") {
         let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
         if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
           throw new Error(
-            `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
+            `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`,
           );
         }
 
@@ -413,7 +413,7 @@ export default class MemoryAdapter {
         let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
         if (!reverseRelationshipForeignKeyColumnName) {
           throw new Error(
-            `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+            `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`,
           );
         }
 
@@ -431,22 +431,25 @@ export default class MemoryAdapter {
 
 function assignDefaultValuesForInsert(model, Model: typeof MemoriaModel) {
   let defaultValues = DB.getDefaultValues(Model, "insert");
-  return Array.from(Model.columnNames).reduce((result: ModelRefOrInstance, attribute: string) => {
-    if (attribute === Model.primaryKeyName) {
-      result[attribute] = model[attribute] || defaultValues[attribute](Model);
-    } else if (model.hasOwnProperty(attribute)) {
-      result[attribute] = model[attribute];
-    } else if (!defaultValues.hasOwnProperty(attribute)) {
-      result[attribute] = null;
-    } else {
-      result[attribute] =
-        typeof defaultValues[attribute] === "function"
-          ? defaultValues[attribute](Model) // TODO: this changed
-          : defaultValues[attribute];
-    }
+  return Array.from(Model.columnNames).reduce(
+    (result: ModelRefOrInstance, attribute: string) => {
+      if (attribute === Model.primaryKeyName) {
+        result[attribute] = model[attribute] || defaultValues[attribute](Model);
+      } else if (model.hasOwnProperty(attribute)) {
+        result[attribute] = model[attribute];
+      } else if (!defaultValues.hasOwnProperty(attribute)) {
+        result[attribute] = null;
+      } else {
+        result[attribute] =
+          typeof defaultValues[attribute] === "function"
+            ? defaultValues[attribute](Model) // TODO: this changed
+            : defaultValues[attribute];
+      }
 
-    return result;
-  }, prepareTargetObjectFromInstance(model, Model));
+      return result;
+    },
+    prepareTargetObjectFromInstance(model, Model),
+  );
 }
 
 // NOTE: instead model should add to existingModel, and maybe vice-versa?

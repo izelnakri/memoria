@@ -491,7 +491,7 @@ module(
           assert.strictEqual(lastFetchedPhoto.owner, insertedThirdUser);
           assert.hasMany(await lastFetchedPhoto.owner.photos, [lastFetchedPhoto]);
         });
-      }
+      },
     );
 
     module(
@@ -695,7 +695,7 @@ module(
           assert.equal(deletedPhoto.owner_id, null);
           assert.equal(secondUser.photo, null);
         });
-      }
+      },
     );
-  }
+  },
 );

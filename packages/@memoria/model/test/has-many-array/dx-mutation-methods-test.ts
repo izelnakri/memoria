@@ -34,7 +34,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
             assert.ok(error instanceof Error);
             assert.equal(
               error.message,
-              `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+              `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
             );
           }
         });
@@ -66,7 +66,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
             assert.ok(error instanceof Error);
             assert.equal(
               error.message,
-              `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`
+              `HasManyArray accepts memoria Models or falsy values for assignment, not ${value}`,
             );
           }
         });
@@ -333,7 +333,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
           assert.ok(error instanceof Error);
           assert.equal(
             error.message,
-            "HasManyArray cannot be instantiated or added with model types different than one another!"
+            "HasManyArray cannot be instantiated or added with model types different than one another!",
           );
         }
 
@@ -704,7 +704,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -736,7 +736,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -853,7 +853,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
       assert.equal(RelationshipMutation.removeHasManyRelationshipFor.callCount, 0);
       assert.deepEqual(
         array.replace([firstPhoto, fourthPhoto, secondPhoto], [sixthPhoto, fourthPhotoCopy, thirdPhoto]),
-        [sixthPhoto, fourthPhotoCopy, thirdPhoto, fifthPhoto]
+        [sixthPhoto, fourthPhotoCopy, thirdPhoto, fifthPhoto],
       );
       assert.deepEqual(array, [sixthPhoto, fourthPhotoCopy, thirdPhoto, fifthPhoto]);
       assert.equal(RelationshipMutation.addHasManyRelationshipFor.callCount, 7);
@@ -888,7 +888,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -920,7 +920,7 @@ module("@memoria/model | HasManyArray DX mutation methods", function (hooks) {
         assert.ok(error instanceof Error);
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 

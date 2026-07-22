@@ -36,7 +36,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           } catch (error) {
             assert.ok(error instanceof RuntimeError);
           }
-        })
+        }),
       );
     });
 
@@ -53,7 +53,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         await SQLPhoto.find(3),
@@ -62,7 +62,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Selfie",
           href: "selfie.jpeg",
           is_public: false,
-        })
+        }),
       );
     });
 
@@ -80,7 +80,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
@@ -100,7 +100,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         secondModel,
@@ -109,7 +109,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.notEqual(secondModel, thirdModel);
     });
@@ -161,7 +161,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Some name",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
 
       let thirdModels = await SQLPhoto.find([1, 3]);
@@ -198,7 +198,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
-        })
+        }),
       );
       assert.propEqual(
         await SQLPhotoComment.findBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
@@ -210,7 +210,7 @@ module("@memoria/adapters | SQLAdapter | Find API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       );
     });
 

@@ -394,7 +394,7 @@ async function generateMemServerState() {
           return '12or12rnfasdfzlemfp1m3epfm134';
         }
       }
-    }`
+    }`,
     ),
     fs.writeFile(`${CWD}/memserver/models/photo.ts`, modelFileContent("Photo")),
     fs.writeFile(
@@ -408,7 +408,7 @@ async function generateMemServerState() {
           photo_id: photo.id, user_id: user.id
         }));
       }
-    }`
+    }`,
     ),
     fs.writeFile(`${CWD}/memserver/models/likes.ts`, modelFileContent("Likes")),
     fs.writeFile(`${CWD}/memserver/routes.ts`, "export default function() {}"),
@@ -433,7 +433,7 @@ async function generateMemServerState() {
         href: 'selfie.jpeg',
         is_public: false
       }
-    ];`
+    ];`,
     ),
     fs.writeFile(
       `${CWD}/memserver/fixtures/photo-comments.ts`,
@@ -462,7 +462,7 @@ async function generateMemServerState() {
         photo_id: 2,
         user_id: 1
       }
-    ];`
+    ];`,
     ),
     fs.writeFile(
       `${CWD}/memserver/initializer.ts`,
@@ -486,7 +486,7 @@ async function generateMemServerState() {
         });
 
         Photo.update({ id: 1, name: 'Me skiing' });
-    }`
+    }`,
     ),
   ]);
 }

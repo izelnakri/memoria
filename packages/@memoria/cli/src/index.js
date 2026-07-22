@@ -17,7 +17,7 @@ export default async function startMemserver(memserverDirectory = `${CWD}/memser
 
   if (IS_TYPESCRIPT) {
     let entryPoints = await recursiveLookup(memserverDirectory, (path) =>
-      [".js", ".ts"].some((extension) => path.endsWith(extension))
+      [".js", ".ts"].some((extension) => path.endsWith(extension)),
     );
 
     await Promise.all(
@@ -37,7 +37,7 @@ export default async function startMemserver(memserverDirectory = `${CWD}/memser
 
         await fs.mkdir(targetFolder, { recursive: true });
         await fs.writeFile(targetEntry, output.code);
-      })
+      }),
     );
   }
 

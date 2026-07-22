@@ -75,18 +75,18 @@ export default class SQLAdapter extends MemoryAdapter {
   // sequence to MAX(id) after such an insert is what keeps the two allocation paths compatible.
   static async syncPrimaryKeySequence(Manager: FreeObject, Model: typeof MemoriaModel) {
     let metadata = Manager.connection.entityMetadatas.find(
-      (entityMetadata) => entityMetadata.targetName === Model.name
+      (entityMetadata) => entityMetadata.targetName === Model.name,
     );
     if (!metadata) {
       throw new RuntimeError(
-        `${Model.name} has no entity metadata registered on the SQLAdapter connection. Was the model declared before $Model.resetSchemas()?`
+        `${Model.name} has no entity metadata registered on the SQLAdapter connection. Was the model declared before $Model.resetSchemas()?`,
       );
     }
 
     let { tableName } = metadata;
 
     await Manager.query(
-      `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
+      `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`,
     );
   }
 
@@ -119,7 +119,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async resetRecords(
     Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
@@ -152,7 +152,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | MemoriaModel | null> {
     let Manager = await this.getEntityManager();
 
@@ -185,7 +185,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async findBy(
     Model: typeof MemoriaModel,
     queryObject: QueryObject,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel | null> {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOneBy(Model, getTargetKeysFromInstance(queryObject));
@@ -196,12 +196,12 @@ export default class SQLAdapter extends MemoryAdapter {
   static async findAll(
     Model: typeof MemoriaModel,
     queryObject: QueryObject = {},
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | null> {
     let Manager = await this.getEntityManager();
     let query = await Manager.createQueryBuilder(Model, Model.tableName).orderBy(
       `${Model.tableName}.${Model.primaryKeyName}`,
-      "ASC"
+      "ASC",
     );
 
     if (queryObject) {
@@ -217,7 +217,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async insert(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
       if (columnName !== Model.primaryKeyName && Model.columnNames.has(columnName)) {
@@ -245,7 +245,7 @@ export default class SQLAdapter extends MemoryAdapter {
       return this.cache(
         Model,
         Model.assign(prepareTargetObjectFromInstance(record, Model), result.generatedMaps[0]) as ModelRefOrInstance,
-        options
+        options,
       );
     } catch (error) {
       if (!error.code) {
@@ -266,7 +266,7 @@ export default class SQLAdapter extends MemoryAdapter {
           new Changeset(Model.build(target)),
           `Wrong ${Model.primaryKeyName} input type: entered ${typeof target[Model.primaryKeyName]} instead of ${
             Model.primaryKeyType
-          }`
+          }`,
         );
       }
 
@@ -277,7 +277,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async update(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
 
@@ -292,7 +292,7 @@ export default class SQLAdapter extends MemoryAdapter {
             }
 
             return result;
-          }, {})
+          }, {}),
         )
         .where(`${primaryKeyName} = :${primaryKeyName}`, {
           [primaryKeyName]: record[primaryKeyName],
@@ -323,7 +323,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async delete(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
     try {
@@ -352,7 +352,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return Model.build(
         Model.assign(result, resultRaw.raw[0]),
-        Object.assign(options || {}, { isNew: false, isDeleted: true })
+        Object.assign(options || {}, { isNew: false, isDeleted: true }),
       );
     } catch (error) {
       throw error;
@@ -363,7 +363,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let primaryKey = records.find((record) => record[Model.primaryKeyName]);
     try {
@@ -381,7 +381,7 @@ export default class SQLAdapter extends MemoryAdapter {
       }
 
       return result.raw.map((rawResult, index) =>
-        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options)
+        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options),
       );
     } catch (error) {
       console.log(error);
@@ -414,21 +414,21 @@ export default class SQLAdapter extends MemoryAdapter {
   static async updateAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     // TODO: model always expects them to be instance!! Do not use save function!
     let Manager = await this.getEntityManager();
     let results = await Manager.save(records.map((model) => cleanRelationships(Model, Model.build(model))));
 
     return results.map((result, index) =>
-      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options)
+      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options),
     );
   }
 
   static async deleteAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
     let targetPrimaryKeys = records.map((model) => model[Model.primaryKeyName]);
@@ -444,8 +444,8 @@ export default class SQLAdapter extends MemoryAdapter {
     return result.raw.map((rawResult, index) =>
       Model.build(
         Model.assign(records[index], rawResult),
-        Object.assign(options || {}, { isNew: false, isDeleted: true })
-      )
+        Object.assign(options || {}, { isNew: false, isDeleted: true }),
+      ),
     );
   }
 
@@ -477,7 +477,7 @@ export default class SQLAdapter extends MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
+              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`,
             );
           }
 
@@ -500,7 +500,7 @@ export default class SQLAdapter extends MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`,
             );
           }
 

@@ -46,7 +46,7 @@ module("@memserver/cli | g model command", function (hooks) {
 
     assert.equal(
       stdout,
-      "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user\n"
+      "[Memserver CLI] Please put a modelName to the memserver generate. Example: $ memserver generate model user\n",
     );
   });
 
@@ -83,7 +83,7 @@ export default class Email extends Model {
   constructor() {
     super();
   }
-}`
+}`,
     );
     assert.equal(userFixturesBuffer.toString(), "export default [\n];");
   });
@@ -117,7 +117,7 @@ export default class Email extends Model {
   constructor() {
     super();
   }
-}`
+}`,
     );
     assert.equal(userFixturesBuffer.toString(), "export default [\n];");
   });
@@ -134,12 +134,12 @@ function initializeMemServer() {
       fs.writeFile(
         `${memServerDirectory}/server.js`,
         `export default function(Models) {
-    }`
+    }`,
       ),
       fs.writeFile(
         `${memServerDirectory}/initializer.js`,
         `export default function(Models) {
-      }`
+      }`,
       ),
       fs.mkdir(`${memServerDirectory}/fixtures`),
       fs.mkdir(`${memServerDirectory}/models`),

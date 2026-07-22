@@ -54,7 +54,7 @@ export default class InstanceDB {
 
     return model[Class.primaryKeyName]
       ? (this.getAllKnownReferences(Class).get(model[Class.primaryKeyName as string]) as Set<Model>)
-      : this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) as Set<Model>;
+      : (this.getAllUnknownInstances(Class).find((modelSet) => modelSet.has(model)) as Set<Model>);
   }
 
   // NOTE: This could be improved in terms of memory because thrown build() instanceSets are not deleted from memory or has side effects

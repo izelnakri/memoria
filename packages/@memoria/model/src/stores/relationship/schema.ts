@@ -92,7 +92,7 @@ export default class RelationshipSchema {
             }
 
             let reverseRelationshipTable = ReverseRelationshipTables.get(
-              RelationshipClass.name
+              RelationshipClass.name,
             ) as ReverseRelationshipsTable;
             if (!reverseRelationshipTable[SourceClass.name]) {
               reverseRelationshipTable[SourceClass.name] = [];
@@ -104,7 +104,7 @@ export default class RelationshipSchema {
                 return RelationshipDB.findRelationshipCacheFor(
                   this.SourceClass,
                   this.relationshipName,
-                  this.relationshipType
+                  this.relationshipType,
                 );
               },
               relationshipName: relationshipName,
@@ -120,14 +120,14 @@ export default class RelationshipSchema {
                     this.relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
                   throw new Error(
                     `ReverseRelationship lookup not available for ${this.SourceClass.name} ${this.relationshipName}. You need to define a ` +
-                      `${targetReverseRelationship} that targets ${this.SourceClass.name} on ${this.RelationshipClass.name} class!`
+                      `${targetReverseRelationship} that targets ${this.SourceClass.name} on ${this.RelationshipClass.name} class!`,
                   );
                 }
 
                 return RelationshipDB.findRelationshipCacheFor(
                   this.RelationshipClass,
                   this.reverseRelationshipName,
-                  this.reverseRelationshipType
+                  this.reverseRelationshipType,
                 );
               },
               reverseRelationshipForeignKeyColumnName: null,
@@ -138,7 +138,7 @@ export default class RelationshipSchema {
             reverseRelationshipTable[SourceClass.name].push(metadata);
 
             return Object.assign(result, { [relationshipName]: metadata });
-          }, {})
+          }, {}),
         );
       });
     }
@@ -190,7 +190,7 @@ export default class RelationshipSchema {
         let targetReverseRelationship = relationshipType === "BelongsTo" ? "@HasOne or @HasMany" : "@BelongsTo";
         throw new Error(
           `ReverseRelationship lookup not available for ${Class.name} ${relationshipName}. You need to define a ` +
-            `${targetReverseRelationship} that targets ${Class.name} on ${RelationshipClass.name} class!`
+            `${targetReverseRelationship} that targets ${Class.name} on ${RelationshipClass.name} class!`,
         );
       }
 
@@ -279,7 +279,7 @@ export default class RelationshipSchema {
 function getTargetRelationshipForeignKey(
   Class: typeof Model,
   relationshipName: string,
-  RelationshipClass: typeof Model
+  RelationshipClass: typeof Model,
 ) {
   let preferredRelationshipForeignKey =
     RelationshipClass.primaryKeyType === "uuid" ? `${relationshipName}_uuid` : `${relationshipName}_id`;

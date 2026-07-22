@@ -51,7 +51,7 @@ assertPrototype.hasMany = function (
   this: AssertLike,
   hasManyArray: HasManyArray,
   expectedHasManyArray: Model[],
-  strictMode?: boolean
+  strictMode?: boolean,
 ) {
   if (!Array.isArray(hasManyArray) || !Array.isArray(expectedHasManyArray)) {
     return this.pushResult({
@@ -93,11 +93,7 @@ assertPrototype.hasMany = function (
   });
 };
 
-assertPrototype.strictHasMany = function (
-  this: AssertLike,
-  hasManyArray: HasManyArray,
-  expectedHasManyArray: Model[]
-) {
+assertPrototype.strictHasMany = function (this: AssertLike, hasManyArray: HasManyArray, expectedHasManyArray: Model[]) {
   return this.hasMany(hasManyArray, expectedHasManyArray, true);
 };
 

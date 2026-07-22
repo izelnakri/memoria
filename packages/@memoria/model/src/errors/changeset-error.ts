@@ -18,7 +18,7 @@ export default class ChangesetError extends Error {
     changeset: Changeset,
     errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string,
     errorName?: string,
-    errorMessage?: string
+    errorMessage?: string,
   ) {
     appendErrorToChangesetIfNeeded(changeset, errorMetadata);
 
@@ -37,7 +37,7 @@ export default class ChangesetError extends Error {
 
 function appendErrorToChangesetIfNeeded(
   changeset: Changeset,
-  errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string
+  errorMetadata?: ChangesetErrorItem | ChangesetErrorItem[] | string,
 ) {
   let ChangesetModel = changeset.data instanceof Model ? changeset.data.constructor : null;
   if (!errorMetadata || typeof errorMetadata === "string") {

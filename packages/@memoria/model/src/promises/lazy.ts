@@ -107,7 +107,7 @@ export default class LazyPromise extends Promise<void> {
 
       this.then(
         () => resolve(this.#abortMessage),
-        () => resolve(this.#abortMessage)
+        () => resolve(this.#abortMessage),
       );
     });
   }
@@ -138,7 +138,7 @@ export default class LazyPromise extends Promise<void> {
         if (!this.isAborted) {
           return this.#runRejectHandlers(error);
         }
-      }
+      },
     );
 
     return this;
@@ -168,7 +168,7 @@ export default class LazyPromise extends Promise<void> {
 
     return this.then(
       () => {},
-      () => {}
+      () => {},
     );
   }
 }

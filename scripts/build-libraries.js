@@ -1,22 +1,20 @@
-import fs from 'fs/promises';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import recursiveLookup from 'recursive-lookup';
+import fs from "fs/promises";
+import { exec } from "child_process";
+import { promisify } from "util";
+import recursiveLookup from "recursive-lookup";
 
 const shell = promisify(exec);
 
-let targetPackages = [
-  '@memoria/model',
-  '@memoria/adapters',
-  '@memoria/response',
-  '@memoria/server'
-];
+let targetPackages = ["@memoria/model", "@memoria/adapters", "@memoria/response", "@memoria/server"];
 
-await targetPackages.reduce(async (lastCompile, packageName) => {
-  await lastCompile;
+await targetPackages.reduce(
+  async (lastCompile, packageName) => {
+    await lastCompile;
 
-  return buildPackage(packageName);
-}, new Promise((resolve) => resolve()));
+    return buildPackage(packageName);
+  },
+  new Promise((resolve) => resolve()),
+);
 
 async function buildPackage(packageName) {
   let targetFolder = `${process.cwd()}/packages/${packageName}`;
@@ -25,18 +23,24 @@ async function buildPackage(packageName) {
   await fs.mkdir(`${targetFolder}/dist`, { recursive: true });
 
   try {
-    if (process.env.ENVIRONMENT !== 'development') {
-      await shell(`node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ESNext --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`);
+    if (process.env.ENVIRONMENT !== "development") {
+      await shell(
+        `node_modules/.bin/tsc $(find 'packages/${packageName}/src' -type f ) --outDir packages/${packageName}/dist --module es2020 --target ESNext --moduleResolution node --allowSyntheticDefaultImports true --experimentalDecorators true -d --allowJs`,
+      );
     } else {
-      let fileAbsolutePaths = await recursiveLookup(`packages/${packageName}/src`, (path) => path.endsWith('.ts') || path.endsWith('.js'));
+      let fileAbsolutePaths = await recursiveLookup(
+        `packages/${packageName}/src`,
+        (path) => path.endsWith(".ts") || path.endsWith(".js"),
+      );
 
-      await Promise.all(fileAbsolutePaths.map((fileAbsolutePath) => {
-        let targetPath = fileAbsolutePath
-          .replace(`packages/${packageName}/src`, `packages/${packageName}/dist`)
-        targetPath = targetPath.slice(0, targetPath.length - 3) + '.js';
+      await Promise.all(
+        fileAbsolutePaths.map((fileAbsolutePath) => {
+          let targetPath = fileAbsolutePath.replace(`packages/${packageName}/src`, `packages/${packageName}/dist`);
+          targetPath = targetPath.slice(0, targetPath.length - 3) + ".js";
 
-        return shell(`node_modules/.bin/esbuild ${fileAbsolutePath} --format=esm --outfile=${targetPath}`);
-      }));
+          return shell(`node_modules/.bin/esbuild ${fileAbsolutePath} --format=esm --outfile=${targetPath}`);
+        }),
+      );
     }
   } catch (error) {
     console.error(error);

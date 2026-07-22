@@ -48,7 +48,7 @@ export default class Schema {
 
     if (!primaryKeyName) {
       throw new Error(
-        `[@memoria/model] ${Class.name} has no primary key! Please declare one with @PrimaryGeneratedColumn`
+        `[@memoria/model] ${Class.name} has no primary key! Please declare one with @PrimaryGeneratedColumn`,
       );
     }
 
@@ -69,7 +69,7 @@ export default class Schema {
   static assignColumnMetadata(
     Class: typeof Model,
     columnName: string,
-    columnMetadata: ColumnDefinition
+    columnMetadata: ColumnDefinition,
   ): ColumnSchemaDefinition {
     let columns = this.getColumnsMetadataFrom(Class);
 

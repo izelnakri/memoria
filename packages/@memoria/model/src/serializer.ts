@@ -35,7 +35,7 @@ export default class Serializer {
   static embed(Model: typeof MemoriaModel, relationship: { [key: string]: typeof MemoriaModel }): object {
     if (typeof relationship !== "object" || relationship.name) {
       throw new RuntimeError(
-        `${Model.name}.Serializer.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`
+        `${Model.name}.Serializer.embed(relationshipObject) requires an object as a parameter: { relationshipKey: $RelationshipModel }`,
       );
     }
 
@@ -43,7 +43,7 @@ export default class Serializer {
 
     if (!relationship[key]) {
       throw new RuntimeError(
-        `${Model.name}.Serializer.embed(relationship) fails: ${key} Model reference is not a valid. Please put a valid $ModelName to Serializer.embed({ $ModelName: typeof Model })`
+        `${Model.name}.Serializer.embed(relationship) fails: ${key} Model reference is not a valid. Please put a valid $ModelName to Serializer.embed({ $ModelName: typeof Model })`,
       );
     }
 
@@ -70,11 +70,11 @@ export default class Serializer {
     Model: typeof MemoriaModel,
     parentObject: ModelReferenceShape,
     relationshipName: string,
-    relationshipModel?: typeof MemoriaModel
+    relationshipModel?: typeof MemoriaModel,
   ) {
     if (Array.isArray(parentObject)) {
       throw new RuntimeError(
-        `${Model.name}.Serializer.getEmbeddedRelationship(Model, parentObject) expects parentObject input to be an object not an array`
+        `${Model.name}.Serializer.getEmbeddedRelationship(Model, parentObject) expects parentObject input to be an object not an array`,
       );
     }
 
@@ -83,7 +83,7 @@ export default class Serializer {
 
     if (!targetRelationshipModel) {
       throw new RuntimeError(
-        `${relationshipName} relationship could not be found on ${Model.name} model. Please put the ${relationshipName} Model object as the fourth parameter to ${Model.name}.Serializer.getEmbeddedRelationship function`
+        `${relationshipName} relationship could not be found on ${Model.name} model. Please put the ${relationshipName} Model object as the fourth parameter to ${Model.name}.Serializer.getEmbeddedRelationship function`,
       );
     } else if (hasManyRelationship) {
       if (parentObject.id) {
@@ -102,7 +102,7 @@ export default class Serializer {
         return hasManyUUIDRecords.length > 0
           ? sortByIdOrUUID(
               hasManyUUIDRecords,
-              (hasManyUUIDRecords[0].constructor as typeof MemoriaModel).primaryKeyName
+              (hasManyUUIDRecords[0].constructor as typeof MemoriaModel).primaryKeyName,
             )
           : [];
       }
@@ -145,8 +145,7 @@ export default class Serializer {
     return Object.keys(Model.Serializer.embeds).reduce((result, embedKey) => {
       let embedModel = Model.Serializer.embeds[embedKey];
       let embeddedRecords = this.getEmbeddedRelationship(Model, model as ModelReferenceShape, embedKey, embedModel) as
-        | MemoriaModel
-        | MemoriaModel[];
+        MemoriaModel | MemoriaModel[];
 
       return Object.assign({}, result, { [embedKey]: embedModel.serializer(embeddedRecords) });
     }, objectWithAllColumns);

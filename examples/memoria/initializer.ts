@@ -6,11 +6,11 @@ declare global {
 }
 
 import users from "./fixtures/users";
-import photoComments from './fixtures/photo-comments';
+import photoComments from "./fixtures/photo-comments";
 import User from "./models/user";
-import PhotoComment from './models/photo-comment';
+import PhotoComment from "./models/photo-comment";
 
-export default function() {
+export default function () {
   window.User = User;
   window.PhotoComment = PhotoComment;
 

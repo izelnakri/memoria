@@ -10,7 +10,7 @@ export function Generated(generateFunction) {
     return target.constructor.Adapter.Decorators.Generated(generateFunction)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -49,14 +49,14 @@ export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOption
     return target.constructor.Adapter.Decorators.Index(nameOrFieldsOrOptions, maybeFieldsOrOptions, maybeOptions)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function Unique(
   nameOrFields?: string | string[] | ((object: any) => any[] | { [key: string]: number }),
-  maybeFields?: ((object?: any) => any[] | { [key: string]: number }) | string[]
+  maybeFields?: ((object?: any) => any[] | { [key: string]: number }) | string[],
 ) {
   return function (target: any, propertyName: string | symbol, descriptor: any) {
     let name = typeof nameOrFields === "string" ? nameOrFields : undefined;
@@ -89,7 +89,7 @@ export function Unique(
     return target.constructor.Adapter.Decorators.Unique(nameOrFields, maybeFields)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -105,7 +105,7 @@ export function Check(nameOrExpression: string, maybeExpression?: string) {
     return target.constructor.Adapter.Decorators.Check(nameOrExpression, maybeExpression)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
@@ -122,7 +122,7 @@ export function Exclusion(nameOrExpression: string, maybeExpression?: string) {
     return target.constructor.Adapter.Decorators.Exclusion(nameOrExpression, maybeExpression)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }

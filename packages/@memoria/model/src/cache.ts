@@ -3,7 +3,11 @@ export default class Cache<T, V> {
   public misses = 0;
   public hits = 0;
 
-  constructor(private limit: number, private func: (obj: T) => V, private store?: any) {
+  constructor(
+    private limit: number,
+    private func: (obj: T) => V,
+    private store?: any,
+  ) {
     this.store = store || new Map();
   }
 

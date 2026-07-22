@@ -45,7 +45,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
 
       let firstPhoto = await MemoryPhoto.update({
@@ -61,7 +61,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "S trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(firstPhoto, Object.assign(await MemoryPhoto.find(1), { name: "S trip" }));
       assert.notOk(firstPhoto.isNew);
@@ -104,7 +104,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "Family photo",
           href: "family-photo-2.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(secondPhoto, await MemoryPhoto.find(2));
       assert.ok(!secondPhoto.isNew && secondPhoto.isPersisted && !secondPhoto.isDirty && !secondPhoto.isDeleted);
@@ -129,7 +129,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
         comment,
         Object.assign(await MemoryPhotoComment.findBy({ uuid: "374c7f4a-85d6-429a-bf2a-0719525f5f29" }), {
           content: "Coolie",
-        })
+        }),
       );
       assert.notOk(comment.isNew);
       assert.ok(comment.isPersisted);
@@ -185,7 +185,10 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
       try {
         await MemoryPhoto.update({ id: 1, name: "ME", is_verified: false });
       } catch (error) {
-        assert.equal(error.message, 'is_verified is not a valid attribute for a MemoryPhoto partial! Provided { is_verified: false }');
+        assert.equal(
+          error.message,
+          "is_verified is not a valid attribute for a MemoryPhoto partial! Provided { is_verified: false }",
+        );
       }
 
       let photo = await MemoryPhoto.update({ id: 1, name: "ME" });
@@ -204,7 +207,10 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           location: "Amsterdam",
         });
       } catch (error) {
-        assert.equal(error.message, 'location is not a valid attribute for a MemoryPhotoComment partial! Provided { location: Amsterdam }');
+        assert.equal(
+          error.message,
+          "location is not a valid attribute for a MemoryPhotoComment partial! Provided { location: Amsterdam }",
+        );
       }
 
       let photoComment = await MemoryPhotoComment.update({
@@ -264,7 +270,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "Something",
           href: "/something.jpg",
           is_public: false,
-        })
+        }),
       );
 
       assert.equal(InstanceDB.getReferences(insertedPhoto).size, 3);
@@ -280,7 +286,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "Another",
           href: "/another.jpg",
           is_public: false,
-        })
+        }),
       );
 
       assert.deepEqual(MemoryPhoto.peek(updatedPhoto.id), updatedPhoto);
@@ -355,7 +361,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
           name: "Changed Hacker Log",
           owner: izel,
           photo: groupPhoto,
-        })
+        }),
       );
 
       assert.equal(InstanceDB.getReferences(group).size, 3);
@@ -458,7 +464,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
 
       assert.propEqual(
         await MemoryPhoto.findAll(),
-        PHOTOS.map((photo) => MemoryPhoto.build(photo))
+        PHOTOS.map((photo) => MemoryPhoto.build(photo)),
       );
 
       let photoOne = await MemoryPhoto.update({ id: PHOTOS[1].id, name: "first" }, { cacheDuration: 10 });
@@ -508,7 +514,7 @@ module("@memoria/adapters | MemoryAdapter | $Model.update()", function (hooks) {
 
       assert.propEqual(
         await MemoryPhoto.findAll(),
-        PHOTOS.map((photo) => MemoryPhoto.build(photo))
+        PHOTOS.map((photo) => MemoryPhoto.build(photo)),
       );
 
       await MemoryPhoto.update({ id: PHOTOS[1].id, name: "aa" }, { cacheDuration: 10 });

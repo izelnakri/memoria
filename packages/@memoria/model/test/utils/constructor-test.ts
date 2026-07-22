@@ -37,11 +37,11 @@ module("@memoria/model | Utils | constructor", function (hooks) {
       assert.strictEqual(getConstructor(new WeakMap()), WeakMap);
       assert.strictEqual(
         getConstructor(() => {}),
-        Function
+        Function,
       );
       assert.strictEqual(
         getConstructor(function () {}),
-        Function
+        Function,
       );
 
       let obj = Object.create(null);
