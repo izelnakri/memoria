@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # NOTE: matches the postgres service credentials below. The SQLAdapter and its test helper both
+  # read the standard libpq variables, so no config file or .env plumbing is needed.
+  PGHOST: localhost
+  PGPORT: 5432
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: postgres
+
+jobs:
+  static-analysis:
+    name: Typecheck & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Check formatting
+        run: npm run format
+
+  test-node:
+    name: Node ${{ matrix.node }} tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # NOTE: 22 is the minimum qunitx supports; 24 is current LTS. Both are exercised because the
+        # suite runs on node:test, whose reporter and lifecycle behaviour still moves between majors.
+        node: [22, 24]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Run node test suite
+        run: npm run test:node
+
+  test-browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # NOTE: qunitx-cli drives the browser through playwright-core, which ships no browsers of its
+      # own. Only chromium is needed -- the suite does not run the firefox/webkit matrix.
+      - name: Install chromium
+        run: npx playwright-core install --with-deps chromium
+      - name: Run browser test suite
+        run: npm run test:browser
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run node test suite with coverage
+        run: npm run test:node:coverage
+      # NOTE: informational only. A missing/expired CODECOV_TOKEN must not fail an otherwise green
+      # build -- and it would, on every fork PR, since forks cannot read secrets.
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          files: ./coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  build:
+    name: Build packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build all packages
+        run: npm run build
+      # NOTE: the build flips package.json entry points between src/ and dist/. Catching a dirty
+      # tree here keeps a half-toggled package.json from being committed by accident.
+      - name: Assert build left no uncommitted changes
+        run: git diff --exit-code

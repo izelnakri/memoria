@@ -1,41 +1,37 @@
-version: '3.8'
+# Local development database for the SQLAdapter test suite.
+#
+# NOTE: this used to also build and run memoria itself in a container, because CI executed the suite
+# inside docker-compose against a GHCR-hosted image. CI now runs the suite directly on the runner
+# with a postgres service container, so the only thing worth containerising locally is the database.
+#
+#   docker compose up -d
+#   npm test
+#
+# The credentials match the SQLAdapter defaults, so no environment variables are needed. Override
+# with the standard libpq variables (PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE) if this clashes
+# with a postgres you already run on 5432.
+#
+# (The previous version interpolated $PGUSER/$PGPASSWORD from .env and assigned them to each other's
+# keys -- PGUSER: $PGPASSWORD, PGPASSWORD: $PGUSER -- which only went unnoticed because both values
+# were "postgres". Hardcoding the dev credentials removes the footgun along with the .env coupling.)
 services:
   db:
-    image: postgres:13.4-alpine
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: $PGUSER
-      POSTGRES_PASSWORD: $PGPASSWORD
-      PGUSER: $PGPASSWORD
-      PGPASSWORD: $PGUSER
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
       PGDATA: /var/lib/postgresql/data/pgdata
-    restart: always
-    networks:
-      - backend_network
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
-  memoria:
-    image: $REGISTRY/$REPO_OWNER/$DOCKER_TAG
-    environment:
-      POSTGRES_USER: $PGUSER
-      POSTGRES_PASSWORD: $PGPASSWORD
-      PGUSER: $PGUSER
-      PGPASSWORD: $PGPASSWORD
-      PGPORT: 5432
-      PGHOST: db
-      CODECOV_TOKEN: $CODECOV_TOKEN
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - $REGISTRY/$REPO_OWNER/$DOCKER_TAG
-    tty: true
-    depends_on:
-      - db
-    networks:
-      - backend_network
-    command: ["/bin/sh", "./setup-database.sh"]
+
 volumes:
   pgdata:
-networks:
-  backend_network:
-    driver: bridge
