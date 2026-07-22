@@ -2,6 +2,28 @@
 
 **Branch**: `main` is the correct target. All prior feature branches have been merged or superseded.
 
+## Current baseline
+
+As of the toolchain-modernization PR, on Node 24:
+
+- **842 node tests passing** (`npm run test:node`) — `@memoria/model` + Memory, REST and SQL adapters
+- **726 browser tests passing** (`npm run test:browser`) — model, Memory, REST, `@memoria/server`,
+  `@memoria/response`
+- `npm run typecheck` clean across all four packages' `src/`
+- `npm run format` clean
+- CI runs typecheck, format, a Node 22/24 matrix, browser tests, coverage and a build check
+
+Two things previously believed broken turned out not to be:
+
+- **SQLAdapter was not broken.** All 158 SQL failures in the old baseline were `password authentication
+failed` — an environment problem, not a code one. Every SQL test passes against a correctly configured
+  Postgres. The TypeORM 0.2 API it used (`createConnection`/`isConnected`/`close`) still existed as
+  deprecated shims in 0.3.17, so it worked; it has now been ported to `DataSource` and the pin moved to
+  0.3.31.
+- **`@memoria/server` passthrough works.** It is exercised and green in the browser suite. What is actually
+  broken is Node-side `fetch` interception, which is why the server tests are excluded from the Node run —
+  a narrower problem than "passthrough is non-functional".
+
 ## Working Convention
 
 Each change — whether a bug fix, new feature, or refactor — should be accompanied by a clear explanation
@@ -19,22 +41,27 @@ is green.
 
 ## Milestone 1: SQLAdapter Modernization (TypeORM 0.3 Compatibility)
 
-The SQLAdapter was written against the deprecated TypeORM 0.2 API. TypeORM 0.3 removed `createConnection`,
-`Connection`, and `isConnected`. These must be replaced.
+The SQLAdapter was written against the deprecated TypeORM 0.2 API. Those entry points still existed as
+shims in 0.3.17, so this was never a functional break — but they are gone in later versions and blocked
+every upgrade.
 
 **Tasks:**
 
-- [ ] Replace `createConnection` with `new DataSource(...)` and `.initialize()`
-- [ ] Replace `Connection` type references with `DataSource`
-- [ ] Replace `isConnected` checks with `isInitialized`
-- [ ] Replace `connection.manager` with `dataSource.manager`
-- [ ] Fix `resetSchemas()` — currently `dropDatabase()` then `connection.close()` pattern needs updating
+- [x] Replace `createConnection` with `new DataSource(...)` and `.initialize()`
+- [x] Replace `Connection` type references with `DataSource`
+- [x] Replace `isConnected` checks with `isInitialized`
+- [x] Replace `connection.close()` with `connection.destroy()`
+- [x] Make connection options configurable via standard libpq environment variables
+- [x] Run SQL adapter tests end-to-end (158/158 passing on typeorm 0.3.31)
+- [x] Deduplicate the serial-sequence resync into `syncPrimaryKeySequence()` with a real error on
+      missing entity metadata
+- [ ] `connection.manager` → `dataSource.manager` (works today via the `EntityManager.connection`
+      back-reference; worth making explicit)
 - [ ] Enable `resetSchemas(Model)` per-model reset (currently throws RuntimeError — not supported)
 - [ ] Ensure `getConnection()` / `getEntityManager()` correctly lazily reinitializes after close
 - [ ] Fix `insertAll()` — it has a `console.log(error)` and commented-out error handling; add proper errors
 - [ ] Fix `updateAll()` — uses `Manager.save()` with `cleanRelationships()` hack; replace with proper query builder
 - [ ] Fix `deleteAll()` — `peekAll(Model, targetPrimaryKeys)` called with array where object expected
-- [ ] Run SQL adapter tests end-to-end and fix any remaining TypeORM 0.3 regressions
 
 ---
 
@@ -213,11 +240,13 @@ Production builds should emit compiled ESM/CJS with proper type declarations.
   - `dist/types/` — `.d.ts` type declarations
 - [ ] Replace the current webpack-based `libs:build` with a lighter tool (esbuild or tsup) per package
 - [ ] Add proper `package.json` `exports` field with `import` / `require` / `types` conditions per package
+      (`@memoria/adapters` now has a minimal `exports` map with `.`, `./sql` and a `./*` passthrough;
+      the other three packages still only have `main`)
 - [ ] Add `sideEffects: false` to each package for tree-shaking
-- [ ] Ensure `@memoria/adapters` lazy-loads `SQLAdapter` so it doesn't pull in `typeorm` in browser bundles
-      (SQLAdapter should be a separate entry point or dynamic import)
-- [ ] Add `engines` field specifying minimum Node.js version
-- [ ] Remove `typeorm` from the main `@memoria/adapters` bundle; make it a peer dependency
+- [x] Ensure `@memoria/adapters` does not pull `typeorm` into browser bundles — SQLAdapter is now a
+      separate entry point (`@memoria/adapters/sql`), which cut the browser test bundle 7.65 MB → 1.59 MB
+- [x] Add `engines` field specifying minimum Node.js version (`>=22`)
+- [x] Remove `typeorm` from the main `@memoria/adapters` bundle; make it an optional peer dependency
 
 ---
 
@@ -233,8 +262,13 @@ Goal: minimal runtime dependencies per the project philosophy.
       Audit whether all are still needed; `kleur` could be inlined as the usage is tiny
 - [ ] `@memoria/adapters` — `inflected` is re-used for `RESTAdapter.pathForType()`; share from model package
       so it's not duplicated in the bundle
-- [ ] `typeorm` in SQLAdapter — keep as peer dependency only; document that users must install it explicitly
-- [ ] Remove `sketchpad.ts`, `sketchpad.js` and `index.html` from the repo root before release
+- [x] `typeorm` in SQLAdapter — now an optional peer dependency, documented in the README
+- [x] Remove `sketchpad.ts`, `sketchpad.js` and `index.html` from the repo root before release
+      (also removed: `webpack.config.js` and the webpack toolchain, `public/`, `test/memoria-ssr.ts`,
+      `Dockerfile`, `setup-database.sh`, `.env`)
+- [ ] Decide the fate of `examples/` — it is uncompiled sketch code, `examples/adapters/database.ts` is not
+      valid TypeScript, and it still imports `SQLAdapter` from the package root. Either rewrite it against
+      the current API and typecheck it in CI, or delete it. It is excluded from prettier until then.
 
 ---
 
@@ -242,7 +276,7 @@ Goal: minimal runtime dependencies per the project philosophy.
 
 **Tasks:**
 
-- [ ] Update README to reflect current API (remove Mirage comparison as primary framing)
+- [x] Update README to reflect current API (removed the Mirage comparison as primary framing)
 - [ ] Document all relationship types with code examples (BelongsTo, HasOne, HasMany, ManyToMany)
 - [ ] Document `Model.build()`, `Model.cache()`, `Model.resetCache()`, `Model.resetRecords()` semantics
 - [ ] Document `Changeset` API and how to use it for validation
@@ -267,11 +301,83 @@ Goal: minimal runtime dependencies per the project philosophy.
 
 ---
 
+## Milestone 14: Bring Tests Under the Type Checker
+
+`npm run typecheck` covers `src/` only. Adding `packages/**/test` produces ~9,200 errors, overwhelmingly
+`TS2339` (property does not exist): the suites build model classes inside factory functions
+(`generatePhoto()` returns an anonymous `class extends Model`), so the checker sees `Model`, not a class
+with `name`/`href`/`owner_id`. Decorators contribute the rest — a decorated field has no declared type the
+checker can relate to the column definition.
+
+This is the single largest source of "the agent cannot tell whether it broke something without running the
+whole suite". It is worth solving properly rather than with `// @ts-nocheck`.
+
+**Tasks:**
+
+- [ ] Decide the typing strategy for decorator-defined columns — declaration merging, a `Model<Shape>`
+      generic, or a codegen step that emits interfaces from the schema
+- [ ] Give the test model factories concrete return types so `generatePhoto()` yields a typed class
+- [ ] Fold `packages/**/test` and `test/` into `tsconfig.typecheck.json` and make CI enforce it
+- [ ] Type the custom assertions (`matchJson`, `hasMany`, …) via module augmentation so `assert.hasMany`
+      is not an `any` — `test/helpers/custom-assertions.ts` currently casts around qunitx's two runtime
+      shapes
+
+---
+
+## Milestone 15: Node.js `fetch` Interception
+
+The reason `@memoria/server` and `@memoria/response` are excluded from the Node suite (they pass in the
+browser). Pretender patches `XMLHttpRequest`, which jsdom provides, but Node's native `fetch` is undici and
+goes nowhere near it. Everything under `packages/@memoria/server/test` is green in a browser today, so this
+is purely about the Node story.
+
+**Tasks:**
+
+- [ ] Choose an interception strategy — undici `MockAgent` / `setGlobalDispatcher`, or a `globalThis.fetch`
+      wrapper that routes into Pretender's recognizer
+- [ ] Make `RESTAdapter` requests go through the same path in both runtimes
+- [ ] Restore the `@memoria/server` and `@memoria/response` imports in `test/index.ts`
+- [ ] Confirm the Node and browser suites report the same test count
+
+---
+
+## Milestone 16: Test Suite Performance and Isolation
+
+The Node suite runs as a single aggregate entry (`test/index.ts`) in one process, inherited from the old
+runner. `node:test` can run files in parallel processes, but the suite is not ready for it: models register
+into a global `Schema.Schemas`, and the SQL tests share one database that they `TRUNCATE`/`dropDatabase`
+between tests.
+
+**Tasks:**
+
+- [ ] Make per-file runs work standalone (`node --test packages/@memoria/model/test/build-test.ts`)
+- [ ] Give SQL tests an isolated schema or database per worker so they can run concurrently
+- [ ] Switch to a glob entry and measure the wall-clock win (currently ~70s node, ~22s browser)
+- [ ] Add `--experimental-test-isolation` or equivalent guards so global-state leaks fail loudly
+
+---
+
+## Milestone 17: TypeScript 7
+
+TypeScript 7 (the native port) removes `baseUrl` and `moduleResolution: node10`, both of which this repo
+relies on. It was deliberately not adopted during the toolchain refresh because the fix interacts with the
+`main: src/index.ts` package layout — packages resolve to TypeScript source today, which `bundler` and
+`nodenext` resolution treat very differently.
+
+**Tasks:**
+
+- [ ] Replace `baseUrl` + `paths` with explicit relative paths or an `exports`-driven layout
+- [ ] Move to `moduleResolution: bundler` (or `nodenext` once packages emit real `exports`)
+- [ ] Sequence against Milestone 10 — the build-system work and this share a root cause
+- [ ] Re-run both suites and the typecheck on TS 7
+
+---
+
 ## Done (baseline on `main`)
 
 - MemoryAdapter: full CRUD with auto-incrementing id/UUID primary keys
 - RESTAdapter: full CRUD with HTTP + in-memory cache layer
-- SQLAdapter: full CRUD via TypeORM (needs M1 fixes)
+- SQLAdapter: full CRUD via TypeORM 0.3.31 `DataSource` — 158/158 tests green
 - BelongsTo / OneToOne / HasMany relationships across all three adapters
 - Reflective (bidirectional) relationship tracking in memory
 - HasManyArray — custom Array subclass with relationship mutation hooks
@@ -285,5 +391,7 @@ Goal: minimal runtime dependencies per the project philosophy.
 - Enum / EnumFreeze utilities
 - `@memoria/server` in-browser HTTP mock server (Pretender-based)
 - `@memoria/response` Response helper
-- QUnitX-based test suite across model, memory, rest, sql adapters
-- TypeScript throughout with NodeNext module resolution
+- QUnitX-based test suite across model, memory, rest, sql adapters — the same files run on `node:test`
+  and in a browser
+- TypeScript throughout, type checked across every package's `src/`
+- CI on Node 22/24 with a postgres service, browser tests, format and build verification
