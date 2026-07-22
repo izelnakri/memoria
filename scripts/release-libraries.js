@@ -34,7 +34,7 @@ TARGET_LIBRARIES.forEach((libraryName) => {
 
 PROJECT_JSON.version = version;
 
-await fs.writeFile("package.json", JSON.stringify(PROJECT_JSON, null, 2));
+await fs.writeFile("package.json", `${JSON.stringify(PROJECT_JSON, null, 2)}\n`);
 
 await Promise.all(TARGET_LIBRARIES.map((libraryName) => makeLibEntrypointTS(libraryName)));
 
@@ -62,7 +62,7 @@ async function bumpVersion(libraryName, version, projectJSONDependencies) {
 
   oldJSON.main = "dist/index.js"; // NOTE: make npm packages target JS
 
-  await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
+  await fs.writeFile(`packages/${libraryName}/package.json`, `${JSON.stringify(oldJSON, null, 2)}\n`);
 }
 
 async function makeLibEntrypointTS(libraryName) {
@@ -71,5 +71,5 @@ async function makeLibEntrypointTS(libraryName) {
 
   oldJSON.main = "src/index.ts"; // NOTE: make npm packages target TS for development
 
-  await fs.writeFile(`packages/${libraryName}/package.json`, JSON.stringify(oldJSON, null, 2));
+  await fs.writeFile(`packages/${libraryName}/package.json`, `${JSON.stringify(oldJSON, null, 2)}\n`);
 }
