@@ -59,8 +59,8 @@
     "jsdom": "^29.1.1",
     "pg": "^8.22.0",
     "prettier": "^3.9.6",
-    "qunitx": "^1.2.18",
-    "qunitx-cli": "^0.31.1",
+    "qunitx": "^1.4.0",
+    "qunitx-cli": "^0.39.0",
     "recursive-lookup": "^1.0.0",
     "release-it": "^20.2.1",
     "rfdc": "^1.4.1",
@@ -69,6 +69,10 @@
     "typedoc": "^0.28.20",
     "typeorm": "^0.3.31",
     "typescript": "5.9"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "qunitx-cli": false
   },
   "prettier": {
     "printWidth": 120,

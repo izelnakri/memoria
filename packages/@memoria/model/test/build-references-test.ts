@@ -316,7 +316,7 @@ module("@memoria/model | Stores | $Model.build() InstanceDB references", functio
       });
     });
 
-    module("mutation to persisted existing primaryKey cache scenarios", async function (assert) {
+    module("mutation to persisted existing primaryKey cache scenarios", function () {
       test("$Model.build() with ids changing id throws if existing cache already exists on that primaryKey", async function (assert) {
         const { Post } = prepare();
 

@@ -1,46 +1,37 @@
 // Custom QUnit assertions shared by every package's test suite.
 //
-// Historically each package's setup-memoria.ts registered its own copy of these on `QUnit.assert`
-// inside a `before()` hook. That worked only in the browser; qunitx 1.x runs the same files on
-// `node:test` too, where there is no `QUnit` singleton and every test gets its own `Assert`
-// instance.
+// qunitx documents `Assert.prototype` from `qunitx/assert` as the extension point for custom
+// assertions: every per-test `assert` object inherits from it on node and deno. The browser build
+// runs vendored QUnit directly, whose tests inherit from `QUnit.assert` instead -- qunitx re-exports
+// that as `assert` from its browser entry only, so it is read off the namespace and is undefined
+// everywhere else. In both cases what is extended is the *prototype* of the per-test assert, so
+// `this` inside an assertion is the assert of the currently running test.
 //
-// The two runtimes expose different -- but equivalent -- extension points, and in both cases the
-// object we extend is the *prototype* of the per-test assert object, so `this` inside an assertion
-// is the assert of the currently running test:
-//
-//   node/deno : the exported `Assert` class -> extend `Assert.prototype`
-//   browser   : qunitx re-exports QUnit itself, whose `QUnit.assert` *is* that prototype
-//
-// Note the assertions below call `this.equal(...)` rather than a captured module-level `assert`.
-// The old code closed over `QUnit.assert`, relying on QUnit's singleton proxying to the active
-// test. Under node:test that indirection does not exist, and nested assertions would have been
-// attributed to the wrong test (or thrown).
+// The assertions call `this.equal(...)` rather than a captured module-level `assert`: under
+// node:test there is no QUnit singleton proxying to the active test, so nested assertions made
+// through a captured object would be attributed to the wrong test.
 import * as qunitx from "qunitx";
+import BaseAssert from "qunitx/assert";
 import Model, { RelationshipDB, match } from "@memoria/model";
 import type { HasManyArray } from "@memoria/model";
 
-type AssertLike = {
-  pushResult(info: { result: boolean; actual?: unknown; expected?: unknown; message?: string }): void;
-  equal(actual: unknown, expected: unknown, message?: string): void;
-  strictEqual(actual: unknown, expected: unknown, message?: string): void;
-  deepEqual(actual: unknown, expected: unknown, message?: string): void;
+/** The `assert` every memoria test receives. Annotate a test's parameter with it to use the custom assertions. */
+export interface Assert extends BaseAssert {
+  matchJson(value: unknown, expected: unknown, message?: string): void;
+  matchChangeset(value: object, expected: object, message?: string): void;
   hasMany(hasManyArray: HasManyArray, expectedHasManyArray: Model[], strictMode?: boolean): void;
-};
-
-const assertPrototype: AssertLike = (qunitx as any).Assert?.prototype ?? (qunitx as any).assert;
-
-if (!assertPrototype) {
-  throw new Error("qunitx did not expose an assert prototype to extend -- custom assertions cannot be registered");
+  strictHasMany(hasManyArray: HasManyArray, expectedHasManyArray: Model[]): void;
 }
 
-assertPrototype.matchJson = function (this: AssertLike, value: unknown, expected: unknown, message?: string) {
+const assertPrototype = ((qunitx as { assert?: BaseAssert }).assert ?? BaseAssert.prototype) as Assert;
+
+assertPrototype.matchJson = function (this: Assert, value: unknown, expected: unknown, message?: string) {
   let actual = JSON.parse(JSON.stringify(value, null, 2));
 
   this.pushResult({ result: match(actual, expected), actual, expected, message });
 };
 
-assertPrototype.matchChangeset = function (this: AssertLike, value: object, expected: object, message?: string) {
+assertPrototype.matchChangeset = function (this: Assert, value: object, expected: object, message?: string) {
   let actual = JSON.parse(JSON.stringify(filterObject(value, ["date"]), null, 2));
   let filteredExpected = JSON.parse(JSON.stringify(filterObject(expected, ["date"]), null, 2));
 
@@ -48,7 +39,7 @@ assertPrototype.matchChangeset = function (this: AssertLike, value: object, expe
 };
 
 assertPrototype.hasMany = function (
-  this: AssertLike,
+  this: Assert,
   hasManyArray: HasManyArray,
   expectedHasManyArray: Model[],
   strictMode?: boolean,
@@ -93,7 +84,7 @@ assertPrototype.hasMany = function (
   });
 };
 
-assertPrototype.strictHasMany = function (this: AssertLike, hasManyArray: HasManyArray, expectedHasManyArray: Model[]) {
+assertPrototype.strictHasMany = function (this: Assert, hasManyArray: HasManyArray, expectedHasManyArray: Model[]) {
   return this.hasMany(hasManyArray, expectedHasManyArray, true);
 };
 

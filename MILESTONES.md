@@ -358,31 +358,6 @@ between tests.
 
 ---
 
-## Milestone 16b: Upstream — qunitx-cli publishes a non-portable Linux binary
-
-Not a memoria bug, but memoria's CI carries the workaround, so it belongs on this list.
-
-`qunitx-cli`'s npm bin prefers a prebuilt SEA binary from the optional `qunitx-cli-linux-x64` package.
-The published v0.31.1 artifact was compiled on NixOS and hardcodes a Nix ELF interpreter:
-
-```
-interpreter /nix/store/8kvxvr3...-glibc-2.42-67/lib/ld-linux-x86-64.so.2
-```
-
-It cannot execute on any non-Nix Linux — `cannot execute: required file not found`. It runs fine on the
-NixOS machine this repo is developed on, which is why it does not reproduce locally. The CI browser job
-deletes `node_modules/qunitx-cli-linux-x64` so the launcher falls back to `dist/cli.js`.
-
-**Tasks:**
-
-- [ ] Fix the qunitx-cli release pipeline to build the linux-x64 SEA in a glibc container (or patchelf
-      the interpreter to `/lib64/ld-linux-x86-64.so.2`) and republish
-- [ ] Consider making the launcher verify the binary actually execs before committing to it, instead of
-      relying on `access(X_OK)` — the file is executable, it just cannot be loaded
-- [ ] Remove the `rm -rf node_modules/qunitx-cli-linux-x64` step from `.github/workflows/ci.yml`
-
----
-
 ## Milestone 17: TypeScript 7
 
 TypeScript 7 (the native port) removes `baseUrl` and `moduleResolution: node10`, both of which this repo
@@ -419,5 +394,9 @@ relies on. It was deliberately not adopted during the toolchain refresh because 
 - `@memoria/response` Response helper
 - QUnitX-based test suite across model, memory, rest, sql adapters — the same files run on `node:test`
   and in a browser
+- qunitx 1.4 (QUnit 3 semantics) and qunitx-cli 0.39. The CI workaround for qunitx-cli 0.31's
+  non-portable linux-x64 binary (a `/nix/store` ELF interpreter) is gone: 0.37 builds the binary on an
+  official Node, gates releases on its portability, and the launcher falls back to the JS CLI when the
+  binary cannot start
 - TypeScript throughout, type checked across every package's `src/`
 - CI on Node 22/24 with a postgres service, browser tests, format and build verification

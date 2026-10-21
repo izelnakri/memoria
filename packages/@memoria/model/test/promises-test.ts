@@ -297,7 +297,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
     });
   });
 
-  module(".abort() cases", async function () {
+  module(".abort() cases", function () {
     test("promise can be aborted before awaited", async function (assert) {
       assert.expect(7);
 
@@ -538,7 +538,7 @@ module("@memoria/model | LazyPromise", function (hooks) {
     });
 
     test("reloaded promise can be aborted when running", async function (assert) {
-      assert.expect(13);
+      assert.expect(12);
 
       let lazyPromise = new LazyPromise(async (resolve) => {
         await wait(250);
