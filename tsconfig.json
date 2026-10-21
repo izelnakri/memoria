@@ -6,10 +6,6 @@
   // compiled with stage-3 decorator semantics and blow up at runtime.
   //
   // Type *checking* is driven by tsconfig.typecheck.json, which narrows `include` to src only.
-  "typedocOptions": {
-    "entryPoints": ["packages/@memoria/model/src/index.ts", "packages/@memoria/adapters/src/index.ts"],
-    "out": "docs/api"
-  },
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -25,7 +21,9 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
-    // Strictness
+    // Strictness. NOTE: `strict` is spelled out because TypeScript 6+ defaults it to true; the flags
+    // below are the ones this codebase is held to, and tsc 5.9 and 7 must agree on them.
+    "strict": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitThis": true,

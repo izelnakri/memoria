@@ -30,4 +30,10 @@ npm install --no-audit --no-fund --silent ./memoria-*.tgz \
   "@types/node@$(version_of "$ROOT/node_modules/@types/node")"
 
 npx tsc --project tsconfig.json
+
+# NOTE: the declarations are emitted by TypeScript 7, and most consumers are still on 5.x. Checking with
+# the oldest line the packages target as well catches declaration syntax that 5.x cannot read.
+npm install --no-audit --no-fund --silent typescript@5.9
+npx tsc --project tsconfig.json --noEmit
+
 node dist/consumer.js

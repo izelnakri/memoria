@@ -2,7 +2,7 @@ node_modules
 dist/
 /coverage
 /tmp
-# NOTE: generated API docs (typedoc -> docs/api) and the local mdBook output both live here.
+# NOTE: local mdBook notes.
 docs
 .env
 .DS_Store

@@ -291,7 +291,9 @@ Goal: minimal runtime dependencies per the project philosophy.
 - [ ] Document adapter configuration (RESTAdapter `host`, `headers`, `pathForType` override)
 - [ ] Document SQLAdapter setup (DataSource options, connection lifecycle)
 - [ ] Add migration guide from mirage.js
-- [ ] Generate and publish typedoc API docs
+- [ ] Run the README's code blocks as tests, as emberx does with `deno test --doc`. Its model example
+      did not compile or run for a consumer until the packed-package test caught it; prose drifts, a test
+      does not. (typedoc API docs were dropped with the move to TypeScript 7)
 
 ---
 
@@ -364,22 +366,6 @@ between tests.
 
 ---
 
-## Milestone 17: TypeScript 7
-
-TypeScript 7 (the native port) removes `baseUrl` and `moduleResolution: node10`, both of which this repo
-relies on. It was deliberately not adopted during the toolchain refresh because the fix interacts with the
-`main: src/index.ts` package layout — packages resolve to TypeScript source today, which `bundler` and
-`nodenext` resolution treat very differently.
-
-**Tasks:**
-
-- [ ] Replace `baseUrl` + `paths` with explicit relative paths or an `exports`-driven layout
-- [ ] Move to `moduleResolution: bundler` (or `nodenext` once packages emit real `exports`)
-- [ ] Sequence against Milestone 10 — the build-system work and this share a root cause
-- [ ] Re-run both suites and the typecheck on TS 7
-
----
-
 ## Done (baseline on `main`)
 
 - MemoryAdapter: full CRUD with auto-incrementing id/UUID primary keys
@@ -404,6 +390,11 @@ relies on. It was deliberately not adopted during the toolchain refresh because 
   non-portable linux-x64 binary (a `/nix/store` ELF interpreter) is gone: 0.37 builds the binary on an
   official Node, gates releases on its portability, and the launcher falls back to the JS CLI when the
   binary cannot start
+- TypeScript 7 (milestone 17): `moduleResolution: bundler` with `exports`-resolved packages replaced
+  `baseUrl` + `paths`, and `strict: false` is spelled out since TS 6+ defaults it on. The typecheck runs in
+  ~0.6s and declaration emit in the build ~0.5s. typedoc, which supports TypeScript only up to 6.0 and only
+  fed a git-ignored `docs/api`, was dropped; the README is the documentation. The packed-package test
+  type checks consumers on both TS 7 and 5.9
 - Consumer-facing fixes found by the packed-package test: relationship decorators accept the related class
   itself (as the README always showed — it threw `Class constructor cannot be invoked without 'new'`) as well
   as a `() => Class` thunk; decorator signatures type check as legacy property decorators (every

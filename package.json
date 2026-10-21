@@ -22,7 +22,6 @@
     "changelog:preview": "git-cliff --unreleased",
     "changelog:update": "git-cliff --unreleased --prepend CHANGELOG.md",
     "clean": "rm -rf packages/@memoria/*/dist tmp/types coverage",
-    "docs": "typedoc",
     "format": "prettier --check . \"!CHANGELOG.md\" \"!package-lock.json\"",
     "format:fix": "prettier --write . \"!CHANGELOG.md\" \"!package-lock.json\"",
     "sketchpad": "node --import tsx sketchpad.ts",
@@ -53,9 +52,8 @@
     "rfdc": "^1.4.1",
     "sinon": "^22.1.0",
     "tsx": "^4.23.1",
-    "typedoc": "^0.28.20",
     "typeorm": "^0.3.31",
-    "typescript": "5.9"
+    "typescript": "^7.0.2"
   },
   "allowScripts": {
     "esbuild": false,
