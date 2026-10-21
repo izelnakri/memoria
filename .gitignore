@@ -1,11 +1,8 @@
-/dist
 node_modules
-.parcel-cache
-/examples/dist
-/coverage
-/examples/.cache
 dist/
+/coverage
 /tmp
-sketchpad.js
+# NOTE: local mdBook notes.
 docs
 .env
+.DS_Store

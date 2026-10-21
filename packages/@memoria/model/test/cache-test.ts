@@ -92,7 +92,7 @@ module("@memoria/model | $Model.cache()", function (hooks) {
     await Promise.all(PHOTO_COMMENT_FIXTURES.map((photoComment) => PhotoComment.insert(photoComment)));
     assert.deepEqual(
       (await Photo.findAll()).map((photo) => photo.id),
-      [1, 2, 3]
+      [1, 2, 3],
     );
 
     let model = Photo.cache({ id: 99, name: "just adding this" });

@@ -487,7 +487,7 @@ module(
           assert.strictEqual(lastFetchedPhoto.owner, insertedThirdUser);
           assert.hasMany(await lastFetchedPhoto.owner.photos, [lastFetchedPhoto]);
         });
-      }
+      },
     );
 
     module(
@@ -729,7 +729,7 @@ module(
             assert.ok(error instanceof UnauthorizedError);
             assert.equal(
               error.message,
-              `Server responds with unauthorized access to GET ${HTTP.host}/photos?owner_id=44`
+              `Server responds with unauthorized access to GET ${HTTP.host}/photos?owner_id=44`,
             );
           }
 
@@ -762,12 +762,12 @@ module(
 
           assert.deepEqual(
             result.map((photo) => photo.toJSON()),
-            [RESTPhoto.peek(5).toJSON()]
+            [RESTPhoto.peek(5).toJSON()],
           );
           assert.equal(user.photos[0].name, "Dinner photo");
           assert.equal(user.photos[0].owner_id, 44);
         });
-      }
+      },
     );
-  }
+  },
 );

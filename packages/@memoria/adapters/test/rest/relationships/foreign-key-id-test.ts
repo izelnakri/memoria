@@ -51,7 +51,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
           thirdUpdatedGroup,
         ].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, null);
-        })
+        }),
       );
 
       targetPhoto.group_id = null;
@@ -67,7 +67,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
           thirdUpdatedGroup,
         ].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, null);
-        })
+        }),
       );
 
       assert.equal(targetPhoto.group_id, null);
@@ -111,7 +111,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
           thirdUpdatedGroup,
         ].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
       assert.equal(targetPhoto.group, null);
 
@@ -127,12 +127,12 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [thirdInsertedGroup, thirdUpdatedGroup, thirdCopiedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, targetPhoto);
-        })
+        }),
       );
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
     });
 
@@ -170,13 +170,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
           assert.strictEqual(await thirdGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       targetPhoto.group_id = null;
@@ -189,13 +189,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
           assert.strictEqual(thirdGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       assert.equal(updatedTargetPhoto.group_id, thirdUpdatedGroup.id);
@@ -209,7 +209,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (thirdGroup) => {
           assert.deepEqual(thirdGroup.photo.toJSON(), targetPhotoCopy.toJSON());
-        })
+        }),
       );
 
       let cachedTargetPhoto = RESTPhoto.Cache.get(updatedTargetPhoto.id);
@@ -232,9 +232,9 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
           [cachedTargetPhoto, targetPhoto, targetPhotoCopy, insertedTargetPhoto, updatedTargetPhoto].forEach(
             (targetPhoto) => {
               assert.notStrictEqual(photo, targetPhoto);
-            }
+            },
           );
-        })
+        }),
       );
     });
 
@@ -269,13 +269,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       targetPhoto.group_id = insertedGroup.id;
@@ -294,19 +294,19 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, targetPhoto);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       let lastPhoto = await RESTPhoto.update(targetPhoto);
@@ -314,13 +314,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, lastPhoto);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
     });
 
@@ -355,13 +355,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.strictEqual(await targetGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       targetPhoto.group_id = 999999;
@@ -377,13 +377,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, updatedTargetPhoto);
-        })
+        }),
       );
 
       assert.ok(targetPhoto.group instanceof RelationshipPromise);
@@ -427,7 +427,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup, thirdInsertedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       assert.equal(targetPhoto.group_id, null);
@@ -465,13 +465,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       targetPhoto.group_id = insertedGroup.id;
@@ -487,13 +487,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, targetPhoto);
-        })
+        }),
       );
 
       let cachedInsertedPhoto = RESTPhoto.Cache.get(insertedGroup.id);
@@ -505,7 +505,7 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       let lastPhoto = await RESTPhoto.update(targetPhoto);
@@ -513,19 +513,19 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup].map(async (targetGroup) => {
           assert.strictEqual(targetGroup.photo, lastPhoto);
-        })
+        }),
       );
 
       await Promise.all(
         [secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
     });
 
@@ -560,13 +560,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       targetPhoto.group_id = 999998;
@@ -582,13 +582,13 @@ module("@memoria/adapters | RESTAdapter | Relationships | Foreign key mutation t
       await Promise.all(
         [group, insertedGroup, secondGroup, copiedSecondGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
 
       await Promise.all(
         [thirdInsertedGroup, thirdCopiedGroup, thirdUpdatedGroup].map(async (targetGroup) => {
           assert.equal(await targetGroup.photo, null);
-        })
+        }),
       );
     });
   });

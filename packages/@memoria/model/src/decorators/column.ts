@@ -85,7 +85,7 @@ export default {
 };
 
 function proxyColumnToAdapter(decoratorName: string, options: ColumnDefinition) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: any, propertyName: string, descriptor?: any) {
     Schema.assignColumnMetadata(target.constructor, propertyName, options);
 
     if (options.unique) {

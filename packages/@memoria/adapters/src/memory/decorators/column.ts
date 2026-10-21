@@ -9,7 +9,7 @@ export function CreateDateColumn(
   _target: typeof Model,
   _propertyKey: string,
   _options: ColumnDefinition,
-  _descriptor: any
+  _descriptor: any,
 ) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
@@ -18,7 +18,7 @@ export function UpdateDateColumn(
   _target: typeof Model,
   _propertyKey: string,
   _options: ColumnDefinition,
-  _descriptor: any
+  _descriptor: any,
 ) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
@@ -27,7 +27,7 @@ export function DeleteDateColumn(
   _target: typeof Model,
   _propertyKey: string,
   _options: ColumnDefinition,
-  _descriptor: any
+  _descriptor: any,
 ) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }
@@ -38,7 +38,7 @@ export function PrimaryColumn(
   _target: typeof Model,
   _propertyKey: string,
   _options: ColumnDefinition,
-  _descriptor: any
+  _descriptor: any,
 ) {
   return function (_object: ColumnDefinition, _propertyName: string) {};
 }

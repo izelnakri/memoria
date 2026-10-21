@@ -12,12 +12,12 @@ interface JSObject {
 
 // TODO: maybe add timeout option, shouldTakeInMs option(for .isSlow)
 // NOTE: isSlow = false; NOTE: instead it could have start time and finishTime and hooks onStart, onFinish, onError
-export default class LazyPromise extends Promise<void> {
+export default class LazyPromise extends Promise<any> {
   static from(function_: any) {
     return new this((resolve) => resolve(function_()));
   }
 
-  static resolve(value: any) {
+  static resolve(value?: any) {
     return new this((resolve) => resolve(value));
   }
 
@@ -107,13 +107,15 @@ export default class LazyPromise extends Promise<void> {
 
       this.then(
         () => resolve(this.#abortMessage),
-        () => resolve(this.#abortMessage)
+        () => resolve(this.#abortMessage),
       );
     });
   }
 
-  // @ts-ignore
-  then(onFulfilled?: any, onRejected?: () => void) {
+  // NOTE: `then`/`catch` return the LazyPromise itself (so state flags stay readable on the chain), which
+  // Promise's signatures cannot express. `any` -- rather than a @ts-ignore, which does not survive into
+  // the emitted .d.ts -- keeps the published declarations valid under a consumer's strict checking.
+  then(onFulfilled?: any, onRejected?: any): any {
     onRejected && this.#rejectHandlers.push(onRejected);
 
     if (this.isAborted) {
@@ -138,14 +140,13 @@ export default class LazyPromise extends Promise<void> {
         if (!this.isAborted) {
           return this.#runRejectHandlers(error);
         }
-      }
+      },
     );
 
     return this;
   }
 
-  // @ts-ignore
-  catch(onRejected) {
+  catch(onRejected?: any): any {
     this.#rejectHandlers.push(onRejected);
 
     return this;
@@ -168,7 +169,7 @@ export default class LazyPromise extends Promise<void> {
 
     return this.then(
       () => {},
-      () => {}
+      () => {},
     );
   }
 }

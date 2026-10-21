@@ -1,8 +1,8 @@
 import Schema from "../stores/schema.js";
 
 // NOTE: maybe remove target: references if it bloats memory
-export function Generated(generateFunction) {
-  return function (target: any, propertyName: string, descriptor: any) {
+export function Generated(generateFunction?) {
+  return function (target: any, propertyName: string, descriptor?: any) {
     Schema.assignColumnMetadata(target.constructor, propertyName, {
       generated: generateFunction || true,
     });
@@ -10,13 +10,13 @@ export function Generated(generateFunction) {
     return target.constructor.Adapter.Decorators.Generated(generateFunction)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOptions?) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: any, propertyName: string, descriptor?: any) {
     let name = typeof nameOrFieldsOrOptions === "string" ? nameOrFieldsOrOptions : undefined;
     let fields = typeof nameOrFieldsOrOptions === "string" ? maybeFieldsOrOptions : (nameOrFieldsOrOptions as string[]);
     let options =
@@ -49,16 +49,16 @@ export function Index(nameOrFieldsOrOptions?, maybeFieldsOrOptions?, maybeOption
     return target.constructor.Adapter.Decorators.Index(nameOrFieldsOrOptions, maybeFieldsOrOptions, maybeOptions)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function Unique(
   nameOrFields?: string | string[] | ((object: any) => any[] | { [key: string]: number }),
-  maybeFields?: ((object?: any) => any[] | { [key: string]: number }) | string[]
+  maybeFields?: ((object?: any) => any[] | { [key: string]: number }) | string[],
 ) {
-  return function (target: any, propertyName: string | symbol, descriptor: any) {
+  return function (target: any, propertyName: string | symbol, descriptor?: any) {
     let name = typeof nameOrFields === "string" ? nameOrFields : undefined;
     let fields =
       typeof nameOrFields === "string"
@@ -89,13 +89,13 @@ export function Unique(
     return target.constructor.Adapter.Decorators.Unique(nameOrFields, maybeFields)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function Check(nameOrExpression: string, maybeExpression?: string) {
-  return function (target: any, propertyName: string | symbol, descriptor: any) {
+  return function (target: any, propertyName: string | symbol, descriptor?: any) {
     let Class = propertyName ? target.constructor : target;
     let name = maybeExpression ? nameOrExpression : undefined;
     let expression = maybeExpression ? maybeExpression : nameOrExpression;
@@ -105,14 +105,14 @@ export function Check(nameOrExpression: string, maybeExpression?: string) {
     return target.constructor.Adapter.Decorators.Check(nameOrExpression, maybeExpression)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 // @Exclusion(`USING gist ("room" WITH =, tsrange("from", "to") WITH &&)`)
 export function Exclusion(nameOrExpression: string, maybeExpression?: string) {
-  return function (target: any, propertyName: string | symbol, descriptor: any) {
+  return function (target: any, propertyName: string | symbol, descriptor?: any) {
     let Class = propertyName ? target.constructor : target;
     let name = maybeExpression ? nameOrExpression : undefined;
     let expression = maybeExpression ? maybeExpression : nameOrExpression;
@@ -122,7 +122,7 @@ export function Exclusion(nameOrExpression: string, maybeExpression?: string) {
     return target.constructor.Adapter.Decorators.Exclusion(nameOrExpression, maybeExpression)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }

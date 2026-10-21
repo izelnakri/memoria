@@ -200,7 +200,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
-      "activity"
+      "activity",
     );
 
     assert.propEqual(activity, {
@@ -214,19 +214,19 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         await Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
-        "activity"
+        "activity",
       ),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
-      })
+      }),
     );
     assert.equal(
       Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "photo", Photo),
-      undefined
+      undefined,
     );
   });
 
@@ -241,21 +241,21 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
-      "comments"
+      "comments",
     );
     const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.findBy({
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
-      "comments"
+      "comments",
     );
     const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
       await Photo.findBy({
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
-      "comments"
+      "comments",
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -301,7 +301,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -310,7 +310,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 
@@ -328,7 +328,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "userActivity",
-      Activity
+      Activity,
     );
 
     assert.propEqual(activity, {
@@ -352,19 +352,19 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
         "userActivity",
-        Activity
+        Activity,
       ),
-      undefined
+      undefined,
     );
     assert.deepEqual(
       Activity.Serializer.getEmbeddedRelationship(Activity, activity, "photo", Photo),
       await Photo.findBy({
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
-      })
+      }),
     );
     assert.equal(
       Activity.Serializer.getEmbeddedRelationship(Activity, await Activity.find(2), "photo", Photo),
-      undefined
+      undefined,
     );
   });
 
@@ -380,7 +380,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
       }),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const secondPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -388,7 +388,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
       }),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
     const thirdPhotoComments = Photo.Serializer.getEmbeddedRelationship(
       Photo,
@@ -396,7 +396,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         uuid: "6f0c74bb-13e0-4609-b34d-568cd3cee6bc",
       }),
       "comments",
-      PhotoComment
+      PhotoComment,
     );
 
     assert.propEqual(firstPhotoComments, [
@@ -442,7 +442,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         name: "Ski trip",
         href: "ski-trip.jpeg",
         is_public: false,
-      }
+      },
     );
     assert.propEqual(
       PhotoComment.Serializer.getEmbeddedRelationship(PhotoComment, secondPhotoComments[0], "photo", Photo),
@@ -451,7 +451,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         name: "Family photo",
         href: "family-photo.jpeg",
         is_public: true,
-      }
+      },
     );
   });
 
@@ -466,7 +466,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         Photo.findBy({
           uuid: "65075a0c-3f4c-47af-9995-d4a01747ff7a",
         }),
-        "userComments"
+        "userComments",
       );
     } catch (error) {
       assert.ok(error instanceof RuntimeError);
@@ -478,7 +478,7 @@ module("@memoria/adapters | SQLAdapter | Relationship UUID for UUID(string)", fu
         Photo.findBy({
           uuid: "2ae860da-ee55-4fd2-affb-da62e263980b",
         }),
-        "userActivity"
+        "userActivity",
       );
     } catch (error) {
       assert.ok(error instanceof RuntimeError);

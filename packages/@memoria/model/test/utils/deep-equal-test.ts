@@ -35,7 +35,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(0 / 0, function () {}),
       false,
-      "NaN"
+      "NaN",
     );
     assert.equal(deepEqual(1 / 0, null), false, "NaN, Infinity");
     assert.equal(deepEqual(1 / 0, undefined), false, "NaN, Infinity");
@@ -46,7 +46,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(1 / 0, function () {}),
       false,
-      "NaN, Infinity"
+      "NaN, Infinity",
     );
 
     assert.equal(deepEqual(0, 0), true, "number");
@@ -128,12 +128,12 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual({ a: undefined }, new SafeObject()),
       false,
-      "other nonempty object literal vs. empty instantiation"
+      "other nonempty object literal vs. empty instantiation",
     );
     assert.equal(
       deepEqual(new SafeObject(), { a: undefined }),
       false,
-      "empty object instantiation vs. other nonempty literal"
+      "empty object instantiation vs. other nonempty literal",
     );
   });
 
@@ -201,25 +201,25 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(
         [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
-        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
       ),
-      true
+      true,
     );
 
     assert.equal(
       deepEqual(
         [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
-        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
       ), // shorter
-      false
+      false,
     );
 
     assert.equal(
       deepEqual(
         [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[{}]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
-        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+        [[], [], [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],
       ), // deepest element not an array
-      false
+      false,
     );
 
     // same multidimensional
@@ -362,10 +362,10 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
               ],
             ],
           ],
-        ]
+        ],
       ),
       true,
-      "Multidimensional"
+      "Multidimensional",
     );
 
     // different multidimensional
@@ -540,10 +540,10 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
               ],
             ],
           ],
-        ]
+        ],
       ),
       false,
-      "Multidimensional"
+      "Multidimensional",
     );
 
     // different multidimensional
@@ -686,10 +686,10 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
               ],
             ],
           ],
-        ]
+        ],
       ),
       false,
-      "Multidimensional"
+      "Multidimensional",
     );
   });
 
@@ -709,20 +709,20 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(
         function () {},
-        function () {}
+        function () {},
       ),
       true,
-      "Anonymous functions"
+      "Anonymous functions",
     ); // exact source code
     assert.equal(
       deepEqual(
         function () {},
         function () {
           return true;
-        }
+        },
       ),
       false,
-      "Anonymous functions"
+      "Anonymous functions",
     );
 
     assert.equal(deepEqual(f0, f0), true, "Function references"); // same references
@@ -730,19 +730,19 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(deepEqual(f1, f2), false, "Function references"); // different source code, different references
     assert.equal(
       deepEqual(function () {}, true),
-      false
+      false,
     );
     assert.equal(
       deepEqual(function () {}, undefined),
-      false
+      false,
     );
     assert.equal(
       deepEqual(function () {}, null),
-      false
+      false,
     );
     assert.equal(
       deepEqual(function () {}, {}),
-      false
+      false,
     );
   });
 
@@ -875,7 +875,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(r1, function () {}),
       false,
-      "Regex internal"
+      "Regex internal",
     );
     assert.equal(deepEqual(r1, {}), false, "Regex internal");
   });
@@ -983,9 +983,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           f: {},
           h: "h",
           i: [],
-        }
+        },
       ),
-      true
+      true,
     );
 
     assert.equal(
@@ -1081,9 +1081,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           g: "",
           h: "h",
           i: [],
-        }
+        },
       ),
-      false
+      false,
     );
 
     assert.equal(
@@ -1179,9 +1179,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           g: "",
           h: "h",
           i: [],
-        }
+        },
       ),
-      false
+      false,
     );
 
     assert.equal(
@@ -1277,9 +1277,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           g: "",
           h: "h",
           i: [],
-        }
+        },
       ),
-      false
+      false,
     );
 
     var same1 = {
@@ -1504,9 +1504,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
             7,
           ],
           "foo",
-        ]
+        ],
       ),
-      true
+      true,
     );
 
     assert.equal(
@@ -1544,9 +1544,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
             7,
           ],
           "foo",
-        ]
+        ],
       ),
-      false
+      false,
     );
 
     var a = [
@@ -1645,7 +1645,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           ],
         ],
       ]),
-      true
+      true,
     );
 
     assert.equal(
@@ -1715,7 +1715,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           ],
         ],
       ]),
-      false
+      false,
     );
 
     assert.equal(
@@ -1766,7 +1766,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           ],
         ],
       ]),
-      false
+      false,
     );
 
     assert.equal(
@@ -1817,7 +1817,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           ],
         ],
       ]),
-      false
+      false,
     );
 
     assert.equal(
@@ -1868,7 +1868,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
           ],
         ],
       ]),
-      false
+      false,
     );
   });
 
@@ -1890,9 +1890,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(
         function () {},
-        function () {}
+        function () {},
       ),
-      true
+      true,
     );
 
     // Hoozit inherit from Gizmo
@@ -1912,9 +1912,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(
         function () {},
-        function () {}
+        function () {},
       ),
-      true
+      true,
     );
 
     // Make sure this is still true !important
@@ -1932,9 +1932,9 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(
         function () {},
-        function () {}
+        function () {},
       ),
-      true
+      true,
     );
   });
 
@@ -2262,7 +2262,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(re, function () {}),
       false,
-      "A function that looks that a regex isn't a regex"
+      "A function that looks that a regex isn't a regex",
     );
 
     // This test will ensures it works in both ways,
@@ -2272,7 +2272,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(function () {}, re),
       false,
-      "Same conversely, but ensures that function and regexp are distinct because their constructor are different"
+      "Same conversely, but ensures that function and regexp are distinct because their constructor are different",
     );
   });
 
@@ -2285,15 +2285,15 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
 
     assert.false(
       deepEqual(new SafeNumber(1), new SafeNumber(2)),
-      "Number objects with different values are not equivalent."
+      "Number objects with different values are not equivalent.",
     );
     assert.false(
       deepEqual(new SafeNumber(0 / 0), new SafeNumber(1 / 0)),
-      "NaN Number objects and infinite Number objects are not equivalent."
+      "NaN Number objects and infinite Number objects are not equivalent.",
     );
     assert.false(
       deepEqual(new SafeNumber(1 / 0), new SafeNumber(-1 / 0)),
-      "Positive and negative infinite Number objects are not equivalent."
+      "Positive and negative infinite Number objects are not equivalent.",
     );
   });
 
@@ -2302,17 +2302,17 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
 
     assert.true(
       deepEqual(new SafeString("foo"), new SafeString("foo")),
-      "String objects with same values are equivalent."
+      "String objects with same values are equivalent.",
     );
     assert.true(deepEqual(new SafeString(""), new SafeString("")), "Empty String objects are equivalent.");
 
     assert.false(
       deepEqual(new SafeString("foo"), new SafeString("bar")),
-      "String objects with different values are not equivalent."
+      "String objects with different values are not equivalent.",
     );
     assert.false(
       deepEqual(new SafeString(""), new SafeString("foo")),
-      "Empty and nonempty String objects are not equivalent."
+      "Empty and nonempty String objects are not equivalent.",
     );
   });
 
@@ -2324,7 +2324,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
 
     assert.false(
       deepEqual(new SafeBoolean(true), new SafeBoolean(false)),
-      "Boolean objects with different values are not equivalent."
+      "Boolean objects with different values are not equivalent.",
     );
   });
 
@@ -2510,7 +2510,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(m1, m2),
       true,
-      "Maps containing different but deeply-equal objects in different insertion order"
+      "Maps containing different but deeply-equal objects in different insertion order",
     );
     m1 = new Map([[o1, 1]]);
     m2 = new Map([[o2, 1]]);
@@ -2526,7 +2526,7 @@ module("@memoria/model | Utils | deepEqual", function (hooks) {
     assert.equal(
       deepEqual(m1, m2),
       true,
-      "Maps containing different but deeply-equal objects as keys in different insertion order"
+      "Maps containing different but deeply-equal objects as keys in different insertion order",
     );
 
     // Maps containing different objects

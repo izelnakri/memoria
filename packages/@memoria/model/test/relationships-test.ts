@@ -255,7 +255,7 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       } catch (error) {
         assert.equal(
           error.message,
-          "HasManyArray cannot be instantiated or added with model types different than one another!"
+          "HasManyArray cannot be instantiated or added with model types different than one another!",
         );
       }
 
@@ -296,7 +296,7 @@ module("@memoria/model | $Model.relationships", function (hooks) {
       } catch (error) {
         assert.equal(
           error.message,
-          "HasManyArray accepts memoria Models or falsy values for assignment, not [object Object]"
+          "HasManyArray accepts memoria Models or falsy values for assignment, not [object Object]",
         );
       }
 

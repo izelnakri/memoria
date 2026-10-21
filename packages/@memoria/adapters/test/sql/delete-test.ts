@@ -79,7 +79,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           href: "family-photo.jpeg",
           is_public: true,
           comments: [],
-        })
+        }),
       );
       assert.notOk(deletedPhoto.isNew);
       assert.ok(deletedPhoto.isPersisted);
@@ -120,7 +120,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           photo_id: null,
           user_id: null,
           comments: [],
-        })
+        }),
       );
       assert.ok(!deletedComment.isNew && !deletedComment.isDirty && deletedComment.isDeleted);
 
@@ -182,7 +182,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           id: 1,
           is_public: null,
           name: "some name",
-        })
+        }),
       );
       assert.equal(InstanceDB.getReferences(photo).size, 3);
       assert.equal(InstanceDB.getReferences(photo), InstanceDB.getReferences(insertedPhoto));
@@ -251,7 +251,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           owner: null,
           photo: null,
           photoComments: [],
-        })
+        }),
       );
       assert.deepEqual(
         insertedGroup,
@@ -261,7 +261,7 @@ module("@memoria/adapters | SQLAdapter | $Model.delete()", function (hooks) {
           owner: null,
           photo: null,
           photoComments: [],
-        })
+        }),
       );
       assert.equal(groupPhoto.group, null);
       assert.equal(groupPhoto.group_id, null);

@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# NOTE: only a superseded pull request run is worth cancelling. A push to main or a tag runs to the end,
+# so every commit on main keeps a result and a release tag always gets its GitHub release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # NOTE: matches the postgres service credentials below. The SQLAdapter and its test helper both
+  # read the standard libpq variables, so no config file or .env plumbing is needed.
+  PGHOST: localhost
+  PGPORT: 5432
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: postgres
+  FORCE_COLOR: 0
+
+jobs:
+  static-analysis:
+    name: Typecheck & format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Check formatting
+        run: npm run format
+
+  test-node:
+    name: Node ${{ matrix.node }} tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # NOTE: the published packages support Node 22, so the suite runs there too. Developing the repo
+        # needs 24 (qunitx-cli, the build script), which is also the leg that measures coverage.
+        node: [22, 24]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Run node test suite
+        if: matrix.node != 24
+        run: npm run test:node
+      - name: Run node test suite with coverage
+        if: matrix.node == 24
+        run: npm run test:node:coverage
+      # NOTE: informational only. A missing/expired CODECOV_TOKEN must not fail an otherwise green
+      # build -- and it would, on every fork PR, since forks cannot read secrets.
+      - name: Upload coverage
+        if: matrix.node == 24
+        uses: codecov/codecov-action@v7
+        continue-on-error: true
+        with:
+          files: ./coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  test-browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      # NOTE: qunitx-cli drives whatever Chrome CHROME_BIN names. setup-chrome is a download and an
+      # unpack, where `playwright-core install --with-deps chromium` also apt-installed system packages.
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+      - name: Run browser test suite
+        run: npm run test:browser
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+
+  package:
+    name: Packed packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      # NOTE: builds, packs every dist/, installs the tarballs into a scratch project and type checks +
+      # runs test/release/consumer.ts there -- the packages as npm users get them, with only their
+      # declared dependencies installed.
+      - name: Test the packed packages as a consumer
+        run: npm run test:release
+
+  github-release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [static-analysis, test-node, test-browser, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      # NOTE: `make release` already published to npm and wrote the CHANGELOG section; this mirrors
+      # that section onto the GitHub release. `--latest` is the section for the tag this run was
+      # triggered by -- `--unreleased` would be empty here, since the tag exists.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run --silent changelog:latest > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md

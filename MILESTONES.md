@@ -1,0 +1,404 @@
+# Memoria - Production Milestones
+
+**Branch**: `main` is the correct target. All prior feature branches have been merged or superseded.
+
+## Current baseline
+
+As of the toolchain-modernization PR, on Node 24:
+
+- **844 node tests passing** (`npm run test:node`) — `@memoria/model` + Memory, REST and SQL adapters
+- **727 browser tests passing** (`npm run test:browser`) — model, Memory, REST, `@memoria/server`,
+  `@memoria/response`
+- `npm run typecheck` clean across all four packages' `src/`
+- `npm run format` clean
+- CI runs typecheck, format, a Node 22/24 matrix, browser tests, coverage and a packed-package consumer test
+
+Two things previously believed broken turned out not to be:
+
+- **SQLAdapter was not broken.** All 158 SQL failures in the old baseline were `password authentication
+failed` — an environment problem, not a code one. Every SQL test passes against a correctly configured
+  Postgres. The TypeORM 0.2 API it used (`createConnection`/`isConnected`/`close`) still existed as
+  deprecated shims in 0.3.17, so it worked; it has now been ported to `DataSource` and the pin moved to
+  0.3.31.
+- **`@memoria/server` passthrough works.** It is exercised and green in the browser suite. What is actually
+  broken is Node-side `fetch` interception, which is why the server tests are excluded from the Node run —
+  a narrower problem than "passthrough is non-functional".
+
+## Working Convention
+
+Each change — whether a bug fix, new feature, or refactor — should be accompanied by a clear explanation
+covering: what the problem was, why the chosen approach is correct, and what trade-offs were considered or
+rejected. Explanations should be peer-level: no hand-holding, no padding. Assume 17+ years of JS/TS/web
+experience. Skip the basics, go straight to the interesting parts — the non-obvious design decisions, the
+sharp edges in JS semantics being navigated, and why this codebase's constraints make certain solutions
+better than others.
+
+The test suite must pass at the completion of each milestone. New functionality requires new tests; bug
+fixes require a regression test that would have caught the bug. A milestone is not done until `npm test`
+is green.
+
+---
+
+## Milestone 1: SQLAdapter Modernization (TypeORM 0.3 Compatibility)
+
+The SQLAdapter was written against the deprecated TypeORM 0.2 API. Those entry points still existed as
+shims in 0.3.17, so this was never a functional break — but they are gone in later versions and blocked
+every upgrade.
+
+**Tasks:**
+
+- [x] Replace `createConnection` with `new DataSource(...)` and `.initialize()`
+- [x] Replace `Connection` type references with `DataSource`
+- [x] Replace `isConnected` checks with `isInitialized`
+- [x] Replace `connection.close()` with `connection.destroy()`
+- [x] Make connection options configurable via standard libpq environment variables
+- [x] Run SQL adapter tests end-to-end (158/158 passing on typeorm 0.3.31)
+- [x] Deduplicate the serial-sequence resync into `syncPrimaryKeySequence()` with a real error on
+      missing entity metadata
+- [ ] `connection.manager` → `dataSource.manager` (works today via the `EntityManager.connection`
+      back-reference; worth making explicit)
+- [ ] Enable `resetSchemas(Model)` per-model reset (currently throws RuntimeError — not supported)
+- [ ] Ensure `getConnection()` / `getEntityManager()` correctly lazily reinitializes after close
+- [ ] Fix `insertAll()` — it has a `console.log(error)` and commented-out error handling; add proper errors
+- [ ] Fix `updateAll()` — uses `Manager.save()` with `cleanRelationships()` hack; replace with proper query builder
+- [ ] Fix `deleteAll()` — `peekAll(Model, targetPrimaryKeys)` called with array where object expected
+
+---
+
+## Milestone 2: Relationship Layer Bug Fixes
+
+Several known relationship correctness issues need resolution before production use.
+
+**Tasks:**
+
+- [ ] Fix `RelationshipDB.delete()` — comment says "only removes belongsTo, not an element from HasMany array".
+      `deleteRelationshipsGloballyFromARelationship` sets `reference[relationshipName] = null` but should
+      `splice()` the item from HasMany arrays instead
+- [ ] Fix `RelationshipDB.clear(Class)` — currently throws; implement per-model relationship cache clearing
+- [ ] Fix `fetchRelationship()` bookkeeping after fetch: when a belongsTo is fetched, the reverse HasMany on
+      the returned record should be updated to include the source model (both append and removal)
+- [ ] Audit `onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound` — complex logic with potential
+      edge cases; write targeted tests for the described scenarios in TODO
+- [ ] Fix `RelationshipDB.set()` for `undefined` input on HasMany — `existingRelationship.clear()` is called
+      but the relationship reference itself is also deleted, leaving the model in an inconsistent state
+- [ ] `Model.peekBy({ owner: userInstance })` should auto-translate to `{ owner_id: x }` style queries
+- [ ] `validatePartialModelInput` — when a relationship instance is provided without its foreign key, the
+      foreign key should be extracted and used rather than throwing or silently ignoring
+- [ ] Relationship reverse-relationship lookup: improve error messages when reverse relationship is missing
+      to guide the developer toward the correct fix
+
+---
+
+## Milestone 3: Complete HasMany Mutation Test Coverage
+
+The `has-many-id-test.ts` and `has-many-uuid-test.ts` files exist only for MemoryAdapter (as mostly empty stubs)
+and are entirely missing for RESTAdapter and SQLAdapter. These scenarios represent a critical gap.
+
+**Tasks:**
+
+- [ ] MemoryAdapter `has-many-id-test.ts` — fill in all commented-out test cases:
+  - build from scratch and insert sends correct data
+  - set relationship after build, insert correctly
+  - fetched model can request relationship without embed and mutate before update
+  - fetched model removes relationship before update
+  - fetched model removes relationship before delete
+  - full build → insert → update → delete flow with correct relationship changes
+  - fetch relationship lazily (not pre-loaded)
+  - HasMany array replacement via direct assignment
+  - foreign key null sets triggers relationship lookup
+- [ ] MemoryAdapter `has-many-uuid-test.ts` — same as above for UUID primary keys
+- [ ] Create RESTAdapter `relationships/has-many-id-test.ts` — mirror MemoryAdapter tests with HTTP mock
+- [ ] Create RESTAdapter `relationships/has-many-uuid-test.ts`
+- [ ] Create SQLAdapter `relationships/has-many-id-test.ts`
+- [ ] Create SQLAdapter `relationships/has-many-uuid-test.ts`
+- [ ] Add `has-many-id-test.js` and `has-many-uuid-test.js` imports to all three adapter test index files
+
+---
+
+## Milestone 4: ManyToMany Relationship Implementation
+
+ManyToMany is currently disabled with a stub reject/null return. This is a core ORM feature.
+
+**Tasks:**
+
+- [ ] Design ManyToMany join table tracking in `RelationshipSchema` — determine if a join model is required
+      or if implicit join tables are supported
+- [ ] Implement `RelationshipDB.get()` for ManyToMany (currently returns `null`)
+- [ ] Implement `RelationshipDB.set()` for ManyToMany
+- [ ] Implement `RelationshipDB.delete()` for ManyToMany (currently only removes from array via splice,
+      which is the correct direction — verify)
+- [ ] Implement `MemoryAdapter.fetchRelationship()` for ManyToMany
+- [ ] Implement `RESTAdapter.fetchRelationship()` for ManyToMany
+- [ ] Implement `SQLAdapter.fetchRelationship()` for ManyToMany (with actual join table query)
+- [ ] `@ManyToMany` decorator — verify `JoinTable` decorator works with SQLAdapter schema generation
+- [ ] Write `many-to-many-id-test.ts` for MemoryAdapter
+- [ ] Write `many-to-many-uuid-test.ts` for MemoryAdapter
+- [ ] Write `many-to-many-id-test.ts` for RESTAdapter
+- [ ] Write `many-to-many-uuid-test.ts` for RESTAdapter
+- [ ] Write `many-to-many-id-test.ts` for SQLAdapter
+- [ ] Write `many-to-many-uuid-test.ts` for SQLAdapter
+
+---
+
+## Milestone 5: Changeset & Error API Completeness
+
+The Changeset and Error types are partially implemented. Several ergonomic APIs are missing.
+
+**Tasks:**
+
+- [ ] `model.errors` — add `errors.has(attr)`, `errors.errorsFor(attr)`, `errors.add(attr, messages[])`,
+      `errors.remove(attr)` helpers as part of the errors array/object interface
+- [ ] `Changeset` — add `cast(changeset, params, allowedFields)` helper (Ecto-inspired field whitelisting)
+- [ ] `Changeset` — add `validateRequired(changeset, fields[])` helper
+- [ ] `Changeset` — add `validateLength(changeset, field, opts)` helper
+- [ ] `Changeset.assign()` — verify this works correctly as a pipeline step, add tests
+- [ ] `Changeset.serializer()` — currently formats errors; ensure it handles ChangesetError subtypes correctly
+- [ ] `model.changeset` getter — verify it correctly reflects the diff between revision and current state
+      for relationship changes, not just column changes
+- [ ] `model.changedAttributes()` — verify it works when `revisionHistory` has multiple entries
+- [ ] `model.rollbackAttributes()` — should roll back to last persisted state, not just last revision entry;
+      clarify semantics and add tests
+- [ ] `model.toObject()` — currently returns `revision[columnName]` values, which is the previous state;
+      should return current values. Fix and add tests.
+- [ ] `RevisionHistory` — determine if it should track relationship changes as well as column changes
+
+---
+
+## Milestone 6: Server Package Completion
+
+The `@memoria/server` package is functional but has known issues and its tests are commented out.
+
+**Tasks:**
+
+- [ ] Fix `passthrough` — noted as non-functional ("make passthrough PASS")
+- [ ] Fix Node.js `fetch` mocking — Pretender doesn't intercept Node.js native `fetch`; investigate
+      `undici` / `node-fetch` interception or add `@whatwg-node/fetch` / custom fetch wrapper support
+- [ ] Fix `jsdom` fetch interception issue noted in `test/index.ts` (AggregateError from `xhr-utils.js`)
+- [ ] Restore server test imports in `test/index.ts` once above issues are fixed
+- [ ] `packages/@memoria/server/test/index.ts` — run all server tests and fix failures
+- [ ] Handler defaults — ensure `this.post('/users', User)` shorthand works correctly for all verbs and
+      returns the right HTTP status codes (201 for POST, 200 for GET/PUT, 204 for DELETE)
+- [ ] Route handler error propagation — investigate silent errors inside handler context (noted in TODO)
+- [ ] Add `packages/@memoria/response/test/index.ts` back to main test suite
+
+---
+
+## Milestone 7: Model Instance Metadata & Lifecycle Tracking
+
+The instance metadata feature is stubbed out but never implemented. Useful for debugging and audit trails.
+
+**Tasks:**
+
+- [ ] Implement `instanceMetadata` on model instances:
+  - `builtAt: Date` — when the instance was created
+  - `source` — the origin of the build (CRUD operation name or "build")
+  - `reason` — optional developer-supplied string
+- [ ] Wire `builtAt` into `RevisionHistory` entries
+- [ ] `Model.build(obj, { source: 'insert', reason: '...' })` — thread source/reason into options
+- [ ] Consider whether `InstanceDB` should store metadata alongside instance sets
+
+---
+
+## Milestone 8: MemoryAdapter String/BigInt Primary Key Support
+
+Noted in TODO: "MemoryAdapter should be able to handle string id/bigint columns for increment".
+
+**Tasks:**
+
+- [ ] `DB.getDefaultValues()` for insert — when primary key is `bigint` type, generate next value correctly
+- [ ] Ensure `Cache` Map keys work correctly for bigint (JS Map supports bigint keys natively)
+- [ ] Test UUID-as-string and bigint-as-string flows through MemoryAdapter
+- [ ] Ensure `primaryKeyTypeSafetyCheck` handles bigint correctly
+
+---
+
+## Milestone 9: CLI Package
+
+`@memoria/cli` was removed: it was the `memserver` CLI renamed in place and never finished. Its entry point
+imported `@memserver/server/dist/setup-dom.js`, a package that no longer exists, so the published 0.0.33
+could not be imported; its generators emitted `@memserver/model` imports; its tests resolved paths under
+`packages/@memserver/cli` and were not part of any suite. It is in git history (and on npm at 0.0.33).
+
+**Tasks:**
+
+- [ ] Decide whether a CLI is wanted at all. If so, start from the current API: `memoria console` (a REPL
+      with models loaded) and `memoria g fixtures $modelName` were the useful ideas
+- [ ] Deprecate `@memoria/cli` on npm (`npm deprecate @memoria/cli "..."`) so 0.0.33 stops being installed
+
+---
+
+## Milestone 10: Production Build System & Package Exports
+
+In the repository every package's `exports` point at `src/*.ts`, so tests, the type checker and editors run
+against source with nothing built. `npm run build` (`scripts/build.ts`) bundles each `exports` entry with
+esbuild — bare imports external, code-split so `@memoria/adapters` and `@memoria/adapters/sql` share one
+chunk — emits declarations with one `tsc` run, and writes a `dist/package.json` whose `exports` point at
+the built files. Releases publish `dist/`. Nothing in the repository is rewritten between the two (that was
+`scripts/change-entrypoints.js`, now deleted).
+
+`npm run test:release` packs every `dist/`, installs the tarballs into a scratch project and type checks
+(strict, `skipLibCheck: false`) and runs `test/release/consumer.ts` against them. It found, on its first
+run, that the README's own model example did not compile or run for a consumer — see the Done list.
+
+**Tasks:**
+
+- [x] esbuild + `tsc --emitDeclarationOnly` build per package, replacing per-file `tsc` and the
+      entry-point toggling
+- [x] `exports` on every package, with `types`/`default` conditions in the published manifest
+- [x] Keep `typeorm` out of browser bundles — `@memoria/adapters/sql` subpath, optional peer dependency
+- [x] `jsdom` out of `@memoria/server`'s dependencies — `@memoria/server/setup-dom` subpath, optional peer
+- [x] `@memoria/server` declares its `@memoria/model` dependency (it imported it without declaring it)
+- [x] Consumer test of the packed tarballs in CI
+- [ ] `@memoria/model`'s declarations import `ColumnType` from `typeorm`, which it does not depend on. With
+      `skipLibCheck` (the common default) the type silently degrades to `any` in a project without
+      typeorm; without it, it is an error. Inline the union, or move the SQL column types to the adapter
+- [ ] `sideEffects: false`, once it is verified that no module relies on import-time registration
+- [ ] CommonJS output, only if someone needs `require()` — Node 22 can `require()` ESM
+
+---
+
+## Milestone 11: Dependency Reduction
+
+Goal: minimal runtime dependencies per the project philosophy.
+
+**Tasks:**
+
+- [ ] `@memoria/model` — only runtime dep is `inflected`. Audit if the full inflected library is needed
+      or if a small custom `pluralize`/`underscore`/`camelize` can replace it (save ~40kb)
+- [ ] `@memoria/server` — depends on `pretender`, `fake-xml-http-request`, `route-recognizer`, `kleur`.
+      Audit whether all are still needed; `kleur` could be inlined as the usage is tiny
+- [ ] `@memoria/adapters` — `inflected` is re-used for `RESTAdapter.pathForType()`; share from model package
+      so it's not duplicated in the bundle
+- [x] `typeorm` in SQLAdapter — now an optional peer dependency, documented in the README
+- [x] Remove the built `sketchpad.js` and `index.html` from the repo root before release (`sketchpad.ts` stays as
+      a scratch file for trying the API, `npm run sketchpad`, now run from source with nothing built)
+      (also removed: `webpack.config.js` and the webpack toolchain, `public/`, `test/memoria-ssr.ts`,
+      `Dockerfile`, `setup-database.sh`, `.env`)
+- [x] `examples/` deleted — 2021 sketch code depending on `@memserver/*@2.5.0` and parcel, never compiled,
+      and `examples/adapters/database.ts` was not valid TypeScript. The README examples are the examples now
+
+---
+
+## Milestone 12: Documentation & README
+
+**Tasks:**
+
+- [x] Update README to reflect current API (removed the Mirage comparison as primary framing)
+- [ ] Document all relationship types with code examples (BelongsTo, HasOne, HasMany, ManyToMany)
+- [ ] Document `Model.build()`, `Model.cache()`, `Model.resetCache()`, `Model.resetRecords()` semantics
+- [ ] Document `Changeset` API and how to use it for validation
+- [ ] Document `HasManyArray` methods and iteration protocols
+- [ ] Document adapter configuration (RESTAdapter `host`, `headers`, `pathForType` override)
+- [ ] Document SQLAdapter setup (DataSource options, connection lifecycle)
+- [ ] Add migration guide from mirage.js
+- [ ] Run the README's code blocks as tests, as emberx does with `deno test --doc`. Its model example
+      did not compile or run for a consumer until the packed-package test caught it; prose drifts, a test
+      does not. (typedoc API docs were dropped with the move to TypeScript 7)
+
+---
+
+## Milestone 13: Performance & Benchmarks
+
+**Tasks:**
+
+- [ ] Set up benchmark suite (the `benchmark` branch was started but never merged)
+- [ ] Benchmark `RelationshipDB.cache()` — the `updateRelationshipsGloballyFromARelationship` loop
+      iterates all known instances on every CRUD operation; profile and optimize if needed
+- [ ] Benchmark `onlyAddRecordsToHasManyArrayIfInMemoryReferenceToBelongsToFound` — complex nested loops
+- [ ] Benchmark MemoryAdapter insert/update/delete at scale (10k, 100k records)
+- [ ] Add benchmark results to README
+
+---
+
+## Milestone 14: Bring Tests Under the Type Checker
+
+`npm run typecheck` covers `src/` only. Adding `packages/**/test` produces ~9,200 errors, overwhelmingly
+`TS2339` (property does not exist): the suites build model classes inside factory functions
+(`generatePhoto()` returns an anonymous `class extends Model`), so the checker sees `Model`, not a class
+with `name`/`href`/`owner_id`. Decorators contribute the rest — a decorated field has no declared type the
+checker can relate to the column definition.
+
+This is the single largest source of "the agent cannot tell whether it broke something without running the
+whole suite". It is worth solving properly rather than with `// @ts-nocheck`.
+
+**Tasks:**
+
+- [ ] Decide the typing strategy for decorator-defined columns — declaration merging, a `Model<Shape>`
+      generic, or a codegen step that emits interfaces from the schema
+- [ ] Give the test model factories concrete return types so `generatePhoto()` yields a typed class
+- [ ] Fold `packages/**/test` and `test/` into `tsconfig.typecheck.json` and make CI enforce it
+- [ ] Type the custom assertions (`matchJson`, `hasMany`, …) via module augmentation so `assert.hasMany`
+      is not an `any` — `test/helpers/custom-assertions.ts` currently casts around qunitx's two runtime
+      shapes
+
+---
+
+## Milestone 15: Node.js `fetch` Interception
+
+The reason `@memoria/server` and `@memoria/response` are excluded from the Node suite (they pass in the
+browser). Pretender patches `XMLHttpRequest`, which jsdom provides, but Node's native `fetch` is undici and
+goes nowhere near it. Everything under `packages/@memoria/server/test` is green in a browser today, so this
+is purely about the Node story.
+
+**Tasks:**
+
+- [ ] Choose an interception strategy — undici `MockAgent` / `setGlobalDispatcher`, or a `globalThis.fetch`
+      wrapper that routes into Pretender's recognizer
+- [ ] Make `RESTAdapter` requests go through the same path in both runtimes
+- [ ] Restore the `@memoria/server` and `@memoria/response` imports in `test/index.ts`
+- [ ] Confirm the Node and browser suites report the same test count
+
+---
+
+## Milestone 16: Test Suite Performance and Isolation
+
+The Node suite runs as a single aggregate entry (`test/index.ts`) in one process, inherited from the old
+runner. `node:test` can run files in parallel processes, but the suite is not ready for it: models register
+into a global `Schema.Schemas`, and the SQL tests share one database that they `TRUNCATE`/`dropDatabase`
+between tests.
+
+**Tasks:**
+
+- [ ] Make per-file runs work standalone (`node --test packages/@memoria/model/test/build-test.ts`)
+- [ ] Give SQL tests an isolated schema or database per worker so they can run concurrently
+- [ ] Switch to a glob entry and measure the wall-clock win (currently ~70s node, ~22s browser)
+- [ ] Add `--experimental-test-isolation` or equivalent guards so global-state leaks fail loudly
+
+---
+
+## Done (baseline on `main`)
+
+- MemoryAdapter: full CRUD with auto-incrementing id/UUID primary keys
+- RESTAdapter: full CRUD with HTTP + in-memory cache layer
+- SQLAdapter: full CRUD via TypeORM 0.3.31 `DataSource` — 158/158 tests green
+- BelongsTo / OneToOne / HasMany relationships across all three adapters
+- Reflective (bidirectional) relationship tracking in memory
+- HasManyArray — custom Array subclass with relationship mutation hooks
+- InstanceDB — reference tracking across all copies of an instance
+- RelationshipDB — global relationship cache with bidirectional sync on CRUD
+- RevisionHistory — snapshot of column state for dirty tracking
+- Changeset — error container with action, data, changes
+- Serializer — model to JSON with configurable key casing and embed support
+- Error types — InsertError, UpdateError, DeleteError, CacheError, NotFoundError, etc.
+- LazyPromise / RelationshipPromise — deferred async relationship resolution
+- Enum / EnumFreeze utilities
+- `@memoria/server` in-browser HTTP mock server (Pretender-based)
+- `@memoria/response` Response helper
+- QUnitX-based test suite across model, memory, rest, sql adapters — the same files run on `node:test`
+  and in a browser
+- qunitx 1.4 (QUnit 3 semantics) and qunitx-cli 0.39. The CI workaround for qunitx-cli 0.31's
+  non-portable linux-x64 binary (a `/nix/store` ELF interpreter) is gone: 0.37 builds the binary on an
+  official Node, gates releases on its portability, and the launcher falls back to the JS CLI when the
+  binary cannot start
+- TypeScript 7 (milestone 17): `moduleResolution: bundler` with `exports`-resolved packages replaced
+  `baseUrl` + `paths`, and `strict: false` is spelled out since TS 6+ defaults it on. The typecheck runs in
+  ~0.6s and declaration emit in the build ~0.5s. typedoc, which supports TypeScript only up to 6.0 and only
+  fed a git-ignored `docs/api`, was dropped; the README is the documentation. The packed-package test
+  type checks consumers on both TS 7 and 5.9
+- Consumer-facing fixes found by the packed-package test: relationship decorators accept the related class
+  itself (as the README always showed — it threw `Class constructor cannot be invoked without 'new'`) as well
+  as a `() => Class` thunk; decorator signatures type check as legacy property decorators (every
+  `@Column()` was TS1240 in a consumer); `@HasMany`'s inverse side is optional, as at runtime; the emitted
+  `LazyPromise` and `HasManyArray` declarations are valid under `strict` with `skipLibCheck: false`
+- TypeScript throughout, type checked across every package's `src/`
+- CI on Node 22/24 with a postgres service, browser tests, format and a packed-package consumer test

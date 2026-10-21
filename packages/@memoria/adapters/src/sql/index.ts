@@ -1,4 +1,5 @@
-import { Connection, createConnection, EntitySchema, In } from "typeorm";
+import { DataSource, EntitySchema, In } from "typeorm";
+import type { DataSourceOptions, EntitySchemaOptions } from "typeorm";
 import Decorators from "./decorators/index.js";
 import MemoryAdapter from "../memory/index.js";
 import MemoriaModel, {
@@ -22,37 +23,71 @@ interface FreeObject {
   [key: string]: any;
 }
 
+// NOTE: every @memoria package has to stay evaluable in a browser bundle -- @memoria/model re-exports
+// the adapters, so this module is pulled into browser builds even when SQLAdapter is never used.
+// esbuild does not shim `process`, so a bare `process.env.X` here is a ReferenceError at import time
+// in the browser, not just when connecting. Read it defensively instead.
+function envVar(key: string): string | undefined {
+  return typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+}
+
 // TODO: add maxExecutionTime? if make everything from queryBuiler
 // Model itself should really be the entity? Otherwise Relationship references might not work?!: Never verified.
 export default class SQLAdapter extends MemoryAdapter {
   static Decorators = Decorators;
 
   static logging = true;
-  static host = "localhost";
-  static port = 5432;
+  // NOTE: connection defaults follow the standard libpq environment variables so the same code runs
+  // against a local postgres, a docker-compose service and CI without a config file.
+  static host = envVar("PGHOST") || "localhost";
+  static port = Number(envVar("PGPORT")) || 5432;
 
   static CONNECTION_OPTIONS = {
     type: "postgres",
     synchronize: true,
-    username: "postgres",
-    password: "postgres",
-    database: "postgres",
+    username: envVar("PGUSER") || "postgres",
+    password: envVar("PGPASSWORD") || "postgres",
+    database: envVar("PGDATABASE") || "postgres",
   };
 
-  static _connection: null | FreeObject = null;
-  static async getConnection() {
-    if (this._connection && this._connection.isConnected) {
+  static _connection: null | DataSource = null;
+  static async getConnection(): Promise<DataSource> {
+    if (this._connection && this._connection.isInitialized) {
       return this._connection;
     }
 
-    // @ts-ignore
-    this._connection = (await createConnection({
-      // @ts-ignore
-      entities: Schema.Schemas.map((schema) => new EntitySchema(schema)),
+    // NOTE: entities are rebuilt from Schema.Schemas on every (re)connect on purpose. Models can be
+    // declared after the first connection -- a long-lived DataSource would not know about them.
+    this._connection = new DataSource({
+      // NOTE: memoria's own Schema shape is structurally a typeorm EntitySchemaOptions but is built
+      // by the decorators rather than declared, so it is not nominally typed as one.
+      entities: Schema.Schemas.map((schema) => new EntitySchema(schema as EntitySchemaOptions<FreeObject>)),
       ...{ logging: this.logging, host: this.host, port: this.port, ...this.CONNECTION_OPTIONS },
-    })) as Connection;
+    } as DataSourceOptions);
+
+    await this._connection.initialize();
 
     return this._connection;
+  }
+
+  // NOTE: postgres does not advance a serial sequence when an explicit primary key is supplied, so
+  // a later sequence-generated insert would collide with an already-taken id. Re-syncing the
+  // sequence to MAX(id) after such an insert is what keeps the two allocation paths compatible.
+  static async syncPrimaryKeySequence(Manager: FreeObject, Model: typeof MemoriaModel) {
+    let metadata = Manager.connection.entityMetadatas.find(
+      (entityMetadata) => entityMetadata.targetName === Model.name,
+    );
+    if (!metadata) {
+      throw new RuntimeError(
+        `${Model.name} has no entity metadata registered on the SQLAdapter connection. Was the model declared before $Model.resetSchemas()?`,
+      );
+    }
+
+    let { tableName } = metadata;
+
+    await Manager.query(
+      `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`,
+    );
   }
 
   static async getEntityManager() {
@@ -76,7 +111,7 @@ export default class SQLAdapter extends MemoryAdapter {
     // let globalScope = PlatformTools.getGlobalVariable();
     // globalScope.typeormMetadataArgsStorage = new MetadataArgsStorage();
 
-    await connection.close();
+    await connection.destroy();
 
     return Schema;
   }
@@ -84,7 +119,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async resetRecords(
     Model?: typeof MemoriaModel,
     targetState?: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
 
@@ -117,7 +152,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async find(
     Model: typeof MemoriaModel,
     primaryKey: PrimaryKey | PrimaryKey[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | MemoriaModel | null> {
     let Manager = await this.getEntityManager();
 
@@ -150,7 +185,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async findBy(
     Model: typeof MemoriaModel,
     queryObject: QueryObject,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel | null> {
     let Manager = await this.getEntityManager();
     let foundModel = await Manager.findOneBy(Model, getTargetKeysFromInstance(queryObject));
@@ -161,12 +196,12 @@ export default class SQLAdapter extends MemoryAdapter {
   static async findAll(
     Model: typeof MemoriaModel,
     queryObject: QueryObject = {},
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[] | null> {
     let Manager = await this.getEntityManager();
     let query = await Manager.createQueryBuilder(Model, Model.tableName).orderBy(
       `${Model.tableName}.${Model.primaryKeyName}`,
-      "ASC"
+      "ASC",
     );
 
     if (queryObject) {
@@ -182,7 +217,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async insert(
     Model: typeof MemoriaModel,
     record: QueryObject | ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let target = Object.keys(record).reduce((result, columnName) => {
       if (columnName !== Model.primaryKeyName && Model.columnNames.has(columnName)) {
@@ -203,20 +238,14 @@ export default class SQLAdapter extends MemoryAdapter {
         .returning("*")
         .execute();
 
-      // NOTE: this updates postgres sequence by max id, important when id provided
       if (Model.primaryKeyType === "id" && record[Model.primaryKeyName]) {
-        let tableName = Manager.connection.entityMetadatas.find(
-          (metadata) => metadata.targetName === Model.name
-        ).tableName;
-        await Manager.query(
-          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-        );
+        await this.syncPrimaryKeySequence(Manager, Model);
       }
 
       return this.cache(
         Model,
         Model.assign(prepareTargetObjectFromInstance(record, Model), result.generatedMaps[0]) as ModelRefOrInstance,
-        options
+        options,
       );
     } catch (error) {
       if (!error.code) {
@@ -237,7 +266,7 @@ export default class SQLAdapter extends MemoryAdapter {
           new Changeset(Model.build(target)),
           `Wrong ${Model.primaryKeyName} input type: entered ${typeof target[Model.primaryKeyName]} instead of ${
             Model.primaryKeyType
-          }`
+          }`,
         );
       }
 
@@ -248,7 +277,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async update(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
 
@@ -263,7 +292,7 @@ export default class SQLAdapter extends MemoryAdapter {
             }
 
             return result;
-          }, {})
+          }, {}),
         )
         .where(`${primaryKeyName} = :${primaryKeyName}`, {
           [primaryKeyName]: record[primaryKeyName],
@@ -294,7 +323,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async delete(
     Model: typeof MemoriaModel,
     record: ModelRefOrInstance,
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel> {
     let primaryKeyName = Model.primaryKeyName;
     try {
@@ -323,7 +352,7 @@ export default class SQLAdapter extends MemoryAdapter {
 
       return Model.build(
         Model.assign(result, resultRaw.raw[0]),
-        Object.assign(options || {}, { isNew: false, isDeleted: true })
+        Object.assign(options || {}, { isNew: false, isDeleted: true }),
       );
     } catch (error) {
       throw error;
@@ -334,7 +363,7 @@ export default class SQLAdapter extends MemoryAdapter {
   static async insertAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let primaryKey = records.find((record) => record[Model.primaryKeyName]);
     try {
@@ -342,22 +371,17 @@ export default class SQLAdapter extends MemoryAdapter {
       let targetRecords = records.map((record) => ({ ...record }));
       let result = await Manager.createQueryBuilder()
         .insert()
-        .into(Model, Model.columnNames)
-        .values(targetRecords) // NOTE: probably doent need relationships filter as it is
+        .into(Model, [...Model.columnNames])
+        .values(targetRecords as FreeObject[]) // NOTE: probably doent need relationships filter as it is
         .returning("*")
         .execute();
 
       if (primaryKey && typeof primaryKey === "number") {
-        let tableName = Manager.connection.entityMetadatas.find(
-          (metadata) => metadata.targetName === Model.name
-        ).tableName;
-        await Manager.query(
-          `SELECT setval(pg_get_serial_sequence('${tableName}', '${Model.primaryKeyName}'), (SELECT MAX(${Model.primaryKeyName}) FROM "${tableName}"), true)`
-        );
+        await this.syncPrimaryKeySequence(Manager, Model);
       }
 
       return result.raw.map((rawResult, index) =>
-        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options)
+        this.cache(Model, Model.assign(targetRecords[index], rawResult) as ModelRefOrInstance, options),
       );
     } catch (error) {
       console.log(error);
@@ -390,21 +414,21 @@ export default class SQLAdapter extends MemoryAdapter {
   static async updateAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     // TODO: model always expects them to be instance!! Do not use save function!
     let Manager = await this.getEntityManager();
     let results = await Manager.save(records.map((model) => cleanRelationships(Model, Model.build(model))));
 
     return results.map((result, index) =>
-      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options)
+      this.cache(Model, Model.assign(records[index], result) as ModelRefOrInstance, options),
     );
   }
 
   static async deleteAll(
     Model: typeof MemoriaModel,
     records: ModelRefOrInstance[],
-    options?: ModelBuildOptions
+    options?: ModelBuildOptions,
   ): Promise<MemoriaModel[]> {
     let Manager = await this.getEntityManager();
     let targetPrimaryKeys = records.map((model) => model[Model.primaryKeyName]);
@@ -420,8 +444,8 @@ export default class SQLAdapter extends MemoryAdapter {
     return result.raw.map((rawResult, index) =>
       Model.build(
         Model.assign(records[index], rawResult),
-        Object.assign(options || {}, { isNew: false, isDeleted: true })
-      )
+        Object.assign(options || {}, { isNew: false, isDeleted: true }),
+      ),
     );
   }
 
@@ -453,7 +477,7 @@ export default class SQLAdapter extends MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName || !reverseRelationshipName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`
+              `${RelationshipClass.name} missing a foreign key column or @BelongsTo declaration for ${SourceClass.name} on ${relationshipName} @hasOne relationship!`,
             );
           }
 
@@ -476,7 +500,7 @@ export default class SQLAdapter extends MemoryAdapter {
           let reverseRelationshipForeignKeyColumnName = metadata.reverseRelationshipForeignKeyColumnName as string;
           if (!reverseRelationshipForeignKeyColumnName) {
             throw new Error(
-              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`
+              `${RelationshipClass.name} missing a foreign key column for ${SourceClass.name} on ${relationshipName} @hasMany relationship!`,
             );
           }
 

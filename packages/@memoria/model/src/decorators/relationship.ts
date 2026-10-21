@@ -7,13 +7,24 @@ import type { RelationOptions, JoinColumnOptions, JoinTableOptions } from "../ty
 
 type ObjectType<T> = { new (): T } | Function;
 
+// NOTE: a relationship target is the related class itself (`@BelongsTo(User)`) or a function returning it
+// (`@BelongsTo(() => User)`, which also breaks circular imports). The schema and the adapters -- TypeORM's
+// decorators included -- call the target to get the class, and calling a class throws, so a class is
+// wrapped into the function form once, here.
+function toTypeFunction(typeFunctionOrTarget) {
+  return typeof typeFunctionOrTarget === "function" && typeFunctionOrTarget.prototype instanceof Model
+    ? () => typeFunctionOrTarget
+    : typeFunctionOrTarget;
+}
+
 // TODO: clean-up repetition
 export function OneToOne<T>(
-  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  typeFunctionOrTarget: string | ObjectType<T> | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
-  return function (target: typeof Model, propertyName: string, descriptor: any) {
+  return function (target: Model, propertyName: string, descriptor?: any) {
+    let typeFunction = toTypeFunction(typeFunctionOrTarget);
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
       options = <RelationOptions>inverseSideOrOptions;
@@ -39,7 +50,7 @@ export function OneToOne<T>(
     let foundRelation = Schema.getSchema(Class).relations[propertyName];
 
     Schema.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
-      target: typeFunctionOrTarget,
+      target: typeFunction,
       type: "one-to-one",
       // @ts-ignore
       inverseSide: inverseSideProperty,
@@ -62,21 +73,22 @@ export function OneToOne<T>(
 
     RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
 
-    return Class.Adapter.Decorators.OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
+    return Class.Adapter.Decorators.OneToOne(typeFunction, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function ManyToOne<T>(
-  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  typeFunctionOrTarget: string | ObjectType<T> | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
   options?: RelationOptions,
-  type?: "many-to-one" | "one-to-one"
+  type?: "many-to-one" | "one-to-one",
 ) {
-  return function (target: typeof Model, propertyName: string, descriptor: any) {
+  return function (target: Model, propertyName: string, descriptor?: any) {
+    let typeFunction = toTypeFunction(typeFunctionOrTarget);
     // Normalize parameters.
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -103,7 +115,7 @@ export function ManyToOne<T>(
     let targetType = type || "many-to-one";
 
     Schema.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
-      target: typeFunctionOrTarget,
+      target: typeFunction,
       type: targetType,
       // @ts-ignore
       inverseSide: inverseSideProperty,
@@ -130,20 +142,21 @@ export function ManyToOne<T>(
       RelationshipDB.instanceRecordsOneToOneCache.set(`${Class.name}:${propertyName}`, new WeakMap());
     }
 
-    return Class.Adapter.Decorators.ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options)(
+    return Class.Adapter.Decorators.ManyToOne(typeFunction, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function OneToMany<T>(
-  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
-  inverseSideOrOptions: string | ((object: T) => any),
-  options?: RelationOptions
+  typeFunctionOrTarget: string | ObjectType<T> | ((type?: any) => ObjectType<T>),
+  inverseSideOrOptions?: string | ((object: T) => any),
+  options?: RelationOptions,
 ) {
-  return function (target: typeof Model, propertyName: string, descriptor: any) {
+  return function (target: Model, propertyName: string, descriptor?: any) {
+    let typeFunction = toTypeFunction(typeFunctionOrTarget);
     // TODO: inverse
     if (!options) {
       options = {};
@@ -161,7 +174,7 @@ export function OneToMany<T>(
     let foundRelation = Schema.getSchema(Class).relations[propertyName];
 
     Schema.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
-      target: typeFunctionOrTarget,
+      target: typeFunction,
       type: "one-to-many",
       // inverseSide: inverseSideProperty,
       lazy: isLazy,
@@ -183,20 +196,21 @@ export function OneToMany<T>(
 
     RelationshipDB.instanceRecordsHasManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
 
-    return Class.Adapter.Decorators.OneToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
+    return Class.Adapter.Decorators.OneToMany(typeFunction, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function ManyToMany<T>(
-  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  typeFunctionOrTarget: string | ObjectType<T> | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
-  return function (target: typeof Model, propertyName: string, descriptor: any) {
+  return function (target: Model, propertyName: string, descriptor?: any) {
+    let typeFunction = toTypeFunction(typeFunctionOrTarget);
     // normalize parameters
     let inverseSideProperty: string | ((object: T) => any);
     if (typeof inverseSideOrOptions === "object") {
@@ -222,7 +236,7 @@ export function ManyToMany<T>(
     let foundRelation = Schema.getSchema(Class).relations[propertyName];
 
     Schema.getSchema(Class).relations[propertyName] = Object.assign({}, foundRelation, {
-      target: typeFunctionOrTarget,
+      target: typeFunction,
       type: "many-to-many",
       // @ts-ignore
       inverseSide: inverseSideProperty,
@@ -245,16 +259,16 @@ export function ManyToMany<T>(
 
     RelationshipDB.instanceRecordsManyToManyCache.set(`${Class.name}:${propertyName}`, new WeakMap());
 
-    return Class.Adapter.Decorators.ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options)(
+    return Class.Adapter.Decorators.ManyToMany(typeFunction, inverseSideOrOptions, options)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColumnOptions[]) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: any, propertyName: string, descriptor?: any) {
     let targetRelationship = Schema.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
       throw new Error(`@JoinColumn() on ${target.constructor.name} requires relationship declaration first`);
@@ -273,13 +287,13 @@ export function JoinColumn(optionsOrOptionsArray?: JoinColumnOptions | JoinColum
     return target.constructor.Adapter.Decorators.JoinColumn(optionsOrOptionsArray)(
       target.constructor,
       propertyName,
-      descriptor
+      descriptor,
     );
   };
 }
 
 export function JoinTable(options: JoinTableOptions = {}) {
-  return function (target: any, propertyName: string, descriptor: any) {
+  return function (target: any, propertyName: string, descriptor?: any) {
     let targetRelationship = Schema.getSchema(target.constructor).relations[propertyName];
     if (!targetRelationship) {
       throw new Error(`@JoinTable() on ${target.constructor.name} requires relationship declaration first`);
@@ -303,9 +317,9 @@ export const HasMany = OneToMany;
 export const BelongsTo = ManyToOne;
 
 export function HasOne<T>(
-  typeFunctionOrTarget: string | ((type?: any) => ObjectType<T>),
+  typeFunctionOrTarget: string | ObjectType<T> | ((type?: any) => ObjectType<T>),
   inverseSideOrOptions?: string | ((object: T) => any) | RelationOptions,
-  options?: RelationOptions
+  options?: RelationOptions,
 ) {
   return ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options, "one-to-one");
 }
@@ -325,12 +339,12 @@ export default {
 
 // NOTE: maybe I can remove one call with: returning the function directly:
 export function proxyToAdapter(decoratorName, firstParam?, secondParam?) {
-  return function (target, propertyKey, _descriptor) {
+  return function (target, propertyKey, _descriptor?) {
     return target.constructor.Adapter.Decorators[decoratorName](
       target.constructor,
       propertyKey,
       firstParam,
-      secondParam
+      secondParam,
     );
   };
 }

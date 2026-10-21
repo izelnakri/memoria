@@ -518,12 +518,12 @@ module("@memoria/model | Enum", function (hooks) {
             { a: 1, b: 2 },
             { a: 1, b: 1 },
           ],
-          "b"
+          "b",
         ),
         [
           { a: 1, b: 1 },
           { a: 1, b: 2 },
-        ]
+        ],
       );
       assert.propEqual(Enum.sortBy(EXAMPLE_ARRAY_OF_OBJECTS, "id"), [
         { id: null, name: null, active: false, createdAt: new Date("1989-11-10"), tags: ["young"], meta: {} },
@@ -1346,7 +1346,7 @@ module("@memoria/model | Enum", function (hooks) {
       });
       assert.propEqual(
         Enum.findBy(EXAMPLE_ARRAY_OF_OBJECTS, "tags", ["happy", "teacher"]),
-        EXAMPLE_ARRAY_OF_OBJECTS[0]
+        EXAMPLE_ARRAY_OF_OBJECTS[0],
       );
       assert.propEqual(Enum.findBy(EXAMPLE_ARRAY_OF_OBJECTS, "meta", { admin: true }), {
         id: 5,

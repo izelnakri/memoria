@@ -40,7 +40,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           } catch (error) {
             assert.ok(error instanceof RuntimeError);
           }
-        })
+        }),
       );
     });
 
@@ -57,7 +57,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         RESTPhoto.peek(3),
@@ -66,7 +66,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Selfie",
           href: "selfie.jpeg",
           is_public: false,
-        })
+        }),
       );
     });
 
@@ -84,7 +84,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.deepEqual([firstModel.isNew, firstModel.isPersisted], [false, true]);
 
@@ -102,7 +102,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Ski trip",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.propEqual(
         secondModel,
@@ -111,7 +111,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Some name",
           href: "ski-trip.jpeg",
           is_public: false,
-        })
+        }),
       );
       assert.notEqual(secondModel, thirdModel);
       assert.deepEqual([thirdModel.isNew, thirdModel.isPersisted], [false, true]);
@@ -192,7 +192,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           name: "Family photo",
           href: "family-photo.jpeg",
           is_public: true,
-        })
+        }),
       );
       assert.propEqual(
         RESTPhotoComment.peekBy({ uuid: "d351963d-e725-4092-a37c-1ca1823b57d3" }),
@@ -204,7 +204,7 @@ module("@memoria/adapters | RESTAdapter | Peek API", function (hooks) {
           updated_at: "2015-10-25T20:54:04.447Z",
           photo_id: 1,
           user_id: 1,
-        })
+        }),
       );
     });
 

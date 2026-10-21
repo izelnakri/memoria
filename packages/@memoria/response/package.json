@@ -2,12 +2,18 @@
   "name": "@memoria/response",
   "type": "module",
   "version": "0.0.33",
-  "description": "",
-  "author": "Izel Nakri",
+  "description": "Response helper for @memoria/server route handlers",
+  "author": "Izel Nakri <contact@izelnakri.com>",
   "license": "MIT",
-  "main": "src/index.ts",
-  "files": [
-    "dist/*"
-  ],
-  "dependencies": {}
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/izelnakri/memoria.git",
+    "directory": "packages/@memoria/response"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
 }

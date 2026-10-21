@@ -11,7 +11,7 @@ export default class RevisionHistory extends Array {
         result[columnName] = model[columnName];
 
         return result;
-      }, {})
+      }, {}),
     );
 
     return this;

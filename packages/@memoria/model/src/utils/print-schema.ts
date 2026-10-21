@@ -31,14 +31,14 @@ export function printColumns(ModelClass: typeof Model) {
 
     if (belongsToColumnNames.has(columnName)) {
       let belongsToRelationshipName = Object.keys(belongsToTable).find(
-        (relationshipName) => belongsToTable[relationshipName].foreignKeyColumnName === columnName
+        (relationshipName) => belongsToTable[relationshipName].foreignKeyColumnName === columnName,
       ) as string;
       let { RelationshipClass, reverseRelationshipName } = belongsToTable[belongsToRelationshipName];
 
       console.log(
         `${columnName}: ${columnInfo.type} -> ${RelationshipClass.name}(${instanceName(
-          RelationshipClass
-        )}.${reverseRelationshipName})`
+          RelationshipClass,
+        )}.${reverseRelationshipName})`,
       );
     } else {
       console.log(`${columnName}: ${columnInfo.type}`);
@@ -64,16 +64,16 @@ export function printRelationships(ModelClass: typeof Model) {
     if (relationshipType === "BelongsTo") {
       console.log(
         `${instanceName(ModelClass)}.${relationshipName}[foreign key: ${instanceName(
-          ModelClass
+          ModelClass,
         )}.${foreignKeyColumnName}] -> ${relationshipType} -> ${RelationshipClass.name}(${instanceName(
-          RelationshipClass
-        )}.${reverseRelationshipName})`
+          RelationshipClass,
+        )}.${reverseRelationshipName})`,
       );
     } else {
       console.log(
         `${instanceName(ModelClass)}.${relationshipName} -> ${relationshipType} -> ${
           RelationshipClass.name
-        }(foreign key: ${instanceName(RelationshipClass)}.${reverseRelationshipForeignKeyColumnName})`
+        }(foreign key: ${instanceName(RelationshipClass)}.${reverseRelationshipForeignKeyColumnName})`,
       );
     }
   });

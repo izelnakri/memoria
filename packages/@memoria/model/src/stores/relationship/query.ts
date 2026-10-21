@@ -36,7 +36,9 @@ export default class RelationshipQuery {
           return targetModel;
         } else if (
           reverseRelationshipType === "HasMany" &&
-          reverseRelationship?.some((reverseRelationshipInstance) => InstanceDB.getReferences(reverseRelationshipInstance).has(model))
+          reverseRelationship?.some((reverseRelationshipInstance) =>
+            InstanceDB.getReferences(reverseRelationshipInstance).has(model),
+          )
         ) {
           return targetModel;
         }
@@ -64,54 +66,67 @@ export default class RelationshipQuery {
       let latestPersistedInstance = InstanceDB.getPersistedModels(Class).get(primaryKey);
       let modelIsCachedModel = Class.Cache.get(primaryKey) === model;
       let [relationshipFoundFromReverseLookup, reverseLookupFallback, cachedReferencePrimaryKey] = Array.from(
-        InstanceDB.getAllReferences(RelationshipClass).values()
+        InstanceDB.getAllReferences(RelationshipClass).values(),
       )
         .reverse()
-        .reduce((result, possibleRelationshipSet) => {
-          if (result[0]) {
-            return result;
-          }
-
-          return Array.from(possibleRelationshipSet)
-            .reverse()
-            .reduce((result, possibleRelationship) => {
-              if (result[0]) {
-                return result;
-              }
-
-              let primaryKeyValue = possibleRelationship[RelationshipClass.primaryKeyName];
-              let foreignKeyValue = possibleRelationship[reverseRelationshipForeignKeyColumnName as string];
-              if (primaryKeyValue && possibleRelationship === RelationshipClass.Cache.get(primaryKeyValue)) {
-                if (foreignKeyValue && foreignKeyValue === primaryKey) {
-                  result[2] = primaryKeyValue;
-                }
-
-                return result;
-              }
-
-              let someRelationship = RelationshipDB.findRelationshipFor(
-                possibleRelationship,
-                reverseRelationshipName as string
-              );
-              if (someRelationship && (someRelationship === model || someRelationship === latestPersistedInstance)) {
-                result[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
-
-                return result;
-              }
-
-              if (!modelIsCachedModel && foreignKeyValue && foreignKeyValue === primaryKey) {
-                result[1] = possibleRelationship;
-              } else if (
-                someRelationship &&
-                modelInstances.has(someRelationship) &&
-                !possibleRelationship.isInMemoryCachedRecord
-              ) {
-                result[1] = possibleRelationship;
-              }
-
+        .reduce(
+          (result, possibleRelationshipSet) => {
+            if (result[0]) {
               return result;
-            }, result as [Model | undefined, Model | undefined, PrimaryKey | undefined]);
-        }, Object.seal([undefined, undefined, undefined]) as [Model | undefined, Model | undefined, PrimaryKey | undefined]);
+            }
+
+            return Array.from(possibleRelationshipSet)
+              .reverse()
+              .reduce(
+                (result, possibleRelationship) => {
+                  if (result[0]) {
+                    return result;
+                  }
+
+                  let primaryKeyValue = possibleRelationship[RelationshipClass.primaryKeyName];
+                  let foreignKeyValue = possibleRelationship[reverseRelationshipForeignKeyColumnName as string];
+                  if (primaryKeyValue && possibleRelationship === RelationshipClass.Cache.get(primaryKeyValue)) {
+                    if (foreignKeyValue && foreignKeyValue === primaryKey) {
+                      result[2] = primaryKeyValue;
+                    }
+
+                    return result;
+                  }
+
+                  let someRelationship = RelationshipDB.findRelationshipFor(
+                    possibleRelationship,
+                    reverseRelationshipName as string,
+                  );
+                  if (
+                    someRelationship &&
+                    (someRelationship === model || someRelationship === latestPersistedInstance)
+                  ) {
+                    result[possibleRelationship.isLastPersisted ? 0 : 1] = possibleRelationship;
+
+                    return result;
+                  }
+
+                  if (!modelIsCachedModel && foreignKeyValue && foreignKeyValue === primaryKey) {
+                    result[1] = possibleRelationship;
+                  } else if (
+                    someRelationship &&
+                    modelInstances.has(someRelationship) &&
+                    !possibleRelationship.isInMemoryCachedRecord
+                  ) {
+                    result[1] = possibleRelationship;
+                  }
+
+                  return result;
+                },
+                result as [Model | undefined, Model | undefined, PrimaryKey | undefined],
+              );
+          },
+          Object.seal([undefined, undefined, undefined]) as [
+            Model | undefined,
+            Model | undefined,
+            PrimaryKey | undefined,
+          ],
+        );
       if (relationshipFoundFromReverseLookup) {
         return relationshipFoundFromReverseLookup;
       }
@@ -134,11 +149,11 @@ export default class RelationshipQuery {
   static findPossibleReferenceInMemoryByReverseRelationshipInstances(
     model: Model,
     metadata: RelationshipMetadata,
-    relationshipModelsPrimaryKeyValue: PrimaryKey
+    relationshipModelsPrimaryKeyValue: PrimaryKey,
   ): [Model | undefined, Model | undefined, Model | undefined] {
     let { RelationshipClass, reverseRelationshipName } = metadata;
     let possibleRelationshipSet = InstanceDB.getAllKnownReferences(RelationshipClass).get(
-      relationshipModelsPrimaryKeyValue
+      relationshipModelsPrimaryKeyValue,
     );
     if (!possibleRelationshipSet || !InstanceDB.isPersisted(possibleRelationshipSet)) {
       return [undefined, undefined, undefined];
@@ -196,14 +211,14 @@ export default class RelationshipQuery {
 
           return possibleResult;
         },
-        [undefined, undefined, undefined] as [Model | undefined, Model | undefined, Model | undefined]
+        [undefined, undefined, undefined] as [Model | undefined, Model | undefined, Model | undefined],
       );
   }
 
   static findPossibleReferenceInMemoryByInstanceReferences(
     model: Model,
     metadata: RelationshipMetadata,
-    foreignKeyColumnName?: string
+    foreignKeyColumnName?: string,
   ): [Model | undefined, Model | undefined] {
     if (!model.isPersisted) {
       return [undefined, undefined];
@@ -252,7 +267,7 @@ export default class RelationshipQuery {
 
         return result;
       },
-      [undefined, undefined] as [Model | undefined, Model | undefined]
+      [undefined, undefined] as [Model | undefined, Model | undefined],
     );
     if (result[0] || result[1]) {
       return result;
@@ -267,7 +282,7 @@ export default class RelationshipQuery {
 
   static findReverseRelationships(
     source: Model,
-    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata
+    { RelationshipClass, ReverseRelationshipCache, reverseRelationshipType }: RelationshipMetadata,
   ): Model[] {
     if (reverseRelationshipType === "HasMany") {
       return InstanceDB.getAllReferences(RelationshipClass).reduce((result, instanceSet) => {

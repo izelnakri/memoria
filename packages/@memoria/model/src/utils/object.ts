@@ -11,7 +11,7 @@ export function get(obj: JSObject, keyName: string) {
   assert(`.get() cannot call get with '${keyName}' on an undefined object.`, obj !== undefined && obj !== null);
   assert(
     `.get() the key provided to get must be a string or number, you passed ${keyName}`,
-    typeof keyName === "string" || (typeof keyName === "number" && !isNaN(keyName))
+    typeof keyName === "string" || (typeof keyName === "number" && !isNaN(keyName)),
   );
   assert(`'this' in paths is not supported`, typeof keyName !== "string" || keyName.lastIndexOf("this.", 0) !== 0);
 
@@ -38,19 +38,19 @@ function getPath(obj: JSObject, keyName: string | string[]) {
 export function set<T = unknown>(obj: object, keyName: string, value: T, tolerant?: boolean): T {
   assert(
     `.set() must be called with three or four arguments; an object, a property key, a value and tolerant true/false`,
-    arguments.length === 3 || arguments.length === 4
+    arguments.length === 3 || arguments.length === 4,
   );
   assert(
     `.set() cannot call with '${keyName}' on an undefined object.`,
-    (obj && typeof obj === "object") || typeof obj === "function"
+    (obj && typeof obj === "object") || typeof obj === "function",
   );
   assert(
     `.set() the key provided to set must be a string or number, you passed ${keyName}`,
-    typeof keyName === "string" || (typeof keyName === "number" && !isNaN(keyName))
+    typeof keyName === "string" || (typeof keyName === "number" && !isNaN(keyName)),
   );
   assert(
     `.set() 'this' in paths is not supported`,
-    typeof keyName !== "string" || keyName.lastIndexOf("this.", 0) !== 0
+    typeof keyName !== "string" || keyName.lastIndexOf("this.", 0) !== 0,
   );
 
   // NOTE: removed isDestroyed check
@@ -89,7 +89,7 @@ export function getProperties(obj: object, keys?: string[]): object {
 
 export function setProperties<TProperties extends { [key: string]: any }>(
   obj: object,
-  properties: TProperties
+  properties: TProperties,
 ): TProperties {
   if (properties === null || typeof properties !== "object") {
     return properties;
