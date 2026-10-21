@@ -14,7 +14,7 @@
     "packages/@memoria/*"
   ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "build": "node scripts/build.ts",
@@ -66,6 +66,6 @@
     "arrowParens": "always"
   },
   "volta": {
-    "node": "24.14.0"
+    "node": "24.22.0"
   }
 }

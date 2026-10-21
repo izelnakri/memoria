@@ -7,9 +7,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# NOTE: only a superseded pull request run is worth cancelling. A push to main or a tag runs to the end,
+# so every commit on main keeps a result and a release tag always gets its GitHub release.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # NOTE: matches the postgres service credentials below. The SQLAdapter and its test helper both
@@ -19,16 +24,18 @@ env:
   PGUSER: postgres
   PGPASSWORD: postgres
   PGDATABASE: postgres
+  FORCE_COLOR: 0
 
 jobs:
   static-analysis:
     name: Typecheck & format
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: package.json
           cache: npm
       - run: npm ci
       - name: Typecheck
@@ -39,11 +46,12 @@ jobs:
   test-node:
     name: Node ${{ matrix.node }} tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        # NOTE: 22 is the minimum qunitx supports; 24 is current LTS. Both are exercised because the
-        # suite runs on node:test, whose reporter and lifecycle behaviour still moves between majors.
+        # NOTE: the published packages support Node 22, so the suite runs there too. Developing the repo
+        # needs 24 (qunitx-cli, the build script), which is also the leg that measures coverage.
         node: [22, 24]
     services:
       postgres:
@@ -60,76 +68,58 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - name: Run node test suite
+        if: matrix.node != 24
         run: npm run test:node
-
-  test-browser:
-    name: Browser tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      # NOTE: qunitx-cli drives the browser through playwright-core, which ships no browsers of its
-      # own. Only chromium is needed -- the suite does not run the firefox/webkit matrix.
-      - name: Install chromium
-        run: npx playwright-core install --with-deps chromium
-      - name: Run browser test suite
-        run: npm run test:browser
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
       - name: Run node test suite with coverage
+        if: matrix.node == 24
         run: npm run test:node:coverage
       # NOTE: informational only. A missing/expired CODECOV_TOKEN must not fail an otherwise green
       # build -- and it would, on every fork PR, since forks cannot read secrets.
       - name: Upload coverage
-        uses: codecov/codecov-action@v5
+        if: matrix.node == 24
+        uses: codecov/codecov-action@v7
         continue-on-error: true
         with:
           files: ./coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  test-browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      # NOTE: qunitx-cli drives whatever Chrome CHROME_BIN names. setup-chrome is a download and an
+      # unpack, where `playwright-core install --with-deps chromium` also apt-installed system packages.
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+      - name: Run browser test suite
+        run: npm run test:browser
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+
   package:
     name: Packed packages
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: package.json
           cache: npm
       - run: npm ci
       # NOTE: builds, packs every dist/, installs the tarballs into a scratch project and type checks +
@@ -143,15 +133,16 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [static-analysis, test-node, test-browser, package]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: package.json
           cache: npm
       - run: npm ci
       # NOTE: `make release` already published to npm and wrote the CHANGELOG section; this mirrors

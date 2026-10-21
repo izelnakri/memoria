@@ -352,6 +352,8 @@ class User extends Model {
 
 ## Development
 
+Working on memoria needs Node 24 (Volta pins the exact version CI uses); the published packages support 22.
+
 ```sh
 npm install
 docker compose up -d   # postgres on 5432, for the SQLAdapter suite

@@ -1,7 +1,27 @@
 version: 2
 updates:
-  # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # NOTE: grouped so a week's updates arrive as a few PRs, each one CI run, instead of one per package.
+  # The @memoria/* packages are this workspace and are never updated from the registry.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "@memoria/*"
+    groups:
+      tooling:
+        patterns: ["typescript", "esbuild", "prettier", "git-cliff", "tsx", "typedoc", "c8", "@types/*"]
+      testing:
+        patterns: ["qunitx", "qunitx-cli", "jsdom", "sinon", "express", "cors", "jquery", "rfdc"]
+      database:
+        patterns: ["typeorm", "pg"]
+      runtime:
+        patterns: ["inflected", "kleur", "pretender", "fake-xml-http-request", "route-recognizer"]
