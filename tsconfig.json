@@ -11,8 +11,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "declaration": true,
-    "outDir": "./dist",
     "inlineSourceMap": true,
     "inlineSources": true,
     "esModuleInterop": true,

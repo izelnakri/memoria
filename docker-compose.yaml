@@ -10,10 +10,6 @@
 # The credentials match the SQLAdapter defaults, so no environment variables are needed. Override
 # with the standard libpq variables (PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE) if this clashes
 # with a postgres you already run on 5432.
-#
-# (The previous version interpolated $PGUSER/$PGPASSWORD from .env and assigned them to each other's
-# keys -- PGUSER: $PGPASSWORD, PGPASSWORD: $PGUSER -- which only went unnoticed because both values
-# were "postgres". Hardcoding the dev credentials removes the footgun along with the .env coupling.)
 services:
   db:
     image: postgres:16-alpine
