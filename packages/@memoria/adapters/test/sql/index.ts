@@ -6,6 +6,7 @@ import "./peek-test.js";
 import "./serializer-embed-id-test.js";
 import "./serializer-embed-uuid-test.js";
 import "./reset-records-fixtures-test.js";
+import "./relationship-targets-test.js";
 import "./update-test.js";
 import "./relationships/belongs-to-id-for-has-one-test.js";
 import "./relationships/belongs-to-uuid-for-has-one-test.js";

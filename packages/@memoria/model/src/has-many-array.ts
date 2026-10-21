@@ -13,7 +13,8 @@ export default class HasManyArray extends Array {
     return Array;
   }
 
-  static of(..._input: Model[]) {
+  // NOTE: `any[]`, not `Model[]`: a static side has to stay assignable to Array's generic `of<T>()`.
+  static of(..._input: any[]): any {
     let args = [...arguments];
 
     return Array.isArray(args[0]) ? new HasManyArray(args[0]) : new HasManyArray(args);

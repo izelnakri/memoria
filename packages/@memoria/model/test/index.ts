@@ -17,5 +17,6 @@ import "./enum-test.js";
 import "./index-test.js";
 import "./new-test.js";
 import "./promises-test.js";
+import "./relationship-targets-test.js";
 import "./relationships-test.js";
 import "./serialize-test.js";

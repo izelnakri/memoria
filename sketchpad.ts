@@ -43,7 +43,7 @@ class Photo extends Model {
   @Column("int")
   user_id: number;
 
-  // NOTE: a function returning the class, because User is declared below.
+  // NOTE: a function returning the class, because User is declared below. The class itself works too.
   @BelongsTo(() => User)
   user: User;
 }
@@ -67,7 +67,7 @@ class User extends Model {
   @Generated()
   points: number;
 
-  @HasMany(() => Photo)
+  @HasMany(Photo)
   photos: Photo[];
 }
 
