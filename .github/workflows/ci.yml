@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -136,3 +137,29 @@ jobs:
       # declared dependencies installed.
       - name: Test the packed packages as a consumer
         run: npm run test:release
+
+  github-release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [static-analysis, test-node, test-browser, package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # NOTE: `make release` already published to npm and wrote the CHANGELOG section; this mirrors
+      # that section onto the GitHub release. `--latest` is the section for the tag this run was
+      # triggered by -- `--unreleased` would be empty here, since the tag exists.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run --silent changelog:latest > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md

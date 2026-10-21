@@ -18,41 +18,38 @@
   },
   "scripts": {
     "build": "node scripts/build.ts",
+    "changelog:latest": "git-cliff --latest --strip all",
+    "changelog:preview": "git-cliff --unreleased",
+    "changelog:update": "git-cliff --unreleased --prepend CHANGELOG.md",
     "clean": "rm -rf packages/@memoria/*/dist tmp/types coverage",
-    "changelog:unreleased": "auto-changelog --stdout --commit-limit false --package --unreleased-only --hide-credit",
-    "changelog:preview": "auto-changelog --stdout --commit-limit false -u --hide-credit",
-    "changelog:update": "auto-changelog --commit-limit false --package --hide-credit",
     "docs": "typedoc",
     "format": "prettier --check . \"!CHANGELOG.md\" \"!package-lock.json\"",
     "format:fix": "prettier --write . \"!CHANGELOG.md\" \"!package-lock.json\"",
-    "release": "release-it",
-    "release:beta": "release-it --preRelease=beta",
     "sketchpad": "node --import tsx sketchpad.ts",
     "test": "npm run test:node && npm run test:browser",
-    "test:node": "node --import tsx --import ./test/helpers/setup-node-environment.ts --test test/index.ts",
-    "test:node:watch": "node --import tsx --import ./test/helpers/setup-node-environment.ts --test --watch test/index.ts",
-    "test:node:coverage": "c8 --reporter=lcov --reporter=text npm run test:node",
     "test:browser": "qunitx test/browser.ts --before=packages/@memoria/server/test/helpers/webserver-for-passthrough.js",
-    "test:browser:watch": "npm run test:browser -- --watch",
     "test:browser:debug": "npm run test:browser -- --debug --open",
+    "test:browser:watch": "npm run test:browser -- --watch",
+    "test:node": "node --import tsx --import ./test/helpers/setup-node-environment.ts --test test/index.ts",
+    "test:node:coverage": "c8 --reporter=lcov --reporter=text npm run test:node",
+    "test:node:watch": "node --import tsx --import ./test/helpers/setup-node-environment.ts --test --watch test/index.ts",
     "test:release": "bash scripts/test-release.sh",
     "typecheck": "tsc --project tsconfig.typecheck.json --noEmit"
   },
   "devDependencies": {
     "@types/jquery": "^4.0.1",
     "@types/node": "^26.1.1",
-    "auto-changelog": "^2.6.0",
     "c8": "^12.0.0",
     "cors": "^2.8.6",
     "esbuild": "^0.28.2",
     "express": "^5.2.1",
+    "git-cliff": "^2.14.2",
     "jquery": "^4.0.0",
     "jsdom": "^29.1.1",
     "pg": "^8.22.0",
     "prettier": "^3.9.6",
     "qunitx": "^1.4.0",
     "qunitx-cli": "^0.39.0",
-    "release-it": "^20.2.1",
     "rfdc": "^1.4.1",
     "sinon": "^22.1.0",
     "tsx": "^4.23.1",
@@ -70,20 +67,5 @@
   },
   "volta": {
     "node": "24.14.0"
-  },
-  "release-it": {
-    "npm": false,
-    "publishConfig": {
-      "access": "public"
-    },
-    "git": {
-      "changelog": "npm run changelog:unreleased"
-    },
-    "github": {
-      "release": true
-    },
-    "hooks": {
-      "after:bump": "npm run changelog:update && node scripts/publish.ts ${version}"
-    }
   }
 }

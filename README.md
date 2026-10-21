@@ -240,9 +240,7 @@ export default function () {
 
   this.get("/users", async (request) => {
     if (request.queryParams.filter === "is_active") {
-      return {
-        users: User.serializer(await User.findAll({ is_active: true })),
-      };
+      return { users: User.serializer(await User.findAll({ is_active: true })) };
     }
 
     return Response(422, { error: "filter is required" });
@@ -265,9 +263,7 @@ export default function () {
   this.delete("/users/:id", User);
 
   // Other hosts can be mocked too, and real ones let through:
-  this.get("https://api.github.com/users/:username", (request) => ({
-    login: request.params.username,
-  }));
+  this.get("https://api.github.com/users/:username", (request) => ({ login: request.params.username }));
   this.passthrough("https://api.stripe.com");
 }
 ```
@@ -286,6 +282,17 @@ export default new Memoria({
 });
 
 // Server.shutdown() stops intercepting.
+```
+
+In Node, Pretender needs browser globals before `@memoria/server` is even imported. `@memoria/server/setup-dom`
+installs them from jsdom, an optional peer dependency (`npm install --save-dev jsdom`):
+
+```ts
+import setupDom from "@memoria/server/setup-dom";
+
+await setupDom();
+
+const { default: Memoria } = await import("@memoria/server");
 ```
 
 Routes can be added or overridden per test, which is the point of the whole thing:
@@ -387,6 +394,21 @@ packages/@memoria/server     Pretender-based HTTP mock server
 The test suite is written with [qunitx](https://github.com/izelnakri/qunitx), which runs the same test files
 unchanged on `node:test` and in a browser. That is what lets one suite prove the library works in both
 environments.
+
+### Releasing
+
+In the repository every package resolves to its TypeScript sources; nothing is built for development or
+tests. A release publishes each package's generated `dist/`, which `npm run test:release` exercises the way a
+consumer would: packed, installed from the tarballs, type checked under `strict` and run.
+
+```sh
+make release LEVEL=patch   # or minor, major, x.y.z
+```
+
+From an up-to-date, clean `main` whose `node_modules` match the lockfile, this runs `make check`, publishes
+all four packages at one version (internal dependencies pinned to it), prepends the release's section to
+CHANGELOG.md with [git-cliff](https://git-cliff.org) from the conventional commit subjects, then commits,
+tags `v<version>` and pushes. CI turns the tag into a GitHub release with the same notes.
 
 ## Contributing
 

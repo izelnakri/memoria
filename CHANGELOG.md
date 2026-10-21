@@ -1,7 +1,3 @@
-### Changelog
-
-All notable changes to this project will be documented in this file. Dates are displayed in UTC.
-
 #### [0.0.32](https://github.com/izelnakri/memoria/compare/0.0.32...0.0.32)
 
 - Belongs-To-Has-Many-Tests [`#73`](https://github.com/izelnakri/memoria/pull/73)
