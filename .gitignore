@@ -2,8 +2,6 @@ node_modules
 dist/
 /coverage
 /tmp
-/examples/dist
-/examples/.cache
 # NOTE: generated API docs (typedoc -> docs/api) and the local mdBook output both live here.
 docs
 .env

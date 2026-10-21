@@ -268,9 +268,8 @@ Goal: minimal runtime dependencies per the project philosophy.
       a scratch file for trying the API, `npm run sketchpad`, now run from source with nothing built)
       (also removed: `webpack.config.js` and the webpack toolchain, `public/`, `test/memoria-ssr.ts`,
       `Dockerfile`, `setup-database.sh`, `.env`)
-- [ ] Decide the fate of `examples/` — it is uncompiled sketch code, `examples/adapters/database.ts` is not
-      valid TypeScript, and it still imports `SQLAdapter` from the package root. Either rewrite it against
-      the current API and typecheck it in CI, or delete it. It is excluded from prettier until then.
+- [x] `examples/` deleted — 2021 sketch code depending on `@memserver/*@2.5.0` and parcel, never compiled,
+      and `examples/adapters/database.ts` was not valid TypeScript. The README examples are the examples now
 
 ---
 
