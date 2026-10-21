@@ -1,7 +1,7 @@
 import { ServerError, hash, LazyPromise, RuntimeError } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";
-import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
+import setupRESTModels from "../../adapters/test/helpers/models-with-relations/rest/id/index.js";
 import Response from "@memoria/response";
 
 const fixture = Symbol("fixture");

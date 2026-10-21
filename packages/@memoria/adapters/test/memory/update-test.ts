@@ -1,6 +1,6 @@
 import { module, test } from "qunitx";
 import { UpdateError, InstanceDB, RelationshipDB } from "@memoria/model";
-import wait from "@memoria/model/test/helpers/wait.js";
+import wait from "../../../model/test/helpers/wait.js";
 import setupMemoria from "../helpers/setup-memoria.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/memory/mix/index.js";

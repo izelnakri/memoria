@@ -6,12 +6,12 @@
 
 As of the toolchain-modernization PR, on Node 24:
 
-- **842 node tests passing** (`npm run test:node`) — `@memoria/model` + Memory, REST and SQL adapters
-- **726 browser tests passing** (`npm run test:browser`) — model, Memory, REST, `@memoria/server`,
+- **844 node tests passing** (`npm run test:node`) — `@memoria/model` + Memory, REST and SQL adapters
+- **727 browser tests passing** (`npm run test:browser`) — model, Memory, REST, `@memoria/server`,
   `@memoria/response`
 - `npm run typecheck` clean across all four packages' `src/`
 - `npm run format` clean
-- CI runs typecheck, format, a Node 22/24 matrix, browser tests, coverage and a build check
+- CI runs typecheck, format, a Node 22/24 matrix, browser tests, coverage and a packed-package consumer test
 
 Two things previously believed broken turned out not to be:
 
@@ -229,25 +229,31 @@ could not be imported; its generators emitted `@memserver/model` imports; its te
 
 ## Milestone 10: Production Build System & Package Exports
 
-Currently all packages use `"main": "src/index.ts"` which means consumers get raw TypeScript.
-Production builds should emit compiled ESM/CJS with proper type declarations.
+In the repository every package's `exports` point at `src/*.ts`, so tests, the type checker and editors run
+against source with nothing built. `npm run build` (`scripts/build.ts`) bundles each `exports` entry with
+esbuild — bare imports external, code-split so `@memoria/adapters` and `@memoria/adapters/sql` share one
+chunk — emits declarations with one `tsc` run, and writes a `dist/package.json` whose `exports` point at
+the built files. Releases publish `dist/`. Nothing in the repository is rewritten between the two (that was
+`scripts/change-entrypoints.js`, now deleted).
+
+`npm run test:release` packs every `dist/`, installs the tarballs into a scratch project and type checks
+(strict, `skipLibCheck: false`) and runs `test/release/consumer.ts` against them. It found, on its first
+run, that the README's own model example did not compile or run for a consumer — see the Done list.
 
 **Tasks:**
 
-- [ ] Each package (`@memoria/model`, `@memoria/adapters`, `@memoria/response`, `@memoria/server`) should
-      have a proper build step that emits:
-  - `dist/esm/` — ESM output
-  - `dist/cjs/` — CommonJS output (for Node.js `require()` compatibility)
-  - `dist/types/` — `.d.ts` type declarations
-- [ ] Replace the current webpack-based `libs:build` with a lighter tool (esbuild or tsup) per package
-- [ ] Add proper `package.json` `exports` field with `import` / `require` / `types` conditions per package
-      (`@memoria/adapters` now has a minimal `exports` map with `.`, `./sql` and a `./*` passthrough;
-      the other three packages still only have `main`)
-- [ ] Add `sideEffects: false` to each package for tree-shaking
-- [x] Ensure `@memoria/adapters` does not pull `typeorm` into browser bundles — SQLAdapter is now a
-      separate entry point (`@memoria/adapters/sql`), which cut the browser test bundle 7.65 MB → 1.59 MB
-- [x] Add `engines` field specifying minimum Node.js version (`>=22`)
-- [x] Remove `typeorm` from the main `@memoria/adapters` bundle; make it an optional peer dependency
+- [x] esbuild + `tsc --emitDeclarationOnly` build per package, replacing per-file `tsc` and the
+      entry-point toggling
+- [x] `exports` on every package, with `types`/`default` conditions in the published manifest
+- [x] Keep `typeorm` out of browser bundles — `@memoria/adapters/sql` subpath, optional peer dependency
+- [x] `jsdom` out of `@memoria/server`'s dependencies — `@memoria/server/setup-dom` subpath, optional peer
+- [x] `@memoria/server` declares its `@memoria/model` dependency (it imported it without declaring it)
+- [x] Consumer test of the packed tarballs in CI
+- [ ] `@memoria/model`'s declarations import `ColumnType` from `typeorm`, which it does not depend on. With
+      `skipLibCheck` (the common default) the type silently degrades to `any` in a project without
+      typeorm; without it, it is an error. Inline the union, or move the SQL column types to the adapter
+- [ ] `sideEffects: false`, once it is verified that no module relies on import-time registration
+- [ ] CommonJS output, only if someone needs `require()` — Node 22 can `require()` ESM
 
 ---
 
@@ -398,5 +404,10 @@ relies on. It was deliberately not adopted during the toolchain refresh because 
   non-portable linux-x64 binary (a `/nix/store` ELF interpreter) is gone: 0.37 builds the binary on an
   official Node, gates releases on its portability, and the launcher falls back to the JS CLI when the
   binary cannot start
+- Consumer-facing fixes found by the packed-package test: relationship decorators accept the related class
+  itself (as the README always showed — it threw `Class constructor cannot be invoked without 'new'`) as well
+  as a `() => Class` thunk; decorator signatures type check as legacy property decorators (every
+  `@Column()` was TS1240 in a consumer); `@HasMany`'s inverse side is optional, as at runtime; the emitted
+  `LazyPromise` and `HasManyArray` declarations are valid under `strict` with `skipLibCheck: false`
 - TypeScript throughout, type checked across every package's `src/`
-- CI on Node 22/24 with a postgres service, browser tests, format and build verification
+- CI on Node 22/24 with a postgres service, browser tests, format and a packed-package consumer test

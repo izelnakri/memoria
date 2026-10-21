@@ -121,8 +121,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  build:
-    name: Build packages
+  package:
+    name: Packed packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -131,9 +131,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Build all packages
-        run: npm run build
-      # NOTE: the build flips package.json entry points between src/ and dist/. Catching a dirty
-      # tree here keeps a half-toggled package.json from being committed by accident.
-      - name: Assert build left no uncommitted changes
-        run: git diff --exit-code
+      # NOTE: builds, packs every dist/, installs the tarballs into a scratch project and type checks +
+      # runs test/release/consumer.ts there -- the packages as npm users get them, with only their
+      # declared dependencies installed.
+      - name: Test the packed packages as a consumer
+        run: npm run test:release

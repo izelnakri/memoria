@@ -1,0 +1,16 @@
+{
+  // The consumer's view of memoria: what a project installing the published packages compiles with.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "experimentalDecorators": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "skipLibCheck": false,
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"],
+    "outDir": "dist"
+  },
+  "files": ["consumer.ts"]
+}

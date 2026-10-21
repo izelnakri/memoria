@@ -1,4 +1,4 @@
-import setupRESTModels from "@memoria/adapters/test/helpers/models-with-relations/rest/id/index.js";
+import setupRESTModels from "../../adapters/test/helpers/models-with-relations/rest/id/index.js";
 import Model, { Changeset, PrimaryGeneratedColumn, Column, InstanceDB } from "@memoria/model";
 import { module, test } from "qunitx";
 import setupMemoria from "./helpers/setup-memoria.js";

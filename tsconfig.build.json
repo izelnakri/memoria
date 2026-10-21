@@ -1,0 +1,13 @@
+{
+  // Declaration emit for `node scripts/build.ts`: the same files the type checker covers, emitted
+  // into tmp/types and copied into each package's dist/ from there.
+  "extends": "./tsconfig.typecheck.json",
+  "compilerOptions": {
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    "rootDir": "packages",
+    "outDir": "tmp/types"
+  }
+}

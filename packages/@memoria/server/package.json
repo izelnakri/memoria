@@ -2,19 +2,35 @@
   "name": "@memoria/server",
   "type": "module",
   "version": "0.0.33",
-  "description": "",
-  "author": "Izel Nakri",
+  "description": "In-browser HTTP mock server built on Pretender",
+  "author": "Izel Nakri <contact@izelnakri.com>",
   "license": "MIT",
-  "main": "src/index.ts",
-  "files": [
-    "dist/*"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/izelnakri/memoria.git",
+    "directory": "packages/@memoria/server"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./setup-dom": "./src/setup-dom.ts"
+  },
   "dependencies": {
+    "@memoria/model": "0.0.33",
+    "fake-xml-http-request": "^2.1.2",
     "inflected": "^2.1.0",
     "kleur": "4.1.5",
-    "fake-xml-http-request": "^2.1.2",
     "pretender": "^3.4.7",
-    "route-recognizer": "^0.3.4",
-    "jsdom": "22.1.0"
+    "route-recognizer": "^0.3.4"
+  },
+  "peerDependencies": {
+    "jsdom": ">=22.0.0"
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    }
   }
 }

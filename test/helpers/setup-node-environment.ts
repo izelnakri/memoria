@@ -5,7 +5,7 @@
 // up explicitly. Pretender (via @memoria/server) reads `self` at module-evaluation time, which means
 // this has to run before the first import of @memoria/server -- hence `--import` rather than an
 // in-suite hook.
-import setupDom from "@memoria/server/src/setup-dom.js";
+import setupDom from "@memoria/server/setup-dom";
 
 if (!globalThis.window) {
   await setupDom();

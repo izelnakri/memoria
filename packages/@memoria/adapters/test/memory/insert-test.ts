@@ -1,7 +1,7 @@
 import { module, test } from "qunitx";
 import { InstanceDB, InsertError, RuntimeError, RelationshipDB } from "@memoria/model";
 import setupMemoria from "../helpers/setup-memoria.js";
-import wait from "@memoria/model/test/helpers/wait.js";
+import wait from "../../../model/test/helpers/wait.js";
 import FIXTURES from "../helpers/fixtures/mix/index.js";
 import generateModels from "../helpers/models-with-relations/memory/mix/index.js";
 import generateIDModels from "../helpers/models-with-relations/memory/id/index.js";

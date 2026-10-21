@@ -34,7 +34,7 @@ state can be introspected and every behaviour tested, so it does not compromise 
 speed, extensibility, runtime performance or debuggability.
 
 > **Status:** pre-1.0 and under active development. The MemoryAdapter, RESTAdapter and SQLAdapter share one
-> CRUD + relationship suite: 842 tests in Node, 726 in the browser. See [MILESTONES.md](MILESTONES.md) for
+> CRUD + relationship suite: 844 tests in Node, 727 in the browser. See [MILESTONES.md](MILESTONES.md) for
 > what works, what is missing, and what is next.
 
 ## Principles
@@ -167,12 +167,22 @@ class Photo extends Model {
 }
 ```
 
+Every relationship needs its reverse declared, so `User` has the other side:
+
+```ts
+class User extends Model {
+  // ...
+
+  @HasMany(() => Photo) // NOTE: a function returning the class works too, and breaks circular imports
+  photos;
+}
+```
+
 ```ts
 let user = await User.insert({ firstName: "Izel" });
 let photo = Photo.build({ owner: user });
 
 photo.owner_id; // 1 -- derived from the assignment
-user.photos; // HasManyArray containing photo, if User declares @HasMany(Photo)
 ```
 
 Unfetched relationships resolve lazily and are awaitable:
@@ -230,7 +240,9 @@ export default function () {
 
   this.get("/users", async (request) => {
     if (request.queryParams.filter === "is_active") {
-      return { users: User.serializer(await User.findAll({ is_active: true })) };
+      return {
+        users: User.serializer(await User.findAll({ is_active: true })),
+      };
     }
 
     return Response(422, { error: "filter is required" });
@@ -253,7 +265,9 @@ export default function () {
   this.delete("/users/:id", User);
 
   // Other hosts can be mocked too, and real ones let through:
-  this.get("https://api.github.com/users/:username", (request) => ({ login: request.params.username }));
+  this.get("https://api.github.com/users/:username", (request) => ({
+    login: request.params.username,
+  }));
   this.passthrough("https://api.stripe.com");
 }
 ```
@@ -339,12 +353,13 @@ npm test               # node suite, then browser suite
 
 | Command                   | What it does                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------- |
-| `npm run test:node`       | 842 tests on `node:test` (model + all three adapters)                           |
-| `npm run test:browser`    | 726 tests in headless chromium (model, memory, REST, server)                    |
+| `npm run test:node`       | 844 tests on `node:test` (model + all three adapters)                           |
+| `npm run test:browser`    | 727 tests in headless chromium (model, memory, REST, server)                    |
 | `npm run test:node:watch` | node suite in watch mode                                                        |
 | `npm run typecheck`       | `tsc --noEmit` over every package's `src/`                                      |
 | `npm run format`          | prettier check (`format:fix` to write)                                          |
-| `npm run build`           | compile all packages to `dist/`                                                 |
+| `npm run build`           | build every package into its publishable `dist/`                                |
+| `npm run test:release`    | pack, install and type check the packages as a consumer                         |
 | `npm run sketchpad`       | run `sketchpad.ts`, a scratch file for trying the API (`-- --sql` for postgres) |
 
 The two suites cover different ground on purpose. The browser run includes `@memoria/server` and

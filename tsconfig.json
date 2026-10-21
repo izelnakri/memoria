@@ -13,7 +13,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "declaration": true,
     "outDir": "./dist",
@@ -22,7 +22,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "baseUrl": "./",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
@@ -38,14 +37,6 @@
     "skipDefaultLibCheck": true,
 
     "newLine": "LF",
-
-    "paths": {
-      "@memoria/adapters": ["packages/@memoria/adapters/src"],
-      "@memoria/adapters/sql": ["packages/@memoria/adapters/src/sql/index.ts"],
-      "@memoria/model": ["packages/@memoria/model/src"],
-      "@memoria/response": ["packages/@memoria/response/src"],
-      "@memoria/server": ["packages/@memoria/server/src"]
-    },
 
     "types": ["node"]
   },
