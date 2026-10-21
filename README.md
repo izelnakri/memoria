@@ -367,7 +367,6 @@ packages/@memoria/model      Model base class, decorators, relationship + instan
 packages/@memoria/adapters   MemoryAdapter, RESTAdapter, SQLAdapter (subpath export), HTTP client
 packages/@memoria/response   Response helper
 packages/@memoria/server     Pretender-based HTTP mock server
-packages/@memoria/cli        `memoria` binary (console, fixture generation)
 ```
 
 The test suite is written with [qunitx](https://github.com/izelnakri/qunitx), which runs the same test files

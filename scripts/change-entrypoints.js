@@ -5,7 +5,6 @@ const TARGET_LIBRARIES = [
   "@memoria/model",
   // '@memoria/response',
   // '@memoria/server',
-  // '@memoria/cli',
 ];
 
 const TARGETING_JS = process.argv[2] === "js";

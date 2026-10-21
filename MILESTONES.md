@@ -212,17 +212,18 @@ Noted in TODO: "MemoryAdapter should be able to handle string id/bigint columns 
 
 ---
 
-## Milestone 9: CLI Package Completion
+## Milestone 9: CLI Package
 
-The CLI package exists but its current state is unclear.
+`@memoria/cli` was removed: it was the `memserver` CLI renamed in place and never finished. Its entry point
+imported `@memserver/server/dist/setup-dom.js`, a package that no longer exists, so the published 0.0.33
+could not be imported; its generators emitted `@memserver/model` imports; its tests resolved paths under
+`packages/@memserver/cli` and were not part of any suite. It is in git history (and on npm at 0.0.33).
 
 **Tasks:**
 
-- [ ] Audit existing CLI commands and determine what works
-- [ ] `memoria console` — TypeScript REPL with models loaded; verify ts-node integration
-- [ ] `memoria g fixtures $modelName` — fixture generation command; verify it works
-- [ ] Add CLI tests to main test suite (`test:cli` script already exists)
-- [ ] Document CLI installation and usage in README
+- [ ] Decide whether a CLI is wanted at all. If so, start from the current API: `memoria console` (a REPL
+      with models loaded) and `memoria g fixtures $modelName` were the useful ideas
+- [ ] Deprecate `@memoria/cli` on npm (`npm deprecate @memoria/cli "..."`) so 0.0.33 stops being installed
 
 ---
 

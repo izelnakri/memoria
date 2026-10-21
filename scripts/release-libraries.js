@@ -11,13 +11,7 @@ if (!version) {
   process.exit(1);
 }
 
-const TARGET_LIBRARIES = [
-  "@memoria/adapters",
-  "@memoria/model",
-  "@memoria/response",
-  "@memoria/server",
-  "@memoria/cli",
-];
+const TARGET_LIBRARIES = ["@memoria/adapters", "@memoria/model", "@memoria/response", "@memoria/server"];
 let PROJECT_JSON = JSON.parse((await fs.readFile(`package.json`)).toString());
 
 await Promise.all(TARGET_LIBRARIES.map((libraryName) => bumpVersion(libraryName, version, PROJECT_JSON.dependencies)));
